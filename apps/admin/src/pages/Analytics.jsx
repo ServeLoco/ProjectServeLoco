@@ -88,6 +88,12 @@ export default function Analytics() {
   const { areaId: selectedAreaId } = useAreaStore() || {};
   // areaId (string) → that area's newest snapshot. See combineLiveSnapshots.
   const [liveByArea, setLiveByArea] = useState({});
+  // Bumped when a name lookup resolves. `live` is a useMemo over liveByArea,
+  // so there is no setter to poke — the old code called a setLive() that
+  // stopped existing when the per-area refactor landed, and the resulting
+  // ReferenceError was swallowed by the .catch() below, leaving every row
+  // stuck on "User <id>" forever.
+  const [, bumpResolvedNames] = useState(0);
   const [socketConnected, setSocketConnected] = useState(false);
   const [summary, setSummary] = useState(null);
   const [products, setProducts] = useState(null);
@@ -190,7 +196,7 @@ export default function Analytics() {
       CustomersApi.get(id).then(res => {
         const c = res?.data;
         nameCacheRef.current[id] = { name: c?.name, phone: c?.phone };
-        setLive(prev => (prev ? { ...prev } : prev)); // trigger re-render with resolved name
+        bumpResolvedNames(n => n + 1); // re-render so the resolved name replaces "User <id>"
       }).catch(() => {});
     });
   }, [live]);

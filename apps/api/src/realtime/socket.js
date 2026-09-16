@@ -110,6 +110,41 @@ const authenticateSocket = async (socket, next) => {
   return next();
 };
 
+// Best-effort area for ANALYTICS ATTRIBUTION ONLY — never for room
+// membership. Mirrors resolveCustomerArea's no-pin fallback chain
+// (users.last_area_id, then the default area).
+//
+// This chain used to decide which `customers:<areaId>` room a socket joined,
+// and was removed for good reason: it put a customer standing in area 2 into
+// area 1's broadcast room because that is where they last ordered, leaking
+// another team's pushes. Rooms still refuse to guess — joinAreaRoom waits for
+// a real pin.
+//
+// Presence is a different question. A customer whose areaId is null matches
+// NO per-area snapshot (getLiveSnapshot filters `entry.areaId !== areaId`),
+// so with nothing to stand in they became invisible in every admin view,
+// including "All areas", and their analytics_sessions doc was written
+// unattributed — which is exactly what happened the moment this deployed:
+// the live panel read 0 with customers online and area-filtered history
+// stopped at the deploy. A guess that setPresenceArea corrects the moment
+// the pin resolves beats being invisible.
+const resolveAreaIdForSocketUser = async (userId) => {
+  try {
+    const { getUserState } = require('../utils/userState');
+    const state = await getUserState(userId);
+    if (state?.lastAreaId) return state.lastAreaId;
+  } catch (_) {
+    // fall through to default area
+  }
+  try {
+    const { getDefaultArea } = require('../utils/areaScope');
+    const defaultArea = await getDefaultArea();
+    return defaultArea ? defaultArea.id : null;
+  } catch (_) {
+    return null;
+  }
+};
+
 // Rooms are per-area (§3.5) so a zone/settings/order broadcast in area 2
 // never reaches an area 1 socket. `customer:<userId>` stays global — it's
 // identity-scoped, not area-scoped. A socket that hasn't resolved an area
@@ -285,7 +320,7 @@ const initRealtime = (server) => {
       // (guarded by the same NODE_ENV!=='test' check) — reuse it here instead of
       // querying users.last_area_id twice per connection.
       joinAreaRoom(socket)
-        .then(() => {
+        .then(async () => {
           // joinAreaRoom resolves a MySQL lookup, so the socket can already be
           // gone by the time we get here — its 'disconnect' would have fired
           // before the entry existed, and adding it now means opening a session
@@ -298,7 +333,14 @@ const initRealtime = (server) => {
             role: auth.role,
             platform,
             appVersion,
-            areaId: socket.data.areaId || null,
+            // socket.data.areaId is set only once a real pin arrives. Until
+            // then attribute the session to the customer's last known area
+            // rather than to nothing — see resolveAreaIdForSocketUser. The
+            // app only emits 'area:changed' when the resolved area DIFFERS
+            // from the one it has stored, so a returning customer opening
+            // the app in their usual area never emits it at all and would
+            // otherwise stay unattributed for the whole session.
+            areaId: socket.data.areaId || await resolveAreaIdForSocketUser(auth.id),
           });
         })
         .catch(() => {});

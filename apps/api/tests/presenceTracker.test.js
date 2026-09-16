@@ -138,6 +138,24 @@ describe('createPresenceTracker', () => {
     expect(deps.emitToAdmins).not.toHaveBeenCalled();
   });
 
+  // Why socket.js must attribute an area at connect instead of leaving it
+  // null: an unattributed customer is not "visible under All areas" — the
+  // admin panel merges the PER-AREA snapshots, and this entry is in none of
+  // them. Production ran this way after the multi-area deploy and the live
+  // panel read 0 with customers online.
+  it('a null-area customer is invisible in every per-area snapshot', async () => {
+    const deps = makeDeps();
+    const t = createPresenceTracker(deps);
+    await t.addPresence('s1', { userId: 5, role: 'customer', platform: 'android', areaId: 1 });
+    await t.addPresence('s2', { userId: 6, role: 'customer', platform: 'android' }); // no area
+
+    expect(t.getLiveSnapshot(1).online).toBe(1);
+    expect(t.getLiveSnapshot(2).online).toBe(0);
+    // Only the unscoped view sees them, and nothing emits that one.
+    expect(t.getLiveSnapshot().online).toBe(2);
+    expect(t.getLiveSnapshot().byArea).toMatchObject({ 1: 1, unknown: 1 });
+  });
+
   it('getLiveSnapshot returns empty/zero state when nobody is online', () => {
     const deps = makeDeps();
     const t = createPresenceTracker(deps);
