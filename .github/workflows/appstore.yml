@@ -210,6 +210,44 @@ jobs:
           # and releasing stay manual in App Store Connect.
           eas submit --platform ios --latest --non-interactive
 
+      # ─── Persist the version EAS actually used ─────────────────────────────
+      # autoIncrement bumps the version inside EAS's cloud checkout, which
+      # never comes back here — so app.json kept proposing a number Google
+      # Play already had and every release died on "You've already submitted
+      # this version" (burned 37, burned 39). Read what the finished build
+      # used and write it back. [skip ci] so this bookkeeping commit does not
+      # re-trigger the whole pipeline.
+      - name: Persist the version EAS used
+        if: needs.detect-bump.outputs.bump == 'major'
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          CODE=$(eas build:list --platform ios --limit 1 --status finished --json --non-interactive \
+            | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{const b=JSON.parse(s)[0];process.stdout.write(String(b.appBuildVersion||''))}catch(e){process.stdout.write('')}})")
+          if [ -z "$CODE" ]; then
+            echo "::warning::could not read the build version from EAS — buildNumber left as-is"
+            exit 0
+          fi
+          CODE="$CODE" node -e "
+            const fs=require('fs');
+            const p='app.json';
+            const j=JSON.parse(fs.readFileSync(p,'utf8'));
+            j.expo.ios.buildNumber = String(process.env.CODE);
+            fs.writeFileSync(p, JSON.stringify(j,null,2)+'\n');
+          "
+          if git diff --quiet -- app.json; then
+            echo "app.json already records $CODE — nothing to persist"
+            exit 0
+          fi
+          git add app.json
+          git commit -m "chore: record ios buildNumber $CODE used by EAS [skip ci]"
+          git push origin HEAD:main || {
+            echo "::warning::could not push the version bump back to main (branch protection?) — app.json still says the old value, next release will collide"
+            exit 0
+          }
+
       - name: Clean up App Store Connect API key
         if: always()
         run: rm -f /tmp/asc-api-key.p8
