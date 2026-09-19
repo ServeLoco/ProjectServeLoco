@@ -325,6 +325,26 @@ jobs:
             done
             [ "$ok" = "1" ] || rollback_and_fail "API failed /health after deploy of $IMAGE_TAG"
 
+            # /health only proves the databases answer. Phone login also needs
+            # the Firebase key, and without it every OTP login fails while
+            # /health stays green. A dummy token must come back 401 (key
+            # loaded, token rejected); a 500 "Firebase is not configured" means
+            # the key is missing or unreadable inside the container.
+            fb=0
+            code=000
+            for _ in 1 2 3 4 5; do
+              code=$(curl -s -o /dev/null -m 10 -w '%{http_code}' -X POST \
+                -H 'Host: api.serveloco.app' -H 'Content-Type: application/json' \
+                -d '{"idToken":"deploy-smoke-test"}' \
+                http://localhost/api/auth/firebase-verify || true)
+              if [ "$code" = "401" ]; then
+                fb=1
+                break
+              fi
+              sleep 3
+            done
+            [ "$fb" = "1" ] || rollback_and_fail "Firebase login check failed after deploy of $IMAGE_TAG (HTTP $code, expected 401) — is apps/api/firebase-service-account.json present and valid on the server?"
+
             echo "$IMAGE_TAG" > .deploy-tag
             # Old SHA-tagged layers accumulate fast on a small Lightsail disk.
             docker image prune -f
