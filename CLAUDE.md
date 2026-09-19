@@ -19,6 +19,7 @@ VillKro (ProjectServeLoco) — a grocery / food delivery platform monorepo. Each
 ```bash
 npm run dev            # nodemon, APP_ENV=development, http://localhost:3000
 npm test               # jest (uses tests/__mocks__; no live DB needed)
+RUN_DB_TESTS=1 npm test   # also runs tests/integration/* against a real MySQL
 npx jest tests/cartOrder.test.js          # single test file
 npx jest -t "order status"                # tests matching a name
 npm run lint           # eslint
@@ -59,7 +60,9 @@ npm test         # jest
 
 ## CI
 
-GitHub Actions per app: `ci.yml` (API tests + lint), `ci-admin.yml`, `ci-customer-app.yml`, plus `deploy.yml` and `playstore.yml`. Deployment steps are documented in `plans/deploymentfinallast.md`.
+GitHub Actions per app: `ci.yml` (API tests + lint), `ci-admin.yml`, `ci-customer-app.yml`, plus `deploy.yml` and `playstore.yml`.
+
+`ci.yml` runs the API suite with `RUN_DB_TESTS=1` against its MySQL service container, which enables `apps/api/tests/integration/*` — the concurrency tests for the coupon `FOR UPDATE` lock, the compare-and-set 409s and the `idx_orders_idempotency` unique index. Those are database guarantees, so they need a real server; every other test file mocks `src/db/mysql`. They skip without the flag so `npm test` still needs no database locally. See `apps/api/tests/helpers/realMysql.js`. Deployment steps are documented in `plans/deploymentfinallast.md`.
 
 ## Subagent routing (`.claude/agents/`)
 

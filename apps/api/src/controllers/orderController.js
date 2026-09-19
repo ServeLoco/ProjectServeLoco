@@ -954,5 +954,11 @@ module.exports = {
   getOrders,
   getOrderById,
   cancelOrder,
-  generateOrderNumber
+  generateOrderNumber,
+
+  // Exported for testing (same rationale as utils/coupons.js's helper block):
+  // tests/integration/mysqlConcurrency.test.js drives this against a real
+  // MySQL to check the coupon lock actually serializes two checkouts, which
+  // is unobservable through a mocked pool.
+  recheckUsageUnderLock,
 };
