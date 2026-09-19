@@ -1,6 +1,6 @@
 const mysqlDB = require('./mysql');
 const mongoDB = require('./mongodb');
-const { ensureAnalyticsIndexes } = require('../services/analytics/collections');
+const { ensureAnalyticsIndexes, verifyAnalyticsTtls } = require('../services/analytics/collections');
 const { migrate } = require('./migrate');
 const logger = require('../utils/logger');
 
@@ -42,6 +42,16 @@ const initDB = async () => {
     logger.info('Analytics indexes ensured');
   } catch (error) {
     logger.error('[analytics] ensureAnalyticsIndexes failed:', error.message);
+  }
+
+  // Separate from the block above, and deliberately so: ensureAnalyticsIndexes
+  // reports what it tried to do, this reports what the server actually has.
+  // Expiry is the only thing bounding these collections, so a silent failure
+  // above must not read as success.
+  try {
+    await verifyAnalyticsTtls(mongoDB.getDb());
+  } catch (error) {
+    logger.error('[analytics] could not read back the TTL indexes:', error.message);
   }
 };
 
