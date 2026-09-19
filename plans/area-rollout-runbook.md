@@ -122,10 +122,12 @@ non-issue in production and only ever bit local dev.
 ## 02 — Release A: Deploy
 
 The production stack (`docker-compose.prod.yml`) is a single-container
-restart per service, not a rolling deploy — confirmed this session. There is
-no window where old server code runs against the already-migrated schema;
-the container fully stops, then the new one (which runs the migration
-automatically via `npm start`) comes up.
+restart per service, not a rolling deploy. There is no window where old
+server code runs against the already-migrated schema: the deploy workflow
+dumps MySQL, stops the api container, runs the migration as a one-shot
+container from the new image, and only then starts the new API. A failed
+migration stops the deploy and restores the previous release; the dump is
+kept on the box under `~/backups/`.
 
 ### 2.1 — Announce a short maintenance window
 
@@ -136,12 +138,20 @@ the one real risk of this step, not the migration itself.
 
 ### 2.2 — Deploy
 
-Normally this is a push to `main`: the deploy workflow builds the images,
-pushes them to GHCR and restarts the stack on the box. To pin the release by
-hand on the box instead, name the commit's image tag:
+Normally this is a push to `main`: the deploy workflow backs up MySQL,
+builds the images, pushes them to GHCR, migrates with the API stopped and
+restarts the stack on the box. To pin the release by hand on the box
+instead, name the commit's image tag:
 
 ```bash
 IMAGE_TAG=<commit-sha> docker compose -f docker-compose.prod.yml up -d
+```
+
+That command does **not** migrate. Run the schema step explicitly when the
+release needs it:
+
+```bash
+IMAGE_TAG=<commit-sha> docker compose -f docker-compose.prod.yml run --rm --no-deps api npm run db:migrate
 ```
 
 ### 2.3 — Watch the migration run live

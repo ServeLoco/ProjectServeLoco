@@ -66,6 +66,28 @@ jobs:
           cache-dependency-path: './apps/api/package-lock.json'
       - run: npm ci
       - run: npm run lint
+      # The deploy now runs migrate.js against production as its own step, so
+      # proving it boots and is idempotent belongs in the gate ahead of it —
+      # the same two passes ci.yml does. Every test mocks src/db/mysql, so this
+      # is the only thing that exercises the real migration.
+      - name: Run DB migration (first pass)
+        run: npm run db:migrate
+        env: &migrate_env
+          NODE_ENV: development
+          JWT_SECRET: ci_jwt_secret_that_is_long_enough
+          ADMIN_OWNER_ID: ci_admin
+          ADMIN_PASSWORD: ci_test_password_123
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_PORT: 3306
+          MYSQL_DATABASE: serveloco_test
+          MYSQL_USER: root
+          MYSQL_PASSWORD: test
+          MYSQL_SSL: false
+          MONGODB_URI: mongodb://localhost:27017/
+          MONGODB_DATABASE: serveloco_images_test
+      - name: Run DB migration (second pass — must be idempotent)
+        run: npm run db:migrate
+        env: *migrate_env
       - run: npm test
         env:
           MYSQL_HOST: 127.0.0.1
@@ -170,7 +192,7 @@ jobs:
           envs: IMAGE_TAG,GHCR_USER,GHCR_TOKEN
           script_stop: true
           script: |
-            set -e
+            set -eo pipefail
             cd ~/ProjectServeLoco
             git fetch origin
             # Treat the server as a pure deployment mirror of origin/main.
@@ -195,7 +217,10 @@ jobs:
                 echo "Rolling back to $PREV_TAG"
                 IMAGE_TAG="$PREV_TAG" docker compose -f docker-compose.prod.yml up -d --remove-orphans
               else
-                echo "No previous tag recorded — leaving the stack as is for inspection."
+                # Nothing to roll back to, but the api container may have been
+                # stopped for the migration — it still holds the old image.
+                echo "No previous tag recorded — restarting whatever was running."
+                docker compose -f docker-compose.prod.yml start api || true
               fi
               docker logout ghcr.io || true
               exit 1
@@ -203,6 +228,49 @@ jobs:
 
             export IMAGE_TAG
             docker compose -f docker-compose.prod.yml pull
+
+            # ── Back up MySQL before anything can touch the schema ──────────
+            # The old API is still serving at this point, so a failure here
+            # costs nothing but the deploy. Keep the four newest dumps; this
+            # one makes five.
+            mkdir -p "$HOME/backups"
+            (ls -1t "$HOME"/backups/serveloco_*.sql.gz 2>/dev/null || true) | tail -n +5 | xargs -r rm -f
+            DUMP="$HOME/backups/serveloco_$(date -u +%Y%m%dT%H%M%SZ)_$(echo "$IMAGE_TAG" | cut -c1-7).sql.gz"
+
+            # --env-file keeps the credentials inside the container; MYSQL_PWD
+            # keeps the password out of the process list.
+            if ! docker run --rm --env-file ./apps/api/.env.production mysql:8.0 sh -c '
+                   export MYSQL_PWD="$MYSQL_PASSWORD"
+                   exec mysqldump -h "$MYSQL_HOST" -P "${MYSQL_PORT:-3306}" -u "$MYSQL_USER" \
+                     --ssl-mode=REQUIRED --single-transaction --quick \
+                     --routines --triggers --events --default-character-set=utf8mb4 \
+                     "$MYSQL_DATABASE"
+                 ' | gzip > "$DUMP"; then
+              rm -f "$DUMP"
+              docker logout ghcr.io || true
+              echo "::error::mysqldump failed — nothing was deployed and the schema is untouched"
+              exit 1
+            fi
+
+            gzip -t "$DUMP"
+            DUMP_BYTES="$(stat -c%s "$DUMP")"
+            if [ "$DUMP_BYTES" -lt 10240 ]; then
+              docker logout ghcr.io || true
+              echo "::error::backup is only $DUMP_BYTES bytes — refusing to migrate. Kept at $DUMP"
+              exit 1
+            fi
+            echo "Backup written: $DUMP ($DUMP_BYTES bytes)"
+
+            # ── Migrate with the API stopped ────────────────────────────────
+            # Old code must never run against the new schema, so the API goes
+            # down before the DDL and comes back on the new image after it.
+            # Landing, admin and the proxy keep serving throughout.
+            docker compose -f docker-compose.prod.yml stop api
+            if ! docker compose -f docker-compose.prod.yml run --rm --no-deps api npm run db:migrate; then
+              echo "The schema may be partially migrated. Backup for a manual restore: $DUMP"
+              rollback_and_fail "migration failed for $IMAGE_TAG"
+            fi
+
             # No `down` and no --force-recreate: compose restarts only the
             # services whose image tag actually changed, so landing/admin stay
             # up when just the API moves.

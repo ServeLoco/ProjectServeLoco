@@ -85,6 +85,17 @@ const migrate = async () => {
       multipleStatements: true
     });
 
+    // Only one migration may run against this database at a time. Two
+    // deploys queue behind each other in CI, but a manual `npm run db:migrate`
+    // alongside a deploy would otherwise interleave DDL. The lock is held on
+    // this connection, so it is released even if the process is killed.
+    const [lockRows] = await connection.query(
+      "SELECT GET_LOCK('villkro_migrate', 120) AS acquired"
+    );
+    if (lockRows[0]?.acquired !== 1) {
+      throw new Error('Another migration is already running (villkro_migrate lock held). Aborting.');
+    }
+
     console.log('Connected to MySQL. Running migrations...');
 
     const ensureColumn = async (tableName, columnName, columnDefinition) => {
@@ -2529,6 +2540,13 @@ const migrate = async () => {
     process.exit(1);
   } finally {
     if (connection) {
+      // end() drops the lock with the connection; releasing explicitly keeps
+      // the intent visible and covers a future change to a pooled connection.
+      try {
+        await connection.query("SELECT RELEASE_LOCK('villkro_migrate')");
+      } catch {
+        // The connection is already gone — the lock went with it.
+      }
       await connection.end();
     }
   }
