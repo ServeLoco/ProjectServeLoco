@@ -46,6 +46,26 @@ jest.mock('../src/utils/alarmSound', () => ({
   stopAlarmSound: jest.fn(),
 }));
 
+// Which surface the alarm can use is a native question (keyguard state,
+// SYSTEM_ALERT_WINDOW) — mocked so each screen/permission combination can be
+// driven explicitly. Defaults: screen on, overlay granted (the floating card
+// is the alert and the notification stays quiet).
+jest.mock('../src/utils/overlayOfferCard', () => ({
+  canShowOverlay: jest.fn().mockResolvedValue(true),
+  showOverlayOfferCard: jest.fn(),
+  hideOverlayOfferCard: jest.fn(),
+  isScreenLockedOrOff: jest.fn().mockResolvedValue(false),
+  isAlarmScreenVisible: jest.fn().mockResolvedValue(false),
+  closeAlarmScreen: jest.fn(),
+  isAppOnScreen: jest.fn().mockResolvedValue(false),
+}));
+
+const {
+  canShowOverlay,
+  isScreenLockedOrOff,
+  showOverlayOfferCard,
+} = require('../src/utils/overlayOfferCard');
+
 const {
   ALERT_TYPE_NEW_ORDER,
   ALERT_TYPE_RIDER_OFFER,
@@ -72,6 +92,9 @@ describe('orderAlarmNotifications', () => {
     jest.clearAllMocks();
     useAuthStore.setState({ shop: null, rider: null, token: null });
     AsyncStorage.getItem.mockResolvedValue(null);
+    canShowOverlay.mockResolvedValue(true);
+    isScreenLockedOrOff.mockResolvedValue(false);
+    notifee.canUseFullScreenIntent.mockResolvedValue(true);
   });
 
   afterAll(() => {
@@ -158,6 +181,83 @@ describe('orderAlarmNotifications', () => {
       // Ack is a shop-alert-only concept — rider offers have their own
       // accept/expire flow and must not call it.
       expect(shopApi.ackOrderAlert).not.toHaveBeenCalled();
+    });
+
+    // Regression: the overlay-branch rework dropped fullScreenAction for both
+    // roles, so an offer arriving on a locked or dark phone rang with nothing
+    // to accept — the floating card cannot be drawn in that state at all.
+    it('takes over a locked/dark screen with the alarm activity for a rider offer', async () => {
+      useAuthStore.setState({ shop: null, rider: { id: 7 } });
+      isScreenLockedOrOff.mockResolvedValue(true);
+
+      await displayAlarmNotification({
+        alertType: ALERT_TYPE_RIDER_OFFER, offerId: '99', orderId: '10',
+        expiresAt: new Date(Date.now() + 120000).toISOString(),
+      });
+
+      const [call] = notifee.displayNotification.mock.calls[0];
+      // A full-screen intent is ignored on the IMPORTANCE_DEFAULT quiet channel.
+      expect(call.android.channelId).toBe('serveloco-rider-offers-alarm-v5');
+      expect(call.android.fullScreenAction).toEqual({
+        id: 'default',
+        launchActivity: 'com.yashsiwach.villkro.AlarmActivity',
+      });
+      expect(call.android.lightUpScreen).toBe(true);
+    });
+
+    // AlarmActivity is the only activity declared showWhenLocked/turnScreenOn,
+    // so a shop alert routed at MainActivity would light the screen and leave
+    // the owner on their keyguard with nothing to open.
+    it('takes over a locked/dark screen with the alarm activity for a shop alert', async () => {
+      useAuthStore.setState({ shop: { id: 1 }, rider: null });
+      isScreenLockedOrOff.mockResolvedValue(true);
+
+      await displayAlarmNotification({
+        alertType: ALERT_TYPE_NEW_ORDER, orderId: '10', orderNumber: 'O-10',
+      });
+
+      const [call] = notifee.displayNotification.mock.calls[0];
+      expect(call.android.channelId).toBe('serveloco-orders-alarm-v5');
+      expect(call.android.fullScreenAction).toEqual({
+        id: 'default',
+        launchActivity: 'com.yashsiwach.villkro.AlarmActivity',
+      });
+      // Tapping the banner itself still opens the full app, where the
+      // dashboard's own confirm sheet is waiting.
+      expect(call.android.pressAction.launchActivity).toBe('default');
+    });
+
+    it('stays quiet on a locked screen when the OS has revoked full-screen intent', async () => {
+      useAuthStore.setState({ shop: null, rider: { id: 7 } });
+      isScreenLockedOrOff.mockResolvedValue(true);
+      notifee.canUseFullScreenIntent.mockResolvedValue(false);
+
+      await displayAlarmNotification({
+        alertType: ALERT_TYPE_RIDER_OFFER, offerId: '99', orderId: '10',
+        expiresAt: new Date(Date.now() + 120000).toISOString(),
+      });
+
+      const [call] = notifee.displayNotification.mock.calls[0];
+      expect(call.android.fullScreenAction).toBeUndefined();
+    });
+
+    // Screen on, but "draw over other apps" was never granted (or the binary
+    // predates the overlay module): the quiet channel shows nothing at all, so
+    // the alert would be audible and invisible without this fallback.
+    it('falls back to a heads-up banner when the overlay card cannot be drawn', async () => {
+      useAuthStore.setState({ shop: null, rider: { id: 7 } });
+      canShowOverlay.mockResolvedValue(false);
+
+      await displayAlarmNotification({
+        alertType: ALERT_TYPE_RIDER_OFFER, offerId: '99', orderId: '10',
+        expiresAt: new Date(Date.now() + 120000).toISOString(),
+      });
+
+      const [call] = notifee.displayNotification.mock.calls[0];
+      expect(call.android.channelId).toBe('serveloco-rider-offers-alarm-v5');
+      // Still no takeover — the screen is on and the rider is using the phone.
+      expect(call.android.fullScreenAction).toBeUndefined();
+      expect(showOverlayOfferCard).not.toHaveBeenCalled();
     });
 
     it('skips re-displaying the same offer within the dedupe window (server reminder resend)', async () => {

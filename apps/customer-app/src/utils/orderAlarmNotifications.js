@@ -14,7 +14,9 @@ import notifee, {
   EventType,
 } from '@notifee/react-native';
 import {
+  ORDER_ALARM_CHANNEL_ID,
   ORDER_ALARM_QUIET_CHANNEL_ID,
+  RIDER_OFFER_ALARM_CHANNEL_ID,
   RIDER_OFFER_QUIET_CHANNEL_ID,
   createNotifeeAlarmChannels,
 } from '../hooks/useLocalNotifications';
@@ -34,10 +36,13 @@ import {
   isAppOnScreen,
 } from './overlayOfferCard';
 
-// Rider offers only — launched from the alarm notification's press/full-screen
-// action instead of MainActivity so a cold, locked device boots straight into
-// the minimal Accept/Reject+total card (no nav stack, no Mapbox) instead of
-// the full app. See index.js's AppRegistry.registerComponent('alarm', ...).
+// Launched from the alarm notification's press/full-screen action instead of
+// MainActivity so a cold, locked device boots straight into the minimal order
+// card (no nav stack, no Mapbox) instead of the full app. It is also the only
+// activity declared showWhenLocked/turnScreenOn, so it is the only thing a
+// full-screen intent can actually put in front of a keyguard — MainActivity
+// would light the screen and leave the owner staring at their lock screen.
+// See index.js's AppRegistry.registerComponent('alarm', ...).
 const ALARM_ACTIVITY = 'com.yashsiwach.villkro.AlarmActivity';
 
 // Stable notification ids so cancel-on-open can silence a still-ringing alarm.
@@ -240,9 +245,11 @@ export async function ensureBackgroundCustomerToken() {
 /**
  * Shop/rider gate for alarms: seed Zustand from disk when headless cold-start
  * has not rehydrated yet (otherwise displayAlarmNotification no-ops).
+ * Exported for the alarm root, which cold-starts in its own activity and has
+ * to know which role it is rendering for before it can fetch anything.
  * @returns {Promise<{ shop: object|null, rider: object|null }>}
  */
-async function ensureShopOrRiderSession() {
+export async function ensureShopOrRiderSession() {
   let { shop, rider, token, user, profile, isAuthenticated } = useAuthStore.getState();
   if (shop || rider) {
     return { shop, rider };
@@ -369,21 +376,49 @@ export async function displayAlarmNotification(data) {
       : (isRider
         ? 'Check the offer card to accept or reject.'
         : 'Check the order card to accept or reject.');
-    // Neither role ever takes over the screen: no fullScreenAction anywhere.
-    // A locked phone rings and vibrates only, and the offer/order card appears
-    // once unlocked (the overlay module holds it until then) — no UI on the
-    // lock screen, which is both what was asked for and the safer position
-    // under Play's full-screen-intent policy.
+    // Which surface can actually show this alert decides how loud the
+    // notification has to be. Three states, only one of them quiet:
     //
-    // One quiet channel per role: audible and buzzing, but never a heads-up
-    // banner and never visible on the lock screen.
-    const channelId = isRider
-      ? RIDER_OFFER_QUIET_CHANNEL_ID
-      : ORDER_ALARM_QUIET_CHANNEL_ID;
+    //  - screen off / locked  → nothing can be drawn over a dark or locked
+    //    phone, so the full-screen alarm activity is the only surface there
+    //    is. Without it the alert is audible and invisible: the phone rings,
+    //    the rider wakes it, and there is nothing to accept.
+    //  - screen on, overlay granted → the floating card is the alert. The
+    //    notification stays quiet so it does not compete with it (this is the
+    //    intended no-hijack behavior and it is unchanged).
+    //  - screen on, overlay NOT granted (never allowed, revoked, or an older
+    //    binary without the module) → the quiet channel shows nothing at all,
+    //    so fall back to an ordinary heads-up banner rather than ringing at a
+    //    rider with no way to see the offer.
+    const screenLockedOrOff = await isScreenLockedOrOff();
+    const overlayGranted = await canShowOverlay();
+    let canFullScreen = true;
+    try {
+      if (typeof notifee.canUseFullScreenIntent === 'function') {
+        canFullScreen = await notifee.canUseFullScreenIntent();
+      }
+    } catch {
+      canFullScreen = true;
+    }
+    // Attached only while the device is locked or dark — that is the one state
+    // where taking over the screen is the alert rather than a hijack, and the
+    // one Android will auto-launch it in anyway.
+    const useFullScreen = screenLockedOrOff && canFullScreen;
+    const useHeadsUp = !screenLockedOrOff && !overlayGranted;
+    // A full-screen intent is ignored on an IMPORTANCE_DEFAULT channel, and so
+    // is a heads-up banner — both need the loud channel, which is why the quiet
+    // one is reserved for the case where the floating card is doing the work.
+    const loud = useFullScreen || useHeadsUp;
+    const channelId = loud
+      ? (isRider ? RIDER_OFFER_ALARM_CHANNEL_ID : ORDER_ALARM_CHANNEL_ID)
+      : (isRider ? RIDER_OFFER_QUIET_CHANNEL_ID : ORDER_ALARM_QUIET_CHANNEL_ID);
     console.warn(
-      '[orderAlarm] quiet alarm',
+      '[orderAlarm]', loud ? 'loud alarm' : 'quiet alarm',
       isRider ? 'rider' : 'order',
-      'screenLockedOrOff=', await isScreenLockedOrOff(),
+      'screenLockedOrOff=', screenLockedOrOff,
+      'overlayGranted=', overlayGranted,
+      'canFullScreen=', canFullScreen,
+      'useFullScreen=', useFullScreen,
     );
 
     // Google Play FGS policy requires the alert to run only as long as
@@ -397,12 +432,13 @@ export async function displayAlarmNotification(data) {
 
     const android = {
       channelId,
-      // MESSAGE, not CALL: CALL makes ColorOS treat this as an incoming call,
-      // lighting the display and dismissing an insecure keyguard — exactly the
-      // lock-screen takeover that was asked to stop, for both roles.
-      category: AndroidCategory.MESSAGE,
-      importance: AndroidImportance.DEFAULT,
-      visibility: AndroidVisibility.SECRET,
+      // CALL only for the locked/dark case: ColorOS treats it as an incoming
+      // call and lights the display, which is what has to happen for the offer
+      // card to be seen at all. With the screen already on that same behavior
+      // is the hijack riders complained about, so it stays MESSAGE there.
+      category: useFullScreen ? AndroidCategory.CALL : AndroidCategory.MESSAGE,
+      importance: loud ? AndroidImportance.HIGH : AndroidImportance.DEFAULT,
+      visibility: loud ? AndroidVisibility.PUBLIC : AndroidVisibility.SECRET,
       // Rider offers open the lightweight alarm card (no nav/map); shop orders
       // open the app, where the dashboard's own popup is waiting.
       pressAction: { id: 'default', launchActivity: isRider ? ALARM_ACTIVITY : 'default' },
@@ -423,6 +459,18 @@ export async function displayAlarmNotification(data) {
       // compliance (see ringTimeoutAt above). Android fires DISMISSED at this
       // time even if the user never touches the notification.
       timeoutAfter: ringTimeoutAt,
+      // Wake the display along with the full-screen card — a turnScreenOn
+      // activity alone loses the race on some OEMs when the process is cold.
+      ...(useFullScreen ? { lightUpScreen: true } : {}),
+      // Both roles land on the lightweight card, which is the only activity
+      // that can draw over a keyguard. Riders accept or reject straight from
+      // it; shop owners get one "Open app" button, because confirming an order
+      // needs the item list and delivery window only the in-app sheet has.
+      ...(useFullScreen
+        ? {
+          fullScreenAction: { id: 'default', launchActivity: ALARM_ACTIVITY },
+        }
+        : {}),
     };
 
     await notifee.displayNotification({
@@ -462,8 +510,7 @@ export async function displayAlarmNotification(data) {
     // unlocked when locked or dark. No-ops when "draw over other apps" was
     // never granted.
     try {
-      const granted = await canShowOverlay();
-      if (granted) {
+      if (overlayGranted) {
         const expiresAt = data.expiresAt || data.expires_at;
         // Shop orders have no server-side expiry — tie the card's own lifetime
         // to the ring cap so it can't outlive the alarm that announced it.

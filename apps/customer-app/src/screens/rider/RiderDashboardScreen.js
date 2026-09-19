@@ -15,6 +15,7 @@ import {
   View,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import notifee from '@notifee/react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, typography, radius, shadows } from '../../theme';
@@ -45,6 +46,11 @@ import RiderOfferPopup from './RiderOfferPopup';
 // Not re-nagged every load once dismissed — the rider can still grant it
 // later from the OS Settings screen `requestOverlayPermission()` opens.
 const OVERLAY_BANNER_DISMISSED_KEY = 'serveloco:overlayBannerDismissed';
+// Android 14 stopped auto-granting USE_FULL_SCREEN_INTENT to apps that are not
+// dialers or alarm clocks, and revoked it on upgrade. Without it the offer
+// alarm still rings on a locked phone but the Accept/Reject card never opens —
+// audible and invisible, which is the whole point of this prompt.
+const FULLSCREEN_BANNER_DISMISSED_KEY = 'serveloco:fullScreenIntentBannerDismissed';
 
 
 function offerIdOf(o) {
@@ -103,6 +109,7 @@ export default function RiderDashboardScreen({ navigation }) {
   const [error, setError] = useState(null);
   const [selectedJobId, setSelectedJobId] = useState(null);
   const [overlayBannerVisible, setOverlayBannerVisible] = useState(false);
+  const [fullScreenBannerVisible, setFullScreenBannerVisible] = useState(false);
   const activeOffer = offerQueue[0] || null;
   // Featured job card — whichever the rider picked from the queue chips,
   // falling back to the first assignment (also covers the single-job case).
@@ -141,6 +148,42 @@ export default function RiderDashboardScreen({ navigation }) {
   const dismissOverlayBanner = useCallback(() => {
     setOverlayBannerVisible(false);
     AsyncStorage.setItem(OVERLAY_BANNER_DISMISSED_KEY, '1').catch(() => {});
+  }, []);
+
+  // Same shape for the lock-screen takeover. Re-checked on every focus rather
+  // than once on mount: granting it means leaving for an OS settings screen and
+  // coming back, and a banner still sitting there afterwards reads as broken.
+  useFocusEffect(
+    useCallback(() => {
+      if (Platform.OS !== 'android') return undefined;
+      let cancelled = false;
+      (async () => {
+        const dismissed = await AsyncStorage
+          .getItem(FULLSCREEN_BANNER_DISMISSED_KEY)
+          .catch(() => null);
+        if (dismissed || cancelled) return;
+        let granted = true;
+        try {
+          if (typeof notifee.canUseFullScreenIntent === 'function') {
+            granted = await notifee.canUseFullScreenIntent();
+          }
+        } catch {
+          // Older binary without the API — nothing to ask for.
+          granted = true;
+        }
+        if (!cancelled) setFullScreenBannerVisible(!granted);
+      })();
+      return () => { cancelled = true; };
+    }, []),
+  );
+
+  const requestFullScreenPermission = useCallback(() => {
+    notifee.openFullScreenIntentSettings?.().catch(() => {});
+  }, []);
+
+  const dismissFullScreenBanner = useCallback(() => {
+    setFullScreenBannerVisible(false);
+    AsyncStorage.setItem(FULLSCREEN_BANNER_DISMISSED_KEY, '1').catch(() => {});
   }, []);
 
   // Heartbeat so the alarm notifier (which may run in Android's separate
@@ -591,6 +634,25 @@ export default function RiderDashboardScreen({ navigation }) {
               <Text style={styles.overlayBannerAllowText}>Allow</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={dismissOverlayBanner} hitSlop={8}>
+              <AppIcon name="close" size={16} color={colors.textTertiary} />
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
+        {fullScreenBannerVisible ? (
+          <View style={styles.overlayBanner}>
+            <AppIcon name="notification" size={18} color={colors.saffronDark} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.overlayBannerTitle}>Show offers on the lock screen</Text>
+              <Text style={styles.overlayBannerText}>
+                Allow full-screen alerts so a new offer wakes your phone instead
+                of only ringing.
+              </Text>
+            </View>
+            <TouchableOpacity onPress={requestFullScreenPermission} style={styles.overlayBannerAllow}>
+              <Text style={styles.overlayBannerAllowText}>Allow</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={dismissFullScreenBanner} hitSlop={8}>
               <AppIcon name="close" size={16} color={colors.textTertiary} />
             </TouchableOpacity>
           </View>
