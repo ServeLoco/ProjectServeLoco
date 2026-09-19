@@ -72,7 +72,7 @@ describe('ensureAnalyticsIndexes', () => {
     expect(calls.analytics_daily.dropIndex).toHaveBeenCalledWith('date_1');
     const dailyCalls = calls.analytics_daily.createIndex.mock.calls;
     expect(dailyCalls).toContainEqual([{ areaId: 1, date: 1 }, { unique: true }]);
-    expect(dailyCalls).toContainEqual([{ createdAt: 1 }, { expireAfterSeconds: 31536000 }]);
+    expect(dailyCalls).toContainEqual([{ createdAt: 1 }, { expireAfterSeconds: 2592000 }]);
 
     const updateManyOrder = calls.analytics_daily.updateMany.mock.invocationCallOrder[0];
     const uniqueIndexOrder = calls.analytics_daily.createIndex.mock.invocationCallOrder[
@@ -279,7 +279,7 @@ describe('analytics TTL reconciliation', () => {
     });
     expect(command).toHaveBeenCalledWith({
       collMod: 'analytics_daily',
-      index: { keyPattern: { createdAt: 1 }, expireAfterSeconds: 31536000 },
+      index: { keyPattern: { createdAt: 1 }, expireAfterSeconds: 2592000 },
     });
   });
 
@@ -341,7 +341,7 @@ describe('verifyAnalyticsTtls', () => {
     expect(results).toEqual([
       { collection: 'analytics_sessions', expected: 2592000, actual: 2592000 },
       { collection: 'analytics_events', expected: 2592000, actual: 604800 },
-      { collection: 'analytics_daily', expected: 31536000, actual: null },
+      { collection: 'analytics_daily', expected: 2592000, actual: null },
     ]);
     expect(log.error).toHaveBeenCalledWith(
       expect.stringContaining('analytics_events expires after 604800s, expected 2592000s')

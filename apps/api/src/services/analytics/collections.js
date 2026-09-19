@@ -2,6 +2,11 @@
 // All analytics data lives in MongoDB (already connected); MySQL is untouched.
 // TTL indexes auto-expire docs so the DB can never grow unbounded.
 //
+// Every collection here expires after 30 days, rollups included: Mongo holds
+// nothing this platform keeps, and nothing in it is backed up (see
+// plans/backup-and-restore.md). Anything that has to outlive a month belongs
+// in MySQL, which is what the deploy dumps.
+//
 // ensureAnalyticsIndexes is called once at startup from db/index.js AFTER Mongo
 // connect succeeds; the caller wraps it in try/catch — index failure logs an
 // error but must not crash startup (Rule 7).
@@ -10,7 +15,7 @@ const logger = require('../../utils/logger');
 
 const SESSIONS_TTL_SECONDS = 30 * 24 * 60 * 60; // 30 days = 2592000
 const EVENTS_TTL_SECONDS = 30 * 24 * 60 * 60; // 30 days = 2592000
-const DAILY_TTL_SECONDS = 365 * 24 * 60 * 60; // 1 year = 31536000
+const DAILY_TTL_SECONDS = 30 * 24 * 60 * 60; // 30 days = 2592000
 
 // Drops an index by name if it exists. MongoDB's dropIndex throws when the
 // index is already gone (e.g. a second migrate run) — swallow only that
@@ -72,7 +77,7 @@ const readEffectiveTtl = async (db, collectionName, field) => {
  * genuinely IS Area 1 data — this is a real backfill, not a fudge (§9.5).
  * Must run BEFORE the new { areaId: 1, date: 1 } unique index is created:
  * Mongo can't build a unique index over a field that doesn't exist yet on
- * old docs. Cheap (~365 docs/year), no batching needed.
+ * old docs. Cheap (~30 docs in the window), no batching needed.
  */
 const backfillDailyAreaId = async (db) => {
   const daily = db.collection('analytics_daily');

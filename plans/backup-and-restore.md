@@ -16,9 +16,8 @@ Everything worth backing up is in MySQL.
 | Analytics only — `analytics_events`, `analytics_sessions`, `analytics_daily` | MongoDB Atlas | n/a | **nothing, deliberately** |
 
 **Mongo is not backed up, on purpose.** It holds analytics and nothing else,
-and every collection in it has a TTL index — events and sessions expire after
-30 days, daily rollups after a year — so Mongo deletes its own contents on a
-schedule. Backing up data the application is actively expiring is not a
+and every collection in it has a 30-day TTL index, so Mongo deletes its own
+contents on a schedule and never holds more than the last month. Backing up data the application is actively expiring is not a
 backup, it is a way to resurrect rows something decided to drop. The `images`
 collection in `seed_demo.js` is vestigial: it is written by the demo seeder
 and read by nothing. Real image metadata is the **`images` table in MySQL**,
