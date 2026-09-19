@@ -136,8 +136,12 @@ the one real risk of this step, not the migration itself.
 
 ### 2.2 — Deploy
 
+Normally this is a push to `main`: the deploy workflow builds the images,
+pushes them to GHCR and restarts the stack on the box. To pin the release by
+hand on the box instead, name the commit's image tag:
+
 ```bash
-docker compose -f docker-compose.prod.yml up -d --build
+IMAGE_TAG=<commit-sha> docker compose -f docker-compose.prod.yml up -d
 ```
 
 ### 2.3 — Watch the migration run live
@@ -247,8 +251,11 @@ exactly what §06's observation period exists to keep small.
 
 ```bash
 git checkout main
-docker compose -f docker-compose.prod.yml up -d --build
+IMAGE_TAG=<pre-migration-commit-sha> docker compose -f docker-compose.prod.yml up -d
 ```
+
+The pre-migration images are still in GHCR under that commit's SHA, so this
+is a pull and restart — no rebuild on the box.
 
 ### 5.4 — Re-run §3.1–3.4 against the restored system
 

@@ -1,0 +1,29 @@
+# Build override for the production stack.
+#
+# Normal deploys pull pre-built images from GHCR (see docker-compose.prod.yml).
+# This file is the escape hatch for building on the box by hand when the
+# registry or the workflow is unavailable:
+#
+#   docker compose -f docker-compose.prod.yml -f docker-compose.build.yml up -d --build
+#
+# Note: building here competes with production traffic for CPU and disk, so
+# prefer re-running the deploy workflow.
+
+services:
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+
+  admin:
+    build:
+      context: ./apps/admin
+      dockerfile: Dockerfile
+      args:
+        # Vite inlines this at build time — must be the public API URL.
+        VITE_API_BASE_URL: https://api.serveloco.app/api
+
+  landing:
+    build:
+      context: ./apps/landing
+      dockerfile: Dockerfile
