@@ -1,4 +1,4 @@
-const { pool } = require('../db/mysql');
+const { pool, beginReadCommitted } = require('../db/mysql');
 
 const notificationService = require('../utils/notificationService');
 const realtimeEvents = require('../realtime/orderEvents');
@@ -157,8 +157,25 @@ const createOrder = async (req, res) => {
     headers['Idempotency-Key'] ||
     null;
 
-  const connection = await pool.getConnection();
-  await connection.beginTransaction();
+  // READ COMMITTED, not InnoDB's default REPEATABLE READ, because the coupon
+  // guard further down depends on it. Under REPEATABLE READ the first read in
+  // this transaction (the users row below) fixes a snapshot that every later
+  // plain SELECT is answered from. The coupon row is not locked until much
+  // further down, by which point validateCoupon has already counted
+  // redemptions off that snapshot — so the checkout that WAITED on the
+  // `FOR UPDATE` could not see the redemption the winner committed while it
+  // waited, recheckUsageUnderLock cleared it, and two concurrent checkouts
+  // both consumed a total_usage_limit = 1 coupon. The lock was serializing
+  // them correctly; it was guarding a read that could not see anything new.
+  //
+  // Known trade-off: READ COMMITTED takes no gap locks, so the idempotency
+  // pre-check below no longer blocks a simultaneous duplicate submit on a key
+  // that has no row yet. Both requests reach the INSERT, the unique index
+  // rejects the second, and the ER_DUP_ENTRY branch returns the same replay
+  // response — the outcome is unchanged, it just arrives through that fallback
+  // instead of the lock. Both halves are covered by
+  // tests/integration/orderConcurrency.test.js.
+  const connection = await beginReadCommitted();
 
   // The ER_DUP_ENTRY replay path releases the connection early and then
   // queries via the pool; if one of those queries throws, the outer catch
@@ -954,5 +971,11 @@ module.exports = {
   getOrders,
   getOrderById,
   cancelOrder,
-  generateOrderNumber
+  generateOrderNumber,
+
+  // Exported for testing (same rationale as utils/coupons.js's helper block):
+  // tests/integration/mysqlConcurrency.test.js drives this against a real
+  // MySQL to check the coupon lock actually serializes two checkouts, which
+  // is unobservable through a mocked pool.
+  recheckUsageUnderLock,
 };

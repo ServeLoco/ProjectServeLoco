@@ -100,6 +100,13 @@ jobs:
     - name: Run Tests
       run: npm test
       env:
+        # Opts the tests/integration/* suites in to the real MySQL service
+        # container above (see tests/helpers/realMysql.js). They are gated so
+        # `npm test` needs no database on a developer's machine; here the
+        # container is already up and migrated by the steps above, so a
+        # database that is missing or broken must fail the build loudly rather
+        # than skip the concurrency coverage silently.
+        RUN_DB_TESTS: '1'
         MYSQL_HOST: 127.0.0.1
         MYSQL_PORT: 3306
         MYSQL_DATABASE: serveloco_test
