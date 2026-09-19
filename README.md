@@ -77,10 +77,17 @@ A push to `main` runs `.github/workflows/deploy.yml`, which:
 
 1. runs CI for all three apps,
 2. builds the `api`, `admin` and `landing` images on GitHub runners and pushes them to GHCR tagged with the commit SHA,
-3. SSHes to the Lightsail box, pulls those tags and restarts only the services whose image changed,
-4. reloads nginx and then polls `/health` through the proxy.
+3. SSHes to the Lightsail box and dumps MySQL to `~/backups/` (the five newest are kept),
+4. stops the api container, runs `db:migrate` as a one-shot container from the new image, and starts the new stack — only the services whose image changed are restarted,
+5. reloads nginx and then polls `/health` through the proxy.
 
-If `/health` never comes back 200, the workflow redeploys the previous tag and fails. The last good tag is kept on the box in `.deploy-tag`.
+Migrations are **not** part of `npm start` any more, so a container restart never migrates. A failed dump stops the deploy before anything changes; a failed migration or a failed `/health` redeploys the previous tag and fails the run. The last good tag is kept on the box in `.deploy-tag`.
+
+Applying a schema change by hand, on the box:
+
+```bash
+IMAGE_TAG=<commit-sha> docker compose -f docker-compose.prod.yml run --rm --no-deps api npm run db:migrate
+```
 
 Manual rollback or pinning a release, on the box:
 

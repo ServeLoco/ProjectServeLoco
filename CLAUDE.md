@@ -43,7 +43,7 @@ npm test         # jest
 
 ## Architecture
 
-- **Dual database**: the API uses **MySQL** (primary relational data — products, orders, users) and **MongoDB** together; `apps/api/src/db/index.js` initializes both and both must be healthy. Schema changes go through `src/db/migrate.js`, which runs automatically on `npm start`.
+- **Dual database**: the API uses **MySQL** (primary relational data — products, orders, users) and **MongoDB** together; `apps/api/src/db/index.js` initializes both and both must be healthy. Schema changes go through `src/db/migrate.js`. In dev it runs from `initDB`; in production the deploy workflow runs it as its own step, after a backup and with the API stopped — it is no longer part of `npm start`, so bringing the stack up by hand applies no schema change.
 - **API layering**: `routes/ → middleware/ → controllers/ → repositories/ + services/`, with shared logic in `utils/` and request validation in `validators/`. Realtime order events (auto-accept, status pushes) live in `src/realtime/` on Socket.IO; admin subscribes via `socket.io-client`.
 - **Response shape is a contract**: many API responses intentionally duplicate fields in both camelCase and snake_case because different clients read different casings. Never remove one of the duplicates or rename response fields.
 - **Order integrity**: order creation uses `FOR UPDATE` row locking for coupon redemption and compare-and-set updates on order status/payment (server returns 409 on conflict). Don't weaken these.
