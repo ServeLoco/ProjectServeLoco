@@ -1,7 +1,8 @@
+const logger = require('../utils/logger');
 require('dotenv').config();
 
 if (process.env.NODE_ENV === 'production' && process.env.ALLOW_DEMO_SEED !== 'true') {
-  console.error('Refusing to run demo seed in production. Set ALLOW_DEMO_SEED=true to override.');
+  logger.error('Refusing to run demo seed in production. Set ALLOW_DEMO_SEED=true to override.');
   process.exit(1);
 }
 
@@ -9,7 +10,7 @@ const { pool } = require('./mysql');
 const { getDb, connect } = require('./mongodb');
 
 async function seedDemoData() {
-  console.log('Seeding demo data...');
+  logger.info('Seeding demo data...');
 
   try {
     await connect();
@@ -157,11 +158,11 @@ async function seedDemoData() {
           'flat', 50, NULL, 299, 2, NULL, 'all', NULL, NULL, 0, 0, 1, 4, 1)`
     );
 
-    console.log('Demo data seeded successfully.');
-    console.log('Test credentials: phone=9999999999 (OTP login)');
+    logger.info('Demo data seeded successfully.');
+    logger.info('Test credentials: phone=9999999999 (OTP login)');
     process.exit(0);
   } catch (err) {
-    console.error('Error seeding demo data:', err);
+    logger.error('Error seeding demo data:', err);
     process.exit(1);
   }
 }

@@ -5,6 +5,7 @@ const { validatePagination, isNumericAmount } = require('../validators');
 const { cleanupOrphanedImage } = require('./imageController');
 const { requestAreaId, bustAreaCaches } = require('../utils/areaScope');
 const { decideSearchMode } = require('../utils/search');
+const logger = require('../utils/logger');
 
 // Admin write/single-item endpoints reject null (super_admin, no
 // X-Area-Id) and 'all' — product management always targets exactly one
@@ -1056,7 +1057,7 @@ const bulkDeleteProducts = async (req, res) => {
         await cleanupOrphanedImage(imageId);
       }
     } catch (e) {
-      console.error('[bulkDeleteProducts] image cleanup error:', e.message);
+      logger.error('[bulkDeleteProducts] image cleanup error:', e.message);
     }
   }
 

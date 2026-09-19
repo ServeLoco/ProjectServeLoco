@@ -5,6 +5,7 @@ const { attachVariants } = require('./productController');
 const microCache = require('../utils/microCache');
 const { reorderDisplayOrder } = require('../utils/reorder');
 const { requestAreaId, bustAreaCaches } = require('../utils/areaScope');
+const logger = require('../utils/logger');
 // 30s meant a low-traffic area re-ran the whole multi-query dashboard build on
 // almost every request. Every mutation that can change this payload already
 // calls bustAreaCaches (which clears the 'dashboard' namespace for that area),
@@ -1236,7 +1237,7 @@ const addAdminSectionItem = async (req, res) => {
         ends_at: ends_at || null
       }, areaId);
     } catch (hydrateError) {
-      console.error('[dashboard] hydrate after add failed for item', result.insertId, hydrateError.message);
+      logger.error('[dashboard] hydrate after add failed for item', result.insertId, hydrateError.message);
     }
 
     res.status(201).json({ message: 'Dashboard section item added', id: result.insertId, data: hydratedItem });

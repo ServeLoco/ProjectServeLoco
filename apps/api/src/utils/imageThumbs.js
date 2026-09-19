@@ -9,6 +9,7 @@
  * fall back to the raw buffer when processing throws.
  */
 const sharp = require('sharp');
+const logger = require('./logger');
 
 const FULL_MAX_WIDTH = 1600;
 const THUMB_MAX_WIDTH = 320;
@@ -92,20 +93,20 @@ async function processUploadedImage(inputBuffer, sourceExt = 'jpg') {
   try {
     full = await optimizeFull(inputBuffer, sourceExt);
   } catch (err) {
-    console.error('[images] full optimize failed:', err.message);
+    logger.error('[images] full optimize failed:', err.message);
   }
 
   try {
     // Thumb from original bytes when possible (sharper than from already-compressed full).
     thumb = await generateThumb(inputBuffer);
   } catch (err) {
-    console.error('[images] thumb generation failed:', err.message);
+    logger.error('[images] thumb generation failed:', err.message);
     // Second chance: from optimized full if we have it
     if (full?.buffer) {
       try {
         thumb = await generateThumb(full.buffer);
       } catch (err2) {
-        console.error('[images] thumb from full also failed:', err2.message);
+        logger.error('[images] thumb from full also failed:', err2.message);
       }
     }
   }

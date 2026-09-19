@@ -9,6 +9,7 @@
 
 const { pool } = require('../db/mysql');
 const config = require('../config/env');
+const logger = require('../utils/logger');
 
 const SHOP_SCHEDULE_SWEEP_MS = config.SHOP_SCHEDULE_SWEEP_MS || 30000;
 const SHOP_SCHEDULE_TZ = config.SHOP_SCHEDULE_TZ || 'Asia/Kolkata';
@@ -116,7 +117,7 @@ const tick = async () => {
       await applyScheduledChange(row.id, row.area_id, false);
     }
   } catch (e) {
-    console.error('[shop-schedule-sweeper] tick failed:', e.message);
+    logger.error('[shop-schedule-sweeper] tick failed:', e.message);
   } finally {
     running = false;
   }
@@ -128,7 +129,7 @@ const startShopScheduleSweeper = () => {
     tick().catch(() => {});
   }, SHOP_SCHEDULE_SWEEP_MS);
   if (typeof timer.unref === 'function') timer.unref();
-  console.log(`[shop-schedule-sweeper] started (interval=${SHOP_SCHEDULE_SWEEP_MS}ms)`);
+  logger.info(`[shop-schedule-sweeper] started (interval=${SHOP_SCHEDULE_SWEEP_MS}ms)`);
 };
 
 const stopShopScheduleSweeper = () => {

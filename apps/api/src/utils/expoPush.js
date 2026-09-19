@@ -1,5 +1,6 @@
 const { Expo } = require('expo-server-sdk');
 const config = require('../config/env');
+const logger = require('./logger');
 
 const expo = new Expo();
 // Per-push success line is diagnostic noise at prod volume (one line per
@@ -89,7 +90,7 @@ const sendPushToUser = async (pool, userId, opts) => {
     );
     const token = rows[0]?.push_token;
     if (!token || !Expo.isExpoPushToken(token)) {
-      console.warn('[expoPush] sendPushToUser: user %s has no valid push_token — device will not get banner', userId);
+      logger.warn('[expoPush] sendPushToUser: user %s has no valid push_token — device will not get banner', userId);
       return { sent: false, reason: 'no_token' };
     }
 
@@ -97,11 +98,11 @@ const sendPushToUser = async (pool, userId, opts) => {
     const { ok, failed } = tallyTickets(tickets, 'sendPushToUser');
     await cleanupDeadTokens(pool, tickets, [token]);
     if (!isProd) {
-      console.log('[expoPush] sendPushToUser user=%s title=%j ok=%d failed=%d', userId, opts?.title, ok, failed);
+      logger.info('[expoPush] sendPushToUser user=%s title=%j ok=%d failed=%d', userId, opts?.title, ok, failed);
     }
     return { sent: ok > 0, ok, failed };
   } catch (err) {
-    console.error('[expoPush] sendPushToUser failed:', err.message);
+    logger.error('[expoPush] sendPushToUser failed:', err.message);
     return { sent: false, reason: err.message };
   }
 };
@@ -134,7 +135,7 @@ const sendPushToMany = async (pool, userIds, opts) => {
     stats.tokensFound = messages.length;
 
     if (messages.length === 0) {
-      console.warn('[expoPush] sendPushToMany: 0 of %d target users have a valid push token — no device pushes sent', userIds.length);
+      logger.warn('[expoPush] sendPushToMany: 0 of %d target users have a valid push token — no device pushes sent', userIds.length);
       return stats;
     }
 
@@ -144,7 +145,7 @@ const sendPushToMany = async (pool, userIds, opts) => {
       try {
         tickets = await expo.sendPushNotificationsAsync(chunk);
       } catch (err) {
-        console.error('[expoPush] chunk send failed:', err.message);
+        logger.error('[expoPush] chunk send failed:', err.message);
         stats.failed += chunk.length;
         continue;
       }
@@ -155,7 +156,7 @@ const sendPushToMany = async (pool, userIds, opts) => {
     }
     return stats;
   } catch (err) {
-    console.error('[expoPush] sendPushToMany failed:', err.message);
+    logger.error('[expoPush] sendPushToMany failed:', err.message);
     return stats;
   }
 };
@@ -167,7 +168,7 @@ const tallyTickets = (tickets, context) => {
   for (const ticket of tickets || []) {
     if (ticket?.status === 'error') {
       failed++;
-      console.error('[expoPush] %s ticket error: %s — %s', context, ticket.details?.error || 'unknown', ticket.message || '');
+      logger.error('[expoPush] %s ticket error: %s — %s', context, ticket.details?.error || 'unknown', ticket.message || '');
     } else {
       ok++;
     }
@@ -196,7 +197,7 @@ const cleanupDeadTokens = async (pool, tickets, tokens) => {
       }
     }
   } catch (err) {
-    console.error('[expoPush] cleanup failed:', err.message);
+    logger.error('[expoPush] cleanup failed:', err.message);
   }
 };
 
@@ -213,7 +214,7 @@ const countPushEligible = async (pool, userIds) => {
     );
     return Number(rows?.[0]?.cnt ?? 0);
   } catch (err) {
-    console.error('[expoPush] countPushEligible failed:', err.message);
+    logger.error('[expoPush] countPushEligible failed:', err.message);
     return null;
   }
 };

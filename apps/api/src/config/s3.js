@@ -1,5 +1,6 @@
 const { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
 const config = require('./env');
+const logger = require('../utils/logger');
 
 // Lazily create a single S3 client. Credentials come from env (AWS_ACCESS_KEY_ID /
 // AWS_SECRET_ACCESS_KEY) or, if those are absent, the default AWS provider chain
@@ -78,7 +79,7 @@ const deleteObject = async (key) => {
       Key: key
     }));
   } catch (e) {
-    console.error('[s3] Failed to delete object:', key, e.message);
+    logger.error('[s3] Failed to delete object:', key, e.message);
   }
 };
 

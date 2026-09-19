@@ -2,6 +2,7 @@ const mysqlDB = require('./mysql');
 const mongoDB = require('./mongodb');
 const { ensureAnalyticsIndexes } = require('../services/analytics/collections');
 const { migrate } = require('./migrate');
+const logger = require('../utils/logger');
 
 // Production (Lightsail docker): `npm start` already runs
 //   `node src/db/migrate.js && node src/server.js`
@@ -20,13 +21,13 @@ const initDB = async () => {
   if (!mysqlOk) {
     throw new Error('Failed to connect to MySQL');
   }
-  console.log('Connected to MySQL');
+  logger.info('Connected to MySQL');
 
   if (shouldMigrateInInit()) {
     try {
       await migrate();
     } catch (error) {
-      console.error('[db] migrate on startup failed:', error.message);
+      logger.error('[db] migrate on startup failed:', error.message);
       throw error;
     }
   }
@@ -38,15 +39,15 @@ const initDB = async () => {
   // as today if Mongo is degraded.
   try {
     await ensureAnalyticsIndexes(mongoDB.getDb());
-    console.log('Analytics indexes ensured');
+    logger.info('Analytics indexes ensured');
   } catch (error) {
-    console.error('[analytics] ensureAnalyticsIndexes failed:', error.message);
+    logger.error('[analytics] ensureAnalyticsIndexes failed:', error.message);
   }
 };
 
 const closeDB = async () => {
   await mysqlDB.pool.end();
-  console.log('MySQL pool closed');
+  logger.info('MySQL pool closed');
   
   await mongoDB.close();
 };

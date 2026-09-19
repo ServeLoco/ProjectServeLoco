@@ -7,6 +7,7 @@ const { pool } = require('../db/mysql');
 const { bustAreaCaches } = require('../utils/areaScope');
 const { materializeCategoryToArea, propagateCategoryLibraryEdit, LibraryError } = require('../utils/productLibrary');
 const { requireOneArea, attachImageUrls } = require('./libraryShared');
+const logger = require('../utils/logger');
 
 const shape = (row) => ({
   id: row.id,
@@ -154,7 +155,7 @@ const updateCategoryLibraryItem = async (req, res) => {
 
   if (propagation) {
     Promise.all(propagation.areaIds.map((areaId) => bustAreaCaches(areaId)))
-      .catch((err) => console.error('[categoryLibrary] post-propagation cache bust failed:', err.message));
+      .catch((err) => logger.error('[categoryLibrary] post-propagation cache bust failed:', err.message));
   }
 };
 

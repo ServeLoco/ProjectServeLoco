@@ -2,6 +2,7 @@ const { pool } = require('../db/mysql');
 const { emitToAdmins, emitToPlatformAdmins } = require('../realtime/socket');
 const { sendPushToMany } = require('./expoPush');
 const { listAreas } = require('./areaScope');
+const logger = require('./logger');
 
 const TYPES = {
   NEW_ORDER: 'new_order',
@@ -89,11 +90,11 @@ const createAdminNotification = async ({ type, title, body, relatedUrl = null, r
       // it added hundreds of ms for a side effect the caller never reads.
       // Failures still log inside notifyMobileAdminsPush/expoPush.
       notifyMobileAdminsPush({ title, body, type, relatedId, areaId })
-        .catch((err) => console.error('[adminNotifications] push failed:', err.message));
+        .catch((err) => logger.error('[adminNotifications] push failed:', err.message));
     }
     return notification;
   } catch (e) {
-    console.error('[adminNotifications] create failed:', e.message);
+    logger.error('[adminNotifications] create failed:', e.message);
     return null;
   }
 };
@@ -112,7 +113,7 @@ const getUnreadCount = async (areaId) => {
     );
     return Number(rows[0].n) || 0;
   } catch (e) {
-    console.error('[adminNotifications] unread count failed:', e.message);
+    logger.error('[adminNotifications] unread count failed:', e.message);
     return 0;
   }
 };
@@ -167,7 +168,7 @@ const notifyMobileAdminsPush = async ({ title, body, type, relatedId, areaId }) 
       data: { type, orderId: relatedId },
     });
   } catch (e) {
-    console.error('[adminNotifications] mobile admin push fan-out failed:', e.message);
+    logger.error('[adminNotifications] mobile admin push fan-out failed:', e.message);
   }
 };
 

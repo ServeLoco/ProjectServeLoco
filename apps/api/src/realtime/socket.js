@@ -6,6 +6,7 @@ const { getRevokedBefore } = require('../utils/adminAuthState');
 const { createPresenceTracker } = require('./presence');
 const sessionStore = require('../services/analytics/sessionStore');
 const { listAreas, getAreaById } = require('../utils/areaScope');
+const logger = require('../utils/logger');
 
 // Room for events that belong to the platform rather than to any one area
 // (admin_notifications.area_id IS NULL). Super admins join it; area admins
@@ -376,7 +377,7 @@ const initRealtime = (server) => {
       // session ending carries no information and would bury the signal.
       const livedMs = Date.now() - connectedAtMs;
       if (livedMs < SHORT_SESSION_LOG_MS) {
-        console.warn('[socket] short-lived connection ' + JSON.stringify({
+        logger.warn('[socket] short-lived connection ' + JSON.stringify({
           userId: socket.data.auth?.id ?? null,
           role: socket.data.auth?.role ?? null,
           areaId: socket.data.areaId ?? null,
@@ -394,7 +395,7 @@ const initRealtime = (server) => {
     });
   });
 
-  console.log('Realtime socket server initialized');
+  logger.info('Realtime socket server initialized');
   return io;
 };
 
@@ -410,7 +411,7 @@ const closeRealtime = async () => {
     io.close(resolve);
   });
   io = null;
-  console.log('Realtime socket server closed');
+  logger.info('Realtime socket server closed');
 };
 
 // Bug fix (multi-area audit finding #15): joinAreaRoom's super_admin branch
@@ -438,7 +439,7 @@ const emitToRoom = (room, eventName, payload) => {
     io.to(room).emit(eventName, payload);
     return true;
   } catch (error) {
-    console.error('Realtime emit failed:', error.message);
+    logger.error('Realtime emit failed:', error.message);
     return false;
   }
 };
@@ -461,7 +462,7 @@ const emitToCustomer = (customerId, eventName, payload) => {
 // emitToRoom's own try/catch below.
 const emitToAdmins = (areaId, eventName, payload) => {
   if (areaId === undefined || areaId === null) {
-    console.error(`emitToAdmins: missing areaId for event "${eventName}" — event dropped`);
+    logger.error(`emitToAdmins: missing areaId for event "${eventName}" — event dropped`);
     return false;
   }
   return emitToRoom(`admin:${areaId}`, eventName, payload);
@@ -499,7 +500,7 @@ const customerRefetchPushedSince = (areaId, sinceMs) => {
 
 const emitToAllCustomers = (areaId, eventName, payload) => {
   if (areaId === undefined || areaId === null) {
-    console.error(`emitToAllCustomers: missing areaId for event "${eventName}" — event dropped`);
+    logger.error(`emitToAllCustomers: missing areaId for event "${eventName}" — event dropped`);
     return false;
   }
   if (CUSTOMER_REFETCH_EVENTS.has(eventName)) {

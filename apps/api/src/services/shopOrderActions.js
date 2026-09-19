@@ -11,6 +11,7 @@ const { maybeAutoCancelOrderWhenAllShopsRejected } = require('../utils/shops');
 const { emitToAdmins, emitToCustomer } = require('../realtime/socket');
 const notificationService = require('../utils/notificationService');
 const realtimeEvents = require('../realtime/orderEvents');
+const logger = require('../utils/logger');
 
 const ACTIVE_ORDER_STATUSES = ['Accepted', 'Preparing'];
 
@@ -28,7 +29,7 @@ async function notifyShopOwnerOrderUpdated(shopId, orderId, action) {
       action,
     });
   } catch (e) {
-    console.error('[shop-order] notifyShopOwnerOrderUpdated failed:', e.message);
+    logger.error('[shop-order] notifyShopOwnerOrderUpdated failed:', e.message);
   }
 }
 
@@ -163,14 +164,14 @@ async function confirmShopOrder(shopId, orderId, { shopName } = {}) {
         order: updatedOrder,
         event: 'status_preparing',
       }).then((result) => realtimeEvents.emitNotificationCreated(updatedOrder.customer_id, result))
-        .catch((e) => console.error('[notify]', e.message));
+        .catch((e) => logger.error('[notify]', e.message));
       realtimeEvents.emitOrderStatusUpdated(updatedOrder);
     }
   }
 
   const { maybeStartRiderAssignment } = require('./riderAssignment');
   maybeStartRiderAssignment(Number(orderId)).catch((e) =>
-    console.error('[rider-assign] maybeStart after shop confirm failed:', e.message)
+    logger.error('[rider-assign] maybeStart after shop confirm failed:', e.message)
   );
 
   await notifyShopOwnerOrderUpdated(shopId, orderId, 'confirmed');
@@ -239,7 +240,7 @@ async function rejectShopOrder(shopId, orderId, { shopName, source = 'owner' } =
   // when shops are still undecided, or when nobody confirmed anything.
   const { maybeStartRiderAssignment } = require('./riderAssignment');
   maybeStartRiderAssignment(Number(orderId)).catch((e) =>
-    console.error('[rider-assign] maybeStart after shop reject failed:', e.message)
+    logger.error('[rider-assign] maybeStart after shop reject failed:', e.message)
   );
 
   await notifyShopOwnerOrderUpdated(shopId, orderId, 'rejected');

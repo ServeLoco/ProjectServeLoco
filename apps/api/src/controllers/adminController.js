@@ -6,6 +6,7 @@ const { validatePagination } = require('../validators');
 const { roundMoney, toMoney } = require('../utils/money');
 const { resolvePeriod, ReportPeriodError } = require('../utils/reportPeriods');
 const notificationService = require('../utils/notificationService');
+const logger = require('../utils/logger');
 const {
   notifyShopsForOrder,
   notifyShopsOrderCancelled,
@@ -190,7 +191,7 @@ const login = async (req, res) => {
 
   if (isMatch && matchedAdmin) {
     if (usedEnvFallback) {
-      console.warn(
+      logger.warn(
         '[adminController] Logged in via the legacy ADMIN_PASSWORD/ADMIN_PASSWORD_HASH env ' +
         'fallback — the admins table has no rows yet. Run the migration (it seeds one automatically) ' +
         'or create a real admin via the admin API.'
@@ -1546,7 +1547,7 @@ const updateOrderStatus = async (req, res) => {
         order: updatedOrder,
         event: eventName
       }).then(result => realtimeEvents.emitNotificationCreated(updatedOrder.customer_id, result))
-        .catch(err => console.error('[notify]', err.message));
+        .catch(err => logger.error('[notify]', err.message));
     }
 
     // Shop owners must hear about an order the first time it leaves Pending —
@@ -1560,7 +1561,7 @@ const updateOrderStatus = async (req, res) => {
       // House-only orders (no shop items) start rider assignment immediately.
       const { startAssignmentIfHouseOnly } = require('../services/riderAssignment');
       startAssignmentIfHouseOnly(updatedOrder.id).catch((e) =>
-        console.error('[rider-assign] house start on admin accept failed:', e.message)
+        logger.error('[rider-assign] house start on admin accept failed:', e.message)
       );
     }
 
@@ -1607,7 +1608,7 @@ const updateOrderStatus = async (req, res) => {
             });
           }
         } catch (e) {
-          console.error('[rider-assign] notify rider of admin cancel failed:', e.message);
+          logger.error('[rider-assign] notify rider of admin cancel failed:', e.message);
         }
       })();
     }
@@ -1701,7 +1702,7 @@ const updateOrderPayment = async (req, res) => {
         order: updatedOrder,
         event: eventName
       }).then(result => realtimeEvents.emitNotificationCreated(updatedOrder.customer_id, result))
-        .catch(err => console.error('[notify]', err.message));
+        .catch(err => logger.error('[notify]', err.message));
     }
 
     realtimeEvents.emitOrderPaymentUpdated(updatedOrder);
@@ -2235,13 +2236,13 @@ const createAdminNotification = async (req, res) => {
           try {
             realtimeEvents.emitNotificationRow(userId, notif);
           } catch (error) {
-            console.error(`Failed to emit notification to user ${userId}:`, error.message);
+            logger.error(`Failed to emit notification to user ${userId}:`, error.message);
           }
         }
       })
     );
   } catch (error) {
-    console.error('Failed to batch-load broadcast notifications:', error.message);
+    logger.error('Failed to batch-load broadcast notifications:', error.message);
   }
 
   res.status(201).json({

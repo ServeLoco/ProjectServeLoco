@@ -1,5 +1,6 @@
 const { pool } = require('../db/mysql');
 const expoPush = require('./expoPush');
+const logger = require('./logger');
 
 /**
  * Utility service to handle notifications and batches.
@@ -42,7 +43,7 @@ const sendDevicePush = async (userId, { title, body, type, sourceType, sourceId,
       ...(sourceType === 'order' || pushData.orderId ? { categoryId: 'order_update' } : {}),
     });
   } catch (err) {
-    console.error('[notificationService] device push failed for user', userId, err?.message || err);
+    logger.error('[notificationService] device push failed for user', userId, err?.message || err);
     return { sent: false, reason: err?.message };
   }
 };
@@ -77,7 +78,7 @@ const createNotification = async ({
 
     return result;
   } catch (error) {
-    console.error('Error creating notification:', error);
+    logger.error('Error creating notification:', error);
     // Still attempt device push — inbox insert failed but the user should
     // still hear about order status changes when the app is closed.
     try {
@@ -104,7 +105,7 @@ const createManyNotifications = async (notifications, connection = pool) => {
     `, [values]);
     return firstQueryResult(queryResult);
   } catch (error) {
-    console.error('Error creating many notifications:', error);
+    logger.error('Error creating many notifications:', error);
     return null;
   }
 };
@@ -243,7 +244,7 @@ const createNotificationBatch = async ({
     `, [areaId, title, body, type, target, recipientCount, createdByAdminId]);
     return firstQueryResult(queryResult);
   } catch (error) {
-    console.error('Error creating notification batch:', error);
+    logger.error('Error creating notification batch:', error);
     throw error;
   }
 };
@@ -302,7 +303,7 @@ const createBroadcastNotification = async ({
           await Promise.all(chunk.map((uid) => emitUnreadCountUpdated(uid)));
         }
       } catch (err) {
-        console.error('Broadcast unread_count emit failed:', err.message);
+        logger.error('Broadcast unread_count emit failed:', err.message);
       }
     })();
 
@@ -311,7 +312,7 @@ const createBroadcastNotification = async ({
     if (ownsConnection) {
       await tx.rollback();
     }
-    console.error('Error creating broadcast notification:', error);
+    logger.error('Error creating broadcast notification:', error);
     return null;
   } finally {
     if (ownsConnection) {

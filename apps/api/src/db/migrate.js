@@ -2,6 +2,7 @@ const mysql = require('mysql2/promise');
 const bcrypt = require('bcrypt');
 const config = require('../config/env');
 const { getMysqlSslOptions } = require('./mysqlSsl');
+const logger = require('../utils/logger');
 
 // One-time backfill helpers: turn a legacy circle/square/rectangle zone
 // (defined around the old shared shop-center pin) into an equivalent polygon
@@ -96,7 +97,7 @@ const migrate = async () => {
       throw new Error('Another migration is already running (villkro_migrate lock held). Aborting.');
     }
 
-    console.log('Connected to MySQL. Running migrations...');
+    logger.info('Connected to MySQL. Running migrations...');
 
     const ensureColumn = async (tableName, columnName, columnDefinition) => {
       const [columns] = await connection.query(`
@@ -189,7 +190,7 @@ const migrate = async () => {
     // alarm pushes (shop/rider). Separate from Expo push_token.
     await ensureColumn('users', 'fcm_token',
       'fcm_token VARCHAR(255) NULL DEFAULT NULL AFTER push_token');
-    console.log('Users table ready.');
+    logger.info('Users table ready.');
 
     // Shops Table — one row per physical shop. Shop owners are normal users who
     // log in through the same Firebase OTP flow as customers; owner_user_id
@@ -210,7 +211,7 @@ const migrate = async () => {
         INDEX idx_shop_owner (owner_user_id)
       );
     `);
-    console.log('Shops table ready.');
+    logger.info('Shops table ready.');
     // Pickup pin for rider map — set manually in admin Shops page.
     await ensureColumn('shops', 'latitude', 'latitude DECIMAL(10,7) NULL AFTER active');
     await ensureColumn('shops', 'longitude', 'longitude DECIMAL(10,7) NULL AFTER latitude');
@@ -241,7 +242,7 @@ const migrate = async () => {
         INDEX idx_riders_online (active, is_online, last_heartbeat_at)
       );
     `);
-    console.log('Riders table ready.');
+    logger.info('Riders table ready.');
     // Live tracking: latest rider GPS only (mutable; no history table).
     await ensureColumn('riders', 'last_lat', 'last_lat DECIMAL(10,7) NULL AFTER last_heartbeat_at');
     await ensureColumn('riders', 'last_lng', 'last_lng DECIMAL(10,7) NULL AFTER last_lat');
@@ -275,7 +276,7 @@ const migrate = async () => {
         KEY idx_mobile_admins_active (active)
       );
     `);
-    console.log('Mobile admins table ready.');
+    logger.info('Mobile admins table ready.');
 
     // Product Groups — a shop owner's own bucket of products (e.g.
     // "Starters") that can be disabled all at once. active=false hides every
@@ -293,7 +294,7 @@ const migrate = async () => {
         INDEX idx_product_group_shop (shop_id)
       );
     `);
-    console.log('Product groups table ready.');
+    logger.info('Product groups table ready.');
 
     // Password Reset Requests Table
     await connection.query(`
@@ -311,7 +312,7 @@ const migrate = async () => {
         INDEX idx_password_reset_user_status (user_id, status)
       );
     `);
-    console.log('Password reset requests table ready.');
+    logger.info('Password reset requests table ready.');
     // Track the IP that submitted each reset request so the admin can spot abuse.
     await ensureColumn('password_reset_requests', 'requester_ip', 'requester_ip VARCHAR(45) DEFAULT NULL');
 
@@ -344,7 +345,7 @@ const migrate = async () => {
     // fully editable, exactly as today. No FK, same rationale as
     // products.library_product_id.
     await ensureColumn('categories', 'library_category_id', 'library_category_id INT NULL');
-    console.log('Categories table ready.');
+    logger.info('Categories table ready.');
 
     // Store Modes Table — admin-configurable list of store "modes" (formerly
     // the hardcoded packed/fast_food pair). slug is the canonical value stored
@@ -378,7 +379,7 @@ const migrate = async () => {
     // Library linkage (TASK 21, §2.7) — NULL means "local-only store mode",
     // exactly as today. No FK, same rationale as products.library_product_id.
     await ensureColumn('store_modes', 'library_store_mode_id', 'library_store_mode_id INT NULL');
-    console.log('Store modes table ready.');
+    logger.info('Store modes table ready.');
 
     // Category library (TASK 21, §2.7) — same identity-vs-placement split as
     // the product library (§2.5): name/slug/type/icon are authored once and
@@ -395,7 +396,7 @@ const migrate = async () => {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       );
     `);
-    console.log('Category library table ready.');
+    logger.info('Category library table ready.');
 
     // Store mode library (TASK 21, §2.7) — packed/fast_food today are
     // already is_system rows seeded per area (TASK 11); this is the global
@@ -412,7 +413,7 @@ const migrate = async () => {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       );
     `);
-    console.log('Store mode library table ready.');
+    logger.info('Store mode library table ready.');
 
     // Products Table
     await connection.query(`
@@ -464,7 +465,7 @@ const migrate = async () => {
     // table at migration time, and every other cross-domain FK-less column
     // on this table (shop_id, group_id) already sets that precedent.
     await ensureColumn('products', 'library_product_id', 'library_product_id INT NULL');
-    console.log('Products table ready.');
+    logger.info('Products table ready.');
 
     // Product Variants Table — purchasable child rows (sizes/types) of a
     // product, each with its own label + price. products.price ALWAYS mirrors
@@ -496,7 +497,7 @@ const migrate = async () => {
     // local-only product, or was added directly in an area and never synced
     // to a library variant. No FK, same reasoning as products.library_product_id.
     await ensureColumn('product_variants', 'library_variant_id', 'library_variant_id INT NULL');
-    console.log('Product variants table ready.');
+    logger.info('Product variants table ready.');
 
     // Product library (TASK 18, §2.5) — global identity (name/description/
     // image/unit/variant labels) shared across every area; price/availability/
@@ -520,7 +521,7 @@ const migrate = async () => {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       );
     `);
-    console.log('Product library table ready.');
+    logger.info('Product library table ready.');
 
     // Library variant labels (e.g. "500g" / "1kg") — global, mirrored into a
     // real product_variants row per area on materialization, same identity-
@@ -538,7 +539,7 @@ const migrate = async () => {
         INDEX idx_library_variant_product (library_product_id)
       );
     `);
-    console.log('Library variants table ready.');
+    logger.info('Library variants table ready.');
 
     await connection.query(`
       CREATE TABLE IF NOT EXISTS product_combo_items (
@@ -555,7 +556,7 @@ const migrate = async () => {
         INDEX idx_combo_item_product (product_id)
       );
     `);
-    console.log('Product combo items table ready.');
+    logger.info('Product combo items table ready.');
 
     // Combos Table
     await connection.query(`
@@ -580,7 +581,7 @@ const migrate = async () => {
     `);
     await ensureColumn('combos', 'store_type', 'store_type VARCHAR(50) NOT NULL DEFAULT "packed" AFTER deleted');
     await connection.query('ALTER TABLE combos MODIFY COLUMN store_type VARCHAR(50) NOT NULL DEFAULT "packed"');
-    console.log('Combos table ready.');
+    logger.info('Combos table ready.');
 
     // Combo Items Table
     await connection.query(`
@@ -598,7 +599,7 @@ const migrate = async () => {
         INDEX idx_combo_item_product (product_id)
       );
     `);
-    console.log('Combo items table ready.');
+    logger.info('Combo items table ready.');
 
     // Data Migration for Combos. Runs on every boot (INSERT IGNORE makes it a
     // no-op once every is_combo product has its combos row) — but `combos`
@@ -623,7 +624,7 @@ const migrate = async () => {
       FROM product_combo_items
     `);
     await connection.query('UPDATE products SET deleted = 1 WHERE is_combo = 1');
-    console.log('Combo data migration completed.');
+    logger.info('Combo data migration completed.');
 
     // Orders Table
     await connection.query(`
@@ -819,7 +820,7 @@ const migrate = async () => {
       INSERT IGNORE INTO units (name)
       SELECT DISTINCT TRIM(unit) FROM products WHERE unit IS NOT NULL AND TRIM(unit) != ''
     `);
-    console.log('Units table ready.');
+    logger.info('Units table ready.');
 
     // Auto-sync existing products into the library — runs on every boot so a
     // fresh deploy/environment never needs scripts/backfillProductLibrary.js
@@ -855,13 +856,13 @@ const migrate = async () => {
           } catch (e) {
             await connection.rollback();
             failed += 1;
-            console.error(`[migrate] could not promote product id=${row.id} to library:`, e.message);
+            logger.error(`[migrate] could not promote product id=${row.id} to library:`, e.message);
           }
           afterId = row.id;
         }
       }
       if (done > 0 || failed > 0) {
-        console.log(`[migrate] product library backfill: ${done} promoted, ${failed} failed`);
+        logger.info(`[migrate] product library backfill: ${done} promoted, ${failed} failed`);
       }
     };
     await backfillProductLibrary();
@@ -890,7 +891,7 @@ const migrate = async () => {
       WHERE pl.unit_id IS NULL
     `);
     if (unitRepairResult.affectedRows > 0) {
-      console.log(`[migrate] product_library unit_id backfill: ${unitRepairResult.affectedRows} row(s) relinked.`);
+      logger.info(`[migrate] product_library unit_id backfill: ${unitRepairResult.affectedRows} row(s) relinked.`);
     }
 
     // ---- TASK 24 — platform_flags singleton + areas_sweep_complete gate --
@@ -907,7 +908,7 @@ const migrate = async () => {
     await connection.query(`
       INSERT IGNORE INTO platform_flags (id, areas_sweep_complete) VALUES (1, 0)
     `);
-    console.log('Platform flags table ready.');
+    logger.info('Platform flags table ready.');
 
     // NOTE: dashboard_section_items' own index is NOT here — that table is
     // created much further down this file, so indexing it at this point
@@ -927,7 +928,7 @@ const migrate = async () => {
     // those tables are created later in this file (a fresh DB has no such
     // tables yet at this point).
 
-    console.log('Orders table ready.');
+    logger.info('Orders table ready.');
 
     // Daily order-number counter — atomically reserves the next sequence per
     // date so two concurrent checkouts can never produce the same order_number.
@@ -937,7 +938,7 @@ const migrate = async () => {
         seq INT NOT NULL DEFAULT 0
       );
     `);
-    console.log('Daily order counters table ready.');
+    logger.info('Daily order counters table ready.');
 
     // Order Items Table
     await connection.query(`
@@ -1003,7 +1004,7 @@ const migrate = async () => {
     // purchase time (unconfigured, or a combo, which never has a shop).
     await ensureColumn('order_items', 'shop_unit_price', 'shop_unit_price DECIMAL(10, 2) NULL AFTER unit_price');
     await ensureColumn('order_items', 'shop_line_total', 'shop_line_total DECIMAL(10, 2) NULL AFTER line_total');
-    console.log('Order Items table ready.');
+    logger.info('Order Items table ready.');
 
     // Rider order offers — sequential Accept/Reject attempts (one pending offer
     // per order enforced in the assignment service, not via a partial unique).
@@ -1025,7 +1026,7 @@ const migrate = async () => {
         FOREIGN KEY (rider_id) REFERENCES riders(id) ON DELETE CASCADE
       );
     `);
-    console.log('Rider order offers table ready.');
+    logger.info('Rider order offers table ready.');
 
     // --- One pending offer per order AND per rider, enforced by the DB ------
     //
@@ -1090,7 +1091,7 @@ const migrate = async () => {
 
     await ensureUniqueIndex('rider_order_offers', 'uq_offer_pending_order', 'pending_order_id');
     await ensureUniqueIndex('rider_order_offers', 'uq_offer_pending_rider', 'pending_rider_id');
-    console.log('[migrate] rider_order_offers pending-offer unique keys in place.');
+    logger.info('[migrate] rider_order_offers pending-offer unique keys in place.');
 
     // Settings Table
     await connection.query(`
@@ -1170,7 +1171,7 @@ const migrate = async () => {
       // Ignore error if column doesn't exist
     }
     
-    console.log('Settings table ready.');
+    logger.info('Settings table ready.');
 
     // Delivery Zones — each zone is its own irregular polygon (`boundary`,
     // an array of {lat,lng} vertices), independent of any shared center pin.
@@ -1266,7 +1267,7 @@ const migrate = async () => {
 
         if (!hasLegacyCenter) {
           canDropLegacyColumns = false;
-          console.warn(
+          logger.warn(
             `[migrate] ${legacyZones.length} legacy delivery zone(s) still need a polygon boundary, but ` +
             'settings.shop_latitude/shop_longitude is not set — cannot reconstruct where those shapes were. ' +
             'Keeping the legacy shape columns intact. Set the shop pin in Settings and restart, or redraw the zones by hand.'
@@ -1285,7 +1286,7 @@ const migrate = async () => {
         }
       }
     }
-    console.log('Delivery zones table ready.');
+    logger.info('Delivery zones table ready.');
 
     // Delivery exclusion zones — independent no-delivery squares (e.g. a govt
     // building's compound) layered on top of the zone/flat pricing above.
@@ -1306,7 +1307,7 @@ const migrate = async () => {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       );
     `);
-    console.log('Delivery exclusion zones table ready.');
+    logger.info('Delivery exclusion zones table ready.');
 
     // Offers Table
     await connection.query(`
@@ -1329,7 +1330,7 @@ const migrate = async () => {
     await ensureColumn('offers', 'store_type', 'store_type VARCHAR(50) NOT NULL DEFAULT "packed" AFTER deleted');
     await connection.query('ALTER TABLE offers MODIFY COLUMN store_type VARCHAR(50) NOT NULL DEFAULT "packed"');
     await ensureColumn('offers', 'is_clickable', 'is_clickable BOOLEAN DEFAULT FALSE AFTER store_type');
-    console.log('Offers table ready.');
+    logger.info('Offers table ready.');
 
     // Offer Products Table
     await connection.query(`
@@ -1350,7 +1351,7 @@ const migrate = async () => {
       );
     `);
     await ensureIndex('offer_products', 'idx_offer_products_active_display', 'offer_id, active, display_order');
-    console.log('Offer products table ready.');
+    logger.info('Offer products table ready.');
 
     // Dashboard Sections Table
     await connection.query(`
@@ -1387,7 +1388,7 @@ const migrate = async () => {
     await ensureColumn('dashboard_sections', 'show_hot_badge', 'show_hot_badge BOOLEAN DEFAULT FALSE AFTER show_see_all');
     await ensureColumn('dashboard_sections', 'section_icon', "section_icon VARCHAR(50) DEFAULT NULL AFTER show_hot_badge");
     await connection.query('ALTER TABLE dashboard_sections MODIFY COLUMN store_type VARCHAR(50) NOT NULL DEFAULT "all"');
-    console.log('Dashboard sections table ready.');
+    logger.info('Dashboard sections table ready.');
     try {
       await connection.query('ALTER TABLE dashboard_sections DROP INDEX unique_active_slug');
       await connection.query('ALTER TABLE dashboard_sections ADD UNIQUE KEY idx_section_store_slug (store_type, slug, deleted_at)');
@@ -1423,15 +1424,15 @@ const migrate = async () => {
     // which runs long before this CREATE TABLE and so failed outright on a
     // fresh database (ER_NO_SUCH_TABLE).
     await ensureIndex('dashboard_section_items', 'idx_dsi_section_type_active', 'section_id, item_type, active');
-    console.log('Dashboard section items table ready.');
+    logger.info('Dashboard section items table ready.');
 
     // ---------------------------------------------------------
     // SEED DATA (Idempotent)
     // ---------------------------------------------------------
     if (skipSeed) {
-      console.log('SKIP_SEED_DEFAULTS=true — skipping all seed data.');
+      logger.info('SKIP_SEED_DEFAULTS=true — skipping all seed data.');
     } else {
-    console.log('Seeding data...');
+    logger.info('Seeding data...');
 
     // Seed Settings
     const [settingsRows] = await connection.query('SELECT * FROM settings LIMIT 1');
@@ -1442,7 +1443,7 @@ const migrate = async () => {
         INSERT INTO settings (night_charge_start, night_charge_end, delivery_charge${settingsAreaCol})
         VALUES ('21:00:00', '07:00:00', 20.00${settingsAreaVal})
       `);
-      console.log('Seeded default settings.');
+      logger.info('Seeded default settings.');
     }
 
     // Seed Categories
@@ -1476,7 +1477,7 @@ const migrate = async () => {
         UPDATE categories SET display_order = ? WHERE slug = ? AND display_order = 0
       `, [cat.display_order, cat.slug]);
     }
-    console.log('Seeded frontend categories.');
+    logger.info('Seeded frontend categories.');
 
     // Seed Optional Sample Products (for local testing)
     const [catRows] = await connection.query('SELECT id, slug FROM categories');
@@ -1518,10 +1519,10 @@ const migrate = async () => {
         }
       }
     }
-    console.log('Seeded sample products.');
+    logger.info('Seeded sample products.');
 
     // Seed Dashboard Sections (Idempotent per default section)
-    console.log('Ensuring default dashboard sections...');
+    logger.info('Ensuring default dashboard sections...');
     const ensureDashboardSection = async ({ title, slug, sectionType, displayOrder, maxVisibleItems, showSeeAll }) => {
       const [existing] = await connection.query(
         'SELECT id FROM dashboard_sections WHERE slug = ? LIMIT 1',
@@ -1606,7 +1607,7 @@ const migrate = async () => {
         await seedDashboardSectionItem(comboSectionId, 'combo', combo.id, comboOrder++);
       }
     }
-    console.log('Default dashboard sections and items ready.');
+    logger.info('Default dashboard sections and items ready.');
     } // end if (!skipSeed)
 
     // Notification Batches Table (for Admin broadcasts)
@@ -1623,7 +1624,7 @@ const migrate = async () => {
         deleted_at TIMESTAMP NULL DEFAULT NULL
       );
     `);
-    console.log('Notification batches table ready.');
+    logger.info('Notification batches table ready.');
 
     // Notifications Table (per-user rows)
     await connection.query(`
@@ -1656,7 +1657,7 @@ const migrate = async () => {
       );
     `);
     await ensureIndex('notifications', 'idx_notifications_user_unread', 'user_id, read_at, deleted_at');
-    console.log('Notifications table ready.');
+    logger.info('Notifications table ready.');
 
     // Cleanup: Convert 'all' offer banner sections to 'packed' and 'fast_food'.
     // Unlike the seed block above, this runs on EVERY boot regardless of
@@ -1755,7 +1756,7 @@ const migrate = async () => {
       );
     }
     } // end if (!skipSeed) for notification_templates
-    console.log('Notification templates table ready.');
+    logger.info('Notification templates table ready.');
 
     // ---------------------------------------------------------
     // COUPONS — admin-managed discount codes & auto-apply offers.
@@ -1844,7 +1845,7 @@ const migrate = async () => {
     } catch (e) {
       // Index already exists — fine.
     }
-    console.log('Coupons table ready.');
+    logger.info('Coupons table ready.');
 
     await connection.query(`
       CREATE TABLE IF NOT EXISTS coupon_redemptions (
@@ -1867,7 +1868,7 @@ const migrate = async () => {
       );
     `);
     await ensureColumn('coupon_redemptions', 'status', "status ENUM('active','cancelled') NOT NULL DEFAULT 'active' AFTER discount_amount");
-    console.log('Coupon redemptions table ready.');
+    logger.info('Coupon redemptions table ready.');
 
     await connection.query(`
       CREATE TABLE IF NOT EXISTS coupon_users (
@@ -1882,7 +1883,7 @@ const migrate = async () => {
         INDEX idx_coupon_users_user (user_id)
       );
     `);
-    console.log('Coupon users table ready.');
+    logger.info('Coupon users table ready.');
 
     // Zone targeting mirrors user targeting: 'all' (every zone, incl. flat/
     // non-zone pricing) or 'selected' (coupon_zones rows gate eligibility).
@@ -1904,7 +1905,7 @@ const migrate = async () => {
         INDEX idx_coupon_zones_zone (delivery_zone_id)
       );
     `);
-    console.log('Coupon zones table ready.');
+    logger.info('Coupon zones table ready.');
 
     // Snapshot coupon details on the order so reports/refunds survive
     // even if the coupon is later edited or soft-deleted.
@@ -1943,7 +1944,7 @@ const migrate = async () => {
         const { coupon, deliveryChargeUpdate, warning } = planFreeDeliveryMigration(snapshot);
 
         if (warning) {
-          console.warn(warning);
+          logger.warn(warning);
         }
 
         if (coupon) {
@@ -1955,12 +1956,12 @@ const migrate = async () => {
             [coupon.code, coupon.title, coupon.description, coupon.discount_type,
               coupon.discount_value, coupon.min_order_amount]
           );
-          console.log(`[migrate] Seeded system free_delivery coupon (min_order_amount=${coupon.min_order_amount}) to replicate prior delivery-fee settings.`);
+          logger.info(`[migrate] Seeded system free_delivery coupon (min_order_amount=${coupon.min_order_amount}) to replicate prior delivery-fee settings.`);
         }
 
         if (deliveryChargeUpdate !== null) {
           await connection.query('UPDATE settings SET delivery_charge = ? WHERE id = ?', [deliveryChargeUpdate, snapshot.id]);
-          console.log(`[migrate] Reconciled settings.delivery_charge to ${deliveryChargeUpdate}.`);
+          logger.info(`[migrate] Reconciled settings.delivery_charge to ${deliveryChargeUpdate}.`);
         }
       }
 
@@ -1977,7 +1978,7 @@ const migrate = async () => {
           // Ignore error if column doesn't exist
         }
       }
-      console.log('[migrate] Dropped deprecated threshold delivery-fee columns from settings.');
+      logger.info('[migrate] Dropped deprecated threshold delivery-fee columns from settings.');
     }
 
     // Admin Inbox — notifications shown in the admin panel bell.
@@ -2007,7 +2008,7 @@ const migrate = async () => {
     } catch (e) {
       // Index already exists — fine.
     }
-    console.log('Admin inbox table ready.');
+    logger.info('Admin inbox table ready.');
 
     // Images — metadata for uploaded images (products/categories/combos/
     // offers/settings). Actual bytes live in S3 or local disk; this table
@@ -2038,7 +2039,7 @@ const migrate = async () => {
     // reported (admin Images page), never auto-merged.
     await ensureColumn('images', 'sha256', 'sha256 CHAR(64) NULL');
     await ensureIndex('images', 'idx_images_sha256', 'sha256');
-    console.log('Images table ready.');
+    logger.info('Images table ready.');
 
     // Batched backfill: hash every existing image row that predates sha256
     // (18.6). Populates the column ONLY — never deletes, never merges rows,
@@ -2075,7 +2076,7 @@ const migrate = async () => {
             const hash = crypto.createHash('sha256').update(buffer).digest('hex');
             return { id: row.id, hash };
           } catch (e) {
-            console.error(`[migrate] could not hash image id=${row.id} (${row.filename}):`, e.message);
+            logger.error(`[migrate] could not hash image id=${row.id} (${row.filename}):`, e.message);
             return { id: row.id, hash: '' };
           }
         }));
@@ -2090,7 +2091,7 @@ const migrate = async () => {
         }
       }
       if (totalHashed > 0 || totalSkipped > 0) {
-        console.log(`[migrate] image sha256 backfill: ${totalHashed} hashed, ${totalSkipped} skipped (unreadable)`);
+        logger.info(`[migrate] image sha256 backfill: ${totalHashed} hashed, ${totalSkipped} skipped (unreadable)`);
       }
     };
     await backfillImageHashes();
@@ -2117,7 +2118,7 @@ const migrate = async () => {
     await connection.query(`
       INSERT IGNORE INTO admin_auth_state (id, revoked_before) VALUES (1, NULL)
     `);
-    console.log('Admin auth state table ready.');
+    logger.info('Admin auth state table ready.');
 
     // Switch the 5 image-reference columns from VARCHAR (holding the legacy
     // Mongo ObjectId hex string) to INT (holding the new `images.id`). Only
@@ -2141,7 +2142,7 @@ const migrate = async () => {
         `SELECT COUNT(*) AS cnt FROM ${tableName} WHERE ${columnName} IS NOT NULL AND ${columnName} NOT REGEXP '^[0-9]+$'`
       );
       if (Number(nonNumeric[0].cnt) > 0) {
-        console.warn(`[migrate] Skipping ${tableName}.${columnName} INT conversion — ${nonNumeric[0].cnt} non-numeric value(s) still present. Run the backfill script first.`);
+        logger.warn(`[migrate] Skipping ${tableName}.${columnName} INT conversion — ${nonNumeric[0].cnt} non-numeric value(s) still present. Run the backfill script first.`);
         return;
       }
 
@@ -2152,7 +2153,7 @@ const migrate = async () => {
     await convertImageIdColumnToInt('combos', 'image_id');
     await convertImageIdColumnToInt('offers', 'image_id');
     await convertImageIdColumnToInt('settings', 'upi_qr_image_id');
-    console.log('Image reference columns ready.');
+    logger.info('Image reference columns ready.');
 
     // ============================================================
     // MULTI-AREA EXPANSION — see plans/multi-area.md for the full design.
@@ -2185,7 +2186,7 @@ const migrate = async () => {
     await connection.query(`
       INSERT IGNORE INTO areas (id, code, name, is_default) VALUES (1, 'A1', 'Area 1', 1)
     `);
-    console.log('Areas table ready.');
+    logger.info('Areas table ready.');
 
     // ---- TASK 2 — admins table + per-admin session state -------------
     await connection.query(`
@@ -2203,7 +2204,7 @@ const migrate = async () => {
         INDEX idx_admins_active_area (active, area_id)
       );
     `);
-    console.log('Admins table ready.');
+    logger.info('Admins table ready.');
 
     await ensureColumn('admin_auth_state', 'admin_id', 'admin_id INT NULL DEFAULT NULL');
 
@@ -2223,9 +2224,9 @@ const migrate = async () => {
            VALUES (?, ?, 'super_admin', NULL, 'Super Admin')`,
           [config.ADMIN_OWNER_ID || 'admin', bootstrapHash]
         );
-        console.log('[migrate] Seeded initial super_admin from ADMIN_PASSWORD_HASH/ADMIN_PASSWORD env.');
+        logger.info('[migrate] Seeded initial super_admin from ADMIN_PASSWORD_HASH/ADMIN_PASSWORD env.');
       } else {
-        console.warn('[migrate] No admins exist and no ADMIN_PASSWORD_HASH/ADMIN_PASSWORD set — admin login will fail until an admin is seeded.');
+        logger.warn('[migrate] No admins exist and no ADMIN_PASSWORD_HASH/ADMIN_PASSWORD set — admin login will fail until an admin is seeded.');
       }
     }
 
@@ -2345,17 +2346,17 @@ const migrate = async () => {
     for (const tableName of AREA_SCOPED_TABLES) {
       await ensureColumnAtEnd(tableName, 'area_id', 'area_id INT NULL');
     }
-    console.log('[migrate] area_id column present (nullable) on all scoped tables.');
+    logger.info('[migrate] area_id column present (nullable) on all scoped tables.');
 
     for (const tableName of STRICT_AREA_TABLES) {
       await backfillAreaIdToDefault(tableName, 'id');
     }
-    console.log('[migrate] area_id backfilled to Area 1 on all scoped tables.');
+    logger.info('[migrate] area_id backfilled to Area 1 on all scoped tables.');
 
     for (const tableName of STRICT_AREA_TABLES) {
       await assertNoAreaOrphans(tableName);
     }
-    console.log('[migrate] area_id orphan check passed on all scoped tables.');
+    logger.info('[migrate] area_id orphan check passed on all scoped tables.');
 
     // Re-widen on an already-migrated database (this column was set NOT NULL
     // by an earlier run before platform-level rows existed). Widening only:
@@ -2370,7 +2371,7 @@ const migrate = async () => {
         await connection.query(`ALTER TABLE ${tableName} MODIFY COLUMN area_id INT NULL`);
       }
     }
-    console.log('[migrate] area_id left nullable on platform-level tables.');
+    logger.info('[migrate] area_id left nullable on platform-level tables.');
 
     for (const tableName of STRICT_AREA_TABLES) {
       const [col] = await connection.query(`
@@ -2381,12 +2382,12 @@ const migrate = async () => {
         await connection.query(`ALTER TABLE ${tableName} MODIFY COLUMN area_id INT NOT NULL`);
       }
     }
-    console.log('[migrate] area_id set NOT NULL on all scoped tables.');
+    logger.info('[migrate] area_id set NOT NULL on all scoped tables.');
 
     for (const tableName of AREA_SCOPED_TABLES) {
       await ensureForeignKey(tableName, `fk_${tableName}_area`, 'FOREIGN KEY (area_id) REFERENCES areas(id) ON DELETE RESTRICT');
     }
-    console.log('[migrate] area_id foreign keys added on all scoped tables.');
+    logger.info('[migrate] area_id foreign keys added on all scoped tables.');
 
     // Composite indexes leading with area_id (§3.3). The single-column
     // orders.idx_status / idx_created_at these partially supersede are
@@ -2404,7 +2405,7 @@ const migrate = async () => {
     await ensureIndex('riders', 'idx_riders_area_active_online', 'area_id, active, is_online');
     await ensureIndex('coupons', 'idx_coupons_area_deleted_active', 'area_id, deleted, active');
     await ensureIndex('offers', 'idx_offers_area_active_deleted', 'area_id, active, deleted');
-    console.log('[migrate] area_id composite indexes added.');
+    logger.info('[migrate] area_id composite indexes added.');
 
     // Per-area UNIQUE key rewrites (§1.3). The OLD global key is dropped
     // BEFORE the new composite is added (§6.2 rule 4) — if it survived,
@@ -2425,7 +2426,7 @@ const migrate = async () => {
 
     await dropIndexIfExists('admin_notifications', 'uniq_admin_inbox_event');
     await ensureUniqueIndex('admin_notifications', 'uniq_admin_inbox_area_event', 'area_id, type, related_id');
-    console.log('[migrate] per-area unique keys in place.');
+    logger.info('[migrate] per-area unique keys in place.');
 
     // ---- TASK 11 — store_modes seeded per area, not just area 1 ---------
     // The original seed (above, table-creation time) only ever ran once
@@ -2443,7 +2444,7 @@ const migrate = async () => {
         );
       }
     }
-    console.log('[migrate] store_modes is_system rows seeded per area.');
+    logger.info('[migrate] store_modes is_system rows seeded per area.');
 
     // ---- TASK 9 — settings becomes genuinely one row per area ----------
     // `settings` was never a UNIQUE-key-enforced singleton — every query
@@ -2455,7 +2456,7 @@ const migrate = async () => {
     // unpredictably. Safe to add now — exactly one settings row exists
     // (area 1's) at this point in the rollout.
     await ensureUniqueIndex('settings', 'uniq_settings_area', 'area_id');
-    console.log('[migrate] settings.area_id unique key in place.');
+    logger.info('[migrate] settings.area_id unique key in place.');
 
     // ---- TASK 13 — daily_order_counters PK becomes (area_id, counter_date) ----
     // Deliberately NOT in AREA_SCOPED_TABLES above: its PK is `counter_date`
@@ -2488,7 +2489,7 @@ const migrate = async () => {
     if (currentPk !== 'area_id,counter_date') {
       await connection.query('ALTER TABLE daily_order_counters DROP PRIMARY KEY, ADD PRIMARY KEY (area_id, counter_date)');
     }
-    console.log('[migrate] daily_order_counters PK is now (area_id, counter_date).');
+    logger.info('[migrate] daily_order_counters PK is now (area_id, counter_date).');
 
     // order_number needs headroom for the per-area format this same task
     // introduces (OD-<date>-<AREACODE>-<seq>, orderController.js's
@@ -2509,7 +2510,7 @@ const migrate = async () => {
     if (orderNumberCol[0] && Number(orderNumberCol[0].CHARACTER_MAXIMUM_LENGTH) < 40) {
       await connection.query('ALTER TABLE orders MODIFY COLUMN order_number VARCHAR(40) NOT NULL');
     }
-    console.log('[migrate] orders.order_number widened to VARCHAR(40).');
+    logger.info('[migrate] orders.order_number widened to VARCHAR(40).');
 
     // users.last_area_id — a cold-start cache (§2.2), NOT an authorization
     // input, and deliberately NO foreign key (a stale/wrong cached area is
@@ -2532,11 +2533,11 @@ const migrate = async () => {
       `);
       if (result.affectedRows === 0) break;
     }
-    console.log('[migrate] users.last_area_id backfilled from order history.');
+    logger.info('[migrate] users.last_area_id backfilled from order history.');
 
-    console.log('Migration and seeding completed successfully!');
+    logger.info('Migration and seeding completed successfully!');
   } catch (error) {
-    console.error('Migration failed:', error);
+    logger.error('Migration failed:', error);
     process.exit(1);
   } finally {
     if (connection) {

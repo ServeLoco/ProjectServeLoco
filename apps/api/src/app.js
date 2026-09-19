@@ -1,12 +1,16 @@
+// Sentry must be required before express/routes/db so its auto-instrumentation
+// (http, mysql2, ...) wraps those modules before anything else uses them.
+const Sentry = require('./config/sentry');
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
 const helmet = require('helmet');
-const morgan = require('morgan');
+const pinoHttp = require('pino-http');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const config = require('./config/env');
 const db = require('./db');
+const logger = require('./utils/logger');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 
 const authRoutes = require('./routes/authRoutes');
@@ -36,8 +40,20 @@ const app = express();
 // audit logs, geo-restriction, and per-IP rate limiting once deployed.
 app.set('trust proxy', 1);
 
-// Request logging — dev uses concise format, production uses combined for audit
-app.use(morgan(config.NODE_ENV === 'production' ? 'combined' : 'dev'));
+// Structured (JSON) request logging — one line per request with method,
+// url, status, duration and a per-request id, replacing morgan's plain-text
+// access log. `req.log` is also available to every handler downstream.
+app.use(pinoHttp({
+  logger,
+  autoLogging: {
+    ignore: (req) => req.url === '/ping' || req.url === '/health',
+  },
+  customLogLevel: (req, res, err) => {
+    if (err || res.statusCode >= 500) return 'error';
+    if (res.statusCode >= 400) return 'warn';
+    return 'info';
+  },
+}));
 
 // Compress all JSON/text responses. Browsers/Expo auto-decompress.
 // Threshold 1KB skips tiny payloads (overhead > savings).
@@ -168,6 +184,11 @@ legacyPaths.forEach(legacyPath => {
 
 // Not Found Handler
 app.use(notFoundHandler);
+
+// Reports unhandled/5xx errors to Sentry (a no-op when SENTRY_DSN isn't
+// set). Must come after routes/notFoundHandler and before our own
+// errorHandler, which still runs next and owns the actual response.
+Sentry.setupExpressErrorHandler(app);
 
 // Global Error Handler
 app.use(errorHandler);

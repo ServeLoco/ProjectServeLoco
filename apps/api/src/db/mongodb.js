@@ -1,5 +1,6 @@
 const { MongoClient } = require('mongodb');
 const config = require('../config/env');
+const logger = require('../utils/logger');
 
 let client = null;
 let db = null;
@@ -10,9 +11,9 @@ const connect = async () => {
       client = new MongoClient(config.MONGODB_URI);
       await client.connect();
       db = client.db(config.MONGODB_DATABASE);
-      console.log('Connected to MongoDB');
+      logger.info('Connected to MongoDB');
     } catch (error) {
-      console.error('MongoDB Connection Error:', error.message);
+      logger.error('MongoDB Connection Error:', error.message);
       throw error;
     }
   }
@@ -31,7 +32,7 @@ const close = async () => {
     await client.close();
     client = null;
     db = null;
-    console.log('MongoDB connection closed');
+    logger.info('MongoDB connection closed');
   }
 };
 
@@ -43,7 +44,7 @@ const checkConnection = async () => {
     }
     return false;
   } catch (error) {
-    console.error('MongoDB Ping Error:', error.message);
+    logger.error('MongoDB Ping Error:', error.message);
     return false;
   }
 };

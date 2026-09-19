@@ -7,6 +7,7 @@ const { pool } = require('../db/mysql');
 const { bustAreaCaches } = require('../utils/areaScope');
 const { materializeStoreModeToArea, propagateStoreModeLibraryEdit, LibraryError } = require('../utils/productLibrary');
 const { requireOneArea, attachImageUrls } = require('./libraryShared');
+const logger = require('../utils/logger');
 
 const shape = (row) => ({
   id: row.id,
@@ -149,7 +150,7 @@ const updateStoreModeLibraryItem = async (req, res) => {
 
   if (propagation) {
     Promise.all(propagation.areaIds.map((areaId) => bustAreaCaches(areaId)))
-      .catch((err) => console.error('[storeModeLibrary] post-propagation cache bust failed:', err.message));
+      .catch((err) => logger.error('[storeModeLibrary] post-propagation cache bust failed:', err.message));
   }
 };
 

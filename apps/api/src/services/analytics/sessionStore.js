@@ -3,6 +3,7 @@
 // the request path. openSession returns null on failure; closeSession swallows.
 
 const { getDb } = require('../../db/mongodb');
+const logger = require('../../utils/logger');
 
 /**
  * Insert a new session doc and return its _id (null if Mongo is unavailable).
@@ -31,7 +32,7 @@ const openSession = async ({ userId, platform, appVersion, areaId }) => {
     });
     return res.insertedId || null;
   } catch (error) {
-    console.error('[analytics] openSession failed:', error.message);
+    logger.error('[analytics] openSession failed:', error.message);
     return null;
   }
 };
@@ -63,7 +64,7 @@ const closeSession = async (sessionId, screens, connectedAt) => {
       }]
     );
   } catch (error) {
-    console.error('[analytics] closeSession failed:', error.message);
+    logger.error('[analytics] closeSession failed:', error.message);
   }
 };
 
@@ -83,7 +84,7 @@ const setSessionArea = async (sessionId, areaId) => {
       { $set: { areaId } },
     );
   } catch (e) {
-    console.error('[analytics] setSessionArea failed:', e.message);
+    logger.error('[analytics] setSessionArea failed:', e.message);
   }
 };
 

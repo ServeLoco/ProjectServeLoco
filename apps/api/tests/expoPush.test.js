@@ -25,6 +25,7 @@ const { pool } = require('../src/db/mysql');
 jest.mock('../src/db/mysql', () => ({ pool: { query: jest.fn() } }));
 
 const { sendPushToUser, sendPushToMany, cleanupDeadTokens, countPushEligible } = require('../src/utils/expoPush');
+const logger = require('../src/utils/logger');
 
 const VALID_TOKEN_A = 'ExponentPushToken[AAAA]';
 const VALID_TOKEN_B = 'ExponentPushToken[BBBB]';
@@ -384,7 +385,7 @@ describe('expoPush.sendPushToMany', () => {
   });
 
   it('warns and sends nothing when no target users have a valid push token', async () => {
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => {});
     pool.query.mockResolvedValueOnce([[]]); // SELECT returns no rows
 
     await expect(
@@ -397,7 +398,7 @@ describe('expoPush.sendPushToMany', () => {
   });
 
   it('logs InvalidCredentials ticket errors without nulling the token', async () => {
-    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const errorSpy = jest.spyOn(logger, 'error').mockImplementation(() => {});
     pool.query.mockResolvedValueOnce([[{ push_token: VALID_TOKEN_A }]]); // SELECT only — no UPDATE expected
     mockSendPushNotificationsAsync = jest.fn(async () => [
       { status: 'error', details: { error: 'InvalidCredentials' }, message: 'bad creds' },

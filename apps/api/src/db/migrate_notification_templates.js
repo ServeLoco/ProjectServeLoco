@@ -1,6 +1,7 @@
 const mysql = require('mysql2/promise');
 const config = require('../config/env');
 const { getMysqlSslOptions } = require('./mysqlSsl');
+const logger = require('../utils/logger');
 
 const migrateNotificationTemplates = async () => {
   let connection;
@@ -16,7 +17,7 @@ const migrateNotificationTemplates = async () => {
       multipleStatements: true
     });
 
-    console.log('Connected to MySQL. Running notification templates migration...');
+    logger.info('Connected to MySQL. Running notification templates migration...');
 
     // Create notification_templates table
     await connection.query(`
@@ -31,7 +32,7 @@ const migrateNotificationTemplates = async () => {
         INDEX idx_event_key (event_key)
       );
     `);
-    console.log('Notification templates table ready.');
+    logger.info('Notification templates table ready.');
 
     // Seed default templates
     const defaultTemplates = [
@@ -91,11 +92,11 @@ const migrateNotificationTemplates = async () => {
           body = VALUES(body)
       `, [template.event_key, template.title, template.body]);
     }
-    console.log('Default notification templates seeded.');
+    logger.info('Default notification templates seeded.');
 
-    console.log('Notification templates migration completed successfully!');
+    logger.info('Notification templates migration completed successfully!');
   } catch (error) {
-    console.error('Migration failed:', error);
+    logger.error('Migration failed:', error);
     process.exit(1);
   } finally {
     if (connection) {

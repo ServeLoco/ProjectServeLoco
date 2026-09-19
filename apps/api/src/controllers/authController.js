@@ -5,6 +5,7 @@ const adminInbox = require('../utils/adminNotifications');
 const { getShopForUser } = require('../utils/shops');
 const { getRiderForUser } = require('../utils/riders');
 const { getMobileAdminForUser } = require('../utils/mobileAdmins');
+const logger = require('../utils/logger');
 
 // Sliding-window token renewal. We refresh whenever the token has used
 // more than half of its own lifetime. This auto-adapts to whatever
@@ -43,7 +44,7 @@ const me = async (req, res) => {
   response.admin = await getMobileAdminForUser(userId, user.phone);
   // D2: one phone is shop OR rider, not both. If corrupt data has both, log once.
   if (response.shop && response.rider) {
-    console.warn('[auth] user', userId, 'has both shop and rider rows — mutual exclusion violated');
+    logger.warn('[auth] user', userId, 'has both shop and rider rows — mutual exclusion violated');
   }
   try {
     const authHeader = req.headers.authorization || '';
@@ -208,7 +209,7 @@ const verifyFirebaseToken = async (req, res) => {
   try {
     decoded = await firebaseAuth.verifyIdToken(idToken);
   } catch (err) {
-    console.error('[firebase] verifyIdToken error:', err.code || err.message);
+    logger.error('[firebase] verifyIdToken error:', err.code || err.message);
     return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Invalid or expired Firebase token' });
   }
 
@@ -289,7 +290,7 @@ const verifyFirebaseToken = async (req, res) => {
       // Vanishingly unlikely (row deleted between the INSERT failure and the
       // re-SELECT), but don't leak the raw MySQL error if it does happen.
       if (raceWinner.length === 0) {
-        console.error('[auth] ER_DUP_ENTRY but row vanished on re-query:', insertErr.code || insertErr.message);
+        logger.error('[auth] ER_DUP_ENTRY but row vanished on re-query:', insertErr.code || insertErr.message);
         return res.status(409).json({ code: 'CONFLICT', message: 'Account state changed during request. Please try again.' });
       }
 
@@ -365,7 +366,7 @@ const verifyFirebaseToken = async (req, res) => {
   // Pass phone so first-login after web add (user_id still null) still attaches admin.
   const admin = await getMobileAdminForUser(user.id, user.phone);
   if (shop && rider) {
-    console.warn('[auth] user', user.id, 'has both shop and rider rows — mutual exclusion violated');
+    logger.warn('[auth] user', user.id, 'has both shop and rider rows — mutual exclusion violated');
   }
 
   res.status(isNewUser ? 201 : 200).json({

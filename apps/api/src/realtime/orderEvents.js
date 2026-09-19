@@ -1,6 +1,7 @@
 const notificationService = require('../utils/notificationService');
 const { pool } = require('../db/mysql');
 const { emitToAdmins, emitToCustomer } = require('./socket');
+const logger = require('../utils/logger');
 
 const toOrderEventPayload = (order = {}) => ({
   orderId: order.id || order.orderId,
@@ -139,7 +140,7 @@ const emitNotificationCreated = async (userId, notificationResult) => {
     if (rows.length === 0) return null;
     return emitNotificationRow(userId, rows[0]);
   } catch (error) {
-    console.error('Realtime notification emit failed:', error.message);
+    logger.error('Realtime notification emit failed:', error.message);
   }
 
   return null;
@@ -151,7 +152,7 @@ const emitUnreadCountUpdated = async (userId) => {
     const unreadCount = await notificationService.getUnreadCount(userId);
     emitToCustomer(userId, 'notification.unread_count.updated', { unreadCount });
   } catch (error) {
-    console.error('Realtime unread count emit failed:', error.message);
+    logger.error('Realtime unread count emit failed:', error.message);
   }
 };
 

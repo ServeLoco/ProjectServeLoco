@@ -8,6 +8,7 @@ const config = require('../config/env');
 const s3 = require('../config/s3');
 const { normalizeStoreType } = require('../utils/storeMode');
 const { requestAreaId, bustAreaCaches } = require('../utils/areaScope');
+const logger = require('../utils/logger');
 
 // Bulk import always targets exactly one area — rejects null (super_admin,
 // no X-Area-Id) and 'all'.
@@ -107,7 +108,7 @@ const safeDeleteFile = (filename) => {
     const filePath = path.join(UPLOAD_DIR, filename);
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
   } catch (e) {
-    console.error('[bulkImport] Failed to delete file:', filename, e.message);
+    logger.error('[bulkImport] Failed to delete file:', filename, e.message);
   }
 };
 
@@ -466,7 +467,7 @@ const previewBulkImport = async (req, res) => {
     });
   } catch (err) {
     if (err.status) return res.status(err.status).json({ code: 'VALIDATION_ERROR', message: err.message });
-    console.error('[bulkImport] preview error:', err);
+    logger.error('[bulkImport] preview error:', err);
     return res.status(500).json({ code: 'SERVER_ERROR', message: GENERIC_ERROR });
   }
 };
@@ -522,7 +523,7 @@ const commitBulkImport = async (req, res) => {
               await connection.query('DELETE FROM images WHERE id = ?', [row._existingImageId]);
             }
           } catch (e) {
-            console.error('[bulkImport] Failed to clean up old image:', row._existingImageId, e.message);
+            logger.error('[bulkImport] Failed to clean up old image:', row._existingImageId, e.message);
           }
         }
 
@@ -597,7 +598,7 @@ const commitBulkImport = async (req, res) => {
     await cleanupFiles(savedFiles);
 
     if (err.status) return res.status(err.status).json({ code: 'VALIDATION_ERROR', message: err.message });
-    console.error('[bulkImport] commit error:', err);
+    logger.error('[bulkImport] commit error:', err);
     return res.status(500).json({ code: 'SERVER_ERROR', message: GENERIC_ERROR });
   }
 };

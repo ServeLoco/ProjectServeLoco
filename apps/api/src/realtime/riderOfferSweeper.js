@@ -13,6 +13,7 @@
  */
 
 const config = require('../config/env');
+const logger = require('../utils/logger');
 const {
   expireDueOffers,
   recoverStuckAssignments,
@@ -41,11 +42,11 @@ const tick = async () => {
       || /doesn't exist/i.test(e.message || ''));
     if (missing) {
       if (!missingTableLogged) {
-        console.error('[rider-sweeper] rider tables missing — run npm run db:migrate:dev once. Further ticks suppressed until fixed.');
+        logger.error('[rider-sweeper] rider tables missing — run npm run db:migrate:dev once. Further ticks suppressed until fixed.');
         missingTableLogged = true;
       }
     } else {
-      console.error('[rider-sweeper] tick failed:', e.message);
+      logger.error('[rider-sweeper] tick failed:', e.message);
     }
   } finally {
     running = false;
@@ -60,7 +61,7 @@ const startRiderOfferSweeper = () => {
     tick().catch(() => {});
   }, RIDER_SWEEPER_MS);
   if (typeof timer.unref === 'function') timer.unref();
-  console.log(`[rider-sweeper] started (interval=${RIDER_SWEEPER_MS}ms)`);
+  logger.info(`[rider-sweeper] started (interval=${RIDER_SWEEPER_MS}ms)`);
 };
 
 const stopRiderOfferSweeper = () => {

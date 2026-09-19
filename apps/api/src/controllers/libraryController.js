@@ -8,6 +8,7 @@ const { requestAreaId, bustAreaCaches } = require('../utils/areaScope');
 const { materializeToArea, syncLibraryVariants, propagateLibraryEdit, promoteToLibrary, LibraryError } = require('../utils/productLibrary');
 const { decideSearchMode } = require('../utils/search');
 const { attachImageUrls } = require('./libraryShared');
+const logger = require('../utils/logger');
 
 // add-to-area targets exactly one area — an area_admin's own (resolveAdminArea
 // already pins that), or a super_admin's explicit X-Area-Id. Never 'all': a
@@ -261,7 +262,7 @@ const updateLibraryProduct = async (req, res) => {
   // never make the admin wait on N cache busts for an edit that already
   // committed.
   Promise.all(propagation.areaIds.map((areaId) => bustAreaCaches(areaId)))
-    .catch((err) => console.error('[library] post-propagation cache bust failed:', err.message));
+    .catch((err) => logger.error('[library] post-propagation cache bust failed:', err.message));
 };
 
 // POST /admin/library/:id/archive — requireSuperAdmin. Archiving never

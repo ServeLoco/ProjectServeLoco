@@ -1,4 +1,5 @@
 const { pool } = require('../db/mysql');
+const logger = require('./logger');
 
 const getCancelledPaymentStatus = (paymentMethod) => (
   paymentMethod === 'UPI' ? 'Refunded' : 'Failed'
@@ -145,7 +146,7 @@ const notifyShopsForOrder = async (order) => {
     );
     await pushes;
   } catch (e) {
-    console.error('[shops] notifyShopsForOrder failed for order', order?.id, e.message);
+    logger.error('[shops] notifyShopsForOrder failed for order', order?.id, e.message);
   }
 };
 
@@ -197,7 +198,7 @@ const notifyShopsOrderCancelled = async (order) => {
       }).catch(() => {});
     }
   } catch (e) {
-    console.error('[shops] notifyShopsOrderCancelled failed for order', order?.id, e.message);
+    logger.error('[shops] notifyShopsOrderCancelled failed for order', order?.id, e.message);
   }
 };
 
@@ -240,7 +241,7 @@ const remindShopOrderOwner = async (order, shopId, ownerUserId, options = {}) =>
       });
     }
   } catch (e) {
-    console.error('[shops] remindShopOrderOwner failed for order', order?.id, 'shop', shopId, e.message);
+    logger.error('[shops] remindShopOrderOwner failed for order', order?.id, 'shop', shopId, e.message);
   }
 };
 
@@ -286,7 +287,7 @@ const resendPendingShopAlerts = async (ownerUserId) => {
       });
     }
   } catch (e) {
-    console.error('[shops] resendPendingShopAlerts failed for user', ownerUserId, e.message);
+    logger.error('[shops] resendPendingShopAlerts failed for user', ownerUserId, e.message);
   }
 };
 
@@ -313,7 +314,7 @@ const notifyShopsRiderAssigned = async (order) => {
       data: { type: 'shop_order', orderId: order.id },
     }).catch(() => {});
   } catch (e) {
-    console.error('[shops] notifyShopsRiderAssigned failed for order', order?.id, e.message);
+    logger.error('[shops] notifyShopsRiderAssigned failed for order', order?.id, e.message);
   }
 };
 
@@ -344,7 +345,7 @@ const notifyShopsOrderStatusChanged = async (order) => {
       });
     }
   } catch (e) {
-    console.error('[shops] notifyShopsOrderStatusChanged failed for order', order?.id, e.message);
+    logger.error('[shops] notifyShopsOrderStatusChanged failed for order', order?.id, e.message);
   }
 };
 
@@ -372,7 +373,7 @@ const notifyShopsOrderRemarkUpdated = async (order) => {
       });
     }
   } catch (e) {
-    console.error('[shops] notifyShopsOrderRemarkUpdated failed for order', order?.id, e.message);
+    logger.error('[shops] notifyShopsOrderRemarkUpdated failed for order', order?.id, e.message);
   }
 };
 
@@ -397,7 +398,7 @@ const notifyShopsOrderItemReplaced = async (order, shopId) => {
       action: 'item_replaced',
     });
   } catch (e) {
-    console.error('[shops] notifyShopsOrderItemReplaced failed for order', order?.id, e.message);
+    logger.error('[shops] notifyShopsOrderItemReplaced failed for order', order?.id, e.message);
   }
 };
 
@@ -424,7 +425,7 @@ const notifyShopsRiderAssignmentFailed = async (order) => {
       data: { type: 'shop_order', orderId: order.id },
     }).catch(() => {});
   } catch (e) {
-    console.error('[shops] notifyShopsRiderAssignmentFailed failed for order', order?.id, e.message);
+    logger.error('[shops] notifyShopsRiderAssignmentFailed failed for order', order?.id, e.message);
   }
 };
 
@@ -500,7 +501,7 @@ const syncAreaShopOpenState = async (areaId) => {
       emitToAllCustomers(areaId, 'settings.shop_open.updated', { shopOpen: areaOpen, shop_open: areaOpen });
     }
   } catch (e) {
-    console.error('[shops] syncAreaShopOpenState failed:', e.message);
+    logger.error('[shops] syncAreaShopOpenState failed:', e.message);
   }
 };
 
@@ -597,7 +598,7 @@ const maybeAutoCancelOrderWhenAllShopsRejected = async (orderId) => {
       event: 'status_cancelled',
     })
       .then(result => realtimeEvents.emitNotificationCreated(updatedOrder.customer_id, result))
-      .catch(err => console.error('[notify]', err.message));
+      .catch(err => logger.error('[notify]', err.message));
 
     notifyShopsOrderCancelled(updatedOrder);
     realtimeEvents.emitOrderStatusUpdated(updatedOrder);
@@ -609,7 +610,7 @@ const maybeAutoCancelOrderWhenAllShopsRejected = async (orderId) => {
 
     return updatedOrder;
   } catch (e) {
-    console.error('[shops] maybeAutoCancelOrderWhenAllShopsRejected failed for order', orderId, e.message);
+    logger.error('[shops] maybeAutoCancelOrderWhenAllShopsRejected failed for order', orderId, e.message);
     return null;
   }
 };

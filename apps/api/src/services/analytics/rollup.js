@@ -6,6 +6,7 @@
 const { getDb } = require('../../db/mongodb');
 const { istDateKey, istHour, msUntilNextIst } = require('../../utils/businessTime');
 const { listAreas } = require('../../utils/areaScope');
+const logger = require('../../utils/logger');
 
 const ROLLOUT_HOUR = 0; // 00:xx
 const ROLLOUT_MINUTE = 5; // 00:05
@@ -189,10 +190,10 @@ const backfillYesterday = async () => {
     ]);
     if (existingCount < Math.max(activeAreas.length, 1)) {
       await computeDailyStats(dateStr, db);
-      console.log(`[analytics-rollup] backfilled yesterday (${dateStr})`);
+      logger.info(`[analytics-rollup] backfilled yesterday (${dateStr})`);
     }
   } catch (error) {
-    console.error('[analytics-rollup] backfillYesterday failed:', error.message);
+    logger.error('[analytics-rollup] backfillYesterday failed:', error.message);
   }
 };
 
@@ -214,9 +215,9 @@ const startRollupScheduler = () => {
         // Roll up yesterday in IST (the day that just ended).
         const dateStr = toLocalDateStr(new Date(Date.now() - 24 * 60 * 60 * 1000));
         await computeDailyStats(dateStr);
-        console.log(`[analytics-rollup] computed daily stats for ${dateStr}`);
+        logger.info(`[analytics-rollup] computed daily stats for ${dateStr}`);
       } catch (error) {
-        console.error('[analytics-rollup] scheduled run failed:', error.message);
+        logger.error('[analytics-rollup] scheduled run failed:', error.message);
       }
       scheduleNext();
     }, ms);

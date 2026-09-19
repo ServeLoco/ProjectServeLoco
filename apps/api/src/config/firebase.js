@@ -2,6 +2,7 @@ const { initializeApp, getApps, cert, applicationDefault } = require('firebase-a
 const { getAuth } = require('firebase-admin/auth');
 const path = require('path');
 const fs = require('fs');
+const logger = require('../utils/logger');
 
 // Initialize Firebase Admin SDK (firebase-admin v14+ modular API).
 // Looks for the service-account JSON in order:
@@ -47,14 +48,14 @@ function initFirebase() {
       credential: applicationDefault(),
     });
   } else {
-    console.warn(
+    logger.warn(
       '[firebase] No service-account JSON found. Firebase Phone Auth verification will not work. ' +
       'Place firebase-service-account.json in apps/api/ or set FIREBASE_SERVICE_ACCOUNT_PATH.'
     );
     return null;
   }
 
-  console.log('[firebase] Admin SDK initialized.');
+  logger.info('[firebase] Admin SDK initialized.');
   return firebaseApp;
 }
 
