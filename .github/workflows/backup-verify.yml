@@ -1,0 +1,126 @@
+name: Verify production backup
+
+# The deploy writes a dump before every migration and has never read one back.
+# A dump nobody restores is a file, not a backup, and the way that failure
+# surfaces is always the same: it surfaces the day it is needed.
+#
+# This pulls the newest dump out of the backup bucket, restores it into a
+# throwaway MySQL and checks it the way plans/multi-area-tasks.md TASK 0.1
+# asks for — every table present, every foreign key satisfied, row counts in
+# line with the last verified backup. The manifest it writes goes back to the
+# bucket and becomes the baseline for the next run.
+#
+# Does nothing until BACKUP_S3_BUCKET is configured; see plans/backup-and-restore.md.
+
+on:
+  schedule:
+    # 02:30 UTC Monday — 08:00 IST, well clear of the evening order peak and
+    # of any weekday deploy.
+    - cron: '30 2 * * 1'
+  workflow_dispatch:
+    inputs:
+      key:
+        description: 'S3 key of a specific dump to verify (default: the newest)'
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: verify
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.BACKUP_VERIFY_AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_VERIFY_AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ secrets.BACKUP_S3_REGION || 'ap-south-1' }}
+      BUCKET: ${{ secrets.BACKUP_S3_BUCKET }}
+      PREFIX: ${{ secrets.BACKUP_S3_PREFIX || 'serveloco' }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check the bucket is configured
+        id: gate
+        run: |
+          if [ -z "$BUCKET" ]; then
+            echo "::warning::BACKUP_S3_BUCKET is not set — nothing to verify yet"
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Fetch the newest dump
+        if: steps.gate.outputs.configured == 'true'
+        id: fetch
+        run: |
+          set -euo pipefail
+          mkdir -p work
+          KEY="${{ inputs.key }}"
+          if [ -z "$KEY" ]; then
+            # Keys are date-partitioned and timestamped, so lexical order is
+            # chronological order.
+            KEY="$(aws s3 ls "s3://$BUCKET/$PREFIX/" --recursive \
+                     | awk '{print $4}' | grep '\.sql\.gz$' | sort | tail -1)"
+          fi
+          [ -n "$KEY" ] || { echo "::error::no .sql.gz backups found under s3://$BUCKET/$PREFIX/"; exit 1; }
+
+          # A backup that stopped arriving is the failure this job exists to
+          # catch, and it looks like a perfectly good dump from last month.
+          LAST_MODIFIED="$(aws s3api head-object --bucket "$BUCKET" --key "$KEY" \
+                             --query LastModified --output text)"
+          AGE_DAYS=$(( ( $(date -u +%s) - $(date -u -d "$LAST_MODIFIED" +%s) ) / 86400 ))
+          echo "newest backup: $KEY (${AGE_DAYS}d old)"
+          if [ "$AGE_DAYS" -gt 14 ]; then
+            echo "::error::newest backup is ${AGE_DAYS} days old — backups have stopped arriving"
+            exit 1
+          fi
+
+          aws s3 cp "s3://$BUCKET/$KEY" work/dump.sql.gz --only-show-errors
+          # The baseline from the previous run, if there is one.
+          aws s3 cp "s3://$BUCKET/$PREFIX/last-verified.manifest.json" work/previous.json \
+            --only-show-errors || echo "no previous manifest — first verification"
+          echo "key=$KEY" >> "$GITHUB_OUTPUT"
+
+      - name: Restore and verify
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          VERIFY_MYSQL_HOST: 127.0.0.1
+          VERIFY_MYSQL_PORT: 3306
+          VERIFY_MYSQL_USER: root
+          VERIFY_MYSQL_PASSWORD: verify
+        run: |
+          set -euo pipefail
+          ARGS=(work/dump.sql.gz --manifest-out work/current.json)
+          [ -f work/previous.json ] && ARGS+=(--compare-to work/previous.json)
+          ./deploy/backup/verify-restore.sh "${ARGS[@]}"
+
+      - name: Record this run as the new baseline
+        if: steps.gate.outputs.configured == 'true'
+        run: |
+          set -euo pipefail
+          aws s3 cp work/current.json \
+            "s3://$BUCKET/$PREFIX/last-verified.manifest.json" --sse AES256 --only-show-errors
+          # Keep the per-backup manifest beside the dump it describes.
+          aws s3 cp work/current.json \
+            "s3://$BUCKET/${{ steps.fetch.outputs.key }}.manifest.json" --sse AES256 --only-show-errors
+
+      - name: Keep the manifest with the build
+        if: always() && steps.gate.outputs.configured == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-manifest
+          path: work/*.json
+          if-no-files-found: ignore

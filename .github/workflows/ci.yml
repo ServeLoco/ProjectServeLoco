@@ -5,10 +5,15 @@ on:
     branches: [ "main" ]
     paths:
       - 'apps/api/**'
+      # The backup round-trip below runs against this job's MySQL service
+      # container, so a change to the verifier belongs in this workflow's
+      # trigger too — ci-infra.yml watches deploy/** but has no database.
+      - 'deploy/backup/**'
   pull_request:
     branches: [ "main" ]
     paths:
       - 'apps/api/**'
+      - 'deploy/backup/**'
 
 jobs:
   test-and-lint:
@@ -96,6 +101,28 @@ jobs:
         MYSQL_SSL: false
         MONGODB_URI: mongodb://localhost:27017/
         MONGODB_DATABASE: serveloco_images_test
+
+    # The deploy takes a mysqldump before it migrates and treats it as the
+    # rollback point. Nothing ever restored one. This dumps the database CI
+    # just migrated, restores it into a scratch schema, and then breaks the
+    # dump the three ways a real backup breaks to confirm each is caught —
+    # so the day the verifier stops verifying is a red build, not a bad
+    # restore. See plans/multi-area-tasks.md TASK 0.1.
+    - name: Backup dump/restore round-trip
+      working-directory: .
+      run: ./deploy/backup/selftest.sh serveloco_test
+      env:
+        VERIFY_MYSQL_HOST: 127.0.0.1
+        VERIFY_MYSQL_PORT: 3306
+        VERIFY_MYSQL_USER: root
+        VERIFY_MYSQL_PASSWORD: test
+        # A freshly migrated database has the tables migrate.js seeds and no
+        # customer data, so orders/users are legitimately empty here. The
+        # production defaults in verify-restore.sh still require them.
+        VERIFY_NONEMPTY_TABLES: areas admins categories products settings store_modes
+        # A schema-only dump of this database is ~8.6 KB, under the 10 KB
+        # floor that catches a mysqldump which died on the real data.
+        VERIFY_MIN_DUMP_BYTES: 4096
 
     - name: Run Tests
       run: npm test

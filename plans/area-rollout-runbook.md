@@ -127,7 +127,9 @@ server code runs against the already-migrated schema: the deploy workflow
 dumps MySQL, stops the api container, runs the migration as a one-shot
 container from the new image, and only then starts the new API. A failed
 migration stops the deploy and restores the previous release; the dump is
-kept on the box under `~/backups/`.
+kept on the box under `~/backups/` and copied off it to S3. Verify a dump before you trust it
+(`deploy/backup/verify-restore.sh`) — restore steps are in
+[`backup-and-restore.md`](./backup-and-restore.md).
 
 ### 2.1 — Announce a short maintenance window
 

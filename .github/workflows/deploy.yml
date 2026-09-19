@@ -185,11 +185,21 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
           GHCR_USER: ${{ github.actor }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Unset until the backup bucket exists; the upload skips itself and
+          # warns rather than failing the deploy. This key is separate from the
+          # API's image-upload credentials in apps/api/.env.production on
+          # purpose: it needs PutObject and nothing else, and it is passed in
+          # for the length of this SSH session instead of living on the box.
+          BACKUP_S3_BUCKET: ${{ secrets.BACKUP_S3_BUCKET }}
+          BACKUP_S3_PREFIX: ${{ secrets.BACKUP_S3_PREFIX }}
+          BACKUP_S3_REGION: ${{ secrets.BACKUP_S3_REGION }}
+          BACKUP_AWS_ACCESS_KEY_ID: ${{ secrets.BACKUP_AWS_ACCESS_KEY_ID }}
+          BACKUP_AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_AWS_SECRET_ACCESS_KEY }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: IMAGE_TAG,GHCR_USER,GHCR_TOKEN
+          envs: IMAGE_TAG,GHCR_USER,GHCR_TOKEN,BACKUP_S3_BUCKET,BACKUP_S3_PREFIX,BACKUP_S3_REGION,BACKUP_AWS_ACCESS_KEY_ID,BACKUP_AWS_SECRET_ACCESS_KEY
           script_stop: true
           script: |
             set -eo pipefail
@@ -235,7 +245,10 @@ jobs:
             # one makes five.
             mkdir -p "$HOME/backups"
             (ls -1t "$HOME"/backups/serveloco_*.sql.gz 2>/dev/null || true) | tail -n +5 | xargs -r rm -f
-            DUMP="$HOME/backups/serveloco_$(date -u +%Y%m%dT%H%M%SZ)_$(echo "$IMAGE_TAG" | cut -c1-7).sql.gz"
+            (ls -1t "$HOME"/backups/serveloco_*.mongo.gz 2>/dev/null || true) | tail -n +5 | xargs -r rm -f
+            STAMP="$(date -u +%Y%m%dT%H%M%SZ)_$(echo "$IMAGE_TAG" | cut -c1-7)"
+            DUMP="$HOME/backups/serveloco_$STAMP.sql.gz"
+            MONGO_DUMP="$HOME/backups/serveloco_$STAMP.mongo.gz"
 
             # --env-file keeps the credentials inside the container; MYSQL_PWD
             # keeps the password out of the process list.
@@ -260,6 +273,26 @@ jobs:
               exit 1
             fi
             echo "Backup written: $DUMP ($DUMP_BYTES bytes)"
+
+            # ── Back up Mongo ───────────────────────────────────────────────
+            # Deliberately NOT a deploy gate. The deploy is gated on what the
+            # deploy can destroy, and migrate.js touches MySQL only; failing
+            # the release over the image-metadata dump would trade an outage
+            # for a backup this deploy cannot harm. The scheduled restore
+            # verification is what notices if these stop arriving.
+            if ! ./deploy/backup/dump-mongo.sh "$MONGO_DUMP"; then
+              echo "::warning::Mongo backup failed — continuing, MySQL is backed up and is what migrates"
+              MONGO_DUMP=""
+            fi
+
+            # ── Copy the backups off this box ───────────────────────────────
+            # $HOME/backups is on the same disk as the thing it protects.
+            # A no-op until BACKUP_S3_BUCKET is set, and never a deploy gate:
+            # the local dump above has already done its job of making the
+            # migration reversible.
+            if ! ./deploy/backup/offbox-upload.sh "$DUMP" ${MONGO_DUMP:+"$MONGO_DUMP"}; then
+              echo "::warning::off-box upload failed — backups for this deploy exist only on this box"
+            fi
 
             # ── Migrate with the API stopped ────────────────────────────────
             # Old code must never run against the new schema, so the API goes
