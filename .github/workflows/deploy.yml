@@ -4,6 +4,15 @@ name: Deploy to AWS Lightsail
 on:
   push:
     branches: [ "main" ]
+    # The server stack has nothing to do with a customer-app release or a docs
+    # edit. Skipping those pushes matters more now that images are tagged per
+    # commit: a new tag makes compose recreate containers whose contents did
+    # not change. A push that touches these AND anything else still deploys.
+    paths-ignore:
+      - 'apps/customer-app/**'
+      - 'plans/**'
+      - 'docs/**'
+      - '**/*.md'
   workflow_dispatch: # Allows manual trigger from GitHub Actions UI
 
 # Two merges close together used to deploy over each other. Queue them instead;
