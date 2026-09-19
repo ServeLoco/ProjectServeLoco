@@ -18,7 +18,10 @@ jest.mock('../src/db/mongodb', () => {
 });
 
 const mongo = require('../src/db/mongodb');
-const { ensureAnalyticsIndexes } = require('../src/services/analytics/collections');
+const {
+  ensureAnalyticsIndexes,
+  verifyAnalyticsTtls,
+} = require('../src/services/analytics/collections');
 const { validateEvent, insertEvents } = require('../src/services/analytics/eventStore');
 const { openSession, closeSession } = require('../src/services/analytics/sessionStore');
 
@@ -69,7 +72,7 @@ describe('ensureAnalyticsIndexes', () => {
     expect(calls.analytics_daily.dropIndex).toHaveBeenCalledWith('date_1');
     const dailyCalls = calls.analytics_daily.createIndex.mock.calls;
     expect(dailyCalls).toContainEqual([{ areaId: 1, date: 1 }, { unique: true }]);
-    expect(dailyCalls).toContainEqual([{ createdAt: 1 }, { expireAfterSeconds: 31536000 }]);
+    expect(dailyCalls).toContainEqual([{ createdAt: 1 }, { expireAfterSeconds: 2592000 }]);
 
     const updateManyOrder = calls.analytics_daily.updateMany.mock.invocationCallOrder[0];
     const uniqueIndexOrder = calls.analytics_daily.createIndex.mock.invocationCallOrder[
@@ -222,5 +225,143 @@ describe('sessionStore', () => {
   it('closeSession does not throw when Mongo is down', async () => {
     mongo.__mocks.updateOne.mockRejectedValue(new Error('mongo down'));
     await expect(closeSession('sess', { Home: 1 })).resolves.toBeUndefined();
+  });
+});
+
+// A TTL index that was created once without expireAfterSeconds, or with a
+// different one, is the failure that matters here: Mongo refuses to change it
+// through createIndex, startup only logs the rejection, and the collection
+// stops expiring while every line of code still reads correctly.
+describe('analytics TTL reconciliation', () => {
+  const conflict = () => {
+    const err = new Error('Index already exists with different options');
+    err.codeName = 'IndexOptionsConflict';
+    err.code = 85;
+    return err;
+  };
+
+  const makeDb = ({ createIndex }) => {
+    const command = jest.fn().mockResolvedValue({ ok: 1 });
+    const cols = {};
+    const db = {
+      command,
+      collection: jest.fn((name) => {
+        if (!cols[name]) {
+          cols[name] = {
+            createIndex: jest.fn(createIndex),
+            dropIndex: jest.fn().mockResolvedValue(),
+            updateMany: jest.fn().mockResolvedValue({ modifiedCount: 0 }),
+            indexes: jest.fn().mockResolvedValue([]),
+          };
+        }
+        return cols[name];
+      }),
+    };
+    return { db, cols, command };
+  };
+
+  it('repairs an existing TTL with collMod when createIndex conflicts', async () => {
+    const { db, command } = makeDb({
+      createIndex: (keys, opts) => (opts && opts.expireAfterSeconds
+        ? Promise.reject(conflict())
+        : Promise.resolve()),
+    });
+
+    await ensureAnalyticsIndexes(db);
+
+    expect(command).toHaveBeenCalledWith({
+      collMod: 'analytics_sessions',
+      index: { keyPattern: { createdAt: 1 }, expireAfterSeconds: 2592000 },
+    });
+    expect(command).toHaveBeenCalledWith({
+      collMod: 'analytics_events',
+      index: { keyPattern: { createdAt: 1 }, expireAfterSeconds: 2592000 },
+    });
+    expect(command).toHaveBeenCalledWith({
+      collMod: 'analytics_daily',
+      index: { keyPattern: { createdAt: 1 }, expireAfterSeconds: 2592000 },
+    });
+  });
+
+  it('rethrows an index error that is not an options conflict', async () => {
+    const boom = new Error('not authorized on admin to execute command');
+    boom.code = 13;
+    const { db } = makeDb({ createIndex: () => Promise.reject(boom) });
+    await expect(ensureAnalyticsIndexes(db)).rejects.toThrow('not authorized');
+  });
+
+  it('creates all three TTLs before any other index work', async () => {
+    const { db, cols } = makeDb({ createIndex: () => Promise.resolve() });
+    await ensureAnalyticsIndexes(db);
+
+    const ttlOrder = (name) => {
+      const calls = cols[name].createIndex.mock.calls;
+      const i = calls.findIndex((c) => c[1] && c[1].expireAfterSeconds);
+      return cols[name].createIndex.mock.invocationCallOrder[i];
+    };
+    const lastTtl = Math.max(
+      ttlOrder('analytics_sessions'),
+      ttlOrder('analytics_events'),
+      ttlOrder('analytics_daily')
+    );
+
+    // Every non-TTL index call happens after the last TTL call, so a failure
+    // in one of them can never be the reason expiry was skipped.
+    const others = [];
+    for (const name of Object.keys(cols)) {
+      cols[name].createIndex.mock.calls.forEach((c, i) => {
+        if (!(c[1] && c[1].expireAfterSeconds)) {
+          others.push(cols[name].createIndex.mock.invocationCallOrder[i]);
+        }
+      });
+    }
+    expect(others.length).toBeGreaterThan(0);
+    expect(Math.min(...others)).toBeGreaterThan(lastTtl);
+  });
+});
+
+describe('verifyAnalyticsTtls', () => {
+  const dbWithIndexes = (byCollection) => ({
+    collection: jest.fn((name) => ({
+      indexes: jest.fn().mockResolvedValue(byCollection[name] || []),
+    })),
+  });
+  const fakeLog = () => ({ info: jest.fn(), error: jest.fn() });
+
+  it('reports the TTL the server actually has, not the one we asked for', async () => {
+    const db = dbWithIndexes({
+      analytics_sessions: [{ key: { createdAt: 1 }, expireAfterSeconds: 2592000 }],
+      analytics_events: [{ key: { createdAt: 1 }, expireAfterSeconds: 604800 }],
+      analytics_daily: [{ key: { areaId: 1, date: 1 }, unique: true }],
+    });
+    const log = fakeLog();
+
+    const results = await verifyAnalyticsTtls(db, log);
+
+    expect(results).toEqual([
+      { collection: 'analytics_sessions', expected: 2592000, actual: 2592000 },
+      { collection: 'analytics_events', expected: 2592000, actual: 604800 },
+      { collection: 'analytics_daily', expected: 2592000, actual: null },
+    ]);
+    expect(log.error).toHaveBeenCalledWith(
+      expect.stringContaining('analytics_events expires after 604800s, expected 2592000s')
+    );
+    expect(log.error).toHaveBeenCalledWith(
+      expect.stringContaining('analytics_daily has NO TTL index')
+    );
+    expect(log.info).toHaveBeenCalledWith(
+      expect.stringContaining('analytics_sessions expires after 30 days')
+    );
+  });
+
+  it('ignores a non-TTL index on the same field', async () => {
+    const db = dbWithIndexes({
+      analytics_sessions: [{ key: { createdAt: 1 } }],
+    });
+    const log = fakeLog();
+    const results = await verifyAnalyticsTtls(db, log);
+    expect(results[0]).toEqual({
+      collection: 'analytics_sessions', expected: 2592000, actual: null,
+    });
   });
 });

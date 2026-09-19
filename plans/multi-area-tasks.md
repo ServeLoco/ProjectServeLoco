@@ -29,6 +29,18 @@ Branch: `feat/multi-area-super-admin` · 31 tasks (0–30) · Status: **NOT STAR
 **Spec:** §6.1, §6.2, §9 · **Files:** `[ci] .github/workflows/ci.yml`, staging only
 **Status note (2026-08-01):** 0.1–0.6, 0.8–0.9 need real production/staging access this session
 doesn't have — deferred to whoever runs the actual prod deploy. Only 0.7 (CI step) done here.
+
+**Status note (2026-09-19):** 0.1 said "an unverified dump is not a backup" and there was no way to
+verify one, so the tooling now exists and is tested: `deploy/backup/verify-restore.sh` restores a
+dump into a scratch schema and re-checks every foreign key against the restored rows (the check a
+restore cannot do for itself — mysqldump disables FK checks, so a dump cut in half replays with no
+error), plus table presence, `CHECK TABLE`, and a row-count manifest compared against the last
+verified backup. `deploy/backup/selftest.sh` proves the verifier still catches truncation, orphaned
+rows and a row-count collapse, and runs on every API CI build. The deploy now also copies the dump
+off the box. Rehearsed end to end against a real MySQL
+8.0 with a production-shaped schema (42 tables, 49 FKs, 500 orders / 1,001 order items) — all four
+cases behaved as intended. **This is still not 0.1**: nothing here has touched a production dump.
+See [`backup-and-restore.md`](./backup-and-restore.md).
 Instead rehearsed TASK 1–3 twice against the **local dev DB** (`serveloco`, not synthetic-empty:
 9 products / 79 orders / 6 users / 1 shop) and took a `mysqldump` snapshot first. Row counts
 verified unchanged after both runs. This is not a substitute for 0.1–0.6 against production.
