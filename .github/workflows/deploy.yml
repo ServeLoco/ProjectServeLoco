@@ -213,6 +213,16 @@ jobs:
             # push them to GitHub first or they will be overwritten on deploy.
             git reset --hard origin/main
 
+            # The API's Firebase key is git-ignored, so it is not in the image;
+            # it is bind-mounted from this box (docker-compose.prod.yml). If it
+            # is missing, Docker would create an empty directory at that path
+            # and phone login would fail with "Firebase is not configured".
+            # Stop now, while the old stack is still serving.
+            if [ ! -f apps/api/firebase-service-account.json ]; then
+              echo "::error::apps/api/firebase-service-account.json is missing on the server — nothing was deployed"
+              exit 1
+            fi
+
             # The job's own token, valid only while this run lasts — no
             # long-lived registry credential is stored on the box.
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin

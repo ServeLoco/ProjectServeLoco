@@ -22,6 +22,12 @@ services:
     # Inject all secrets/config at runtime (file is NOT baked into the image).
     env_file:
       - ./apps/api/.env.production
+    # Firebase Admin key for phone-login token verification. It is git-ignored,
+    # so it is not in the CI-built image — it lives on this box and is mounted
+    # in. src/config/firebase.js reads it from /usr/src/app. The deploy fails
+    # early if it is missing (otherwise Docker would create a directory here).
+    volumes:
+      - ./apps/api/firebase-service-account.json:/usr/src/app/firebase-service-account.json:ro
     # Ties every Sentry error from this container to the exact commit that's
     # running, so an issue can be traced straight to its deploy. Overrides
     # any SENTRY_RELEASE in .env.production (there shouldn't be one).

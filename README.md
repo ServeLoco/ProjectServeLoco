@@ -82,6 +82,8 @@ A push to `main` runs `.github/workflows/deploy.yml`, which:
 4. stops the api container, runs `db:migrate` as a one-shot container from the new image, and starts the new stack — only the services whose image changed are restarted,
 5. reloads nginx and then polls `/health` through the proxy.
 
+Two git-ignored files live on the box and are **not** in the CI-built images: `apps/api/.env.production` (loaded at runtime) and `apps/api/firebase-service-account.json` (bind-mounted into the api container; without it phone login fails with "Firebase is not configured on this server"). The deploy stops before changing anything if the Firebase key is missing. To install or rotate it: `scp` it to `~/ProjectServeLoco/apps/api/firebase-service-account.json`, then `docker compose -f docker-compose.prod.yml up -d --force-recreate api` (with `IMAGE_TAG` set to the running tag).
+
 Migrations are **not** part of `npm start` any more, so a container restart never migrates. A failed MySQL dump stops the deploy before anything changes; a failed migration or a failed `/health` redeploys the previous tag and fails the run. The last good tag is kept on the box in `.deploy-tag`.
 
 The off-box copy warns rather than blocks: the local dump has already made the migration reversible by that point. Mongo is deliberately not backed up — it holds analytics only, and every collection in it expires after 30 days. `.github/workflows/backup-verify.yml` restores the newest off-box backup weekly and fails if it does not come back whole. See [`plans/backup-and-restore.md`](plans/backup-and-restore.md).
