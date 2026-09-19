@@ -5,6 +5,7 @@ const { resolveAreaIdForPricing, getDefaultArea } = require('../utils/areaScope'
 const { roundMoney, toMoney } = require('../utils/money');
 const { calculateRainCharge } = require('../utils/rainCharge');
 const { validateCoupon, validateCouponById, pickBestAutoApply, findApplicableCoupons, getNextFreeDeliveryThreshold, getNearestUnlockableCoupon } = require('../utils/coupons');
+const logger = require('../utils/logger');
 
 // Bug fix (multi-area audit finding #12): validateCouponHandler and
 // getAvailableCoupons used to leave deliveryAreaId as null for a
@@ -592,7 +593,7 @@ const calculateCart = async (req, res) => {
     } catch (err) {
       // Non-fatal: no progress hint on error, but log so a broken hint
       // (e.g. missing migration column) doesn't fail silently in prod.
-      console.error('[cart] getNextFreeDeliveryThreshold failed:', err.message);
+      logger.error('[cart] getNextFreeDeliveryThreshold failed:', err.message);
     }
   }
 
@@ -612,7 +613,7 @@ const calculateCart = async (req, res) => {
       areaId: deliveryAreaId,
     });
   } catch (err) {
-    console.error('[cart] getNearestUnlockableCoupon failed:', err.message);
+    logger.error('[cart] getNearestUnlockableCoupon failed:', err.message);
   }
 
   if (!requiresLocation && deliveryWithinRange) {

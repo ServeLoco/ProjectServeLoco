@@ -1,7 +1,8 @@
+const logger = require('../utils/logger');
 require('dotenv').config();
 
 if (process.env.NODE_ENV === 'production' && process.env.ALLOW_DEMO_SEED !== 'true') {
-  console.error('Refusing to run demo seed in production. Set ALLOW_DEMO_SEED=true to override.');
+  logger.error('Refusing to run demo seed in production. Set ALLOW_DEMO_SEED=true to override.');
   process.exit(1);
 }
 
@@ -85,7 +86,7 @@ async function upsertUser({ name, phone, address, trusted = 1, blocked = 0, last
 }
 
 async function seed() {
-  console.log('Seeding multi-area test data...');
+  logger.info('Seeding multi-area test data...');
   const areaData = {}; // areaId -> { shops: [], categories: {}, products: [], riders: [], customers: [] }
 
   try {
@@ -107,7 +108,7 @@ async function seed() {
         AREAS[1].center.lat - 0.1, AREAS[1].center.lat + 0.1,
         AREAS[1].center.lng - 0.1, AREAS[1].center.lng + 0.1]
     );
-    console.log('  Areas ready:', AREAS.map((a) => `${a.id}=${a.name}`).join(', '));
+    logger.info('  Areas ready:', AREAS.map((a) => `${a.id}=${a.name}`).join(', '));
 
     for (const area of AREAS) areaData[area.id] = {};
 
@@ -141,7 +142,7 @@ async function seed() {
 
       await seedSystemStoreModes(area.id, pool);
     }
-    console.log('  Settings + delivery zones + store modes ready for both areas.');
+    logger.info('  Settings + delivery zones + store modes ready for both areas.');
 
     // ---- 3. Admins -------------------------------------------------------
     const passwordHash = await bcrypt.hash(ADMIN_PASSWORD, 10);
@@ -159,7 +160,7 @@ async function seed() {
         [a.username, passwordHash, a.role, a.areaId, a.displayName]
       );
     }
-    console.log(`  Admins ready — login with any of: ${admins.map((a) => a.username).join(', ')} / password "${ADMIN_PASSWORD}"`);
+    logger.info(`  Admins ready — login with any of: ${admins.map((a) => a.username).join(', ')} / password "${ADMIN_PASSWORD}"`);
 
     // ---- 4. Per-area data: categories, shops, products, riders, customers, orders, coupons ----
     for (const area of AREAS) {
@@ -363,23 +364,23 @@ async function seed() {
       );
 
       areaData[aid] = { shopIds, productIds, riderIds, customerIds };
-      console.log(`  Area ${aid} (${area.name}): ${shopIds.length} shops, ${productIds.length} products, ${riderIds.length} riders (2 online), ${customerIds.length} customers, ${states.length} orders, 3 coupons.`);
+      logger.info(`  Area ${aid} (${area.name}): ${shopIds.length} shops, ${productIds.length} products, ${riderIds.length} riders (2 online), ${customerIds.length} customers, ${states.length} orders, 3 coupons.`);
     }
 
-    console.log('\nMulti-area test data seeded successfully.\n');
-    console.log('Admin logins (POST /api/admin/login, {username, password}):');
-    console.log(`  superadmin / ${ADMIN_PASSWORD}  (all areas)`);
-    console.log(`  admin_area1 / ${ADMIN_PASSWORD}  (${AREAS[0].name} only)`);
-    console.log(`  admin_area2 / ${ADMIN_PASSWORD}  (${AREAS[1].name} only)`);
-    console.log('\nCustomer OTP logins (any customer phone above, e.g.):');
-    console.log(`  700001000${1} .. 700001001${5}  (${AREAS[0].name} customers, last one blocked)`);
-    console.log(`  700002000${1} .. 700002001${5}  (${AREAS[1].name} customers, last one blocked)`);
-    console.log(`\nTest pins to drop in the app:`);
-    console.log(`  ${AREAS[0].name}: ${AREAS[0].center.lat}, ${AREAS[0].center.lng}`);
-    console.log(`  ${AREAS[1].name}: ${AREAS[1].center.lat}, ${AREAS[1].center.lng}`);
+    logger.info('\nMulti-area test data seeded successfully.\n');
+    logger.info('Admin logins (POST /api/admin/login, {username, password}):');
+    logger.info(`  superadmin / ${ADMIN_PASSWORD}  (all areas)`);
+    logger.info(`  admin_area1 / ${ADMIN_PASSWORD}  (${AREAS[0].name} only)`);
+    logger.info(`  admin_area2 / ${ADMIN_PASSWORD}  (${AREAS[1].name} only)`);
+    logger.info('\nCustomer OTP logins (any customer phone above, e.g.):');
+    logger.info(`  700001000${1} .. 700001001${5}  (${AREAS[0].name} customers, last one blocked)`);
+    logger.info(`  700002000${1} .. 700002001${5}  (${AREAS[1].name} customers, last one blocked)`);
+    logger.info(`\nTest pins to drop in the app:`);
+    logger.info(`  ${AREAS[0].name}: ${AREAS[0].center.lat}, ${AREAS[0].center.lng}`);
+    logger.info(`  ${AREAS[1].name}: ${AREAS[1].center.lat}, ${AREAS[1].center.lng}`);
     process.exit(0);
   } catch (err) {
-    console.error('Error seeding multi-area test data:', err);
+    logger.error('Error seeding multi-area test data:', err);
     process.exit(1);
   }
 }

@@ -11,6 +11,7 @@ const {
   initRealtime,
   joinNewAreaForConnectedSuperAdmins,
 } = require('../src/realtime/socket');
+const logger = require('../src/utils/logger');
 
 const createToken = (payload) => jwt.sign(payload, config.JWT_SECRET);
 
@@ -287,7 +288,7 @@ describe('Realtime socket server', () => {
   // — that's always a bug at the call site, so it must be caught (and
   // logged) here rather than swallowed identically to a healthy no-op.
   it('returns false from emitToAdmins/emitToAllCustomers when areaId is missing, without touching io', async () => {
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleErrorSpy = jest.spyOn(logger, 'error').mockImplementation(() => {});
     try {
       expect(emitToAdmins(null, 'test.event', {})).toBe(false);
       expect(emitToAdmins(undefined, 'test.event', {})).toBe(false);

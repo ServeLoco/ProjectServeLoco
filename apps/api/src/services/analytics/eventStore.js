@@ -5,6 +5,7 @@
 // request path — Rule 7).
 
 const { getDb } = require('../../db/mongodb');
+const logger = require('../../utils/logger');
 
 const VALID_TYPES = new Set([
   'cart_add',
@@ -87,7 +88,7 @@ const insertEvents = async (userId, events, areaId) => {
     const res = await getDb().collection('analytics_events').insertMany(docs);
     return res.insertedCount || docs.length;
   } catch (error) {
-    console.error('[analytics] insertEvents failed:', error.message);
+    logger.error('[analytics] insertEvents failed:', error.message);
     return 0;
   }
 };

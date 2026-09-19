@@ -17,6 +17,7 @@ jest.mock('../src/db/mongodb', () => ({
 // Jest require.main !== module so startServer() does not run. We require it
 // purely to exercise purgeExpiredDeletions in isolation against a mocked pool.
 const { purgeExpiredDeletions } = require('../src/server');
+const logger = require('../src/utils/logger');
 
 describe('purgeExpiredDeletions', () => {
   beforeEach(() => {
@@ -34,7 +35,7 @@ describe('purgeExpiredDeletions', () => {
       .mockResolvedValueOnce([[{ cnt: 0 }]]) // COUNT orders for user 20 → no orders
       .mockResolvedValueOnce([{ affectedRows: 1 }]); // DELETE users hard-delete user 20
 
-    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const logSpy = jest.spyOn(logger, 'info').mockImplementation(() => {});
 
     await purgeExpiredDeletions();
 
@@ -72,7 +73,8 @@ describe('purgeExpiredDeletions', () => {
 
     // Log reports both counts.
     expect(logSpy).toHaveBeenCalledWith(
-      expect.stringMatching(/hard-deleted 1, anonymized 1 user\(s\)/)
+      { hardDeleted: 1, anonymized: 1 },
+      'purge-expired-deletions completed'
     );
 
     logSpy.mockRestore();
@@ -80,7 +82,7 @@ describe('purgeExpiredDeletions', () => {
 
   it('does nothing when there are no expired users', async () => {
     pool.query.mockResolvedValueOnce([[]]); // SELECT expired user ids → none
-    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const logSpy = jest.spyOn(logger, 'info').mockImplementation(() => {});
 
     await purgeExpiredDeletions();
 

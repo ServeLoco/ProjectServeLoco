@@ -4,6 +4,7 @@ const notificationService = require('../utils/notificationService');
 const { notifyShopsForOrder } = require('../utils/shops');
 
 const config = require('../config/env');
+const logger = require('../utils/logger');
 
 // Admin's veto window before an order auto-accepts — and the worst-case wait
 // before shop owners are told about it (notifyShopsForOrder only runs once the
@@ -54,10 +55,10 @@ const acceptPendingOrder = async (orderId, orderNumber, logTag = 'auto-accept') 
   try {
     const { startAssignmentIfHouseOnly } = require('../services/riderAssignment');
     startAssignmentIfHouseOnly(order.id).catch((e) =>
-      console.error('[rider-assign] house start on auto-accept failed:', e.message)
+      logger.error('[rider-assign] house start on auto-accept failed:', e.message)
     );
   } catch (e) {
-    console.error('[rider-assign] house start on auto-accept failed:', e.message);
+    logger.error('[rider-assign] house start on auto-accept failed:', e.message);
   }
 
   notificationService.createOrderNotification({
@@ -68,7 +69,7 @@ const acceptPendingOrder = async (orderId, orderNumber, logTag = 'auto-accept') 
     realtimeEvents.emitNotificationCreated(order.customer_id, resultNotif)
   ).catch(() => {});
 
-  console.log(
+  logger.info(
     `[${logTag}] order #${orderNumber || order.order_number} (id=${orderId}) auto-accepted`
   );
   return order;
@@ -92,7 +93,7 @@ const fire = async (id, orderNumber) => {
 
     await acceptPendingOrder(id, orderNumber || rows[0].order_number, 'auto-accept');
   } catch (e) {
-    console.error('[auto-accept] failed for order', id, e.message);
+    logger.error('[auto-accept] failed for order', id, e.message);
   } finally {
     claimedOrders.delete(id);
   }
@@ -189,18 +190,18 @@ const rehydratePendingOrders = async () => {
         try {
           await acceptPendingOrder(r.id, r.order_number, 'auto-accept-rehydrate');
         } catch (e) {
-          console.error('[auto-accept] rehydrate accept failed for', r.id, e.message);
+          logger.error('[auto-accept] rehydrate accept failed for', r.id, e.message);
         }
       } else {
         const remainingMs = Math.max(0, AUTO_ACCEPT_MS - ageSec * 1000);
         schedule(r.id, r.order_number, remainingMs);
-        console.log(
+        logger.info(
           `[auto-accept] re-scheduled order id=${r.id} in ${Math.ceil(remainingMs / 1000)}s`
         );
       }
     }
   } catch (e) {
-    console.error('[auto-accept] rehydrate failed:', e.message);
+    logger.error('[auto-accept] rehydrate failed:', e.message);
   }
 };
 

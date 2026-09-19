@@ -1,4 +1,5 @@
 const { pool } = require('../db/mysql');
+const logger = require('../utils/logger');
 const {
   syncDeliveryAvailabilityFromRiders,
   RIDER_MAX_ACTIVE_ORDERS,
@@ -613,7 +614,7 @@ const adminSetRiderOnline = async (req, res) => {
   if (raw) {
     setImmediate(() => {
       assignment.recoverStuckAssignments().catch((e) =>
-        console.error('[admin-riders] recover after online failed:', e.message)
+        logger.error('[admin-riders] recover after online failed:', e.message)
       );
     });
   }

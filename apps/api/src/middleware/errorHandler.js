@@ -1,3 +1,5 @@
+const logger = require('../utils/logger');
+
 const errorHandler = (err, req, res, _next) => {
   let statusCode = err.statusCode || 500;
   let message = err.message || 'Internal Server Error';
@@ -19,7 +21,7 @@ const errorHandler = (err, req, res, _next) => {
   // Never leak internal error details on 5xx responses. The real error is
   // still captured in the server logs for debugging.
   if (statusCode >= 500) {
-    console.error('[server-error]', req.method, req.originalUrl, err);
+    logger.error({ err, method: req.method, url: req.originalUrl }, 'Unhandled server error');
     message = 'Something went wrong. Please try again.';
     code = 'SERVER_ERROR';
   }

@@ -1,6 +1,7 @@
 const mysql = require('mysql2/promise');
 const config = require('../config/env');
 const { getMysqlSslOptions } = require('./mysqlSsl');
+const logger = require('../utils/logger');
 
 // Pool size is env-tunable. Default 30 handles burst of concurrent requests
 // without forcing them to queue. Timeouts prevent zombie connections.
@@ -42,7 +43,7 @@ const checkConnection = async () => {
     connection.release();
     return true;
   } catch (error) {
-    console.error('MySQL Connection Error:', error.message);
+    logger.error('MySQL Connection Error:', error.message);
     return false;
   }
 };

@@ -10,6 +10,7 @@
 const { getMessaging } = require('firebase-admin/messaging');
 const { initFirebase } = require('../config/firebase');
 const config = require('../config/env');
+const logger = require('./logger');
 
 const isProd = config.NODE_ENV === 'production';
 
@@ -72,7 +73,7 @@ const sendFcmDataOnlyToUser = async (pool, userId, data = {}, options = {}) => {
     });
 
     if (!isProd) {
-      console.log('[fcmAlarm] sent data-only to user=%s keys=%j', userId, Object.keys(stringData));
+      logger.info('[fcmAlarm] sent data-only to user=%s keys=%j', userId, Object.keys(stringData));
     }
     return { sent: true };
   } catch (err) {
@@ -86,7 +87,7 @@ const sendFcmDataOnlyToUser = async (pool, userId, data = {}, options = {}) => {
         await pool.query('UPDATE users SET fcm_token = NULL WHERE id = ?', [userId]);
       } catch { /* ignore */ }
     }
-    console.error('[fcmAlarm] send failed user=%s: %s', userId, err.message);
+    logger.error('[fcmAlarm] send failed user=%s: %s', userId, err.message);
     return { sent: false, reason: err.message };
   }
 };

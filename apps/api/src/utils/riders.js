@@ -2,6 +2,7 @@ const { pool } = require('../db/mysql');
 const config = require('../config/env');
 const { istIsToday } = require('./businessTime');
 const { calculateDistance } = require('./deliveryPricing');
+const logger = require('./logger');
 
 // Calendar day for "least orders completed today" (D8 = Asia/Kolkata).
 // Use fixed offset so MySQL does not require named timezone tables loaded.
@@ -456,7 +457,7 @@ const syncDeliveryAvailabilityFromRiders = async (areaId) => {
 
     return { changed, activeCount, deliveryAvailable: Boolean(desired) };
   } catch (e) {
-    console.error('[riders] syncDeliveryAvailabilityFromRiders failed:', e.message);
+    logger.error('[riders] syncDeliveryAvailabilityFromRiders failed:', e.message);
     return { changed: false, activeCount: 0, deliveryAvailable: false, error: e.message };
   }
 };

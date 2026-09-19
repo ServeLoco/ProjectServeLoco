@@ -22,6 +22,11 @@ services:
     # Inject all secrets/config at runtime (file is NOT baked into the image).
     env_file:
       - ./apps/api/.env.production
+    # Ties every Sentry error from this container to the exact commit that's
+    # running, so an issue can be traced straight to its deploy. Overrides
+    # any SENTRY_RELEASE in .env.production (there shouldn't be one).
+    environment:
+      SENTRY_RELEASE: ${IMAGE_TAG:-latest}
     restart: always
     expose:
       - "3000"

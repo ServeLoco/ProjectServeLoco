@@ -16,6 +16,7 @@
 
 const { pool } = require('../db/mysql');
 const config = require('../config/env');
+const logger = require('../utils/logger');
 const {
   listEligibleRiders,
   selectEligibleRider,
@@ -36,7 +37,7 @@ const clearOfferRemind = (offerId) => {
   if (offerId != null) offerLastRemindAt.delete(Number(offerId));
 };
 
-const log = (...args) => console.log('[rider-assign]', ...args);
+const log = (...args) => logger.info('[rider-assign]', ...args);
 
 /**
  * Stamp search start once; keep status searching. Uses DB clock.
@@ -132,7 +133,7 @@ const getOrderPickupPoints = async (orderId) => {
       .filter((p) => p.lat !== null && p.lng !== null);
   } catch (e) {
     // Never block assignment on a pin lookup — degrade to distance-blind.
-    console.error('[rider-assign] getOrderPickupPoints failed:', e.message);
+    logger.error('[rider-assign] getOrderPickupPoints failed:', e.message);
     return [];
   }
 };
@@ -212,7 +213,7 @@ const notifyRiderOffer = async (rider, order, offer) => {
 
     await pushRiderOffer(userId, order, offer, { reminder: false });
   } catch (e) {
-    console.error('[rider-assign] notifyRiderOffer failed:', e.message);
+    logger.error('[rider-assign] notifyRiderOffer failed:', e.message);
   }
 };
 
@@ -274,7 +275,7 @@ const remindPendingOffers = async () => {
         });
       } catch (_) { /* best-effort */ }
     } catch (e) {
-      console.error('[rider-assign] remind push failed offer', offerId, e.message);
+      logger.error('[rider-assign] remind push failed offer', offerId, e.message);
     }
   }
 
@@ -397,7 +398,7 @@ const createOffer = async (orderId, rider) => {
         await sleep(20 * (attempt + 1) + Math.floor(Math.random() * 30));
         continue;
       }
-      console.error('[rider-assign] createOffer failed:', e.message);
+      logger.error('[rider-assign] createOffer failed:', e.message);
       throw e;
     }
   }
@@ -540,7 +541,7 @@ const failAssignment = async (orderId, reason = 'No riders available') => {
     log('failAssignment (no auto-cancel)', { orderId, reason: failReason });
     return updated;
   } catch (e) {
-    console.error('[rider-assign] failAssignment failed:', e.message);
+    logger.error('[rider-assign] failAssignment failed:', e.message);
     return null;
   }
 };
@@ -662,7 +663,7 @@ const startAssignment = async (orderId) => {
     });
     return { started: true, offer, riderId };
   } catch (e) {
-    console.error('[rider-assign] startAssignment failed:', e.message);
+    logger.error('[rider-assign] startAssignment failed:', e.message);
     return { started: false, error: e.message };
   }
 };
@@ -682,7 +683,7 @@ const startAssignmentIfHouseOnly = async (orderId) => {
     }
     return startAssignment(orderId);
   } catch (e) {
-    console.error('[rider-assign] startAssignmentIfHouseOnly failed:', e.message);
+    logger.error('[rider-assign] startAssignmentIfHouseOnly failed:', e.message);
     return { started: false, error: e.message };
   }
 };
@@ -738,7 +739,7 @@ const maybeStartRiderAssignment = async (orderId) => {
 
     return startAssignment(orderId);
   } catch (e) {
-    console.error('[rider-assign] maybeStartRiderAssignment failed:', e.message);
+    logger.error('[rider-assign] maybeStartRiderAssignment failed:', e.message);
     return { started: false, error: e.message };
   }
 };
@@ -866,7 +867,7 @@ const acceptOffer = async (offerId, riderId) => {
     return { ok: true, order: updated };
   } catch (e) {
     await connection.rollback();
-    console.error('[rider-assign] acceptOffer failed:', e.message);
+    logger.error('[rider-assign] acceptOffer failed:', e.message);
     return { ok: false, code: 'INTERNAL', message: e.message, status: 500 };
   } finally {
     connection.release();
@@ -905,7 +906,7 @@ const rejectOffer = async (offerId, riderId, rejectReason = 'manual') => {
     await connection.commit();
   } catch (e) {
     await connection.rollback();
-    console.error('[rider-assign] rejectOffer failed:', e.message);
+    logger.error('[rider-assign] rejectOffer failed:', e.message);
     return { ok: false, code: 'INTERNAL', message: e.message, status: 500 };
   } finally {
     connection.release();
@@ -1044,7 +1045,7 @@ const recoverStuckAssignments = async () => {
       const outcome = await waitOrFailNoEligible(row.id, excluded);
       results.push({ continued: false, ...outcome });
     } catch (e) {
-      console.error('[rider-assign] recoverStuckAssignments failed for order', row.id, e.message);
+      logger.error('[rider-assign] recoverStuckAssignments failed for order', row.id, e.message);
       results.push({ continued: false, error: e.message });
     }
   }
@@ -1089,7 +1090,7 @@ const revokeOffersForOrder = async (orderId) => {
       });
     }
   } catch (e) {
-    console.error('[rider-assign] revokeOffersForOrder failed:', e.message);
+    logger.error('[rider-assign] revokeOffersForOrder failed:', e.message);
   }
 };
 
@@ -1160,7 +1161,7 @@ const reassignRider = async (orderId, targetRider, areaId) => {
     await connection.commit();
   } catch (e) {
     await connection.rollback();
-    console.error('[rider-assign] reassignRider failed:', e.message);
+    logger.error('[rider-assign] reassignRider failed:', e.message);
     return { ok: false, code: 'ERROR', message: 'Reassign failed', status: 500 };
   } finally {
     connection.release();

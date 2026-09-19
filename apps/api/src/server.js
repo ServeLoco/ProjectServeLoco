@@ -1,7 +1,9 @@
 const app = require('./app');
+const Sentry = require('./config/sentry');
 const config = require('./config/env');
 const db = require('./db');
 const { pool } = require('./db/mysql');
+const logger = require('./utils/logger');
 const { closeRealtime, initRealtime } = require('./realtime/socket');
 const orderAutoAccept = require('./realtime/orderAutoAccept');
 const { startRiderOfferSweeper, stopRiderOfferSweeper } = require('./realtime/riderOfferSweeper');
@@ -11,6 +13,21 @@ const { startRollupScheduler, stopRollupScheduler } = require('./services/analyt
 
 const PORT = config.PORT;
 let server;
+
+// A crash that never gets reported is a crash nobody hears about until a
+// customer complains. Report to Sentry (a no-op without SENTRY_DSN), log
+// structured, flush, then exit — Node's own state is unreliable past this
+// point, so we don't try to keep serving.
+process.on('uncaughtException', (err) => {
+  logger.fatal({ err }, 'uncaughtException');
+  Sentry.captureException(err);
+  Sentry.flush(2000).finally(() => process.exit(1));
+});
+
+process.on('unhandledRejection', (reason) => {
+  logger.fatal({ err: reason }, 'unhandledRejection');
+  Sentry.captureException(reason);
+});
 
 // Purge users whose deletion grace period (30 days) has elapsed. Runs once
 // on startup and every 24 hours after that. Because orders.customer_id is
@@ -65,12 +82,12 @@ const purgeExpiredDeletions = async () => {
         }
       } catch (e) {
         // One user failing must not stop the rest of the batch.
-        console.error(`[purge-expired-deletions] failed for user ${id}:`, e.message);
+        logger.error({ err: e, userId: id }, 'purge-expired-deletions failed for user');
       }
     }
-    console.log(`[purge-expired-deletions] hard-deleted ${hardDeleted}, anonymized ${anonymized} user(s) past 30-day grace`);
+    logger.info({ hardDeleted, anonymized }, 'purge-expired-deletions completed');
   } catch (e) {
-    console.error('[purge-expired-deletions] failed:', e.message);
+    logger.error({ err: e }, 'purge-expired-deletions failed');
   }
 };
 
@@ -83,7 +100,7 @@ const startServer = async () => {
       // in from tests) is obvious in the server logs instead of surfacing
       // as users mysteriously getting logged out after a day.
       const jwtExpires = require('./config/env').JWT_EXPIRES_IN;
-      console.log(`Server is running on port ${PORT} (JWT_EXPIRES_IN=${jwtExpires})`);
+      logger.info({ port: PORT, jwtExpiresIn: jwtExpires }, 'Server is running');
     });
     initRealtime(server);
     // Daily analytics rollup — backfills yesterday on startup, then runs at 00:05.
@@ -102,7 +119,9 @@ const startServer = async () => {
     purgeTimer.unref();
     global.__purgeTimer = purgeTimer;
   } catch (error) {
-    console.error('Failed to start server:', error);
+    logger.fatal({ err: error }, 'Failed to start server');
+    Sentry.captureException(error);
+    await Sentry.flush(2000);
     process.exit(1);
   }
 };
@@ -114,7 +133,7 @@ if (require.main === module) startServer();
 
 // Graceful shutdown helpers
 const shutdown = async () => {
-  console.log('SIGTERM/SIGINT signal received: closing HTTP server and database connections');
+  logger.info('SIGTERM/SIGINT signal received: closing HTTP server and database connections');
   orderAutoAccept.clearAll();
   stopRiderOfferSweeper();
   stopShopAlertSweeper();
@@ -125,7 +144,7 @@ const shutdown = async () => {
 
   if (server) {
     server.close(async () => {
-      console.log('HTTP server closed');
+      logger.info('HTTP server closed');
       await db.closeDB();
       process.exit(0);
     });

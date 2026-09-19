@@ -4,6 +4,7 @@ const { pool } = require('../db/mysql');
 const config = require('../config/env');
 const { processUploadedImage, thumbFilenameFor } = require('../utils/imageThumbs');
 const { storeBuffer, deleteStored } = require('../utils/imageStorage');
+const logger = require('../utils/logger');
 
 const MIME_MAP = { jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp', gif: 'image/gif' };
 
@@ -119,7 +120,7 @@ const processAndStoreUpload = async (inputBuffer, detectedExt, originalname) => 
       const stored = await storeBuffer(thumbFilename, thumb.buffer, thumb.mimeType);
       thumbUrl = stored.url;
     } catch (err) {
-      console.error('[images] thumb store failed:', err.message);
+      logger.error('[images] thumb store failed:', err.message);
     }
   }
 
@@ -224,13 +225,13 @@ const deleteImageDocAndFile = async (id) => {
   try {
     await deleteStored(image.storage_type, image.filename);
   } catch (e) {
-    console.error('[images] delete full failed:', e.message);
+    logger.error('[images] delete full failed:', e.message);
   }
   if (image.thumb_url) {
     try {
       await deleteStored(image.storage_type, image.thumb_url);
     } catch (e) {
-      console.error('[images] delete thumb failed:', e.message);
+      logger.error('[images] delete thumb failed:', e.message);
     }
   }
 
@@ -251,7 +252,7 @@ const cleanupOrphanedImage = async (imageId) => {
     await deleteImageDocAndFile(idStr);
     return { deleted: true };
   } catch (e) {
-    console.error('[images] cleanupOrphanedImage failed for', idStr, e.message);
+    logger.error('[images] cleanupOrphanedImage failed for', idStr, e.message);
     return { deleted: false, reason: 'error', error: e.message };
   }
 };

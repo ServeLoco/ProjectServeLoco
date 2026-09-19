@@ -23,6 +23,7 @@
 const { pool } = require('../db/mysql');
 const config = require('../config/env');
 const { remindShopOrderOwner } = require('../utils/shops');
+const logger = require('../utils/logger');
 
 const SHOP_ALERT_SWEEP_MS = config.SHOP_ALERT_SWEEP_MS || 2000;
 const SHOP_ALERT_REMIND_MS = config.SHOP_ALERT_REMIND_MS || 25000;
@@ -122,7 +123,7 @@ const remindPendingShopOrders = async () => {
         { fcmToken: row.owner_fcm_token }
       );
     } catch (e) {
-      console.error('[shop-alert] remind failed for order', row.order_id, 'shop', row.shop_id, e.message);
+      logger.error('[shop-alert] remind failed for order', row.order_id, 'shop', row.shop_id, e.message);
     }
   }
 };
@@ -169,7 +170,7 @@ const timeoutRejectStaleShopOrders = async () => {
       });
       if (!result.ok) continue;
 
-      console.log(
+      logger.info(
         `[shop-alert] timeout-reject order=${row.order_id} shop=${row.shop_id} waited=${timeoutSec}s`
       );
 
@@ -194,7 +195,7 @@ const timeoutRejectStaleShopOrders = async () => {
       // exception reached tick()'s catch — so tick()'s own
       // `missingColumnLogged = false` ran immediately after and undid the
       // suppression on every single tick, defeating "further ticks suppressed".
-      console.error('[shop-alert] timeout-reject failed for order', row.order_id, 'shop', row.shop_id, e.message);
+      logger.error('[shop-alert] timeout-reject failed for order', row.order_id, 'shop', row.shop_id, e.message);
     }
   }
 };
@@ -211,11 +212,11 @@ const tick = async () => {
       || e.errno === 1146 || /doesn't exist|Unknown column/i.test(e.message || ''));
     if (missing) {
       if (!missingColumnLogged) {
-        console.error('[shop-alert] required columns missing — run npm run db:migrate:dev once. Further ticks suppressed until fixed.');
+        logger.error('[shop-alert] required columns missing — run npm run db:migrate:dev once. Further ticks suppressed until fixed.');
         missingColumnLogged = true;
       }
     } else {
-      console.error('[shop-alert] tick failed:', e.message);
+      logger.error('[shop-alert] tick failed:', e.message);
     }
   } finally {
     running = false;
@@ -228,7 +229,7 @@ const startShopAlertSweeper = () => {
     tick().catch(() => {});
   }, SHOP_ALERT_SWEEP_MS);
   if (typeof timer.unref === 'function') timer.unref();
-  console.log(`[shop-alert] started (interval=${SHOP_ALERT_SWEEP_MS}ms, remind=${SHOP_ALERT_REMIND_MS}ms, timeout=${SHOP_RESPONSE_TIMEOUT_MS}ms)`);
+  logger.info(`[shop-alert] started (interval=${SHOP_ALERT_SWEEP_MS}ms, remind=${SHOP_ALERT_REMIND_MS}ms, timeout=${SHOP_RESPONSE_TIMEOUT_MS}ms)`);
 };
 
 const stopShopAlertSweeper = () => {
