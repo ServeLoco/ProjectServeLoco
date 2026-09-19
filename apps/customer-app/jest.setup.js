@@ -189,7 +189,7 @@ jest.mock('@notifee/react-native', () => {
     default: notifee,
     AndroidImportance: { HIGH: 4, DEFAULT: 3, LOW: 2, MIN: 1, NONE: 0 },
     AndroidVisibility: { PUBLIC: 1, PRIVATE: 0, SECRET: -1 },
-    AndroidCategory: { CALL: 'call', ALARM: 'alarm' },
+    AndroidCategory: { CALL: 'call', ALARM: 'alarm', MESSAGE: 'msg' },
     AndroidForegroundServiceType: { FOREGROUND_SERVICE_TYPE_SPECIAL_USE: 1024 },
     EventType: {
       DISMISS: 0,
