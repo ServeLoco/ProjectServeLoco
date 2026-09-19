@@ -7,10 +7,14 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import notifee from '@notifee/react-native';
 import { colors, spacing, radius, shadows, typography } from '../../theme';
-import { riderApi } from '../../api';
+import { riderApi, shopApi } from '../../api';
 import {
+  ALERT_TYPE_NEW_ORDER,
+  ALERT_TYPE_RIDER_OFFER,
   ensureBackgroundCustomerToken,
+  ensureShopOrRiderSession,
   cancelRiderOfferAlarm,
 } from '../../utils/orderAlarmNotifications';
 import { hideOverlayOfferCard, openMainApp } from '../../utils/overlayOfferCard';
@@ -28,20 +32,48 @@ function closeActivity() {
 }
 
 /**
+ * Which role's alert opened this activity. The notification that launched it
+ * is the authoritative answer, but it is consumed once and some OEM launch
+ * paths hand the activity a bare intent, so the stored session is the
+ * fallback — a phone is signed in as a rider or as a shop, not both.
+ */
+async function resolveAlarmRole() {
+  let alertType = null;
+  try {
+    const initial = await notifee.getInitialNotification();
+    alertType = initial?.notification?.data?.alertType || null;
+  } catch { /* no launch notification to read */ }
+  if (alertType === ALERT_TYPE_RIDER_OFFER) return 'rider';
+  if (alertType === ALERT_TYPE_NEW_ORDER) return 'shop';
+  const { rider, shop } = await ensureShopOrRiderSession();
+  if (rider) return 'rider';
+  if (shop) return 'shop';
+  return null;
+}
+
+/**
  * Root component rendered ONLY inside the native AlarmActivity (see
  * index.js's AppRegistry.registerComponent('alarm', ...) and
  * AlarmActivity.kt) — the lock-screen-capable twin of the main app that
  * boots straight into this instead of the full nav stack. Deliberately
- * minimal: order # + total + Accept/Reject only, no map, no item list —
- * fetches the live offer itself since the activity only ever launches
- * because a real pending offer exists server-side.
+ * minimal: order # + total, no map, no item list — fetches the live
+ * offer/order itself since the activity only ever launches because a real
+ * pending one exists server-side.
+ *
+ * Serves both roles despite living under screens/rider: a rider accepts or
+ * rejects here, a shop owner gets one "Open app" button, because confirming
+ * an order needs the item list, delivery window and slide-to-accept that only
+ * the in-app bottom sheet has. Same split as the floating overlay card's
+ * openOnly flag.
  */
 export default function RiderAlarmScreen() {
+  const [role, setRole] = useState(null);
   const [offer, setOffer] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(null);
   const [secondsLeft, setSecondsLeft] = useState(0);
   const mountedRef = useRef(true);
+  const isShop = role === 'shop';
 
   useEffect(() => {
     mountedRef.current = true;
@@ -55,11 +87,26 @@ export default function RiderAlarmScreen() {
   useEffect(() => {
     (async () => {
       await ensureBackgroundCustomerToken();
+      const resolved = await resolveAlarmRole();
+      if (!mountedRef.current) return;
+      setRole(resolved);
       try {
-        const res = await riderApi.getActiveOffer();
-        if (!mountedRef.current) return;
-        const first = Array.isArray(res?.offers) ? res.offers[0] : res?.offer;
-        setOffer(first || null);
+        if (resolved === 'shop') {
+          const res = await shopApi.getMyOrders();
+          if (!mountedRef.current) return;
+          // Same "awaiting the owner" definition the dashboard queue uses,
+          // oldest first — the alarm that woke the phone is for the head of
+          // that queue.
+          const pending = (res?.orders || [])
+            .filter(o => !o.confirmed && !o.rejected)
+            .sort((a, b) => Number(a.id) - Number(b.id));
+          setOffer(pending[0] || null);
+        } else {
+          const res = await riderApi.getActiveOffer();
+          if (!mountedRef.current) return;
+          const first = Array.isArray(res?.offers) ? res.offers[0] : res?.offer;
+          setOffer(first || null);
+        }
       } catch {
         if (mountedRef.current) setOffer(null);
       } finally {
@@ -69,13 +116,14 @@ export default function RiderAlarmScreen() {
   }, []);
 
   useEffect(() => {
-    if (!offer) return undefined;
+    // Shop orders have no server-side expiry, so there is no clock to run.
+    if (!offer || isShop) return undefined;
     const expiresAt = offer.expiresAt || offer.expires_at;
     const tick = () => setSecondsLeft(remainingSecondsFromExpiresAt(expiresAt));
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [offer]);
+  }, [offer, isShop]);
 
   useEffect(() => {
     if (!loading && !offer) {
@@ -86,6 +134,14 @@ export default function RiderAlarmScreen() {
     }
     return undefined;
   }, [loading, offer]);
+
+  // Deliberately does not silence the alarm: tapping through to the app is
+  // not confirming the order, and the ring is meant to last until the owner
+  // actually accepts or rejects it — same as tapping the notification body.
+  const openShopOrder = useCallback(() => {
+    openMainApp();
+    closeActivity();
+  }, []);
 
   const respond = useCallback(async (action) => {
     if (!offer) return;
@@ -118,7 +174,9 @@ export default function RiderAlarmScreen() {
   if (!offer) {
     return (
       <View style={styles.screen}>
-        <Text style={styles.doneText}>Offer no longer available</Text>
+        <Text style={styles.doneText}>
+          {isShop ? 'Order already handled' : 'Offer no longer available'}
+        </Text>
       </View>
     );
   }
@@ -130,12 +188,21 @@ export default function RiderAlarmScreen() {
     <View style={styles.screen}>
       <View style={styles.card}>
         <View style={styles.badgeRow}>
-          <Text style={styles.badge}>Delivery offer</Text>
-          <Text style={styles.timer}>{formatCountdown(secondsLeft)}</Text>
+          <Text style={styles.badge}>{isShop ? 'New order' : 'Delivery offer'}</Text>
+          {isShop ? null : <Text style={styles.timer}>{formatCountdown(secondsLeft)}</Text>}
         </View>
         {total != null ? <Text style={styles.total}>₹{Number(total).toFixed(0)}</Text> : null}
         {orderNumber ? <Text style={styles.orderNumber}>Order #{orderNumber}</Text> : null}
 
+        {isShop ? (
+          <TouchableOpacity
+            style={[styles.actionBtn, styles.acceptBtn, styles.openBtn]}
+            activeOpacity={0.85}
+            onPress={openShopOrder}
+          >
+            <Text style={styles.actionBtnText}>Open app</Text>
+          </TouchableOpacity>
+        ) : (
         <View style={styles.actionRow}>
           <TouchableOpacity
             style={[styles.actionBtn, styles.rejectBtn]}
@@ -162,6 +229,7 @@ export default function RiderAlarmScreen() {
             )}
           </TouchableOpacity>
         </View>
+        )}
       </View>
     </View>
   );
@@ -228,6 +296,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  openBtn: { marginTop: spacing.xl },
   rejectBtn: { backgroundColor: colors.error },
   acceptBtn: { backgroundColor: colors.btnInfoEnd },
   actionBtnText: { color: colors.textInverse, fontWeight: '800', fontSize: 16 },

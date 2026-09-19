@@ -36,10 +36,13 @@ import {
   isAppOnScreen,
 } from './overlayOfferCard';
 
-// Rider offers only — launched from the alarm notification's press/full-screen
-// action instead of MainActivity so a cold, locked device boots straight into
-// the minimal Accept/Reject+total card (no nav stack, no Mapbox) instead of
-// the full app. See index.js's AppRegistry.registerComponent('alarm', ...).
+// Launched from the alarm notification's press/full-screen action instead of
+// MainActivity so a cold, locked device boots straight into the minimal order
+// card (no nav stack, no Mapbox) instead of the full app. It is also the only
+// activity declared showWhenLocked/turnScreenOn, so it is the only thing a
+// full-screen intent can actually put in front of a keyguard — MainActivity
+// would light the screen and leave the owner staring at their lock screen.
+// See index.js's AppRegistry.registerComponent('alarm', ...).
 const ALARM_ACTIVITY = 'com.yashsiwach.villkro.AlarmActivity';
 
 // Stable notification ids so cancel-on-open can silence a still-ringing alarm.
@@ -242,9 +245,11 @@ export async function ensureBackgroundCustomerToken() {
 /**
  * Shop/rider gate for alarms: seed Zustand from disk when headless cold-start
  * has not rehydrated yet (otherwise displayAlarmNotification no-ops).
+ * Exported for the alarm root, which cold-starts in its own activity and has
+ * to know which role it is rendering for before it can fetch anything.
  * @returns {Promise<{ shop: object|null, rider: object|null }>}
  */
-async function ensureShopOrRiderSession() {
+export async function ensureShopOrRiderSession() {
   let { shop, rider, token, user, profile, isAuthenticated } = useAuthStore.getState();
   if (shop || rider) {
     return { shop, rider };
@@ -457,15 +462,13 @@ export async function displayAlarmNotification(data) {
       // Wake the display along with the full-screen card — a turnScreenOn
       // activity alone loses the race on some OEMs when the process is cold.
       ...(useFullScreen ? { lightUpScreen: true } : {}),
-      // Riders land on the lightweight Accept/Reject card (no nav stack, no
-      // Mapbox) so a cold locked device boots into it like an incoming call;
-      // shop owners get the app, where the dashboard popup is already waiting.
+      // Both roles land on the lightweight card, which is the only activity
+      // that can draw over a keyguard. Riders accept or reject straight from
+      // it; shop owners get one "Open app" button, because confirming an order
+      // needs the item list and delivery window only the in-app sheet has.
       ...(useFullScreen
         ? {
-          fullScreenAction: {
-            id: 'default',
-            launchActivity: isRider ? ALARM_ACTIVITY : 'default',
-          },
+          fullScreenAction: { id: 'default', launchActivity: ALARM_ACTIVITY },
         }
         : {}),
     };

@@ -3,6 +3,7 @@ import {
   ActivityIndicator, Alert, Animated, AppState, Easing, FlatList, Platform,
   RefreshControl, StatusBar, StyleSheet, Text, TouchableOpacity, View,
 } from 'react-native';
+import notifee from '@notifee/react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -57,6 +58,11 @@ const ACKED_ORDER_IDS_CAP = 200;
 // Shown once, dismissible. Shared prompt copy with the rider dashboard — the
 // same OS permission backs both cards.
 const OVERLAY_BANNER_DISMISSED_KEY = 'serveloco:shopOverlayBannerDismissed';
+// Android 14 stopped auto-granting USE_FULL_SCREEN_INTENT to apps that are not
+// dialers or alarm clocks, and revoked it on upgrade. Without it a new order
+// arriving on a locked or dark phone rings with no card to open — the shop
+// counterpart of the rider dashboard's prompt.
+const FULLSCREEN_BANNER_DISMISSED_KEY = 'serveloco:shopFullScreenIntentBannerDismissed';
 
 /**
  * ShopDashboardScreen
@@ -330,6 +336,43 @@ export default function ShopDashboardScreen() {
   const dismissOverlayBanner = useCallback(() => {
     setOverlayBannerVisible(false);
     AsyncStorage.setItem(OVERLAY_BANNER_DISMISSED_KEY, '1').catch(() => {});
+  }, []);
+
+  // Re-checked on every focus rather than once on mount: granting it means
+  // leaving for an OS settings screen and coming back, and a banner still
+  // sitting there afterwards reads as broken.
+  const [fullScreenBannerVisible, setFullScreenBannerVisible] = useState(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (Platform.OS !== 'android') return undefined;
+      let cancelled = false;
+      (async () => {
+        const dismissed = await AsyncStorage
+          .getItem(FULLSCREEN_BANNER_DISMISSED_KEY)
+          .catch(() => null);
+        if (dismissed || cancelled) return;
+        let granted = true;
+        try {
+          if (typeof notifee.canUseFullScreenIntent === 'function') {
+            granted = await notifee.canUseFullScreenIntent();
+          }
+        } catch {
+          // Older binary without the API — nothing to ask for.
+          granted = true;
+        }
+        if (!cancelled) setFullScreenBannerVisible(!granted);
+      })();
+      return () => { cancelled = true; };
+    }, []),
+  );
+
+  const requestFullScreenPermission = useCallback(() => {
+    notifee.openFullScreenIntentSettings?.().catch(() => {});
+  }, []);
+
+  const dismissFullScreenBanner = useCallback(() => {
+    setFullScreenBannerVisible(false);
+    AsyncStorage.setItem(FULLSCREEN_BANNER_DISMISSED_KEY, '1').catch(() => {});
   }, []);
 
   // Heartbeat so the alarm notifier (which may run in Android's separate
@@ -790,6 +833,25 @@ export default function ShopDashboardScreen() {
             <Text style={styles.overlayBannerAllowText}>Allow</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={dismissOverlayBanner} hitSlop={8}>
+            <AppIcon name="close" size={16} color={glass.textFaint} />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {fullScreenBannerVisible && (
+        <View style={styles.overlayBanner}>
+          <AppIcon name="notification" size={18} color={colors.saffron} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.overlayBannerTitle}>Show orders on the lock screen</Text>
+            <Text style={styles.overlayBannerText}>
+              Allow full-screen alerts so a new order wakes your phone instead
+              of only ringing.
+            </Text>
+          </View>
+          <TouchableOpacity onPress={requestFullScreenPermission} style={styles.overlayBannerAllow}>
+            <Text style={styles.overlayBannerAllowText}>Allow</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={dismissFullScreenBanner} hitSlop={8}>
             <AppIcon name="close" size={16} color={glass.textFaint} />
           </TouchableOpacity>
         </View>

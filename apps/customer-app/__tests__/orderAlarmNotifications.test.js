@@ -205,7 +205,10 @@ describe('orderAlarmNotifications', () => {
       expect(call.android.lightUpScreen).toBe(true);
     });
 
-    it('opens the app rather than the rider card for a locked-screen shop alert', async () => {
+    // AlarmActivity is the only activity declared showWhenLocked/turnScreenOn,
+    // so a shop alert routed at MainActivity would light the screen and leave
+    // the owner on their keyguard with nothing to open.
+    it('takes over a locked/dark screen with the alarm activity for a shop alert', async () => {
       useAuthStore.setState({ shop: { id: 1 }, rider: null });
       isScreenLockedOrOff.mockResolvedValue(true);
 
@@ -215,7 +218,13 @@ describe('orderAlarmNotifications', () => {
 
       const [call] = notifee.displayNotification.mock.calls[0];
       expect(call.android.channelId).toBe('serveloco-orders-alarm-v5');
-      expect(call.android.fullScreenAction).toEqual({ id: 'default', launchActivity: 'default' });
+      expect(call.android.fullScreenAction).toEqual({
+        id: 'default',
+        launchActivity: 'com.yashsiwach.villkro.AlarmActivity',
+      });
+      // Tapping the banner itself still opens the full app, where the
+      // dashboard's own confirm sheet is waiting.
+      expect(call.android.pressAction.launchActivity).toBe('default');
     });
 
     it('stays quiet on a locked screen when the OS has revoked full-screen intent', async () => {
