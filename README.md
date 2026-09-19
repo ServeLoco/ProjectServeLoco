@@ -67,9 +67,31 @@ npx expo start
 
 ## CI
 
-- `.github/workflows/ci.yml` — API tests + lint
+- `.github/workflows/ci.yml` — API tests + lint (plus a double `db:migrate` run to prove the migration is idempotent)
 - `.github/workflows/ci-admin.yml` — Admin lint + build
+- `.github/workflows/ci-customer-app.yml` — Customer app lint + tests
 
 ## Deployment
 
-See [`plans/deploymentfinallast.md`](./plans/deploymentfinallast.md) for the full step-by-step deploy plan.
+A push to `main` runs `.github/workflows/deploy.yml`, which:
+
+1. runs CI for all three apps,
+2. builds the `api`, `admin` and `landing` images on GitHub runners and pushes them to GHCR tagged with the commit SHA,
+3. SSHes to the Lightsail box, pulls those tags and restarts only the services whose image changed,
+4. reloads nginx and then polls `/health` through the proxy.
+
+If `/health` never comes back 200, the workflow redeploys the previous tag and fails. The last good tag is kept on the box in `.deploy-tag`.
+
+Manual rollback or pinning a release, on the box:
+
+```bash
+IMAGE_TAG=<commit-sha> docker compose -f docker-compose.prod.yml up -d
+```
+
+Building on the box (only if GHCR or the workflow is unavailable):
+
+```bash
+docker compose -f docker-compose.prod.yml -f docker-compose.build.yml up -d --build
+```
+
+Area rollout steps live in [`plans/area-rollout-runbook.md`](./plans/area-rollout-runbook.md).

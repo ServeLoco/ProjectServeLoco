@@ -6,6 +6,19 @@ on:
     branches: [ "main" ]
   workflow_dispatch: # Allows manual trigger from GitHub Actions UI
 
+# Two merges close together used to deploy over each other. Queue them instead;
+# never cancel, because a cancelled run can leave the box half-deployed.
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_PREFIX: ghcr.io/serveloco/projectserveloco
+
 jobs:
   # ── Run all CI checks first ──────────────────────────────────────────────────
   ci-api:
@@ -87,18 +100,68 @@ jobs:
       - run: npm run lint
       - run: npm test
 
-  # ── Deploy ONLY after ALL CI jobs pass ───────────────────────────────────────
-  deploy:
+  # ── Build the images HERE, not on the production box ─────────────────────────
+  # Building on Lightsail meant every deploy spent the outage compiling while
+  # competing with nothing (the stack was already down). GitHub runners build
+  # the three images in parallel and push them to GHCR tagged with the commit
+  # SHA; the box only pulls. The SHA tag is also what makes rollback possible.
+  build-images:
     runs-on: ubuntu-latest
     needs: [ci-api, ci-admin, ci-customer-app]
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - app: api
+            context: ./apps/api
+            build_args: ""
+          - app: admin
+            context: ./apps/admin
+            # Vite inlines this at build time — must be the public API URL.
+            build_args: VITE_API_BASE_URL=https://api.serveloco.app/api
+          - app: landing
+            context: ./apps/landing
+            build_args: ""
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          push: true
+          build-args: ${{ matrix.build_args }}
+          tags: |
+            ${{ env.IMAGE_PREFIX }}-${{ matrix.app }}:${{ github.sha }}
+            ${{ env.IMAGE_PREFIX }}-${{ matrix.app }}:latest
+          cache-from: type=gha,scope=${{ matrix.app }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.app }}
+
+  # ── Deploy ONLY after every image is built and pushed ────────────────────────
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-images
     steps:
       - name: Deploy via SSH to AWS Lightsail
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: IMAGE_TAG,GHCR_USER,GHCR_TOKEN
+          script_stop: true
           script: |
+            set -e
             cd ~/ProjectServeLoco
             git fetch origin
             # Treat the server as a pure deployment mirror of origin/main.
@@ -108,13 +171,56 @@ jobs:
             # pushed back to GitHub. If you need to keep server-side hotfixes,
             # push them to GitHub first or they will be overwritten on deploy.
             git reset --hard origin/main
-            # Tear down compose stack and force-remove any leftover containers/
-            # networks from prior partial deploys (name conflicts otherwise).
-            docker compose -f docker-compose.prod.yml down --remove-orphans || true
-            docker rm -f \
-              projectserveloco-api-1 \
-              projectserveloco-admin-1 \
-              projectserveloco-landing-1 \
-              2>/dev/null || true
-            docker network rm projectserveloco_default 2>/dev/null || true
-            docker compose -f docker-compose.prod.yml up -d --build --force-recreate --remove-orphans
+
+            # The job's own token, valid only while this run lasts — no
+            # long-lived registry credential is stored on the box.
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+
+            # Written at the end of the last SUCCESSFUL deploy. Empty on the
+            # first run of this workflow, which simply means no auto-rollback.
+            PREV_TAG="$(cat .deploy-tag 2>/dev/null || true)"
+
+            rollback_and_fail() {
+              echo "::error::$1"
+              if [ -n "$PREV_TAG" ]; then
+                echo "Rolling back to $PREV_TAG"
+                IMAGE_TAG="$PREV_TAG" docker compose -f docker-compose.prod.yml up -d --remove-orphans
+              else
+                echo "No previous tag recorded — leaving the stack as is for inspection."
+              fi
+              docker logout ghcr.io || true
+              exit 1
+            }
+
+            export IMAGE_TAG
+            docker compose -f docker-compose.prod.yml pull
+            # No `down` and no --force-recreate: compose restarts only the
+            # services whose image tag actually changed, so landing/admin stay
+            # up when just the API moves.
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+
+            # A bind-mounted config change does not recreate the proxy, and the
+            # proxy is also the container that has to notice a recreated API's
+            # new IP. Validate the config, then reload it in place.
+            docker compose -f docker-compose.prod.yml exec -T proxy nginx -t \
+              || rollback_and_fail "nginx config failed validation — proxy not reloaded"
+            docker compose -f docker-compose.prod.yml exec -T proxy nginx -s reload \
+              || rollback_and_fail "nginx reload failed"
+
+            # Gate on the real thing a customer hits: /health through the proxy,
+            # which is 200 only when both MySQL and Mongo answer.
+            ok=0
+            for _ in $(seq 1 36); do
+              if curl -fsS -m 5 -H 'Host: api.serveloco.app' http://localhost/health >/dev/null; then
+                ok=1
+                break
+              fi
+              sleep 5
+            done
+            [ "$ok" = "1" ] || rollback_and_fail "API failed /health after deploy of $IMAGE_TAG"
+
+            echo "$IMAGE_TAG" > .deploy-tag
+            # Old SHA-tagged layers accumulate fast on a small Lightsail disk.
+            docker image prune -f
+            docker logout ghcr.io || true
+            echo "Deployed $IMAGE_TAG"

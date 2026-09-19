@@ -23,3 +23,6 @@ firebase-service-account.json
 .opencode/
 .mcp.json
 skills-lock.json
+
+# Written on the production box by the deploy workflow (last good image tag)
+.deploy-tag
