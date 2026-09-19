@@ -37,6 +37,30 @@ const pool = mysql.createPool({
   keepAliveInitialDelay: 30_000,
 });
 
+// Opens a transaction at READ COMMITTED rather than InnoDB's default
+// REPEATABLE READ and returns the connection holding it. Callers release it
+// exactly as they would one from pool.getConnection().
+//
+// `SET TRANSACTION` with no scope applies to the NEXT transaction on that
+// session only, so it cannot follow the connection back into the pool and
+// change the isolation level for whoever gets it next. It has to be its own
+// statement (mysql2's beginTransaction takes no isolation argument), which is
+// the reason this is a helper: it keeps the two statements — and releasing the
+// connection if either of them throws — in one place instead of at every call
+// site. See createOrder in controllers/orderController.js for why that path
+// needs READ COMMITTED.
+const beginReadCommitted = async () => {
+  const connection = await pool.getConnection();
+  try {
+    await connection.query('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
+    await connection.beginTransaction();
+  } catch (error) {
+    connection.release();
+    throw error;
+  }
+  return connection;
+};
+
 const checkConnection = async () => {
   try {
     const connection = await pool.getConnection();
@@ -50,5 +74,6 @@ const checkConnection = async () => {
 
 module.exports = {
   pool,
+  beginReadCommitted,
   checkConnection
 };

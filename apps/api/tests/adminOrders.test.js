@@ -4,9 +4,21 @@ const adminRoutes = require('../src/routes/adminRoutes');
 const { pool } = require('../src/db/mysql');
 const jwt = require('jsonwebtoken');
 
-jest.mock('../src/db/mysql', () => ({
-  pool: { query: jest.fn().mockResolvedValue([[]]), getConnection: jest.fn() }
-}));
+jest.mock('../src/db/mysql', () => {
+  const pool = { query: jest.fn().mockResolvedValue([[]]), getConnection: jest.fn() };
+  return {
+    pool,
+    // Production opens the order transaction through this helper, which also
+    // issues `SET TRANSACTION ISOLATION LEVEL READ COMMITTED`. The mock skips
+    // that statement so this file's query sequences stay 1:1 with the queries
+    // the controller itself makes.
+    beginReadCommitted: jest.fn(async () => {
+      const connection = await pool.getConnection();
+      await connection.beginTransaction();
+      return connection;
+    }),
+  };
+});
 
 jest.mock('../src/utils/coupons', () => ({
   validateCoupon: jest.fn().mockResolvedValue({ ok: false, reason: 'No coupon' }),

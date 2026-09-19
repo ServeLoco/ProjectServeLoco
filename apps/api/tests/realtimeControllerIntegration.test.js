@@ -1,9 +1,21 @@
-jest.mock('../src/db/mysql', () => ({
-  pool: {
+jest.mock('../src/db/mysql', () => {
+  const pool = {
     query: jest.fn(),
     getConnection: jest.fn(),
-  },
-}));
+  };
+  return {
+    pool,
+    // Production opens the order transaction through this helper, which also
+    // issues `SET TRANSACTION ISOLATION LEVEL READ COMMITTED`. The mock skips
+    // that statement so this file's query sequences stay 1:1 with the queries
+    // the controller itself makes.
+    beginReadCommitted: jest.fn(async () => {
+      const connection = await pool.getConnection();
+      await connection.beginTransaction();
+      return connection;
+    }),
+  };
+});
 
 // The shop fan-out runs concurrently with the status update (it is started as
 // soon as the accept commits, so the owner's phone isn't waiting on queries it

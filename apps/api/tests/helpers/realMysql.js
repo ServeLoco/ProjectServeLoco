@@ -137,6 +137,25 @@ const cleanupFixtures = async () => {
   await pool.query('DELETE FROM users WHERE name LIKE ?', [`${FIXTURE_TAG} %`]);
 };
 
+// Session variables survive a release back into the pool, so a test that
+// shortens the lock-wait timeout to prove something blocks MUST put it back.
+// Otherwise the next test handed that connection inherits a 2-second timeout
+// and fails the first time it waits on a real lock — which showed up here as
+// fixture inserts timing out, looking like a product bug rather than a leaked
+// test setting.
+const shortenLockWait = async (connection, seconds = 2) => {
+  await connection.query('SET SESSION innodb_lock_wait_timeout = ?', [seconds]);
+};
+
+// Always paired with shortenLockWait, in the same finally that releases.
+const restoreSessionSettings = async (connection) => {
+  try {
+    await connection.query('SET SESSION innodb_lock_wait_timeout = DEFAULT');
+  } catch {
+    // connection already unusable — it will not be reused
+  }
+};
+
 // Runs `fn` on its own pooled connection inside a transaction, and always
 // rolls back + releases — a test that throws mid-transaction must not leave a
 // row lock held for the rest of the file.
@@ -168,4 +187,6 @@ module.exports = {
   addRedemption,
   cleanupFixtures,
   withRolledBackTransaction,
+  shortenLockWait,
+  restoreSessionSettings,
 };
