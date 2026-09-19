@@ -36,8 +36,8 @@ dump into a scratch schema and re-checks every foreign key against the restored 
 restore cannot do for itself — mysqldump disables FK checks, so a dump cut in half replays with no
 error), plus table presence, `CHECK TABLE`, and a row-count manifest compared against the last
 verified backup. `deploy/backup/selftest.sh` proves the verifier still catches truncation, orphaned
-rows and a row-count collapse, and runs on every API CI build. The deploy now also dumps Mongo
-(which it never did) and copies both dumps off the box. Rehearsed end to end against a real MySQL
+rows and a row-count collapse, and runs on every API CI build. The deploy now also copies the dump
+off the box. Rehearsed end to end against a real MySQL
 8.0 with a production-shaped schema (42 tables, 49 FKs, 500 orders / 1,001 order items) — all four
 cases behaved as intended. **This is still not 0.1**: nothing here has touched a production dump.
 See [`backup-and-restore.md`](./backup-and-restore.md).

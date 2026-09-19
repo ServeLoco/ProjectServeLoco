@@ -8,12 +8,21 @@ and where the backups should live. Companion to
 
 ## 1. What exists today
 
-Both databases are managed, and this matters for everything below:
+Everything worth backing up is in MySQL.
 
 | | Service | Backed up by the provider | Backed up by us |
 |---|---|---|---|
-| Relational (orders, products, users) | Azure Database for MySQL, Flexible Server, `centralindia` | automated backups + point-in-time restore, within the configured retention | `mysqldump` before every migration |
-| Image metadata (`images`) | MongoDB Atlas | depends on the cluster tier | nothing, until this change |
+| Everything durable — orders, products, users, **and image metadata** (the `images` table) | Azure Database for MySQL, Flexible Server, `centralindia` | automated backups + point-in-time restore, within the configured retention | `mysqldump` before every migration |
+| Analytics only — `analytics_events`, `analytics_sessions`, `analytics_daily` | MongoDB Atlas | n/a | **nothing, deliberately** |
+
+**Mongo is not backed up, on purpose.** It holds analytics and nothing else,
+and every collection in it has a TTL index — events and sessions expire after
+30 days, daily rollups after a year — so Mongo deletes its own contents on a
+schedule. Backing up data the application is actively expiring is not a
+backup, it is a way to resurrect rows something decided to drop. The `images`
+collection in `seed_demo.js` is vestigial: it is written by the demo seeder
+and read by nothing. Real image metadata is the **`images` table in MySQL**,
+and it is covered by the dump below.
 
 `deploy.yml` dumps MySQL immediately before it migrates, gzips it to
 `$HOME/backups/serveloco_<ts>_<sha>.sql.gz` on the Lightsail box, keeps the
@@ -31,10 +40,7 @@ that job. Disaster recovery is the provider's automated backups.
    `FOREIGN_KEY_CHECKS=0` at the top of every dump, so a file cut off halfway
    replays into MySQL without one error message and leaves a schema full of
    rows pointing at parents that are not there.
-2. **Mongo was not backed up at all.** Every product photo in S3 is addressed
-   through a row in the Atlas `images` collection. Lose the collection and the
-   bucket is a pile of unreferenced keys.
-3. **The dumps sat on the disk they protect.** `$HOME/backups` is on the same
+2. **The dumps sat on the disk they protect.** `$HOME/backups` is on the same
    Lightsail volume as the containers. It survives a bad migration and nothing
    else — not a lost instance, not a full disk, not a wrong `rm`.
 
@@ -73,24 +79,9 @@ sudden collapse in row counts — and confirms each is caught, *and caught for
 the right reason*. It runs on every API CI build (`ci.yml`), against the
 database CI has just migrated.
 
-### `deploy/backup/dump-mongo.sh`
-
-`mongodump --archive --gzip` of the Atlas database, alongside the MySQL dump.
-
-Deliberately **not** a deploy gate. The deploy is gated on what the deploy can
-destroy, and `migrate.js` touches MySQL only; failing a release over the
-image-metadata dump would trade an outage for a backup this deploy cannot
-harm. A failure warns, and the weekly verification is what notices if they
-stop arriving.
-
-> `mongodump` was split out of the MongoDB server package in 4.4. The script
-> probes the image for it before dumping and names the fix
-> (`MONGO_TOOLS_IMAGE`) rather than producing a half-written archive. Confirm
-> on the first deploy that `mongo:7.0` on the box carries the database tools.
-
 ### `deploy/backup/offbox-upload.sh` and `backup-verify.yml`
 
-Copy both dumps to S3 after they are taken, and a weekly job that pulls the
+Copy the dump to S3 after it is taken, and a weekly job that pulls the
 newest one back, restores it, verifies it, and records the manifest as the
 baseline for the next week. Both are inert until `BACKUP_S3_BUCKET` is set —
 see §4.
@@ -108,9 +99,8 @@ Cheaper than anything else here and worth more:
   it can go to 35. Enable geo-redundant backup if the tier allows it. Seven
   days is short for a bug that corrupts data quietly: the damage is often
   noticed after the only clean copy has aged out.
-- **MongoDB Atlas** — check the cluster tier. Shared tiers (M0/M2/M5) have no
-  continuous cloud backup; the `mongodump` this change adds may be the only
-  copy of `images` that exists.
+Atlas needs no equivalent check — see §1 for why nothing there is worth
+retaining.
 
 ### Then: off-box copies
 
@@ -223,18 +213,6 @@ Restore into a *new* schema and cut over by pointing `MYSQL_DATABASE` at it,
 rather than overwriting `serveloco` in place. The overwrite has no undo, and
 the rename is instant if the restore turns out to be wrong.
 
-### Restore Mongo
-
-```bash
-docker run --rm -i --env-file ./apps/api/.env.production mongo:7.0 sh -c '
-  exec mongorestore --uri="$MONGODB_URI" --archive --gzip \
-    --nsFrom="$MONGODB_DATABASE.*" --nsTo="${MONGODB_DATABASE}_restored.*"
-' < ~/backups/serveloco_<ts>_<sha>.mongo.gz
-```
-
-Same reasoning: restore beside the live database, then switch
-`MONGODB_DATABASE`.
-
 ### Point-in-time instead
 
 For anything the dumps are too coarse for — a bad `UPDATE` at a known minute —
@@ -253,5 +231,3 @@ These need production or staging credentials and are not done:
   for; running it against a real production dump has not happened.
 - Azure MySQL retention and Atlas tier confirmed and raised (§3).
 - The backup bucket, its IAM users and the repository secrets created (§3).
-- First deploy after this change: confirm `mongo:7.0` on the box carries
-  `mongodump`, and that the Mongo archive is a sane size.

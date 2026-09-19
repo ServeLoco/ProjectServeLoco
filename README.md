@@ -77,14 +77,14 @@ A push to `main` runs `.github/workflows/deploy.yml`, which:
 
 1. runs CI for all three apps,
 2. builds the `api`, `admin` and `landing` images on GitHub runners and pushes them to GHCR tagged with the commit SHA,
-3. SSHes to the Lightsail box, dumps MySQL and Mongo to `~/backups/` (the five newest of each are kept)
-   and copies both off the box to S3,
+3. SSHes to the Lightsail box, dumps MySQL to `~/backups/` (the five newest are kept) and copies the
+   dump off the box to S3,
 4. stops the api container, runs `db:migrate` as a one-shot container from the new image, and starts the new stack — only the services whose image changed are restarted,
 5. reloads nginx and then polls `/health` through the proxy.
 
 Migrations are **not** part of `npm start` any more, so a container restart never migrates. A failed MySQL dump stops the deploy before anything changes; a failed migration or a failed `/health` redeploys the previous tag and fails the run. The last good tag is kept on the box in `.deploy-tag`.
 
-The Mongo dump and the off-box copy warn rather than block: `migrate.js` touches MySQL only, so neither is something this deploy can damage. `.github/workflows/backup-verify.yml` restores the newest off-box backup weekly and fails if it does not come back whole. See [`plans/backup-and-restore.md`](plans/backup-and-restore.md).
+The off-box copy warns rather than blocks: the local dump has already made the migration reversible by that point. Mongo is deliberately not backed up — it holds analytics, and every collection in it has a TTL index. `.github/workflows/backup-verify.yml` restores the newest off-box backup weekly and fails if it does not come back whole. See [`plans/backup-and-restore.md`](plans/backup-and-restore.md).
 
 Applying a schema change by hand, on the box:
 

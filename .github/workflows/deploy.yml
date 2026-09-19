@@ -245,10 +245,7 @@ jobs:
             # one makes five.
             mkdir -p "$HOME/backups"
             (ls -1t "$HOME"/backups/serveloco_*.sql.gz 2>/dev/null || true) | tail -n +5 | xargs -r rm -f
-            (ls -1t "$HOME"/backups/serveloco_*.mongo.gz 2>/dev/null || true) | tail -n +5 | xargs -r rm -f
-            STAMP="$(date -u +%Y%m%dT%H%M%SZ)_$(echo "$IMAGE_TAG" | cut -c1-7)"
-            DUMP="$HOME/backups/serveloco_$STAMP.sql.gz"
-            MONGO_DUMP="$HOME/backups/serveloco_$STAMP.mongo.gz"
+            DUMP="$HOME/backups/serveloco_$(date -u +%Y%m%dT%H%M%SZ)_$(echo "$IMAGE_TAG" | cut -c1-7).sql.gz"
 
             # --env-file keeps the credentials inside the container; MYSQL_PWD
             # keeps the password out of the process list.
@@ -274,23 +271,12 @@ jobs:
             fi
             echo "Backup written: $DUMP ($DUMP_BYTES bytes)"
 
-            # ── Back up Mongo ───────────────────────────────────────────────
-            # Deliberately NOT a deploy gate. The deploy is gated on what the
-            # deploy can destroy, and migrate.js touches MySQL only; failing
-            # the release over the image-metadata dump would trade an outage
-            # for a backup this deploy cannot harm. The scheduled restore
-            # verification is what notices if these stop arriving.
-            if ! ./deploy/backup/dump-mongo.sh "$MONGO_DUMP"; then
-              echo "::warning::Mongo backup failed — continuing, MySQL is backed up and is what migrates"
-              MONGO_DUMP=""
-            fi
-
             # ── Copy the backups off this box ───────────────────────────────
             # $HOME/backups is on the same disk as the thing it protects.
             # A no-op until BACKUP_S3_BUCKET is set, and never a deploy gate:
             # the local dump above has already done its job of making the
             # migration reversible.
-            if ! ./deploy/backup/offbox-upload.sh "$DUMP" ${MONGO_DUMP:+"$MONGO_DUMP"}; then
+            if ! ./deploy/backup/offbox-upload.sh "$DUMP"; then
               echo "::warning::off-box upload failed — backups for this deploy exist only on this box"
             fi
 
