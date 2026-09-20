@@ -69,7 +69,7 @@
         "ITSAppUsesNonExemptEncryption": false
       },
       "bundleIdentifier": "com.yashsiwach.villkro",
-      "buildNumber": "11"
+      "buildNumber": "12"
     },
     "android": {
       "softwareKeyboardLayoutMode": "resize",
@@ -90,7 +90,7 @@
         "android.permission.RECORD_AUDIO"
       ],
       "package": "com.yashsiwach.villkro",
-      "versionCode": 41,
+      "versionCode": 42,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon/adaptive-icon-foreground.png",
         "backgroundImage": "./assets/icon/adaptive-icon-background.png",

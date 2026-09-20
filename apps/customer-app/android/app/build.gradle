@@ -111,7 +111,7 @@ packagingOptions {
         // itself on the server's minimum_version. The EAS cloud release reads
         // app.json, so only local builds were affected — but a local .aab would
         // have been rejected by Play for reusing a versionCode.
-        versionCode 41
+        versionCode 42
         versionName "1.9.5"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
