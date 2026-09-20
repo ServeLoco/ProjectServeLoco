@@ -59,12 +59,11 @@ export default function AuthScreen() {
 
   /*
    * step: 'phone' | 'otp' | 'name'
-   *   phone → user enters phone (and name if signup mode)
+   *   phone → user enters phone (new users are asked for a name after the OTP)
    *   otp   → user enters 6-digit Firebase OTP
    *   name  → backend said NAME_REQUIRED for a new user
    */
   const [step, setStep] = useState('phone');
-  const [mode, setMode] = useState('Login'); // 'Login' | 'Sign Up'
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -216,12 +215,7 @@ export default function AuthScreen() {
       triggerShake();
       return;
     }
-    if (mode === 'Sign Up' && !name.trim()) {
-      setErrorMsg('Name is required');
-      triggerShake();
-      return;
-    }
-    if (mode === 'Sign Up' && !termsAccepted) {
+    if (!termsAccepted) {
       setErrorMsg('Please accept the Terms and Privacy Policy');
       triggerShake();
       return;
@@ -327,9 +321,6 @@ export default function AuthScreen() {
 
       // Send to backend for verification and JWT issuance
       const payload = { idToken };
-      if (mode === 'Sign Up' && name.trim()) {
-        payload.name = name.trim();
-      }
 
       try {
         const session = await authApi.firebaseVerify(payload);
@@ -469,44 +460,16 @@ export default function AuthScreen() {
     }
   };
 
-  /* ── Mode switch (Login / Sign Up toggle) ── */
-  const switchMode = useCallback(
-    (newMode) => {
-      if (newMode === mode) return;
-      setMode(newMode);
-      setErrorMsg('');
-      setTermsAccepted(false);
-    },
-    [mode]
-  );
-
   /* ── Render: Phone Step ── */
   const renderPhoneStep = () => (
     <View style={styles.form}>
-      {mode === 'Sign Up' && (
-        <TextInputField
-          label="Full Name"
-          placeholder="Your full name"
-          value={name}
-          onChangeText={setName}
-          editable={!isLoading}
-          returnKeyType="next"
-          onSubmitEditing={() => phoneRef.current?.focus()}
-          autoCapitalize="words"
-          containerStyle={styles.fieldGap}
-          labelStyle={styles.fieldLabel}
-          inputWrapStyle={styles.glassInputWrap}
-          inputStyle={styles.glassInputText}
-          placeholderTextColor={GLASS_PLACEHOLDER}
-        />
-      )}
       <View style={styles.phoneRow}>
         <View style={styles.countryCode}>
           <Text style={styles.countryCodeText}>{COUNTRY_CODE}</Text>
         </View>
         <View style={styles.phoneInputWrap}>
           <TextInputField
-            label={mode === 'Sign Up' ? '' : 'Phone Number'}
+            label="Phone Number"
             placeholder="10-digit mobile number"
             keyboardType="phone-pad"
             value={phone}
@@ -524,58 +487,43 @@ export default function AuthScreen() {
           />
         </View>
       </View>
-      {mode === 'Sign Up' && (
-        <View style={styles.termsRow}>
-          <TouchableOpacity
-            activeOpacity={0.75}
-            onPress={() => setTermsAccepted((p) => !p)}
-            disabled={isLoading}
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: termsAccepted }}
-            accessibilityLabel="Accept Terms of Service and Privacy Policy"
-          >
-            <AnimatedCheckbox checked={termsAccepted} />
-          </TouchableOpacity>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.termsText}>
-              I agree to the{' '}
-              <Text style={styles.termsLink} onPress={() => Linking.openURL(POLICY_URLS.terms)}>
-                Terms
-              </Text>
-              {' '}and{' '}
-              <Text style={styles.termsLink} onPress={() => Linking.openURL(POLICY_URLS.privacy)}>
-                Privacy Policy
-              </Text>
+      <View style={styles.termsRow}>
+        <TouchableOpacity
+          activeOpacity={0.75}
+          onPress={() => setTermsAccepted((p) => !p)}
+          disabled={isLoading}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: termsAccepted }}
+          accessibilityLabel="Accept Terms of Service and Privacy Policy"
+        >
+          <AnimatedCheckbox checked={termsAccepted} />
+        </TouchableOpacity>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.termsText}>
+            I agree to the{' '}
+            <Text style={styles.termsLink} onPress={() => Linking.openURL(POLICY_URLS.terms)}>
+              Terms
             </Text>
-          </View>
+            {' '}and{' '}
+            <Text style={styles.termsLink} onPress={() => Linking.openURL(POLICY_URLS.privacy)}>
+              Privacy Policy
+            </Text>
+          </Text>
         </View>
-      )}
+      </View>
       {!!errorMsg && (
         <View style={styles.alertRow}>
           <Text style={styles.errorText}>{errorMsg}</Text>
         </View>
       )}
       <GradientButton
-        label={mode === 'Sign Up' ? 'Get OTP' : 'Send OTP'}
+        label="Send OTP"
         onPress={sendOtp}
         loading={isLoading}
+        disabled={!termsAccepted}
         style={styles.mt}
       />
-      <View style={styles.linkRowSingle}>
-        {mode === 'Login' ? (
-          <NavLink
-            label="Don't have an account? Sign Up"
-            onPress={() => switchMode('Sign Up')}
-            disabled={isLoading}
-          />
-        ) : (
-          <NavLink
-            label="Already have an account? Login"
-            onPress={() => switchMode('Login')}
-            disabled={isLoading}
-          />
-        )}
-      </View>
     </View>
   );
 
@@ -752,9 +700,15 @@ export default function AuthScreen() {
 /**
  * GradientButton
  */
-function GradientButton({ label, onPress, loading, style }) {
+function GradientButton({ label, onPress, loading, disabled, style }) {
   return (
-    <TouchableOpacity activeOpacity={0.85} onPress={onPress} disabled={loading} style={[styles.gradientBtn, style]}>
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={onPress}
+      disabled={loading || disabled}
+      accessibilityState={{ disabled: Boolean(disabled) }}
+      style={[styles.gradientBtn, disabled && styles.gradientBtnDisabled, style]}
+    >
       <LinearGradient
         colors={[colors.saffronLight, colors.saffron, colors.saffronDark]}
         start={{ x: 0, y: 0 }}
@@ -804,7 +758,7 @@ function AnimatedCheckbox({ checked }) {
     <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
       {checked && (
         <Animated.View style={{ transform: [{ scale }] }}>
-          <AppIcon name="check" size={13} color={colors.textInverse} />
+          <AppIcon name="check" size={11} color={colors.textInverse} />
         </Animated.View>
       )}
     </View>
@@ -1018,6 +972,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  gradientBtnDisabled: {
+    opacity: 0.45,
+  },
   gradientBtnText: {
     ...typography.buttonLarge,
     color: colors.textInverse,
@@ -1027,13 +984,6 @@ const styles = StyleSheet.create({
     textShadowRadius: 2,
   },
 
-  /* Links */
-  linkRowSingle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: spacing.md,
-  },
   navLink: {
     ...typography.bodySmall,
     color: 'rgba(255,255,255,0.85)',
@@ -1052,10 +1002,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: radius.sm,
-    borderWidth: 2,
+    width: 16,
+    height: 16,
+    borderRadius: 4,
+    borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.6)',
     backgroundColor: 'rgba(255,255,255,0.12)',
     alignItems: 'center',
@@ -1070,7 +1020,8 @@ const styles = StyleSheet.create({
   termsText: {
     ...typography.caption,
     color: 'rgba(255,255,255,0.8)',
-    lineHeight: 18,
+    fontSize: 11.5,
+    lineHeight: 16,
   },
   termsLink: {
     color: colors.saffronLight,

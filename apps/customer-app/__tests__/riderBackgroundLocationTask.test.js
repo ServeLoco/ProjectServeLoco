@@ -10,7 +10,11 @@
  */
 import * as TaskManager from 'expo-task-manager';
 import { riderApi } from '../src/api/riderApi';
-import { ensureBackgroundCustomerToken } from '../src/utils/orderAlarmNotifications';
+import * as Location from 'expo-location';
+import {
+  ensureBackgroundCustomerToken,
+  ensureShopOrRiderSession,
+} from '../src/utils/orderAlarmNotifications';
 import { IDLE_PING_INTERVAL_MS } from '../src/utils/riderTracking';
 
 jest.mock('../src/api/riderApi', () => ({
@@ -19,6 +23,7 @@ jest.mock('../src/api/riderApi', () => ({
 
 jest.mock('../src/utils/orderAlarmNotifications', () => ({
   ensureBackgroundCustomerToken: jest.fn().mockResolvedValue('a-token'),
+  ensureShopOrRiderSession: jest.fn().mockResolvedValue({ shop: null, rider: { id: 1 } }),
 }));
 
 // Imported for its module-scope side effect (TaskManager.defineTask(...)).
@@ -49,6 +54,10 @@ describe('riderBackgroundLocationTask', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     nowMs += IDLE_PING_INTERVAL_MS * 10; // clear any throttle from a prior test
+    ensureBackgroundCustomerToken.mockResolvedValue('a-token');
+    ensureShopOrRiderSession.mockResolvedValue({ shop: null, rider: { id: 1 } });
+    Location.hasStartedLocationUpdatesAsync.mockResolvedValue(true);
+    Location.stopLocationUpdatesAsync.mockResolvedValue(undefined);
   });
 
   it('registers the task at module scope', () => {
@@ -60,6 +69,7 @@ describe('riderBackgroundLocationTask', () => {
     const callOrder = [];
     ensureBackgroundCustomerToken.mockImplementationOnce(async () => {
       callOrder.push('token');
+      return 'a-token';
     });
     riderApi.updateLocation.mockImplementationOnce(async () => {
       callOrder.push('updateLocation');
@@ -165,7 +175,11 @@ describe('riderBackgroundLocationTask', () => {
 
       const first = task(fix(1, 1));           // in flight, not yet resolved
       await task(fix(2, 2));                   // arrives while first is pending
+      // Let the first call's token/session awaits settle so it reaches the
+      // POST; the throttle window was claimed synchronously before them.
+      await new Promise((r) => setImmediate(r));
       expect(riderApi.updateLocation).toHaveBeenCalledTimes(1);
+      expect(riderApi.updateLocation).toHaveBeenCalledWith(1, 1);
 
       release({});
       await first;
@@ -178,5 +192,131 @@ describe('riderBackgroundLocationTask', () => {
       expect(riderApi.updateLocation).toHaveBeenCalledTimes(1);
       expect(riderApi.updateLocation).toHaveBeenCalledWith(9, 9);
     });
+  });
+
+  /**
+   * Location updates are registered with Android, not with the React tree, so
+   * they outlive sign-out and force-close. Nothing was ever calling stop() in
+   * those cases, so Android kept waking the process forever and
+   * expo-task-manager NPE'd in TaskService.executeTask on each headless
+   * relaunch — the app's single biggest crash (35.7% of events), the same
+   * couple of users over and over. The task has to end that loop itself.
+   */
+  describe('self-termination when the session is gone', () => {
+    // Each fix must land outside the POST throttle window, or the task returns
+    // before it ever looks at the session.
+    async function deliverFix(lat = 12, lng = 77) {
+      nowMs += IDLE_PING_INTERVAL_MS * 2;
+      await task(fix(lat, lng));
+    }
+
+    // consecutiveMisses is module state in the task and a good fix resets it,
+    // so every test here starts from a known-zero strike count.
+    beforeEach(async () => {
+      await deliverFix();
+      jest.clearAllMocks();
+      ensureBackgroundCustomerToken.mockResolvedValue('a-token');
+      ensureShopOrRiderSession.mockResolvedValue({ shop: null, rider: { id: 1 } });
+      Location.hasStartedLocationUpdatesAsync.mockResolvedValue(true);
+      Location.stopLocationUpdatesAsync.mockResolvedValue(undefined);
+    });
+
+    /**
+     * The important guarantee. Both the token and the rider lookup fall back to
+     * AsyncStorage, and a FAILED read looks exactly like a successful read that
+     * found nothing. Unregistering on one empty answer would let a single
+     * storage blip permanently stop a working rider from sharing location.
+     */
+    it('does NOT unregister on a single miss', async () => {
+      ensureBackgroundCustomerToken.mockResolvedValue(null);
+
+      await deliverFix();
+
+      expect(Location.stopLocationUpdatesAsync).not.toHaveBeenCalled();
+    });
+
+    it('does NOT unregister on two misses', async () => {
+      ensureBackgroundCustomerToken.mockResolvedValue(null);
+
+      await deliverFix();
+      await deliverFix();
+
+      expect(Location.stopLocationUpdatesAsync).not.toHaveBeenCalled();
+    });
+
+    it('unregisters after three misses in a row with no auth token', async () => {
+      ensureBackgroundCustomerToken.mockResolvedValue(null);
+
+      await deliverFix();
+      await deliverFix();
+      await deliverFix();
+
+      expect(Location.stopLocationUpdatesAsync).toHaveBeenCalledWith('rider-background-location');
+      expect(riderApi.updateLocation).not.toHaveBeenCalled();
+    });
+
+    it('unregisters after three misses in a row once the account is not a rider', async () => {
+      ensureShopOrRiderSession.mockResolvedValue({ shop: null, rider: null });
+
+      await deliverFix();
+      await deliverFix();
+      await deliverFix();
+
+      expect(Location.stopLocationUpdatesAsync).toHaveBeenCalledWith('rider-background-location');
+      expect(riderApi.updateLocation).not.toHaveBeenCalled();
+    });
+
+    it('a good fix in between clears the strikes', async () => {
+      ensureBackgroundCustomerToken.mockResolvedValue(null);
+      await deliverFix();
+      await deliverFix();
+
+      // Session comes back — the two misses were a blip, not a sign-out.
+      ensureBackgroundCustomerToken.mockResolvedValue('a-token');
+      await deliverFix();
+      expect(riderApi.updateLocation).toHaveBeenCalled();
+
+      // Two more misses must not trip the limit on their own.
+      ensureBackgroundCustomerToken.mockResolvedValue(null);
+      await deliverFix();
+      await deliverFix();
+
+      expect(Location.stopLocationUpdatesAsync).not.toHaveBeenCalled();
+    });
+
+    it('does not try to stop updates that are not running', async () => {
+      ensureBackgroundCustomerToken.mockResolvedValue(null);
+      Location.hasStartedLocationUpdatesAsync.mockResolvedValue(false);
+
+      await deliverFix();
+      await deliverFix();
+      await deliverFix();
+
+      expect(Location.stopLocationUpdatesAsync).not.toHaveBeenCalled();
+    });
+
+    it('keeps posting while the rider session is intact', async () => {
+      await deliverFix();
+
+      expect(Location.stopLocationUpdatesAsync).not.toHaveBeenCalled();
+      expect(riderApi.updateLocation).toHaveBeenCalledWith(12, 77);
+    });
+  });
+
+  /**
+   * A throw here lands on a headless JS relaunch with nothing above it to
+   * catch — it surfaces as an app crash rather than a dropped ping.
+   */
+  it('swallows a failure from the session lookup instead of throwing', async () => {
+    ensureShopOrRiderSession.mockRejectedValue(new Error('storage unavailable'));
+
+    await expect(task(fix(12, 77))).resolves.toBeUndefined();
+    expect(riderApi.updateLocation).not.toHaveBeenCalled();
+  });
+
+  it('swallows a failure from the location POST instead of throwing', async () => {
+    riderApi.updateLocation.mockRejectedValue(new Error('offline'));
+
+    await expect(task(fix(12, 77))).resolves.toBeUndefined();
   });
 });

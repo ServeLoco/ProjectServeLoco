@@ -261,7 +261,13 @@ jobs:
           }
 
       # ─── MINOR PATH: skip the build, just publish the OTA ──────────────────
+      # Minor ONLY. An OTA is JS with no native side, so publishing one on a
+      # major release hands every phone already on the old binary a bundle
+      # whose native modules it does not have — and it arrives within seconds,
+      # long before the Play rollout it belongs to. A major release ships its
+      # JS inside the .aab; there is nothing here left to push.
       - name: Publish EAS Update (production channel)
+        if: needs.detect-bump.outputs.bump == 'minor'
         working-directory: ${{ env.APP_DIR }}
         env:
           EXPO_PUBLIC_API_BASE_URL: ${{ secrets.EXPO_PUBLIC_API_BASE_URL }}

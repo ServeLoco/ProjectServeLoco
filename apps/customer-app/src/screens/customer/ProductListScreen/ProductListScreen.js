@@ -54,6 +54,8 @@ export default function ProductListScreen() {
   const offerTitle = route.params?.offerTitle || null;
   const sectionSlug = route.params?.sectionSlug || null;
   const sectionTitle = route.params?.sectionTitle || null;
+  // A shop's own list (See all on a shop row in Home): only that shop's items.
+  const shopId = route.params?.shopId ?? null;
   const sectionStoreType = route.params?.storeType || 'all';
   const initialQuery = route.params?.initialQuery || '';
 
@@ -164,16 +166,15 @@ export default function ProductListScreen() {
       // Admin edited something area-scoped (price, product, category). No
       // payload to patch with, so revalidate page 0 in place — otherwise a
       // customer sitting on this list keeps the old price until they
-      // navigate away and back. Jittered so an area's phones don't all hit
-      // the API in the same tick.
+      // navigate away and back. Tiny jitter only, so the new price lands in
+      // well under a second.
       if (eventName === 'catalog.updated') {
         if (catalogRefetchTimer) clearTimeout(catalogRefetchTimer);
         catalogRefetchTimer = setTimeout(() => {
           catalogRefetchTimer = null;
           fetchProductsRef.current?.({ silent: true });
-          // Wide window on purpose — see HomeScreen's matching handler: the
-          // server-side micro-cache was just busted and has no single-flight.
-        }, Math.random() * 15000);
+          // Short window on purpose — see HomeScreen's matching handler.
+        }, Math.random() * 300);
         return;
       }
       if (eventName !== 'shop.status.updated') return;
@@ -234,6 +235,7 @@ export default function ProductListScreen() {
       : {
           category: activeCategory !== 'All' ? activeCategory : undefined,
           categoryId: queryCategoryId,
+          shopId: shopId || undefined,
           q: searchQuery || undefined,
           search: searchQuery || undefined,
           offerId: offerId || undefined,
@@ -310,6 +312,7 @@ export default function ProductListScreen() {
         response = await productsApi.getProducts({
           category: activeCategory !== 'All' ? activeCategory : undefined,
           categoryId: queryCategoryId,
+          shopId: shopId || undefined,
           q: searchQuery || undefined,
           search: searchQuery || undefined,
           // showAvailableOnly + sortBy are applied client-side only (see displayProducts).
@@ -432,7 +435,7 @@ export default function ProductListScreen() {
   useEffect(() => {
     fetchProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeCategory, offerId, sectionSlug, sectionStoreType, mode, route.params?.categoryId, isLocationGated, deliveryZoneId]);
+  }, [activeCategory, offerId, sectionSlug, sectionStoreType, mode, route.params?.categoryId, shopId, isLocationGated, deliveryZoneId]);
 
   // Debounced Search
   useEffect(() => {
@@ -457,6 +460,7 @@ export default function ProductListScreen() {
           : {
               category: activeCategory !== 'All' ? activeCategory : undefined,
               categoryId: queryCategoryId,
+              shopId: shopId || undefined,
               q: searchQuery || undefined,
               search: searchQuery || undefined,
               offerId: offerId || undefined,
@@ -486,6 +490,7 @@ export default function ProductListScreen() {
       mode,
       searchQuery,
       route.params?.categoryId,
+      shopId,
       initialCategory,
       deliveryZoneId,
     ]),

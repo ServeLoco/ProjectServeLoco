@@ -14,6 +14,9 @@ export const IMAGE_GUIDANCE = {
   qr: {
     label: 'Recommended: 600 × 600 px (1:1 square). Sharp QR code, ≥ 10 px white quiet border around all sides.',
   },
+  navPromo: {
+    label: 'Shown to the right of the bottom nav bar in the customer app, about 90 × 62 px on screen (roughly 3:2). Recommended: 300 × 200 px, PNG or WebP with a transparent background — it is shown with no background of its own and never cropped. Leave empty to show nothing.',
+  },
   storeMode: {
     label: 'Recommended: 512 × 512 px (1:1 square). Icon is displayed inside a circle, so keep the subject centred with padding — corners get cropped off.',
   },

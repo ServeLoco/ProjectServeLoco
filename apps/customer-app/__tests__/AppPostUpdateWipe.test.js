@@ -75,6 +75,14 @@ jest.mock('../src/stores', () => ({
       clearAdminSession: jest.fn(),
     }),
     persist: { onFinishHydration: jest.fn(() => jest.fn()) },
+    // App.js subscribes to keep the Crashlytics user id/role in step with the
+    // session; zustand supplies this for real, the mock has to as well.
+    subscribe: jest.fn(() => jest.fn()),
+  },
+  // App.js also tags reports with the current area.
+  useDeliveryLocationStore: {
+    getState: () => ({ areaId: 1, lastAreaId: 1 }),
+    subscribe: jest.fn(() => jest.fn()),
   },
 }));
 jest.mock('../src/components/ForceUpdateModal', () => ({

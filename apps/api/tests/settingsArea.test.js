@@ -135,7 +135,7 @@ describe('updateSettings — write targets exactly one area', () => {
     const res = mockRes();
     await updateSettings(req, res);
 
-    expect(pool.query).toHaveBeenCalledWith('SELECT id, upi_qr_image_id FROM settings WHERE area_id = ? LIMIT 1', [2]);
+    expect(pool.query).toHaveBeenCalledWith('SELECT id, upi_qr_image_id, nav_promo_image_id FROM settings WHERE area_id = ? LIMIT 1', [2]);
     const updateCall = pool.query.mock.calls[1];
     expect(updateCall[0]).toContain('AND area_id = ?');
     expect(updateCall[1]).toContain(2);

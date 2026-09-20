@@ -1,3 +1,10 @@
+jest.mock('../src/utils/autoSections', () => ({
+  // These tests are about the admin's own sections; the automatic shop/category
+  // rows (utils/autoSections) have their own test file.
+  syncAutoSections: jest.fn().mockResolvedValue(new Set()),
+  isAutoRowVisible: jest.requireActual('../src/utils/autoSections').isAutoRowVisible,
+}));
+
 /**
  * Tests for shop-closed product visibility in customer-facing lists.
  *

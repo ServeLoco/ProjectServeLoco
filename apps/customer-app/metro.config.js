@@ -17,6 +17,9 @@ config.resolver.blockList = [
   /node_modules\/.*\/ios\/.*/,
   /node_modules\/.*\/macos\/.*/,
   /node_modules\/.*\/windows\/.*/,
+  /android\/build\/.*/,
+  /android\/app\/build\/.*/,
+  /android\/\.gradle\/.*/,
 ];
 
 module.exports = config;

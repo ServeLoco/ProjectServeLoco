@@ -33,7 +33,7 @@ describe('API cache is keyed on the active delivery zone', () => {
   it('ProductListScreen refetches when the zone changes (effect + focus-effect deps)', () => {
     // Initial/category fetch effect
     expect(productListSource).toMatch(
-      /\}, \[activeCategory, offerId, sectionSlug, sectionStoreType, mode, route\.params\?\.categoryId, isLocationGated, deliveryZoneId\]\);/,
+      /\}, \[activeCategory, offerId, sectionSlug, sectionStoreType, mode, route\.params\?\.categoryId, shopId, isLocationGated, deliveryZoneId\]\);/,
     );
     // Debounced search effect
     expect(productListSource).toMatch(/\}, \[searchQuery, mode, isLocationGated, deliveryZoneId\]\);/);

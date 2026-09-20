@@ -1,4 +1,5 @@
 import { ApiError, getErrorMessage } from './apiError';
+import { logApiFailure } from '../utils/crashReporting';
 import { getApiBaseUrl } from './config';
 import { getAdminToken, getCustomerToken } from './sessionTokens';
 
@@ -72,17 +73,50 @@ function isFormData(body) {
   return typeof FormData !== 'undefined' && body instanceof FormData;
 }
 
+/**
+ * Read a response body without ever throwing.
+ *
+ * This used to call response.json() directly whenever the content-type said
+ * JSON. A body that is not actually valid JSON — an nginx 502 page, a
+ * Cloudflare error, a response truncated by a dropped connection, all of which
+ * routinely arrive labelled application/json — made that reject with a raw
+ * SyntaxError. That error escaped `request()` entirely: it never became an
+ * ApiError, so it had no `status` and no `code`, the 5xx retry path never ran,
+ * and the user was shown "JSON Parse error: Unexpected token <" instead of
+ * something they could act on.
+ *
+ * Reading the text first and parsing it ourselves also avoids the other trap:
+ * a body can only be consumed once, so falling back to response.text() AFTER a
+ * failed response.json() throws "body already read" on some implementations.
+ */
 async function parseResponse(response) {
-  const contentType = response.headers?.get?.('content-type') || '';
-
   if (response.status === 204) return null;
 
-  if (contentType.includes('application/json')) {
-    return response.json();
+  let text;
+  try {
+    text = await response.text();
+  } catch (_) {
+    // Connection dropped mid-body. There is nothing to report but the status,
+    // which the caller already has.
+    return null;
   }
 
-  const text = await response.text();
-  return text || null;
+  if (!text) return null;
+
+  // Content-type still decides, exactly as before — the only change is that a
+  // body which lies about being JSON now falls back instead of throwing.
+  // Parsing everything regardless would quietly turn a text/plain body that
+  // happens to look like JSON into an object for callers expecting a string.
+  const contentType = response.headers?.get?.('content-type') || '';
+  if (!contentType.includes('application/json')) return text;
+
+  try {
+    return JSON.parse(text);
+  } catch (_) {
+    // Labelled JSON but is not — an nginx/Cloudflare error page, or a body cut
+    // short. Hand back the raw text; getErrorMessage decides if it is showable.
+    return text;
+  }
 }
 
 async function buildHeaders({ auth, body, headers }) {
@@ -191,6 +225,13 @@ async function request(path, options = {}) {
       const timeoutMessage = __DEV__
         ? `Request timed out. Check that Backend-V1 is running and reachable from your phone at ${getApiBaseUrl()}.`
         : 'Network is slow. Tap to retry.';
+      logApiFailure({
+        method,
+        path,
+        status: 0,
+        code: isTimeout ? 'TIMEOUT' : 'NETWORK_ERROR',
+      });
+
       throw new ApiError(
         isTimeout ? timeoutMessage : 'Network request failed. Please try again.',
         {
@@ -253,6 +294,14 @@ async function request(path, options = {}) {
       attempt += 1;
       continue;
     }
+
+    // Endpoint + status only — see logApiFailure for why nothing else.
+    logApiFailure({
+      method,
+      path,
+      status: response.status,
+      code: payload?.code || 'HTTP_ERROR',
+    });
 
     throw new ApiError(
       getErrorMessage(payload, 'Request failed. Please try again.'),

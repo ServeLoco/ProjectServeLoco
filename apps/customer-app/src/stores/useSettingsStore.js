@@ -16,6 +16,9 @@ export const useSettingsStore = create(
       nightCharge: 0,
       nightChargeStart: null,
       nightChargeEnd: null,
+      rainChargeEnabled: false,
+      navPromoImageUrl: null,
+      navPromoLink: null,
       _lastFetched: null,
 
       setSettings: (settings) =>
@@ -54,6 +57,9 @@ export const useSettingsStore = create(
         nightCharge: 0,
         nightChargeStart: null,
         nightChargeEnd: null,
+        rainChargeEnabled: false,
+        navPromoImageUrl: null,
+        navPromoLink: null,
         _lastFetched: null,
       }),
     }

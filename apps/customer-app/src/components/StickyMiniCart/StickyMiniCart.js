@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Keyboard, Platform, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, typography, spacing, radius, shadows, layout } from '../../theme';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
+import { colors, typography, spacing, radius, layout } from '../../theme';
 import { useCartStore } from '../../stores';
 import {
   buildProgressHintText,
@@ -169,11 +171,11 @@ function StickyMiniCart({ itemCount = 0, total, totalAmount, onPress, visible = 
       style={[
         styles.container,
         // Resting position only — above the tab bar on tab screens
-        // (62 content height + system inset + 12 gap), or above the system
+        // (62 pill height + 10 float gap + system inset + 12 gap), or above the system
         // navigation bar on stack screens that have no tab bar. The popup hides
         // entirely while the keyboard is open (see effectiveVisible above).
         {
-          bottom: aboveTabBar ? 62 + insets.bottom + 12 : 16 + insets.bottom,
+          bottom: aboveTabBar ? 62 + 10 + insets.bottom + 12 : 16 + insets.bottom,
         },
         {
           opacity: progress,
@@ -192,6 +194,35 @@ function StickyMiniCart({ itemCount = 0, total, totalAmount, onPress, visible = 
             : `View cart, ${liveItemCount} item${liveItemCount !== 1 ? 's' : ''}`
         }
       >
+        {/* Frosted glass: a real blur of what scrolls under the bar, a soft black
+            wash, and a faint edge light along the top. Behind the content,
+            never touchable. */}
+        <BlurView
+          pointerEvents="none"
+          intensity={35}
+          tint="dark"
+          // No experimentalBlurMethod on Android. That prop switches expo-blur to
+          // Dimezis BlurView, which hangs an onPreDraw listener off the window
+          // and, every single frame, draws the WHOLE React root view tree into
+          // its own bitmap to blur it. Doing that out-of-band while the tree is
+          // changing — i.e. while a list under the bar is scrolling — races
+          // ViewGroup's pre-ordered child list and Android throws
+          // IndexOutOfBoundsException out of dispatchDraw, killing the app.
+          // Confirmed in Play Console: the crash stack ends in
+          // eightbitlab.com.blurview.PreDrawBlurController.updateBlur.
+          // Without it expo-blur paints a flat translucent tint of the same
+          // colour, which is what every other BlurView in this app already does.
+          style={StyleSheet.absoluteFill}
+        />
+        <View pointerEvents="none" style={styles.glassTint} />
+        <LinearGradient
+          pointerEvents="none"
+          colors={['rgba(255,255,255,0.22)', 'rgba(255,255,255,0.04)', 'rgba(255,255,255,0)']}
+          locations={[0, 0.5, 1]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
         <View style={styles.barInner}>
           {/* Left: total price, free-delivery nudge under it */}
           <Animated.View style={[styles.textContainer, { transform: [{ scale: badgeScale }] }]}>
@@ -239,13 +270,14 @@ function StickyMiniCart({ itemCount = 0, total, totalAmount, onPress, visible = 
 }
 
 const styles = StyleSheet.create({
+  // No shadow here: a shadow shows through a see-through bar (and on Android
+  // an elevated see-through view draws a dark square behind it).
   container: {
     position: 'absolute',
     // `bottom` is set inline based on the aboveTabBar prop.
     left: layout.stickyCartMarginH,
     right: layout.stickyCartMarginH,
     zIndex: 999,
-    ...shadows.xl,
   },
   hintText: {
     ...typography.labelSmall,
@@ -258,15 +290,20 @@ const styles = StyleSheet.create({
     color: '#7DFFB3',
   },
   bar: {
-    backgroundColor: '#1A1A1A',
+    backgroundColor: 'transparent',
     borderRadius: radius.pill,
     minHeight: 62,
     paddingHorizontal: spacing.sm,
     paddingTop: spacing.sm,
     paddingBottom: spacing.sm,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
     overflow: 'hidden',
+  },
+  // Black wash over the blur — this is what makes the glass read as blackish.
+  glassTint: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(12, 12, 16, 0.3)',
   },
   barInner: {
     flexDirection: 'row',
@@ -310,7 +347,7 @@ const styles = StyleSheet.create({
   progressTrack: {
     height: 3,
     borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.18)',
     marginTop: spacing.xs,
     marginHorizontal: spacing.xs,
     overflow: 'hidden',

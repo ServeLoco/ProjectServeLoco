@@ -278,4 +278,78 @@ describe('httpClient', () => {
     // CRITICAL: only 1 fetch call (no retries on user abort).
     expect(global.fetch).toHaveBeenCalledTimes(1);
   });
+
+  /**
+   * A body that is not valid JSON despite an application/json content-type is
+   * routine in production — nginx 502 pages, Cloudflare errors, a response
+   * truncated by a dropped connection. parseResponse used to call
+   * response.json() straight out, so those rejected with a raw SyntaxError
+   * that escaped the ApiError machinery entirely: no status, no code, no 5xx
+   * retry, and "JSON Parse error: Unexpected token <" shown to the user.
+   */
+  describe('malformed response bodies', () => {
+    function textResponse(status, body, contentType = 'application/json') {
+      return {
+        ok: status >= 200 && status < 300,
+        status,
+        headers: { get: () => contentType },
+        json: async () => { throw new SyntaxError('Unexpected token <'); },
+        text: async () => body,
+      };
+    }
+
+    it('throws a proper ApiError, not a SyntaxError, on an HTML error page', async () => {
+      mockFetchOnce(textResponse(500, '<html><body><h1>502 Bad Gateway</h1></body></html>'));
+
+      await expect(apiClient.get('/thing')).rejects.toMatchObject({
+        name: 'ApiError',
+        status: 500,
+      });
+    });
+
+    it('does not show the user raw HTML as the error message', async () => {
+      mockFetchOnce(textResponse(500, '<html><body><h1>502 Bad Gateway</h1></body></html>'));
+
+      await expect(apiClient.get('/thing')).rejects.toThrow('Request failed. Please try again.');
+    });
+
+    it('still surfaces a short plain-text message from the server', async () => {
+      mockFetchOnce(textResponse(400, 'Coupon has expired', 'text/plain'));
+
+      await expect(apiClient.get('/thing')).rejects.toThrow('Coupon has expired');
+    });
+
+    it('falls back to the friendly message for an over-long server message', async () => {
+      mockFetchOnce(textResponse(400, 'x'.repeat(500), 'text/plain'));
+
+      await expect(apiClient.get('/thing')).rejects.toThrow('Request failed. Please try again.');
+    });
+
+    it('resolves with null when a 200 body is truncated to nothing', async () => {
+      mockFetchOnce(textResponse(200, ''));
+
+      await expect(apiClient.get('/thing')).resolves.toBeNull();
+    });
+
+    it('returns the raw text for a 200 that is not JSON at all', async () => {
+      mockFetchOnce(textResponse(200, 'pong', 'text/plain'));
+
+      await expect(apiClient.get('/thing')).resolves.toBe('pong');
+    });
+
+    it('does not throw when the body cannot be read at all', async () => {
+      mockFetchOnce({
+        ok: false,
+        status: 500,
+        headers: { get: () => 'application/json' },
+        json: async () => { throw new Error('body already read'); },
+        text: async () => { throw new Error('network dropped mid-body'); },
+      });
+
+      await expect(apiClient.get('/thing')).rejects.toMatchObject({
+        name: 'ApiError',
+        status: 500,
+      });
+    });
+  });
 });

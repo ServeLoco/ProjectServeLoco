@@ -8,6 +8,7 @@ import AdminNavigator from './AdminNavigator';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { OfflineBanner } from '../components';
 import { trackScreen, initAnalytics, stopAnalytics } from '../api/analyticsClient';
+import { logScreen } from '../utils/crashReporting';
 import { useAuthStore } from '../stores';
 import { colors, spacing, typography } from '../theme';
 
@@ -133,7 +134,11 @@ export default function RootNavigator() {
         ref={navigationRef}
         onStateChange={(state) => {
           const screen = getActiveScreenName(state);
-          if (screen) trackScreen(screen);
+          if (!screen) return;
+          trackScreen(screen);
+          // Also a crash breadcrumb: a report that shows the last few screens
+          // before the crash is usually enough to find it without a repro.
+          logScreen(screen);
         }}
       >
         {/* Role shells (D2: admin/shop/rider are mutually exclusive).

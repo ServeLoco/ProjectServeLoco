@@ -1,21 +1,32 @@
 import React from 'react';
-import { Platform, View, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { glass, glassRadius, spacing } from '../theme';
 import TabBarPillButton from '../components/navigation/TabBarPillButton';
 import { ShopDashboardScreen, ShopOrdersScreen, ShopProductsScreen } from '../screens/shop';
+import { ScreenErrorBoundary } from '../components/ErrorBoundary';
 
 const Tab = createBottomTabNavigator();
 
 /**
- * Frosted pane behind the tab bar — a real blur of the list scrolling under
- * it, with a whitish glass fill on top.
+ * Frosted pane behind the tab bar — a dark glass fill with a whitish wash on
+ * top.
  *
- * expo-blur only actually blurs on Android when experimentalBlurMethod is set;
- * its default renders a flat tint, which lets bright content read straight
- * through the labels instead of diffusing behind them.
+ * This deliberately does NOT pass experimentalBlurMethod. That prop switches
+ * expo-blur to Dimezis BlurView on Android, which hangs an onPreDraw listener
+ * off the window and redraws the WHOLE React root view tree into its own
+ * bitmap every frame in order to blur it. Doing that out-of-band while the
+ * tree is changing — i.e. while the products list under this bar is being
+ * scrolled — races ViewGroup's pre-ordered child list, and Android throws
+ * IndexOutOfBoundsException straight out of dispatchDraw. The process dies
+ * instantly, which is why shop owners saw the app close itself mid-scroll.
+ * Play Console confirms it: the crash stack ends in
+ * eightbitlab.com.blurview.PreDrawBlurController.updateBlur.
+ *
+ * The bar sits on a black canvas, so a live blur of it was nearly
+ * indistinguishable from the flat tint expo-blur paints by default anyway.
  */
 function BarBackground() {
   return (
@@ -23,7 +34,6 @@ function BarBackground() {
       <BlurView
         intensity={40}
         tint="dark"
-        experimentalBlurMethod={Platform.OS === 'android' ? 'dimezisBlurView' : undefined}
         style={StyleSheet.absoluteFill}
       >
         <View style={styles.barFill} />
@@ -50,6 +60,9 @@ export default function ShopOwnerNavigator() {
      * expose the light default navigator background as two pale slivers. */
     <View style={styles.navRoot}>
       <Tab.Navigator
+        screenLayout={({ children, route }) => (
+          <ScreenErrorBoundary routeName={route?.name}>{children}</ScreenErrorBoundary>
+        )}
         screenOptions={{
           headerShown: false,
           tabBarShowLabel: false,

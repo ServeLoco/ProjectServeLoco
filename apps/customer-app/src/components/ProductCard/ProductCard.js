@@ -41,6 +41,10 @@ const PebbleGradient = () => (
   />
 );
 
+// The pebble is only 28px tall, so a tap just above or below it used to fall
+// through to the card and open the detail screen. Extra touch area, same look.
+const PEBBLE_HIT_SLOP = { top: 10, bottom: 10, left: 8, right: 8 };
+
 function ProductCard({
   product = {},
   name,
@@ -163,6 +167,7 @@ function ProductCard({
           activeOpacity={0.8}
           style={pebbleStyle}
           collapsable={false}
+          hitSlop={PEBBLE_HIT_SLOP}
           accessibilityRole="button"
           accessibilityLabel={`Choose options for ${resolvedName}`}
         >
@@ -209,6 +214,7 @@ function ProductCard({
         activeOpacity={0.8}
         style={pebbleStyle}
         collapsable={false}
+        hitSlop={PEBBLE_HIT_SLOP}
         accessibilityRole="button"
         accessibilityLabel={`Add ${resolvedName} to cart`}
       >

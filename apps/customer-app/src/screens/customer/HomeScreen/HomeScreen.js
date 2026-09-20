@@ -1,6 +1,9 @@
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { Image as ExpoImage } from 'expo-image';
+import { addEventListener as addNetInfoListener } from '@react-native-community/netinfo';
+import RetryingImage from '../../../components/ProductImage/RetryingImage';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import {
   View,
   Text,
@@ -15,14 +18,13 @@ import {
   FlatList,
   Pressable,
   Keyboard,
-  Platform,
   BackHandler,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   AppScreen,
-  AppIcon,
   SegmentedControl,
   CategoryCard,
   ProductCard,
@@ -39,8 +41,16 @@ import {
   LocationPermissionCard,
 } from '../../../components';
 import { showToast } from '../../../components/Toast';
-import { colors, typography, spacing, radius, layout } from '../../../theme';
-import { useCartStore, useSettingsStore, useDeliveryLocationStore, useDeliveryZonesStore } from '../../../stores';
+import { colors, typography, fontSizes, lineHeights, spacing, radius, layout } from '../../../theme';
+import HomeIcon from './HomeIcon';
+import useAreaLine from './useAreaLine';
+import SunCorner from './SunCorner';
+import SkyBirds from './SkyBirds';
+import SkyCloud from './SkyCloud';
+import NightSky from './NightSky';
+import RainSky from './RainSky';
+import useIsDaytime from './useIsDaytime';
+import { useAuthStore, useCartStore, useSettingsStore, useDeliveryLocationStore, useDeliveryZonesStore } from '../../../stores';
 import { useAuthGate, useStoreModes, useHomeLocationPermission, buildAreaETag, applyBootstrapResult, syncDeliveryLocation, syncAreaInfo } from '../../../hooks';
 import { subscribeProductAvailabilityEvents } from '../../../api/realtimeClient';
 
@@ -66,8 +76,360 @@ import {
 } from '../../../utils';
 import { dashboardLogo } from '../../../assets';
 
+// Top group background fading into the white page: light sky blue by day
+// (suits the golden sun), light black by night (suits the moon and stars).
+const DAY_BAR_RGB = '189, 228, 247';
+const NIGHT_BAR_RGB = '75, 79, 87';
+const RAIN_BAR_RGB = '210, 214, 220'; // light grey
+// Eased fade: opacity drops slowly at first, fastest in the middle, and
+// slowly again at the end, so there is no visible edge at either side.
+const TOP_BAR_FADE_ALPHAS = [1, 0.94, 0.8, 0.58, 0.34, 0.14, 0.04, 0];
+const fadeColorsFor = (rgb) => TOP_BAR_FADE_ALPHAS.map((a) => `rgba(${rgb}, ${a})`);
+const DAY_FADE_COLORS = fadeColorsFor(DAY_BAR_RGB);
+const NIGHT_FADE_COLORS = fadeColorsFor(NIGHT_BAR_RGB);
+const RAIN_FADE_COLORS = fadeColorsFor(RAIN_BAR_RGB);
+const TOP_BAR_FADE_LOCATIONS = TOP_BAR_FADE_ALPHAS.map((_, i) => i / (TOP_BAR_FADE_ALPHAS.length - 1));
+
+// Search shows at most 6 buyable items; it fetches more so that dropping
+// unavailable ones still leaves a full row.
+// Left/right space between the screen edge and the Home content.
+const PAGE_GUTTER = 10;
+// Home draws its sections a few at a time: this many at first, then one more
+// each time the customer scrolls within a screen of the end of what is drawn.
+const SECTIONS_INITIAL = 2;
+// The automatic rows at the end of Home (a row per shop, then a row per category) show this many items each.
+const AUTO_BLOCK_LIMIT = 8;
+// Waits before retrying an automatic row that failed to load (connection dip).
+const AUTO_BLOCK_RETRY_MS = [2000, 4000, 8000, 15000];
+// Category card width as a share of the content width (the skeleton uses it too).
+const CATEGORY_CARD_RATIO = 0.22;
+// First load retries: waits between attempts, and how many misses before the
+// "Unable to load" card shows (it keeps retrying behind the card).
+const DASHBOARD_RETRY_DELAYS_MS = [1500, 3000, 5000, 8000, 12000];
+const DASHBOARD_FAILURES_BEFORE_ERROR = 4;
+// A catalog.updated push (admin price/product edit) refetches within this window.
+const CATALOG_REFETCH_JITTER_MS = 300;
+const SEARCH_RESULT_LIMIT = 6;
+const SEARCH_FETCH_LIMIT = 18;
+
+// ── Loading skeleton ─────────────────────────────────────────────────────────
+// Built from the same numbers as the real sections (same gutter, card widths,
+// aspect ratios and gaps), so the placeholders sit exactly where the content
+// will land and nothing jumps when it arrives. Heights are explicit because
+// LoadingSkeleton sets its own default height, which would beat an
+// aspectRatio and squash the cards into thin bars.
+function homeSkeletonSizes(windowWidth) {
+  const contentWidth = windowWidth - (PAGE_GUTTER * 2);
+  const categoryWidth = Math.floor(contentWidth * CATEGORY_CARD_RATIO);
+  const productWidth = Math.floor(contentWidth * 0.4);
+  return {
+    bannerWidth: contentWidth,
+    bannerHeight: Math.round((contentWidth * 8) / 16),
+    categoryWidth,
+    categoryHeight: Math.round(categoryWidth / 0.9),
+    productWidth,
+    productHeight: Math.round(productWidth / 0.82),
+  };
+}
+
+function SkeletonRail({ count, width, height }) {
+  return (
+    <View style={styles.skeletonRail}>
+      {Array.from({ length: count }, (_, i) => (
+        <LoadingSkeleton
+          key={i}
+          width={width}
+          height={height}
+          borderRadius={radius.lg}
+          style={{ marginRight: spacing.md }}
+        />
+      ))}
+    </View>
+  );
+}
+
+function SkeletonSectionTitle() {
+  return (
+    <View style={styles.sectionHeader}>
+      <LoadingSkeleton width={150} height={18} borderRadius={radius.sm} />
+    </View>
+  );
+}
+
+// The category rail and one product rail as they will really look. With
+// `withBanner`, the offer banner and the shop-mode row above them too (the
+// full-screen version, where the real ones are not on screen yet).
+function HomeSectionsSkeleton({ windowWidth, withBanner = false, modeCount = 2 }) {
+  const size = homeSkeletonSizes(windowWidth);
+  return (
+    <View>
+      {withBanner ? (
+        <>
+          <View style={styles.skeletonModeRow}>
+            {Array.from({ length: Math.min(Math.max(modeCount, 2), 5) }, (_, i) => (
+              <LoadingSkeleton key={i} width={58} height={58} borderRadius={29} />
+            ))}
+          </View>
+          <View style={styles.offerCarouselSection}>
+            <LoadingSkeleton width={size.bannerWidth} height={size.bannerHeight} borderRadius={18} />
+          </View>
+        </>
+      ) : null}
+      <View style={styles.section}>
+        <SkeletonSectionTitle />
+        <SkeletonRail count={4} width={size.categoryWidth} height={size.categoryHeight} />
+      </View>
+      <View style={styles.section}>
+        <SkeletonSectionTitle />
+        <SkeletonRail count={3} width={size.productWidth} height={size.productHeight} />
+      </View>
+    </View>
+  );
+}
+
+// normalizeProduct builds a fresh object every call. Caching by the raw item
+// keeps each card's props identical between renders, so a cart change only
+// re-renders the card whose quantity changed. A live patch (price, shop
+// closed) replaces the raw item, which drops it out of the cache — the card
+// then re-renders with the new name/price straight away.
+const normalizedProductCache = new WeakMap();
+function normalizeProductCached(raw) {
+  if (!raw || typeof raw !== 'object') return normalizeProduct(raw);
+  let normalized = normalizedProductCache.get(raw);
+  if (!normalized) {
+    normalized = normalizeProduct(raw);
+    normalizedProductCache.set(raw, normalized);
+  }
+  return normalized;
+}
+
+// One product card in a Home rail. Memoised: with stable handlers and cached
+// items, tapping Buy re-renders only this card instead of every card on Home.
+const HomeProductCard = React.memo(function HomeProductCard({
+  item,
+  isItemCombo,
+  quantity,
+  width,
+  anim,
+  onAdd,
+  onIncrement,
+  onDecrement,
+}) {
+  const enter = useMemo(() => anim || new Animated.Value(1), [anim]);
+  const translateY = useMemo(
+    () => enter.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }),
+    [enter]
+  );
+  return (
+    <Animated.View
+      style={{
+        width,
+        marginRight: spacing.md,
+        opacity: enter,
+        transform: [{ translateY }],
+      }}
+    >
+      <ProductCard
+        product={item}
+        name={item.name}
+        price={item.price}
+        originalPrice={item.originalPrice}
+        discountLabel={item.discountLabel}
+        unit={item.unit}
+        isCombo={isItemCombo}
+        comboItems={item.comboItems}
+        imageUri={item.imageUri}
+        quantity={quantity}
+        onAdd={() => onAdd(item)}
+        onIncrement={() => onIncrement(item)}
+        onDecrement={() => onDecrement(item)}
+        disabled={!item.available}
+        compact
+      />
+    </Animated.View>
+  );
+});
+
+// A product the card would show as unavailable: turned off, or its shop is closed.
+const isProductUnavailable = (p) =>
+  !p.available || p.shopIsOpen === false || p.shop_is_open === false;
+
+// A product/combo section whose items are ALL unavailable. Such a section goes
+// to the very end of Home (see orderedUnits in HomeScreen).
+function isSectionAllUnavailable(section) {
+  if (section?.sectionType !== 'product_block' && section?.sectionType !== 'combo_block') return false;
+  const items = Array.isArray(section.items) ? section.items : [];
+  return items.length > 0 && items.every((raw) => isProductUnavailable(normalizeProductCached(raw)));
+}
+
+// One automatic row at the end of Home. `auto` is a row the server described
+// (`autoKind` 'shop' or 'category', `sourceId`, `title`): the shop's or
+// category's name, a row of up to AUTO_BLOCK_LIMIT products, and See all when
+// there are more. It loads its own products when it is drawn — so with the
+// progressive drawing above, a row is only fetched when the customer scrolls
+// to it — always fresh from the server. A row with no products draws nothing. `refreshSignal` changes when Home hears of a
+// catalog/shop change and refetches quietly (no skeleton).
+const AutoProductBlock = React.memo(function AutoProductBlock({
+  auto,
+  storeType,
+  lat,
+  lng,
+  refreshSignal,
+  cardWidth,
+  onAdd,
+  onIncrement,
+  onDecrement,
+  onSeeAll,
+  onAvailability,
+}) {
+  // "Max display items" from the admin's settings for this row (default 8).
+  const limit = Number(auto.maxVisibleItems) > 0 ? Number(auto.maxVisibleItems) : AUTO_BLOCK_LIMIT;
+  const [loaded, setLoaded] = useState(null); // null = first load still running
+  // Re-draw on every cart change so each card's quantity stays right.
+  useCartStore((state) => state.items);
+
+  useEffect(() => {
+    let cancelled = false;
+    let retryTimer = null;
+    let attempt = 0;
+
+    const load = () => {
+      productsApi.getProducts({
+        ...(auto.autoKind === 'shop' ? { shopId: auto.sourceId } : { categoryId: auto.sourceId }),
+        type: storeType,
+        storeType,
+        include_closed_shops: 1,
+        limit,
+        latitude: lat,
+        longitude: lng,
+      })
+        .then((response) => {
+          if (cancelled) return;
+          const products = asArray(response, ['products'])
+            .map(normalizeProductCached)
+            .filter((p) => !(p.isCombo || p.is_combo || p.comboItems?.length));
+          // Unavailable / closed-shop items go to the end (stable sort keeps the admin's order).
+          products.sort((a, b) => {
+            const aOut = !a.available || a.shopIsOpen === false || a.shop_is_open === false;
+            const bOut = !b.available || b.shopIsOpen === false || b.shop_is_open === false;
+            return aOut === bOut ? 0 : aOut ? 1 : -1;
+          });
+          const hasMore = Boolean(
+            response?.hasMore ?? response?.has_more ?? response?.data?.hasMore ?? response?.data?.has_more
+          );
+          setLoaded({ items: products.slice(0, limit), hasMore });
+        })
+        .catch(() => {
+          if (cancelled) return;
+          // Try again on our own (a dip in the connection), a few times.
+          const delay = AUTO_BLOCK_RETRY_MS[Math.min(attempt, AUTO_BLOCK_RETRY_MS.length - 1)];
+          attempt += 1;
+          retryTimer = setTimeout(load, delay);
+        });
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+      clearTimeout(retryTimer);
+    };
+  }, [auto.id, auto.autoKind, auto.sourceId, limit, storeType, lat, lng, refreshSignal]);
+
+  // Tell Home whether every item here is unavailable, so it can move this
+  // row to the very end of the page.
+  const allUnavailable = Boolean(loaded && loaded.items.length > 0 && loaded.items.every(isProductUnavailable));
+  useEffect(() => {
+    if (loaded) onAvailability?.(auto.id, allUnavailable);
+  }, [loaded, allUnavailable, auto.id, onAvailability]);
+
+  if (loaded && loaded.items.length === 0) return null;
+
+  const items = loaded ? loaded.items : [];
+
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHeader}>
+        <View style={styles.titleRow}>
+          <View style={styles.headerIndicator} />
+          {auto.sectionIcon ? (
+            <HomeIcon name={auto.sectionIcon} size={14} color={colors.primary} style={styles.sectionTypeIcon} />
+          ) : null}
+          <Text style={styles.sectionTitlePremium} numberOfLines={1}>{auto.title}</Text>
+          {auto.showHotBadge === true ? (
+            <View style={styles.hotBadge}>
+              <LinearGradient
+                colors={['#FF6B6B', '#FF8E53']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.hotBadgeGradient}
+              >
+                <HomeIcon name="star" size={10} color="#FFFFFF" fill="#FFFFFF" style={styles.hotBadgeIcon} />
+                <Text style={styles.hotBadgeText}>HOT</Text>
+              </LinearGradient>
+            </View>
+          ) : null}
+        </View>
+      </View>
+      {loaded === null ? (
+        <SkeletonRail count={3} width={cardWidth} height={Math.round(cardWidth / 0.82)} />
+      ) : (
+        <FlatList
+          data={items}
+          keyExtractor={(item) => String(item.id)}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.productScrollContent}
+          keyboardShouldPersistTaps="handled"
+          initialNumToRender={4}
+          maxToRenderPerBatch={4}
+          windowSize={5}
+          renderItem={({ item }) => (
+            <HomeProductCard
+              item={item}
+              isItemCombo={false}
+              quantity={useCartStore.getState().getProductQuantity(item.id)}
+              width={cardWidth}
+              onAdd={onAdd}
+              onIncrement={onIncrement}
+              onDecrement={onDecrement}
+            />
+          )}
+          ListFooterComponent={
+            loaded.hasMore || auto.showSeeAll === true ? (
+              <View style={styles.seeAllInRowProduct}>
+                <SeeAllButton
+                  label="See all"
+                  onPress={() => onSeeAll(auto)}
+                  accessibilityLabel={`See all ${auto.title}`}
+                />
+              </View>
+            ) : null
+          }
+        />
+      )}
+    </View>
+  );
+});
+
 export default function HomeScreen() {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
+  // Top bar look. While the admin's rain charge is on, the rain scene wins
+  // over the clock: light grey bar with drifting clouds and falling rain.
+  // Otherwise it follows the time of day: day (7 AM – 6 PM IST) is a sky blue
+  // bar with sun, cloud and birds; night is a light black bar with a turning
+  // moon and twinkling stars.
+  const rainChargeEnabled = useSettingsStore(state => state.rainChargeEnabled);
+  const isRainy = rainChargeEnabled === true;
+  const isDaytime = useIsDaytime();
+  const isLightBar = isRainy || isDaytime;
+  const barRgb = isRainy ? RAIN_BAR_RGB : isDaytime ? DAY_BAR_RGB : NIGHT_BAR_RGB;
+  const barColor = `rgb(${barRgb})`;
+  const barFadeColors = isRainy ? RAIN_FADE_COLORS : isDaytime ? DAY_FADE_COLORS : NIGHT_FADE_COLORS;
+  // What sits on the bar flips with it: black on a light bar, white on the dark one.
+  const onBarColor = isLightBar ? '#111827' : '#FFFFFF';
+  const barButtonBg = isLightBar ? '#111827' : '#FFFFFF';
+  const barButtonIcon = isLightBar ? '#FFFFFF' : '#111827';
   const { width: windowWidth } = useWindowDimensions();
   const { requireAuth } = useAuthGate();
   
@@ -122,6 +484,12 @@ export default function HomeScreen() {
   deliveryCatalogVersionRef.current = useDeliveryLocationStore(state => state.catalogVersion);
   const insideDeliveryZone = useDeliveryLocationStore(state => state.insideZone);
   const deliveryZoneName = useDeliveryLocationStore(state => state.zoneName);
+  // Line under the zone name: the address saved on the profile (filled from the
+  // customer's orders), else the area of the pin — village/city, state, pin code.
+  const savedAddress = useAuthStore(state => state.profile?.address);
+  const savedAddressText = typeof savedAddress === 'string' ? savedAddress.trim() : '';
+  const areaLine = useAreaLine(deliveryCoords, Boolean(deliveryCoords) && !savedAddressText);
+  const locationSubline = deliveryCoords ? (savedAddressText || areaLine) : null;
   const deliveryZoneId = useDeliveryLocationStore(state => state.zoneId);
   const isInitialLocationSyncComplete = useDeliveryLocationStore(state => state.isInitialSyncComplete);
   const recentDeliveryLocations = useDeliveryLocationStore(state => state.recentLocations);
@@ -349,12 +717,90 @@ export default function HomeScreen() {
   }, [isLoading]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [dashboardSections, setDashboardSections] = useState([]);
+  // How many of the sections are drawn so far (see SECTIONS_INITIAL).
+  const [renderedSectionCount, setRenderedSectionCount] = useState(SECTIONS_INITIAL);
+  // Bumped when Home hears of a catalog/shop change; the blocks refetch on it.
+  const [autoBlocksRefresh, setAutoBlocksRefresh] = useState(0);
+  const sectionTotalRef = useRef(0);
+  // Drawn one at a time: the admin's sections first, then one block per category.
+  // Automatic rows found to have ONLY unavailable items ({ [autoId]: true }),
+  // reported by the rows themselves once they have loaded.
+  const [unavailableAutoIds, setUnavailableAutoIds] = useState({});
+  const handleAutoAvailability = useCallback((autoId, allUnavailable) => {
+    setUnavailableAutoIds((prev) => {
+      if (Boolean(prev[autoId]) === allUnavailable) return prev;
+      const next = { ...prev };
+      if (allUnavailable) next[autoId] = true; else delete next[autoId];
+      return next;
+    });
+  }, []);
+  // The page top to bottom, drawn one unit at a time, in the order the admin
+  // set on App Home. Rows Home creates by itself (a row per shop / category,
+  // flagged `auto`) are ordinary sections in that list — reordered, hidden or
+  // timed exactly like the others. Sections with something to buy come first;
+  // last of all, any section whose items are ALL unavailable. Recomputed live,
+  // so a section moves the moment its last item goes out of stock — and comes
+  // back when one is available again.
+  const orderedUnits = useMemo(() => {
+    const available = [];
+    const unavailable = [];
+    for (const section of dashboardSections) {
+      const isAuto = Boolean(section.auto);
+      const allUnavailable = isAuto
+        ? Boolean(unavailableAutoIds[section.id])
+        : isSectionAllUnavailable(section);
+      (allUnavailable ? unavailable : available)
+        .push(isAuto ? { kind: 'auto', auto: section } : { kind: 'section', section });
+    }
+    return [...available, ...unavailable];
+  }, [dashboardSections, unavailableAutoIds]);
+  const totalDrawUnits = orderedUnits.length;
+  sectionTotalRef.current = totalDrawUnits;
+  const scrollMetricsRef = useRef({ offset: 0, viewport: 0, content: 0 });
+  // Draw the next section when what is drawn ends less than one screen below
+  // the bottom of the view. Lower sections are not built until then, so the
+  // top of Home is not slowed down by the parts nobody can see yet.
+  const drawMoreIfNeeded = useCallback(() => {
+    const { offset, viewport, content } = scrollMetricsRef.current;
+    if (!viewport || !content) return;
+    if (offset + viewport * 2 < content) return;
+    setRenderedSectionCount(count => (count < sectionTotalRef.current ? count + 1 : count));
+  }, []);
   const [homeError, setHomeError] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
   const [isSearchOverlayOpen, setIsSearchOverlayOpen] = useState(false);
   const [searchDismissSignal, setSearchDismissSignal] = useState(0);
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
   const searchBackdropRef = useRef(null);
+  // The top group (location row, search bar, closed notice, fade) floats over
+  // the page, which scrolls under it, so items dissolve into the top bar colour
+  // instead of being cut by a hard line. Its height is measured in parts —
+  // never as a whole — so the search results dropping under the bar make the
+  // group taller and the page below moves down with it, then back up on close.
+  const [searchBarBottom, setSearchBarBottom] = useState(0);
+  const [searchDropdownHeight, setSearchDropdownHeight] = useState(0);
+  const [topFadeHeight, setTopFadeHeight] = useState(0);
+  // Height of the location row — the part that scrolls away. The search bar
+  // below it stays pinned to the top.
+  const [topRowHeight, setTopRowHeight] = useState(0);
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const onHomeScroll = useMemo(() => Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    {
+      useNativeDriver: true,
+      listener: (event) => {
+        const { contentOffset, layoutMeasurement, contentSize } = event.nativeEvent;
+        const metrics = scrollMetricsRef.current;
+        metrics.offset = contentOffset.y;
+        metrics.viewport = layoutMeasurement.height;
+        metrics.content = contentSize.height;
+        drawMoreIfNeeded();
+      },
+    },
+  ), [scrollY, drawMoreIfNeeded]);
+  // Left edge of the zone-name text (right of the pin icon) — the line under
+  // the address fades out at the middle of the screen, measured from here.
+  const [locationBodyX, setLocationBodyX] = useState(0);
   const currentApiStoreType = storeType;
   const cartItemCount = useMemo(
     () => items.reduce((total, item) => total + (Number(item.quantity) || 0), 0),
@@ -401,8 +847,20 @@ export default function HomeScreen() {
   // Per-mode dashboard cache: switching store type shows the cached sections
   // instantly (no skeleton) while a fresh fetch revalidates in the background.
   const sectionsCacheRef = useRef({});
-  const prefetchedModesRef = useRef(new Set());
-  const [cacheGeneration, setCacheGeneration] = useState(0);
+  // Fresh sections replace the on-screen ones only when something actually
+  // changed (price, name, availability, order). An identical reply would
+  // otherwise redraw every card for nothing.
+  const applySections = React.useCallback((slug, sectionsData) => {
+    const previous = sectionsCacheRef.current[slug];
+    sectionsCacheRef.current[slug] = sectionsData;
+    setDashboardSections(current => {
+      if (previous && current === previous && JSON.stringify(previous) === JSON.stringify(sectionsData)) {
+        sectionsCacheRef.current[slug] = previous;
+        return current;
+      }
+      return sectionsData;
+    });
+  }, []);
 
   // Both caches above are keyed by store type only, so moving the pin into a
   // different delivery zone would keep repainting the previous zone's
@@ -437,13 +895,26 @@ export default function HomeScreen() {
     // away: an in-flight fetch writes its result here when it resolves, and
     // invalidate('dashboard:') only drops a 15s freshness stamp.
     sectionsCacheRef.current = {};
-    prefetchedModesRef.current = new Set();
     invalidate('dashboard:');
   }, [deliveryAreaId, deliveryZoneId, refetchModes]);
 
   // Staggered entry for cards
   const staggerCatAnims = useRef(Array.from({ length: 12 }, () => new Animated.Value(0))).current;
   const staggerComboAnims = useRef(Array.from({ length: 12 }, () => new Animated.Value(0))).current;
+
+  // Self-healing first load. If the dashboard fetch fails with nothing on
+  // screen, retry with a growing wait (1.5s, 3s, 5s, 8s, then every 12s) until
+  // it lands — the customer never has to pull to refresh after a dropped
+  // connection. `loadHomeDataRef` always points at the latest loadHomeData.
+  const dashboardFailuresRef = useRef(0);
+  const dashboardRetryTimerRef = useRef(null);
+  const loadHomeDataRef = useRef(null);
+  const retryDashboardLoadSoon = React.useCallback(() => {
+    clearTimeout(dashboardRetryTimerRef.current);
+    const delays = DASHBOARD_RETRY_DELAYS_MS;
+    const delay = delays[Math.min(dashboardFailuresRef.current - 1, delays.length - 1)] ?? delays[0];
+    dashboardRetryTimerRef.current = setTimeout(() => loadHomeDataRef.current?.(false), delay);
+  }, []);
 
   const loadHomeData = React.useCallback((refresh = false) => {
     let isMounted = true;
@@ -455,6 +926,7 @@ export default function HomeScreen() {
     } else if (!sectionsCacheRef.current[currentApiStoreType]) {
       // Only show the skeleton when we have nothing cached for this mode;
       // otherwise the cached sections stay visible while we revalidate.
+      setRenderedSectionCount(SECTIONS_INITIAL);
       setIsLoading(true);
     }
     setHomeError('');
@@ -490,8 +962,7 @@ export default function HomeScreen() {
 
       if (dashboardResult.status === 'fulfilled') {
         const sectionsData = dashboardResult.value?.data?.sections || [];
-        sectionsCacheRef.current[currentApiStoreType] = sectionsData;
-        setDashboardSections(sectionsData);
+        applySections(currentApiStoreType, sectionsData);
         // Only a real paint counts. A cold start that failed must still get
         // the full-screen skeleton on its retry — there is no header to keep
         // on screen yet.
@@ -501,7 +972,19 @@ export default function HomeScreen() {
         setDashboardSections(sectionsCacheRef.current[currentApiStoreType]);
       } else {
         setDashboardSections([]);
-        setHomeError('Unable to load home sections. Pull to retry.');
+        // Nothing to show and the fetch failed (a dip in the connection, say):
+        // keep the skeleton up and try again on our own. Only after a few
+        // misses does the error card appear — and it keeps retrying behind it.
+        dashboardFailuresRef.current += 1;
+        retryDashboardLoadSoon();
+        if (dashboardFailuresRef.current >= DASHBOARD_FAILURES_BEFORE_ERROR) {
+          setHomeError('Unable to load home sections. Pull to retry.');
+        }
+      }
+
+      if (dashboardResult.status === 'fulfilled') {
+        dashboardFailuresRef.current = 0;
+        clearTimeout(dashboardRetryTimerRef.current);
       }
 
       if (bootstrapResult.status === 'fulfilled' && bootstrapResult.value !== null) {
@@ -513,7 +996,12 @@ export default function HomeScreen() {
         setUnreadCount(notificationsResult.value || 0);
       }
 
-      setIsLoading(false);
+      // While quietly retrying a failed first load, stay in the loading state
+      // (skeleton) instead of flashing an empty page between attempts.
+      const retryingQuietly = dashboardResult.status !== 'fulfilled'
+        && !sectionsCacheRef.current[currentApiStoreType]
+        && dashboardFailuresRef.current < DASHBOARD_FAILURES_BEFORE_ERROR;
+      if (!retryingQuietly) setIsLoading(false);
       setIsRefreshing(false);
 
       Animated.parallel([
@@ -530,8 +1018,12 @@ export default function HomeScreen() {
       ]).start();
     }).catch(() => {
       if (isMounted) {
-        setHomeError('Unable to load home data. Pull to retry.');
-        setIsLoading(false);
+        dashboardFailuresRef.current += 1;
+        retryDashboardLoadSoon();
+        if (dashboardFailuresRef.current >= DASHBOARD_FAILURES_BEFORE_ERROR) {
+          setHomeError('Unable to load home data. Pull to retry.');
+          setIsLoading(false);
+        }
         setIsRefreshing(false);
       }
     });
@@ -548,7 +1040,27 @@ export default function HomeScreen() {
     // catalogVersion, so depending on them directly would rebuild this
     // callback every time it succeeds, re-firing the mount effect below in
     // an infinite loop.
-  }, [currentApiStoreType, deliveryZoneId, fadeAnim, markSettingsFetched, isSettingsStale, slideAnim, staggerCatAnims, staggerComboAnims, refetchModes]);
+  }, [currentApiStoreType, deliveryZoneId, fadeAnim, markSettingsFetched, isSettingsStale, slideAnim, staggerCatAnims, staggerComboAnims, refetchModes, applySections]);
+
+  loadHomeDataRef.current = loadHomeData;
+
+  // Connection came back while the first load was still failing: retry now
+  // instead of waiting out the timer.
+  useEffect(() => {
+    let wasConnected = true;
+    const unsubscribe = addNetInfoListener((state) => {
+      const connected = state.isConnected !== false;
+      if (connected && !wasConnected && dashboardFailuresRef.current > 0) {
+        clearTimeout(dashboardRetryTimerRef.current);
+        loadHomeDataRef.current?.(false);
+      }
+      wasConnected = connected;
+    });
+    return () => {
+      unsubscribe();
+      clearTimeout(dashboardRetryTimerRef.current);
+    };
+  }, []);
 
   // No pin, no fetch — ever. A pinless dashboard/bootstrap request makes the
   // server resolve the area from something other than where the customer is
@@ -575,16 +1087,15 @@ export default function HomeScreen() {
   // (settings.shop_open) changing while Home stays mounted, without the
   // jarring full reload loadHomeData(false) would cause on every focus.
   const refreshDashboardSilently = React.useCallback(() => {
+    // The category blocks at the end of Home refetch on the same trigger.
+    setAutoBlocksRefresh((n) => n + 1);
     dashboardApi.getDashboard({
       storeType: currentApiStoreType, include_closed_shops: 1,
       latitude: deliveryCoordsRef.current?.lat, longitude: deliveryCoordsRef.current?.lng,
     })
       .then(response => {
         const sectionsData = response?.data?.sections;
-        if (sectionsData) {
-          sectionsCacheRef.current[currentApiStoreType] = sectionsData;
-          setDashboardSections(sectionsData);
-        }
+        if (sectionsData) applySections(currentApiStoreType, sectionsData);
       })
       .catch(() => {});
     // 28.6 — pin-aware too, same as loadHomeData's bootstrap call, so a
@@ -597,28 +1108,7 @@ export default function HomeScreen() {
         }
       })
       .catch(() => {});
-  }, [currentApiStoreType, setSettings, markSettingsFetched]);
-
-  // The live patches below (shop open/close, product availability) only fix
-  // the sections currently on screen. The prefetched blobs for the OTHER
-  // modes are plain snapshots, and selectStoreType paints them instantly —
-  // so a mode switch after such an event would show a shop as open that just
-  // closed. Drop them instead of trying to patch every cached mode; the
-  // prefetch effect re-warms them within 2s.
-  const dropOtherModeCaches = React.useCallback(() => {
-    let dropped = false;
-    for (const slug of Object.keys(sectionsCacheRef.current)) {
-      if (slug === currentApiStoreType) continue;
-      delete sectionsCacheRef.current[slug];
-      prefetchedModesRef.current.delete(slug);
-      dropped = true;
-    }
-    // Both containers above are refs, so emptying them changes no state and
-    // the prefetch effect below would not re-run — the dropped modes would
-    // stay cold until the next switch (a skeleton, exactly what the prefetch
-    // exists to avoid). This counter is the effect's re-run signal.
-    if (dropped) setCacheGeneration(gen => gen + 1);
-  }, [currentApiStoreType]);
+  }, [currentApiStoreType, setSettings, markSettingsFetched, applySections]);
 
   // Live OOS: when shop/admin marks a product unavailable, grey it out on
   // every product rail immediately (no pull-to-refresh) instead of removing
@@ -631,7 +1121,9 @@ export default function HomeScreen() {
       if (productId == null || productId === '') return;
       const available = payload?.available;
 
-      dropOtherModeCaches();
+      // The automatic shop/category rows hold their own items, so they refetch
+      // straight away on any availability change (the sections above patch in place).
+      setAutoBlocksRefresh((n) => n + 1);
 
       if (available === false || available === 0 || available === '0') {
         // Product-only event — products/combos are separate tables with
@@ -659,7 +1151,7 @@ export default function HomeScreen() {
 
       refreshDashboardSilently();
     });
-  }, [refreshDashboardSilently, dropOtherModeCaches]);
+  }, [refreshDashboardSilently]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -752,6 +1244,9 @@ export default function HomeScreen() {
     // pricing) without 10k clients thundering-herding the API (TASK 17).
     let shopRefetchTimer = null;
     const unsubscribeShopEvents = subscribeShopEvents(({ eventName, payload }) => {
+      // Automatic shop/category rows hold their own items: refetch them now.
+      setAutoBlocksRefresh((n) => n + 1);
+
       if (eventName === 'shop.status.updated') {
         const shopId = payload?.shopId;
         const isOpen = payload?.isOpen;
@@ -774,19 +1269,17 @@ export default function HomeScreen() {
         }
       }
 
-      dropOtherModeCaches();
-
       if (shopRefetchTimer) clearTimeout(shopRefetchTimer);
       shopRefetchTimer = setTimeout(() => {
         shopRefetchTimer = null;
         refreshDashboardSilently();
-        // Wider window for catalog.updated than for a shop opening: the
-        // dashboard micro-cache has just been busted server-side and has no
-        // single-flight, so every phone that misses it builds the response
-        // against MySQL. ponytail: jitter is the cheap spreader — add
-        // in-flight coalescing to utils/microCache if an area ever has
+        // catalog.updated is an admin price/product edit: refetch almost at
+        // once (tiny jitter) so the new price shows in well under a second.
+        // The server-side micro-cache was just busted, so phones that all
+        // refetch together each build the response against MySQL. ponytail:
+        // add in-flight coalescing to utils/microCache if an area ever has
         // thousands of foregrounded phones at once.
-      }, Math.random() * (eventName === 'catalog.updated' ? 15000 : 3000));
+      }, Math.random() * (eventName === 'catalog.updated' ? CATALOG_REFETCH_JITTER_MS : 3000));
     });
 
     return () => {
@@ -798,7 +1291,7 @@ export default function HomeScreen() {
         clearTimeout(unreadRefreshTimer.current);
       }
     };
-  }, [queueUnreadRefresh, refreshDashboardSilently, dropOtherModeCaches]);
+  }, [queueUnreadRefresh, refreshDashboardSilently]);
 
   const prefetchSectionImages = React.useCallback((sections) => {
     // Pre-warm expo-image's disk cache for every image that will render on the
@@ -826,36 +1319,23 @@ export default function HomeScreen() {
   }, []);
 
   useEffect(() => {
-    prefetchSectionImages(dashboardSections);
-  }, [dashboardSections, prefetchSectionImages]);
+    // Only the sections that are drawn; the rest are warmed as they come up.
+    prefetchSectionImages(
+      orderedUnits
+        .slice(0, renderedSectionCount + 1)
+        .filter((unit) => unit.kind === 'section')
+        .map((unit) => unit.section)
+    );
+  }, [orderedUnits, renderedSectionCount, prefetchSectionImages]);
 
+  // After each section is drawn, look again (once layout has settled): the
+  // screen may still not be filled, and a section that draws nothing would
+  // otherwise leave no size change to trigger the next one.
   useEffect(() => {
-    // Warm the other store modes in the background once the visible mode has
-    // loaded, so the first tap on another mode swaps in instantly instead of
-    // showing a skeleton. Delayed so it never competes with the visible
-    // mode's fetch and image downloads.
-    if (isLoading || !Array.isArray(modes) || modes.length <= 1) return undefined;
-    const timer = setTimeout(() => {
-      for (const mode of modes) {
-        const slug = mode?.slug;
-        if (!slug || slug === currentApiStoreType || prefetchedModesRef.current.has(slug)) continue;
-        prefetchedModesRef.current.add(slug);
-        dashboardApi.getDashboard({
-          storeType: slug, include_closed_shops: 1,
-          latitude: deliveryCoordsRef.current?.lat, longitude: deliveryCoordsRef.current?.lng,
-        })
-          .then(response => {
-            const sectionsData = response?.data?.sections;
-            if (sectionsData) {
-              sectionsCacheRef.current[slug] = sectionsData;
-              prefetchSectionImages(sectionsData);
-            }
-          })
-          .catch(() => { prefetchedModesRef.current.delete(slug); });
-      }
-    }, 2000);
+    if (renderedSectionCount >= totalDrawUnits) return undefined;
+    const timer = setTimeout(drawMoreIfNeeded, 80);
     return () => clearTimeout(timer);
-  }, [isLoading, modes, currentApiStoreType, prefetchSectionImages, cacheGeneration]);
+  }, [renderedSectionCount, totalDrawUnits, drawMoreIfNeeded]);
 
   useEffect(() => {
     // 1. Badge pulse/glow loop animation (1.0 to 2.0 scale)
@@ -908,29 +1388,40 @@ export default function HomeScreen() {
     });
   };
 
+  // See all on an automatic row: a shop's row opens that shop's items, a
+  // category's row opens the category.
+  const handleAutoSeeAll = (auto) => {
+    if (auto.autoKind === 'shop') {
+      navigation.navigate('ProductList', { shopId: auto.sourceId, sectionTitle: auto.title, storeType: currentApiStoreType });
+    } else {
+      navigation.navigate('ProductList', { categoryId: auto.sourceId, categoryName: auto.title, storeType: currentApiStoreType });
+    }
+  };
+
   const handleCategoryPress = (category) => {
     navigation.navigate('ProductList', { categoryId: category.id, categoryName: category.name, storeType: currentApiStoreType });
   };
 
   // Segment control only — no swipe-to-switch (avoids clashing with rails).
+  // Reacts at once on tap — the old sections clear right away and the new
+  // mode's loading state fades in — then fresh data replaces it.
   const selectStoreType = useCallback((val) => {
     if (!val || val === storeType) return;
     userChangedStoreTypeRef.current = true;
-    const cached = sectionsCacheRef.current[val];
-    Animated.timing(sectionsFade, { toValue: 0, duration: 110, useNativeDriver: true }).start(({ finished }) => {
-      // Interrupted by a second tap — that tap's own animation owns the swap
-      // and the fade back in. Running this one too would apply the mode the
-      // user already moved past.
-      if (!finished) return;
-      if (cached) {
-        setDashboardSections(cached);
-      } else {
-        setDashboardSections([]);
-        setIsLoading(true);
-      }
-      setStoreType(val);
-      Animated.timing(sectionsFade, { toValue: 1, duration: 180, useNativeDriver: true }).start();
-    });
+    // Data is never reused from an earlier visit: the new mode always loads
+    // fresh from the server, so names, prices and availability are current.
+    delete sectionsCacheRef.current[val];
+    // A failed load of the mode we are leaving must not count against this one.
+    dashboardFailuresRef.current = 0;
+    clearTimeout(dashboardRetryTimerRef.current);
+    setRenderedSectionCount(SECTIONS_INITIAL);
+    setUnavailableAutoIds({});
+    setDashboardSections([]);
+    setIsLoading(true);
+    setStoreType(val);
+    sectionsFade.stopAnimation();
+    sectionsFade.setValue(0.4);
+    Animated.timing(sectionsFade, { toValue: 1, duration: 160, useNativeDriver: true }).start();
   }, [storeType, sectionsFade]);
 
   const handleProductPress = (product) => {
@@ -963,11 +1454,14 @@ export default function HomeScreen() {
         // variant products are stored WITH their variant attached — adding
         // with variant=null here would miss the match and create a
         // duplicate line instead of incrementing it).
-        const existing = items.find(i => i.product.id === product.id && (i.type || 'product') !== 'combo');
+        // Read the cart at tap time (not from the render's `items`) so this
+        // handler stays the same function when the cart changes — that keeps
+        // every product card from re-rendering on each add.
+        const existing = useCartStore.getState().items.find(i => i.product.id === product.id && (i.type || 'product') !== 'combo');
         addItem(product, 1, existing?.variant ?? product.variants?.[0] ?? null);
       }
     });
-  }, [requireAuth, addCombo, addItem, items]);
+  }, [requireAuth, addCombo, addItem]);
 
   const handleDecrement = React.useCallback((product) => {
     if (product.isCombo || product.is_combo || product.comboItems?.length) {
@@ -975,7 +1469,7 @@ export default function HomeScreen() {
       return;
     }
 
-    const existing = items.find(i => i.product.id === product.id && (i.type || 'product') !== 'combo');
+    const existing = useCartStore.getState().items.find(i => i.product.id === product.id && (i.type || 'product') !== 'combo');
     const variantId = existing?.variant?.id ?? null;
     const currentQty = existing?.quantity || 0;
     if (currentQty <= 1) {
@@ -983,18 +1477,40 @@ export default function HomeScreen() {
     } else {
       updateQuantity(product.id, currentQty - 1, 'product', variantId);
     }
-  }, [decrementCombo, items, removeItem, updateQuantity]);
+  }, [decrementCombo, removeItem, updateQuantity]);
 
   const handleCartPress = React.useCallback(() => {
     navigation.navigate('Cart');
   }, [navigation]);
 
 
+  // The home error card sits between the top group and the list, so the list
+  // only slides under the fade when that card is not showing.
+  // The results height only counts while the results are showing — a late
+  // layout report from a closing dropdown must never leave a gap behind.
+  const topGroupHeight = topRowHeight + searchBarBottom
+    + (isSearchOverlayOpen ? searchDropdownHeight : 0) + topFadeHeight;
+  const fadeOverlap = !isHomeLoading && homeError ? 0 : topGroupHeight;
+
+  // Scrolling up slides the group up by the location row's height and fades
+  // that row out; then it stops, leaving the search bar pinned at the top.
+  const collapseDistance = Math.max(topRowHeight, 1);
+  const topGroupTranslateY = scrollY.interpolate({
+    inputRange: [0, collapseDistance],
+    outputRange: [0, -collapseDistance],
+    extrapolate: 'clamp',
+  });
+  const topRowOpacity = scrollY.interpolate({
+    inputRange: [0, collapseDistance * 0.7],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+
   const categoryGap = spacing.md;
-  const contentWidth = windowWidth - (spacing.md * 2);
+  const contentWidth = windowWidth - (PAGE_GUTTER * 2);
   // Horizontal-scrolling cards: ~28% of content width so the next card peeks
   // (peek effect — multiple cards visible at once).
-  const categoryCardWidth = Math.floor(contentWidth * 0.28);
+  const categoryCardWidth = Math.floor(contentWidth * CATEGORY_CARD_RATIO);
 
   const comboGap = spacing.sm;
   const comboGridWidth = windowWidth - (spacing.md * 2);
@@ -1004,30 +1520,165 @@ export default function HomeScreen() {
   return (
     <AppScreen
       style={styles.container}
-      bg={colors.bgApp}
+      bg={barColor}
       safeAreaBottom={false}
       safeAreaTop={true}
-      statusBarStyle="dark-content"
+      statusBarStyle={isLightBar ? 'dark-content' : 'light-content'}
     >
-      <HomeHeader
-        unreadCount={unreadCount}
-        pulseAnim={pulseAnim}
-        onNotificationsPress={() => navigation.navigate('Notifications')}
-        onCartPress={() => navigation.navigate('Cart')}
-        cartItemCount={cartItemCount}
-        onSearchPress={handleSearchPress}
-        onProductPress={handleProductPress}
-        onSearchOpenChange={setIsSearchOverlayOpen}
-        isLocationGated={isLocationGated}
-        dismissSignal={searchDismissSignal}
-        cartItems={items}
-        addItem={addItem}
-        updateQuantity={updateQuantity}
-        removeItem={removeItem}
-        requireAuth={requireAuth}
-        onOpenVariantSheet={setVariantSheetProduct}
-        deliveryCoords={deliveryCoords}
-      />
+      {/* Top group — location row, search bar and the closed-shop notice share
+          one light-sky-blue background. It is solid down to the search bar, then fades
+          into the white page below. It floats over the page (the spacer below
+          keeps its place in the layout) so the page can scroll under it. */}
+      <Animated.View
+        style={[styles.topGroup, { transform: [{ translateY: topGroupTranslateY }] }]}
+        pointerEvents="box-none"
+      >
+        <View style={[styles.topSolid, { backgroundColor: barColor }]}>
+          {/* Decoration, never touchable, fading out with the location row when the
+              page scrolls. Rain charge on: grey clouds and falling rain, whatever the
+              time. Otherwise, day (7 AM – 6 PM IST): a sun in the top-right corner
+              (reaching up behind the status bar) with thin beams across the bar,
+              one small cloud drifting across the top row, and black birds gliding
+              under the search bar. Night: a slowly turning moon and twinkling stars. */}
+          <Animated.View pointerEvents="none" style={[styles.topBarDecor, { opacity: topRowOpacity }]}>
+            {isRainy ? (
+              <RainSky
+                width={windowWidth}
+                minY={-insets.top}
+                bottom={topRowHeight + searchBarBottom}
+              />
+            ) : isDaytime ? (
+              <>
+                <SunCorner
+                  style={{ top: 8 - insets.top, right: 8 }}
+                  width={windowWidth - 8}
+                  height={topRowHeight + searchBarBottom + insets.top - 8}
+                />
+                <SkyCloud top={4} width={windowWidth} />
+                <SkyBirds top={topRowHeight + searchBarBottom + 4} width={windowWidth} />
+              </>
+            ) : (
+              <NightSky
+                width={windowWidth}
+                minY={4 - insets.top}
+                maxY={topRowHeight + 6}
+                moonCenter={{ x: windowWidth - 128, y: 16 }}
+              />
+            )}
+          </Animated.View>
+          {/* Top row — delivery location (zone name) on the left, Notifications and Profile on the right. */}
+          <Animated.View
+            style={[styles.topRow, { opacity: topRowOpacity }]}
+            onLayout={(e) => setTopRowHeight(Math.round(e.nativeEvent.layout.height))}
+          >
+            <View style={styles.topRowLocation}>
+              {/* Second clause (isInitialLocationSyncComplete, no deliveryCoords) is the
+                  "Set" affordance restored after dd4f15d: a customer whose GPS never
+                  resolves must still have a way to open the picker and set a location
+                  manually, instead of the bar just never rendering. */}
+              {(deliveryCoords ? insideDeliveryZone !== false : isInitialLocationSyncComplete) && (
+                <PressableScale
+                  style={styles.locationBar}
+                  onPress={() => setShowLocationPicker(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel={deliveryCoords ? 'Change delivery location' : 'Set delivery location'}
+                >
+                  <HomeIcon name="location" size={24} color={onBarColor} />
+                  <View
+                    style={styles.locationBarBody}
+                    onLayout={(e) => setLocationBodyX(Math.round(e.nativeEvent.layout.x))}
+                  >
+                    <Text style={[styles.locationBarText, !isLightBar && styles.barTextNight]} numberOfLines={1}>
+                      {/* zoneName is only ever set in zone-pricing mode. On a flat-pricing
+                          install it stays null forever, so the "finding" placeholder must
+                          not outlive the initial sync. deliveryCoords absent (this block
+                          only renders that case once sync is complete — see the outer
+                          condition) means GPS genuinely never resolved, distinct from
+                          still-resolving. */}
+                      {!deliveryCoords
+                        ? 'Enable location'
+                        : deliveryZoneName
+                          || (isInitialLocationSyncComplete ? 'Delivery location' : 'Finding your area…')}
+                    </Text>
+                    {locationSubline ? (
+                      <Text style={[styles.locationBarAddress, !isLightBar && styles.barTextNight]} numberOfLines={1}>{locationSubline}</Text>
+                    ) : null}
+                    <LinearGradient
+                      colors={[onBarColor, isLightBar ? 'rgba(17, 24, 39, 0)' : 'rgba(255, 255, 255, 0)']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={[styles.locationBarLine, { width: Math.max(0, windowWidth / 2 - spacing.md - locationBodyX) }]}
+                    />
+                  </View>
+                </PressableScale>
+              )}
+            </View>
+            <TouchableOpacity
+              activeOpacity={0.75}
+              accessibilityRole="button"
+              accessibilityLabel={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
+              onPress={() => navigation.navigate('Notifications')}
+              style={[styles.headerIconButton, { backgroundColor: barButtonBg }]}
+            >
+              <HomeIcon name="notification" size={18} color={barButtonIcon} />
+              {unreadCount > 0 && (
+                <View style={styles.headerBadge}>
+                  <Text style={styles.headerBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.75}
+              accessibilityRole="button"
+              accessibilityLabel="Profile"
+              onPress={() => navigation.navigate('Profile')}
+              style={[styles.headerIconButton, { backgroundColor: barButtonBg }]}
+            >
+              <HomeIcon name="profile" size={18} color={barButtonIcon} />
+            </TouchableOpacity>
+          </Animated.View>
+
+          <HomeHeader
+            unreadCount={unreadCount}
+            pulseAnim={pulseAnim}
+            onNotificationsPress={() => navigation.navigate('Notifications')}
+            onCartPress={() => navigation.navigate('Cart')}
+            cartItemCount={cartItemCount}
+            onSearchPress={handleSearchPress}
+            onProductPress={handleProductPress}
+            onSearchOpenChange={setIsSearchOverlayOpen}
+            isLocationGated={isLocationGated}
+            dismissSignal={searchDismissSignal}
+            cartItems={items}
+            addItem={addItem}
+            updateQuantity={updateQuantity}
+            removeItem={removeItem}
+            requireAuth={requireAuth}
+            onOpenVariantSheet={setVariantSheetProduct}
+            deliveryCoords={deliveryCoords}
+            onBarLayout={setSearchBarBottom}
+            onDropdownHeight={setSearchDropdownHeight}
+            isDarkGlass={!isLightBar}
+          />
+        </View>
+
+        <LinearGradient
+          colors={barFadeColors}
+          locations={TOP_BAR_FADE_LOCATIONS}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.topFade}
+          pointerEvents="none"
+          onLayout={(e) => setTopFadeHeight(Math.round(e.nativeEvent.layout.height))}
+        >
+          {shopStatus === 'closed' && (
+            <View style={styles.closedBanner}>
+              <Text style={styles.closedText}>Shop is currently closed. We are not accepting orders.</Text>
+            </View>
+          )}
+        </LinearGradient>
+      </Animated.View>
+      <View style={{ height: topGroupHeight }} />
 
       {/* Search backdrop — dims the dashboard so the dropdown reads clearly */}
       {isSearchOverlayOpen && (
@@ -1037,43 +1688,6 @@ export default function HomeScreen() {
           onPress={() => setSearchDismissSignal(prev => prev + 1)}
           accessibilityLabel="Dismiss search"
         />
-      )}
-
-      {/* Saffron ribbon separator — visible divider below the top bar so the
-          dashboard content can scroll up and reveal it as a visual anchor. */}
-      <View style={styles.topBarRibbon}>
-        <View style={styles.topBarRibbonBar} />
-      </View>
-
-      {/* Second clause (isInitialLocationSyncComplete, no deliveryCoords) is the
-          "Set" affordance restored after dd4f15d: a customer whose GPS never
-          resolves must still have a way to open the picker and set a location
-          manually, instead of the bar just never rendering. */}
-      {(deliveryCoords ? insideDeliveryZone !== false : isInitialLocationSyncComplete) && (
-        <View style={styles.locationBar}>
-          <AppIcon name="location" size={16} color={colors.saffron} />
-          <Text style={styles.locationBarText} numberOfLines={1}>
-            {/* zoneName is only ever set in zone-pricing mode. On a flat-pricing
-                install it stays null forever, so the "finding" placeholder must
-                not outlive the initial sync. deliveryCoords absent (this block
-                only renders that case once sync is complete — see the outer
-                condition) means GPS genuinely never resolved, distinct from
-                still-resolving. */}
-            {!deliveryCoords
-              ? "Couldn't get your location"
-              : deliveryZoneName
-                || (isInitialLocationSyncComplete ? 'Delivery location' : 'Finding your area…')}
-          </Text>
-          <PressableScale onPress={() => setShowLocationPicker(true)} accessibilityRole="button" accessibilityLabel={deliveryCoords ? 'Change delivery location' : 'Set delivery location'}>
-            <Text style={styles.locationBarChange}>{deliveryCoords ? 'Change' : 'Set'}</Text>
-          </PressableScale>
-        </View>
-      )}
-
-      {shopStatus === 'closed' && (
-        <View style={styles.closedBanner}>
-          <Text style={styles.closedText}>Shop is currently closed. We are not accepting orders.</Text>
-        </View>
       )}
 
       {needsLocationPermission ? (
@@ -1086,7 +1700,7 @@ export default function HomeScreen() {
         />
       ) : locationUnresolved ? (
         <EmptyState
-          icon={<AppIcon name="location" size={56} color={colors.textTertiary} />}
+          icon={<HomeIcon name="location" size={56} color={colors.textTertiary} />}
           title="Couldn't pin your location"
           subtitle={locationPermStatus === 'granted'
             ? 'We need an exact location to show what we deliver here. On iPhone, check Precise Location is on for VillKro in Settings, or set your delivery spot on the map.'
@@ -1097,7 +1711,7 @@ export default function HomeScreen() {
         />
       ) : isInitialLocationSyncComplete && insideDeliveryZone === false ? (
         <EmptyState
-          icon={<AppIcon name="location" size={56} color={colors.textTertiary} />}
+          icon={<HomeIcon name="location" size={56} color={colors.textTertiary} />}
           title="We don't deliver here yet"
           subtitle="We're expanding rapidly and hope to serve your location soon. Thank you for your patience."
           actionLabel="Change Location"
@@ -1121,9 +1735,10 @@ export default function HomeScreen() {
 
           {isHomeLoading || (!deliveryCoords && locationPermStatus === 'checking') ? (
         <ScrollView
-          style={styles.skeletonContainer}
+          style={[styles.skeletonContainer, { marginTop: -fadeOverlap, paddingTop: fadeOverlap }]}
           refreshControl={
             <RefreshControl
+              progressViewOffset={fadeOverlap}
               refreshing={isRefreshing}
               onRefresh={() => loadHomeData(true)}
               tintColor={colors.primary}
@@ -1133,39 +1748,32 @@ export default function HomeScreen() {
             />
           }
         >
-           <LoadingSkeleton style={{ height: 48, borderRadius: radius.md, marginBottom: spacing.lg }} />
-           <LoadingSkeleton style={{ height: 120, borderRadius: radius.lg, marginBottom: spacing.xl }} />
-           {isLocationSlow ? (
-             <Text style={styles.locationLoadingNotice}>Slow internet — setting your delivery location…</Text>
-           ) : isDataSlow ? (
-             <Text style={styles.locationLoadingNotice}>Slow internet — still loading items…</Text>
-           ) : null}
-
-            <View style={styles.skeletonCategoryRow}>
-             <LoadingSkeleton style={[styles.skeletonCategoryCard, { width: categoryCardWidth }]} />
-             <LoadingSkeleton style={[styles.skeletonCategoryCard, { width: categoryCardWidth, marginLeft: spacing.md }]} />
-             <LoadingSkeleton style={[styles.skeletonCategoryCard, { width: categoryCardWidth, marginLeft: spacing.md }]} />
-           </View>
-           
-           <View style={[styles.sectionHeader, { marginTop: spacing.xl }]}>
-             <View style={styles.titleRow}>
-               <View style={styles.headerIndicator} />
-               <Text style={styles.sectionTitlePremium}>Popular Combos</Text>
-             </View>
-             <Text style={styles.sectionSubtitle}>Handpicked bundle deals for you</Text>
-           </View>
-            <View style={styles.skeletonProductRow}>
-              <LoadingSkeleton style={[styles.skeletonProductCard, { width: windowWidth * 0.4 - spacing.md, height: (windowWidth * 0.4 - spacing.md) / 0.78 }]} />
-              <LoadingSkeleton style={[styles.skeletonProductCard, { width: windowWidth * 0.4 - spacing.md, height: (windowWidth * 0.4 - spacing.md) / 0.78, marginLeft: spacing.md }]} />
-            </View>
+          {isLocationSlow ? (
+            <Text style={[styles.locationLoadingNotice, styles.skeletonNotice]}>Slow internet — setting your delivery location…</Text>
+          ) : isDataSlow ? (
+            <Text style={[styles.locationLoadingNotice, styles.skeletonNotice]}>Slow internet — still loading items…</Text>
+          ) : null}
+          <HomeSectionsSkeleton windowWidth={windowWidth} withBanner modeCount={modes.length} />
         </ScrollView>
       ) : (
         <Animated.ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingTop: fadeOverlap }]}
           showsVerticalScrollIndicator={false}
-          style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
+          style={{ marginTop: -fadeOverlap, opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
+          onScroll={onHomeScroll}
+          onLayout={(event) => {
+            scrollMetricsRef.current.viewport = event.nativeEvent.layout.height;
+            drawMoreIfNeeded();
+          }}
+          onContentSizeChange={(_, height) => {
+            scrollMetricsRef.current.content = height;
+            drawMoreIfNeeded();
+          }}
+          scrollEventThrottle={16}
+          keyboardShouldPersistTaps="handled"
           refreshControl={
             <RefreshControl
+              progressViewOffset={fadeOverlap}
               refreshing={isRefreshing}
               onRefresh={() => loadHomeData(true)}
               tintColor={colors.primary}
@@ -1183,6 +1791,7 @@ export default function HomeScreen() {
               renderIconUrl={(slug) => modes.find(m => m.slug === slug)?.iconImageUrl || modes.find(m => m.slug === slug)?.icon_image_url}
               selectedOption={storeType}
               onSelect={selectStoreType}
+              style={styles.toggleCardBare}
             />
           </View>
 
@@ -1191,26 +1800,38 @@ export default function HomeScreen() {
           {isSectionsLoading ? (
             <View>
               {isDataSlow ? (
-                <Text style={styles.locationLoadingNotice}>Slow internet — still loading items…</Text>
+                <Text style={[styles.locationLoadingNotice, styles.skeletonNotice]}>Slow internet — still loading items…</Text>
               ) : null}
-              <View style={styles.skeletonCategoryRow}>
-                <LoadingSkeleton style={[styles.skeletonCategoryCard, { width: categoryCardWidth }]} />
-                <LoadingSkeleton style={[styles.skeletonCategoryCard, { width: categoryCardWidth, marginLeft: spacing.md }]} />
-                <LoadingSkeleton style={[styles.skeletonCategoryCard, { width: categoryCardWidth, marginLeft: spacing.md }]} />
-              </View>
-              <View style={styles.skeletonProductRow}>
-                <LoadingSkeleton style={[styles.skeletonProductCard, { width: windowWidth * 0.4 - spacing.md, height: (windowWidth * 0.4 - spacing.md) / 0.78 }]} />
-                <LoadingSkeleton style={[styles.skeletonProductCard, { width: windowWidth * 0.4 - spacing.md, height: (windowWidth * 0.4 - spacing.md) / 0.78, marginLeft: spacing.md }]} />
-              </View>
+              <HomeSectionsSkeleton windowWidth={windowWidth} />
             </View>
           ) : null}
-          {dashboardSections.map(section => {
+          {orderedUnits.slice(0, renderedSectionCount).map(unit => {
+            if (unit.kind === 'auto') {
+              const { auto } = unit;
+              return (
+                <AutoProductBlock
+                  key={`${currentApiStoreType}:${auto.id}`}
+                  auto={auto}
+                  storeType={currentApiStoreType}
+                  lat={deliveryCoords?.lat}
+                  lng={deliveryCoords?.lng}
+                  refreshSignal={autoBlocksRefresh}
+                  cardWidth={Math.floor((windowWidth - (PAGE_GUTTER * 2)) * 0.4)}
+                  onAdd={handleAddToCart}
+                  onIncrement={handleIncrement}
+                  onDecrement={handleDecrement}
+                  onSeeAll={handleAutoSeeAll}
+                  onAvailability={handleAutoAvailability}
+                />
+              );
+            }
+            const { section } = unit;
             if (section.sectionType === 'offer_banner') {
               return (
                 <OfferBannerCarousel
                   key={section.id}
                   offers={section.items}
-                  bannerWidth={windowWidth - (spacing.md * 2)}
+                  bannerWidth={windowWidth - (PAGE_GUTTER * 2)}
                   onOfferPress={(offer) => navigation.navigate('ProductList', {
                     offerId: offer.id,
                     offerTitle: offer.title,
@@ -1246,10 +1867,10 @@ export default function HomeScreen() {
                       <View style={styles.titleRow}>
                         <View style={styles.headerIndicator} />
                         {(section.sectionIcon === 'box' || (!section.sectionIcon && section.sectionType === 'category_grid')) && (
-                          <AppIcon name="box" size={14} color={colors.primary} style={styles.sectionTypeIcon} />
+                          <HomeIcon name="box" size={14} color={colors.primary} style={styles.sectionTypeIcon} />
                         )}
                         {section.sectionIcon && section.sectionIcon !== 'box' && (
-                          <AppIcon name={section.sectionIcon} size={14} color={colors.primary} style={styles.sectionTypeIcon} />
+                          <HomeIcon name={section.sectionIcon} size={14} color={colors.primary} style={styles.sectionTypeIcon} />
                         )}
                         <Text style={styles.sectionTitlePremium}>{section.title}</Text>
                         {section.showHotBadge === true && (
@@ -1260,7 +1881,7 @@ export default function HomeScreen() {
                               end={{ x: 1, y: 1 }}
                               style={styles.hotBadgeGradient}
                             >
-                              <AppIcon name="star" size={10} color="#FFFFFF" fill="#FFFFFF" style={styles.hotBadgeIcon} />
+                              <HomeIcon name="star" size={10} color="#FFFFFF" fill="#FFFFFF" style={styles.hotBadgeIcon} />
                               <Text style={styles.hotBadgeText}>HOT</Text>
                             </LinearGradient>
                           </Animated.View>
@@ -1274,6 +1895,7 @@ export default function HomeScreen() {
                     horizontal
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={styles.categoryScrollContent}
+                    keyboardShouldPersistTaps="handled"
                     style={styles.categoryScroll}
                     renderItem={({ item: cat, index: idx }) => (
                       <Animated.View
@@ -1317,7 +1939,7 @@ export default function HomeScreen() {
 
             if (section.sectionType === 'product_block' || section.sectionType === 'combo_block') {
               const isComboBlock = section.sectionType === 'combo_block';
-              const normalizedItems = section.items.map(normalizeProduct);
+              const normalizedItems = section.items.map(normalizeProductCached);
               // Unavailable items (shop closed or turned off) sink to the end of
               // the row — stable sort keeps the admin's arranged relative order
               // within each group. Recomputed every render, so the moment a live
@@ -1348,16 +1970,16 @@ export default function HomeScreen() {
                     <View style={styles.titleRow}>
                       <View style={styles.headerIndicator} />
                       {section.sectionIcon === 'box' && (
-                        <AppIcon name="box" size={14} color={colors.primary} style={styles.sectionTypeIcon} />
+                        <HomeIcon name="box" size={14} color={colors.primary} style={styles.sectionTypeIcon} />
                       )}
                       {(section.sectionIcon === 'shoppingBag' || (!section.sectionIcon && section.sectionType === 'product_block')) && (
-                        <AppIcon name="shoppingBag" size={14} color={colors.primary} style={styles.sectionTypeIcon} />
+                        <HomeIcon name="shoppingBag" size={14} color={colors.primary} style={styles.sectionTypeIcon} />
                       )}
                       {(section.sectionIcon === 'star' || (!section.sectionIcon && isComboBlock)) && (
-                        <AppIcon name="star" size={14} color={colors.primary} fill={colors.primary} style={styles.sectionTypeIcon} />
+                        <HomeIcon name="star" size={14} color={colors.primary} fill={colors.primary} style={styles.sectionTypeIcon} />
                       )}
                       {section.sectionIcon && section.sectionIcon !== 'box' && section.sectionIcon !== 'shoppingBag' && section.sectionIcon !== 'star' && (
-                        <AppIcon name={section.sectionIcon} size={14} color={colors.primary} style={styles.sectionTypeIcon} />
+                        <HomeIcon name={section.sectionIcon} size={14} color={colors.primary} style={styles.sectionTypeIcon} />
                       )}
                       <Text style={styles.sectionTitlePremium}>{section.title}</Text>
                       {section.showHotBadge === true && (
@@ -1368,7 +1990,7 @@ export default function HomeScreen() {
                             end={{ x: 1, y: 1 }}
                             style={styles.hotBadgeGradient}
                           >
-                            <AppIcon name="star" size={10} color="#FFFFFF" fill="#FFFFFF" style={styles.hotBadgeIcon} />
+                            <HomeIcon name="star" size={10} color="#FFFFFF" fill="#FFFFFF" style={styles.hotBadgeIcon} />
                             <Text style={styles.hotBadgeText}>HOT</Text>
                           </LinearGradient>
                         </Animated.View>
@@ -1383,41 +2005,23 @@ export default function HomeScreen() {
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={styles.productScrollContent}
                     style={styles.productScroll}
+                    keyboardShouldPersistTaps="handled"
+                    initialNumToRender={4}
+                    maxToRenderPerBatch={4}
+                    windowSize={5}
                     renderItem={({ item, index: idx }) => {
                       const isItemCombo = isComboBlock || item.isCombo || item.is_combo;
                       return (
-                        <Animated.View
-                          key={item.id}
-                          style={{
-                            width: productCardWidth,
-                            marginRight: idx === visibleItems.length - 1 ? spacing.md : spacing.md,
-                            opacity: staggerComboAnims[idx] || 1,
-                            transform: [{
-                              translateY: (staggerComboAnims[idx] || new Animated.Value(1)).interpolate({
-                                inputRange: [0, 1],
-                                outputRange: [20, 0]
-                              })
-                            }]
-                          }}
-                        >
-                          <ProductCard
-                            product={item}
-                            name={item.name}
-                            price={item.price}
-                            originalPrice={item.originalPrice}
-                            discountLabel={item.discountLabel}
-                            unit={item.unit}
-                            isCombo={isItemCombo}
-                            comboItems={item.comboItems}
-                            imageUri={item.imageUri}
-                            quantity={isItemCombo ? getComboQuantity(item) : getProductQuantity(item.id)}
-                            onAdd={() => handleAddToCart(item)}
-                            onIncrement={() => handleIncrement(item)}
-                            onDecrement={() => handleDecrement(item)}
-                            disabled={!item.available}
-                            compact
-                          />
-                        </Animated.View>
+                        <HomeProductCard
+                          item={item}
+                          isItemCombo={isItemCombo}
+                          quantity={isItemCombo ? getComboQuantity(item) : getProductQuantity(item.id)}
+                          width={productCardWidth}
+                          anim={staggerComboAnims[idx]}
+                          onAdd={handleAddToCart}
+                          onIncrement={handleIncrement}
+                          onDecrement={handleDecrement}
+                        />
                       );
                     }}
                     ListFooterComponent={
@@ -1442,6 +2046,16 @@ export default function HomeScreen() {
 
             return null;
           })}
+          {renderedSectionCount < totalDrawUnits ? (
+            <View style={styles.section}>
+              <SkeletonSectionTitle />
+              <SkeletonRail
+                count={3}
+                width={homeSkeletonSizes(windowWidth).productWidth}
+                height={homeSkeletonSizes(windowWidth).productHeight}
+              />
+            </View>
+          ) : null}
           </Animated.View>
         </Animated.ScrollView>
           )}
@@ -1506,6 +2120,9 @@ function HomeHeader({
   requireAuth,
   onOpenVariantSheet,
   deliveryCoords = null,
+  onBarLayout,
+  onDropdownHeight,
+  isDarkGlass = false,
 }) {
   const pulseOpacity = pulseAnim.interpolate({
     inputRange: [1, 1.45],
@@ -1516,10 +2133,10 @@ function HomeHeader({
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
   // Idle typewriter placeholder: "Coca Cola" → erase → "Pizza" → …
   const [typedPlaceholder, setTypedPlaceholder] = useState('');
   const searchInputRef = useRef(null);
+  const resultListRef = useRef(null);
   const debounceRef = useRef(null);
   const typewriterTimerRef = useRef(null);
   const dropdownAnim = useRef(new Animated.Value(0)).current;
@@ -1542,23 +2159,6 @@ function HomeHeader({
     ],
     []
   );
-
-  // Track the keyboard so we can shrink the result list while typing
-  // (2 items) and let it expand to the full 6 once the keyboard hides.
-  useEffect(() => {
-    const showSub = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      () => setKeyboardVisible(true)
-    );
-    const hideSub = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-      () => setKeyboardVisible(false)
-    );
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
-  }, []);
 
   // Entrance: fade + slide up + soft scale-in once on mount
   useEffect(() => {
@@ -1743,7 +2343,9 @@ function HomeHeader({
       const response = await productsApi.getProducts({
         search: trimmed,
         q: trimmed,
-        limit: 6,
+        // Asks for extra: unavailable items are dropped below, and the row
+        // should still fill up to SEARCH_RESULT_LIMIT cards.
+        limit: SEARCH_FETCH_LIMIT,
         include_closed_shops: 1,
         // Without a pin, resolveCustomerArea (server) falls back to the
         // default area for this route (no requireCustomer here to source
@@ -1753,7 +2355,12 @@ function HomeHeader({
         latitude: deliveryCoords?.lat,
         longitude: deliveryCoords?.lng,
       });
-      const items = asArray(response, ['products']).map(normalizeProduct);
+      // Only what can be bought right now: in stock, shop open, inside its
+      // time window.
+      const items = asArray(response, ['products'])
+        .map(normalizeProduct)
+        .filter((p) => p.available && p.shopIsOpen !== false && p.inTimeWindow !== false)
+        .slice(0, SEARCH_RESULT_LIMIT);
       setSearchResults(items);
     } catch (err) {
       setSearchResults([]);
@@ -1785,6 +2392,12 @@ function HomeHeader({
       useNativeDriver: true,
     }).start();
   }, [isSearchOpen, dropdownAnim]);
+
+  // New results always start from the first card — the row keeps its sideways
+  // scroll otherwise and the first card ends up cut off on the left.
+  useEffect(() => {
+    resultListRef.current?.scrollToOffset({ offset: 0, animated: false });
+  }, [searchResults]);
 
   useEffect(() => {
     if (onSearchOpenChange) onSearchOpenChange(isSearchOpen && hasQuery);
@@ -1915,12 +2528,6 @@ function HomeHeader({
     onSearchPress(q);
   };
 
-  const handleCloseDropdown = () => {
-    setIsSearchOpen(false);
-    searchInputRef.current?.blur();
-    Keyboard.dismiss();
-  };
-
   const hasQuery = searchQuery.trim().length > 0;
 
   const searchBarMotionStyle = {
@@ -1962,96 +2569,72 @@ function HomeHeader({
     ],
   };
 
+  // Frosted-glass search bar: light glass with dark text on the light bars
+  // (day, rain), dark glass with white text on the night bar.
+  const glassText = isDarkGlass ? '#FFFFFF' : colors.textPrimary;
+  const glassMuted = isDarkGlass ? 'rgba(255, 255, 255, 0.72)' : colors.textSecondary;
+
   return (
     <View style={styles.homeHeader}>
-      <View style={styles.homeHeaderCard}>
-        <View style={styles.homeHeaderInner}>
-          {/* Row 1 — brand on left, notifications on right */}
-          <View style={styles.homeHeaderTopRow}>
-            <View style={styles.brandChipCompact}>
-              <ExpoImage
-                source={dashboardLogo}
-                style={styles.brandLogo}
-                contentFit="contain"
-                accessibilityIgnoresInvertColors
-              />
-            </View>
-
-            {/* Right Column: Actions (Notification + Cart) */}
-            <View style={styles.headerRightCol}>
-              <TouchableOpacity
-                activeOpacity={0.75}
-                accessibilityRole="button"
-                accessibilityLabel="Notifications"
-                onPress={onNotificationsPress}
-                style={styles.headerIconButton}
-              >
-                <AppIcon name="notification" size={17} color={colors.saffronDark} />
-                {unreadCount > 0 && (
-                  <>
-                    <Animated.View
-                      style={[
-                        styles.headerBadgePulse,
-                        {
-                          transform: [{ scale: pulseAnim }],
-                          opacity: pulseOpacity,
-                        },
-                      ]}
-                    />
-                    <View style={styles.headerBadge}>
-                      <Text style={styles.headerBadgeText}>
-                        {unreadCount > 9 ? '9+' : unreadCount}
-                      </Text>
-                    </View>
-                  </>
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity
-                activeOpacity={0.75}
-                accessibilityRole="button"
-                accessibilityLabel="Cart"
-                onPress={onCartPress}
-                style={styles.headerIconButton}
-              >
-                <AppIcon name="cart" size={17} color={colors.saffronDark} />
-                {cartItemCount > 0 && (
-                  <View style={styles.headerBadge}>
-                    <Text style={styles.headerBadgeText}>
-                      {cartItemCount > 9 ? '9+' : cartItemCount}
-                    </Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </View>
-
       {/* Search bar — full-width, real TextInput with live results.
-          Single rounded shell (no nested gradient ring) so Android never
-          paints square peach corners behind the pill. */}
-      <Animated.View style={[styles.searchBarOuter, searchBarMotionStyle]}>
+          Frosted glass pill: a real blur of the sky behind it, a light wash,
+          a soft highlight along the top and a hairline edge. Single rounded
+          shell so Android never paints square corners behind it. */}
+      <Animated.View
+        style={[
+          styles.searchBarOuter,
+          { borderColor: isDarkGlass ? 'rgba(255, 255, 255, 0.22)' : 'rgba(255, 255, 255, 0.75)' },
+          searchBarMotionStyle,
+        ]}
+        // Bottom edge of the bar inside this header — the group's base height,
+        // without any results dropdown under it.
+        onLayout={(e) => onBarLayout?.(Math.round(e.nativeEvent.layout.y + e.nativeEvent.layout.height))}
+      >
+        <BlurView
+          pointerEvents="none"
+          intensity={40}
+          tint={isDarkGlass ? 'dark' : 'light'}
+          // No experimentalBlurMethod on Android. That prop switches expo-blur to
+          // Dimezis BlurView, which hangs an onPreDraw listener off the window
+          // and, every single frame, draws the WHOLE React root view tree into
+          // its own bitmap to blur it. Doing that out-of-band while the tree is
+          // changing — i.e. while a list under the bar is scrolling — races
+          // ViewGroup's pre-ordered child list and Android throws
+          // IndexOutOfBoundsException out of dispatchDraw, killing the app.
+          // Confirmed in Play Console: the crash stack ends in
+          // eightbitlab.com.blurview.PreDrawBlurController.updateBlur.
+          // Without it expo-blur paints a flat translucent tint of the same
+          // colour, which is what every other BlurView in this app already does.
+          style={StyleSheet.absoluteFill}
+        />
+        <View
+          pointerEvents="none"
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: isDarkGlass ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.3)' },
+          ]}
+        />
+        <LinearGradient
+          pointerEvents="none"
+          colors={['rgba(255, 255, 255, 0.5)', 'rgba(255, 255, 255, 0)']}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
         <Pressable
           style={styles.searchBar}
           onPressIn={focusInput}
           android_disableSound
           accessibilityLabel="Search products"
         >
-          <Animated.View style={searchIconMotionStyle}>
-            <LinearGradient
-              colors={[colors.saffron, colors.saffronDark]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.searchIconBubble}
-            >
-              <AppIcon name="search" size={20} color="#FFFFFF" strokeWidth={2.4} />
-            </LinearGradient>
+          <Animated.View style={[styles.searchIcon, searchIconMotionStyle]}>
+            <HomeIcon name="search" size={20} color={glassMuted} />
           </Animated.View>
           <View style={styles.searchTextWrap}>
             <View style={styles.searchInputRow}>
               <TextInput
                 ref={searchInputRef}
-                style={styles.searchInput}
+                style={[styles.searchInput, { color: glassText }]}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 onFocus={handleFocus}
@@ -2061,7 +2644,7 @@ function HomeHeader({
                 placeholder={
                   hasQuery || isSearchOpen ? 'Search items, food, snacks...' : ''
                 }
-                placeholderTextColor={colors.textSecondary}
+                placeholderTextColor={glassMuted}
                 selectionColor={colors.saffronDark}
                 cursorColor={colors.saffronDark}
                 returnKeyType="search"
@@ -2075,16 +2658,16 @@ function HomeHeader({
                   pointerEvents="none"
                   style={styles.searchTypewriterOverlay}
                 >
-                  <Text style={styles.searchTypewriterPrefix} numberOfLines={1}>
+                  <Text style={[styles.searchTypewriterPrefix, { color: glassMuted }]} numberOfLines={1}>
                     Search{' '}
                   </Text>
-                  <Text style={styles.searchTypewriterText} numberOfLines={1}>
+                  <Text style={[styles.searchTypewriterText, { color: glassMuted }]} numberOfLines={1}>
                     {typedPlaceholder}
                   </Text>
                   <Animated.Text
                     style={[
                       styles.searchTypewriterCaret,
-                      { opacity: caretBlinkAnim },
+                      { color: glassMuted, opacity: caretBlinkAnim },
                     ]}
                   >
                     |
@@ -2092,18 +2675,8 @@ function HomeHeader({
                 </View>
               )}
             </View>
-            {!hasQuery && !isSearchOpen && (
-              <Text pointerEvents="none" style={styles.searchHint} numberOfLines={1}>
-                Popular picks near you
-              </Text>
-            )}
-            {!hasQuery && isSearchOpen && (
-              <Text pointerEvents="none" style={styles.searchHint} numberOfLines={1}>
-                Type a dish, drink, or snack
-              </Text>
-            )}
             {hasQuery && (
-              <Text pointerEvents="none" style={styles.searchHint} numberOfLines={1}>
+              <Text pointerEvents="none" style={[styles.searchHint, { color: glassMuted }]} numberOfLines={1}>
                 {isSearching
                   ? 'Searching...'
                   : searchResults.length > 0
@@ -2121,73 +2694,69 @@ function HomeHeader({
               accessibilityLabel="Clear search"
               hitSlop={8}
             >
-              <AppIcon name="close" size={18} color={colors.saffronDark} strokeWidth={2.4} />
+              <HomeIcon name="close" size={16} color={glassMuted} />
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
-              activeOpacity={0.85}
+              activeOpacity={0.7}
               onPress={handleSubmit}
-              style={styles.searchGoPill}
+              style={styles.searchGoButton}
               accessibilityRole="button"
               accessibilityLabel="Search"
               hitSlop={8}
             >
-              <LinearGradient
-                colors={[colors.saffron, colors.saffronDark]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.searchGoGradient}
-              >
-                <Animated.View style={searchChevronMotionStyle}>
-                  <AppIcon name="chevronRight" size={18} color="#FFFFFF" strokeWidth={2.8} />
-                </Animated.View>
-              </LinearGradient>
+              <Animated.View style={searchChevronMotionStyle}>
+                <HomeIcon name="chevronRight" size={18} color={glassMuted} />
+              </Animated.View>
             </TouchableOpacity>
           )}
         </Pressable>
       </Animated.View>
 
-      {/* Live search dropdown — rendered inline below the search bar */}
+      {/* Live search results — cards sit directly under the search bar, no box behind them */}
       {isSearchOpen && hasQuery && (
-        <View style={styles.searchDropdown}>
-          <View style={styles.searchDropdownHeader}>
-            <Text style={styles.searchDropdownTitle} numberOfLines={1}>
-              {isSearching
-                ? 'Searching...'
-                : searchResults.length > 0
-                ? `Results for "${searchQuery.trim()}"`
-                : `No matches for "${searchQuery.trim()}"`}
-            </Text>
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={handleCloseDropdown}
-              style={styles.searchDropdownClose}
-              accessibilityRole="button"
-              accessibilityLabel="Close search"
-            >
-              <AppIcon name="close" size={16} color={colors.textSecondary} strokeWidth={2.4} />
-            </TouchableOpacity>
-          </View>
+        <View
+          style={styles.searchDropdown}
+          // Reported up so the page below moves down with the results.
+          onLayout={(e) => onDropdownHeight?.(Math.round(e.nativeEvent.layout.height) + spacing.xs)}
+        >
           {searchResults.length > 0 && (
             <FlatList
-              data={keyboardVisible ? searchResults.slice(0, 2) : searchResults}
+              ref={resultListRef}
+              data={searchResults}
+              horizontal
               keyExtractor={(item, idx) => `sr-${item.id || idx}`}
               keyboardShouldPersistTaps="handled"
               nestedScrollEnabled
-              showsVerticalScrollIndicator={false}
-              style={[
-                styles.searchResultList,
-                keyboardVisible && styles.searchResultListCompact,
-              ]}
+              showsHorizontalScrollIndicator={false}
+              style={styles.searchResultList}
               contentContainerStyle={styles.searchResultListContent}
-              ItemSeparatorComponent={() => <View style={styles.searchDropdownDivider} />}
+              ListFooterComponent={(
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={handleViewAll}
+                  style={styles.searchSeeAllCard}
+                  accessibilityRole="button"
+                  accessibilityLabel="See all search results"
+                >
+                  <LinearGradient
+                    colors={[colors.saffron, colors.saffronDark]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.searchSeeAllIcon}
+                  >
+                    <HomeIcon name="chevronRight" size={18} color="#FFFFFF" />
+                  </LinearGradient>
+                  <Text style={styles.searchSeeAllText}>See all</Text>
+                </TouchableOpacity>
+              )}
               renderItem={({ item }) => {
                 const qty = getProductQuantity(item.id);
                 const isMultiVariant = (item.variants?.length ?? 0) > 1;
                 return (
                   <TouchableOpacity
-                    activeOpacity={0.75}
-                    style={styles.searchResultRow}
+                    activeOpacity={0.85}
+                    style={styles.searchResultCard}
                     onPress={() => handleResultPress(item)}
                     accessibilityRole="button"
                     accessibilityLabel={`Open ${item.name}`}
@@ -2203,47 +2772,17 @@ function HomeHeader({
                         />
                       ) : (
                         <View style={[styles.searchResultImage, styles.searchResultImageFallback]}>
-                          <AppIcon name="box" size={20} color={colors.textTertiary || '#9AA1AB'} />
+                          <HomeIcon name="box" size={26} color={colors.textTertiary || '#9AA1AB'} />
                         </View>
                       )}
                     </View>
-                    <View style={styles.searchResultInfo}>
-                      <Text style={styles.searchResultName} numberOfLines={1}>
-                        {item.name}
-                      </Text>
-                      <View style={styles.searchResultMetaRow}>
-                        <Text style={styles.searchResultPriceText} numberOfLines={1}>
-                          {formatRupee(item.price)}
-                        </Text>
-                        {item.unit ? (
-                          <Text style={styles.searchResultUnit} numberOfLines={1}>
-                            · {item.unit}
-                          </Text>
-                        ) : null}
-                      </View>
-                    </View>
-                    {qty > 0 && isMultiVariant ? (
-                      <TouchableOpacity
-                        activeOpacity={0.85}
-                        onPress={(e) => {
-                          e.stopPropagation?.();
-                          handleBuyPress(item);
-                        }}
-                        style={styles.searchResultBuyBtn}
-                        accessibilityRole="button"
-                        accessibilityLabel={`${qty} in cart. Tap to change ${item.name} options`}
-                        hitSlop={6}
-                      >
-                        <LinearGradient
-                          colors={[colors.saffron, colors.saffronDark]}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 0 }}
-                          style={styles.searchResultBuyGradient}
-                        >
-                          <Text style={styles.searchResultBuyText}>{qty} in cart</Text>
-                        </LinearGradient>
-                      </TouchableOpacity>
-                    ) : qty > 0 ? (
+                    <Text style={styles.searchResultName} numberOfLines={1}>
+                      {item.name}
+                    </Text>
+                    <Text style={styles.searchResultPriceText} numberOfLines={1}>
+                      {formatRupee(item.price)}
+                    </Text>
+                    {qty > 0 && !isMultiVariant ? (
                       <View style={styles.searchResultStepper}>
                         <TouchableOpacity
                           activeOpacity={0.7}
@@ -2256,7 +2795,7 @@ function HomeHeader({
                           accessibilityLabel="Decrease quantity"
                           hitSlop={6}
                         >
-                          <AppIcon name="minus" size={14} color="#FFFFFF" strokeWidth={2.6} />
+                          <HomeIcon name="minus" size={12} color="#FFFFFF" />
                         </TouchableOpacity>
                         <Text style={styles.searchResultStepQty}>{qty}</Text>
                         <TouchableOpacity
@@ -2270,7 +2809,7 @@ function HomeHeader({
                           accessibilityLabel="Increase quantity"
                           hitSlop={6}
                         >
-                          <AppIcon name="add" size={14} color="#FFFFFF" strokeWidth={2.6} />
+                          <HomeIcon name="add" size={12} color="#FFFFFF" />
                         </TouchableOpacity>
                       </View>
                     ) : (
@@ -2282,7 +2821,11 @@ function HomeHeader({
                         }}
                         style={styles.searchResultBuyBtn}
                         accessibilityRole="button"
-                        accessibilityLabel={`Buy ${item.name}`}
+                        accessibilityLabel={
+                          qty > 0
+                            ? `${qty} in cart. Tap to change ${item.name} options`
+                            : isMultiVariant ? `Select ${item.name} options` : `Buy ${item.name}`
+                        }
                         hitSlop={6}
                       >
                         <LinearGradient
@@ -2291,7 +2834,9 @@ function HomeHeader({
                           end={{ x: 1, y: 0 }}
                           style={styles.searchResultBuyGradient}
                         >
-                          <Text style={styles.searchResultBuyText}>Buy</Text>
+                          <Text style={styles.searchResultBuyText}>
+                            {qty > 0 ? `${qty} in cart` : isMultiVariant ? 'Select' : 'Buy'}
+                          </Text>
                         </LinearGradient>
                       </TouchableOpacity>
                     )}
@@ -2300,28 +2845,10 @@ function HomeHeader({
               }}
             />
           )}
-          {searchResults.length > 0 && (
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={handleViewAll}
-              accessibilityRole="button"
-              accessibilityLabel="View all search results"
-            >
-              <LinearGradient
-                colors={[colors.saffron, colors.saffronDark]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.searchViewAll}
-              >
-                <Text style={styles.searchViewAllText}>View all results</Text>
-                <AppIcon name="chevronRight" size={15} color="#FFFFFF" strokeWidth={2.6} />
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
           {!isSearching && searchResults.length === 0 && (
             <View style={styles.searchEmptyState}>
               <View style={styles.searchEmptyIcon}>
-                <AppIcon name="search" size={22} color={colors.saffronDark} />
+                <HomeIcon name="search" size={22} color={colors.saffronDark} />
               </View>
               <Text style={styles.searchEmptyTitle}>No matching items</Text>
               <Text style={styles.searchEmptyHint}>
@@ -2347,7 +2874,9 @@ function OfferBannerCarousel({ offers = [], bannerWidth, onOfferPress }) {
   const sweepAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const glowAnim = useRef(new Animated.Value(0.18)).current;
-  const [activeIndex, setActiveIndex] = useState(0);
+  // Which banner is showing. A ref, not state: the dots read the scroll position
+  // directly, so nothing needs to redraw when it changes.
+  const activeIndexRef = useRef(0);
   const [imageErrors, setImageErrors] = useState({});
   const isUserScrolling = useRef(false);
 
@@ -2398,21 +2927,21 @@ function OfferBannerCarousel({ offers = [], bannerWidth, onOfferPress }) {
     if (visibleOffers.length <= 1) return undefined;
     const interval = setInterval(() => {
       if (isUserScrolling.current) return;
-      setActiveIndex(currentIndex => {
-        const nextIndex = (currentIndex + 1) % visibleOffers.length;
-        listRef.current?.scrollToIndex({ index: nextIndex, animated: true });
-        return nextIndex;
-      });
+      const nextIndex = (activeIndexRef.current + 1) % visibleOffers.length;
+      activeIndexRef.current = nextIndex;
+      // Back to the first banner is a plain cut. Animating it would whip the
+      // strip past every banner (and every dot) in a fraction of a second.
+      listRef.current?.scrollToIndex({ index: nextIndex, animated: nextIndex !== 0 });
     }, 4500);
     return () => clearInterval(interval);
   }, [visibleOffers.length]);
 
   useEffect(() => {
-    if (activeIndex >= visibleOffers.length) {
-      setActiveIndex(0);
+    if (activeIndexRef.current >= visibleOffers.length) {
+      activeIndexRef.current = 0;
       listRef.current?.scrollToOffset({ offset: 0, animated: false });
     }
-  }, [activeIndex, visibleOffers.length]);
+  }, [visibleOffers.length]);
 
   if (visibleOffers.length === 0) return null;
 
@@ -2422,7 +2951,7 @@ function OfferBannerCarousel({ offers = [], bannerWidth, onOfferPress }) {
   const handleMomentumEnd = (event) => {
     const offsetX = event.nativeEvent.contentOffset.x;
     const nextIndex = Math.round(offsetX / bannerWidth);
-    setActiveIndex(Math.max(0, Math.min(nextIndex, visibleOffers.length - 1)));
+    activeIndexRef.current = Math.max(0, Math.min(nextIndex, visibleOffers.length - 1));
     isUserScrolling.current = false;
   };
 
@@ -2446,6 +2975,9 @@ function OfferBannerCarousel({ offers = [], bannerWidth, onOfferPress }) {
 
   return (
     <View style={styles.offerCarouselSection}>
+      {/* One rounded window over the whole strip: while a banner slides in, the
+          list's own edges would cut the pictures with square corners. */}
+      <View style={[styles.offerCarouselClip, { width: bannerWidth }]}>
       <Animated.FlatList
         ref={listRef}
         data={visibleOffers}
@@ -2506,13 +3038,13 @@ function OfferBannerCarousel({ offers = [], bannerWidth, onOfferPress }) {
                   <Text style={styles.offerBannerFallbackText}>Banner image unavailable</Text>
                 </View>
               ) : (
-                <ExpoImage
-                  source={{ uri: imageUri }}
+                <RetryingImage
+                  uri={imageUri}
                   style={styles.offerBannerImage}
                   contentFit="cover"
                   transition={200}
                   priority="high"
-                  onError={() => setImageErrors(prev => ({ ...prev, [offerKey]: true }))}
+                  onGiveUp={() => setImageErrors(prev => ({ ...prev, [offerKey]: true }))}
                 />
               )}
 
@@ -2545,6 +3077,7 @@ function OfferBannerCarousel({ offers = [], bannerWidth, onOfferPress }) {
           );
         }}
       />
+      </View>
 
       {visibleOffers.length > 1 && (
         <View style={styles.offerDots}>
@@ -2572,7 +3105,7 @@ function OfferBannerCarousel({ offers = [], bannerWidth, onOfferPress }) {
                   styles.offerDot,
                   {
                     transform: [{ scaleX: dotScaleX }],
-                    opacity: activeIndex === index ? 1 : opacity,
+                    opacity,
                   },
                 ]}
               />
@@ -2668,7 +3201,7 @@ function SeeAllButton({ label = 'See all', onPress, accessibilityLabel }) {
         ]}
       >
         <View style={styles.seeAllChevron}>
-          <AppIcon name="chevronRight" size={11} color={colors.saffronDark} strokeWidth={2.6} />
+          <HomeIcon name="chevronRight" size={11} color={colors.saffronDark} strokeWidth={2.6} />
         </View>
       </Animated.View>
     </PressableScale>
@@ -2678,14 +3211,34 @@ function SeeAllButton({ label = 'See all', onPress, accessibilityLabel }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.bgApp,
+    backgroundColor: colors.bgSurface,
   },
   scrollContent: {
     paddingBottom: layout.stickyCartScrollPadding,
   },
+  // No padding of its own — the rows inside use the same gutter as the real page.
   skeletonContainer: {
     flex: 1,
-    padding: spacing.md,
+  },
+  // The base notice style pulls up by a margin meant for the old layout.
+  skeletonNotice: {
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
+    marginLeft: 0,
+  },
+  skeletonRail: {
+    flexDirection: 'row',
+    paddingHorizontal: PAGE_GUTTER,
+    overflow: 'hidden',
+  },
+  // Stands in for the shop-mode circles (same top offset and centring).
+  skeletonModeRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: spacing.lg,
+    height: 100,
+    paddingTop: spacing.sm,
   },
   locationLoadingNotice: {
     ...typography.caption,
@@ -2695,9 +3248,26 @@ const styles = StyleSheet.create({
     marginTop: -spacing.lg,
     marginBottom: spacing.lg,
   },
+  // One light-sky-blue-to-white group holds the location row, search bar and the
+  // closed-shop notice; the search dropdown hangs below it, so it stays on top.
+  topGroup: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 20,
+  },
+  topSolid: {
+    zIndex: 1, // keeps the search dropdown drawn over the fade below
+  },
+  topBarDecor: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  topFade: {
+    paddingBottom: spacing.xxl,
+  },
   homeHeader: {
-    paddingHorizontal: spacing.md,
-    backgroundColor: colors.bgApp,
+    paddingHorizontal: PAGE_GUTTER,
     zIndex: 20,
   },
   homeHeaderCard: {
@@ -2712,46 +3282,62 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 6,
   },
-  // Saffron ribbon separator below the top bar — the dashboard ScrollView
-  // starts here and scrolls up under it. Acts as a visual anchor.
+  // Location on the left, notification and profile buttons on the right.
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: PAGE_GUTTER,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.sm,
+    minHeight: 36 + spacing.xs + spacing.sm,
+  },
+  topRowLocation: {
+    flex: 1,
+  },
   locationBar: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    paddingHorizontal: spacing.lg,
     paddingVertical: spacing.xs,
   },
-  locationBarText: {
+  locationBarBody: {
     flex: 1,
-    ...typography.caption,
-    fontWeight: '600',
-    color: colors.textPrimary,
   },
-  locationBarChange: {
-    ...typography.caption,
+  // Black text with a white halo around the letters — reads on the sky blue
+  // and the sun's beams without a box behind it.
+  locationBarText: {
+    fontSize: fontSizes.xxl,
+    lineHeight: fontSizes.xxl * lineHeights.normal,
     fontWeight: '700',
-    color: colors.saffron,
+    color: '#111827',
+    textShadowColor: '#FFFFFF',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 6,
   },
-  topBarRibbon: {
-    height: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'transparent',
-    marginTop: 6,
+  locationBarAddress: {
+    fontSize: fontSizes.xs,
+    lineHeight: fontSizes.xs * lineHeights.normal,
+    fontWeight: '600',
+    color: '#111827',
+    textShadowColor: '#FFFFFF',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 5,
   },
-  topBarRibbonBar: {
-    width: 48,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.saffron,
-    shadowColor: colors.saffronDark,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.35,
-    shadowRadius: 3,
-    elevation: 1,
+  // On the light-black night bar: white text, a soft dark shadow instead of the halo.
+  barTextNight: {
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0, 0, 0, 0.35)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  locationBarLine: {
+    height: 2,
+    borderRadius: 1,
+    marginTop: spacing.xs,
   },
   homeHeaderInner: {
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: PAGE_GUTTER,
     paddingTop: spacing.sm,
     paddingBottom: spacing.sm,
   },
@@ -2781,9 +3367,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 18,
-    backgroundColor: colors.saffronLight,
-    borderWidth: 1,
-    borderColor: 'rgba(224, 90, 26, 0.22)',
+    backgroundColor: '#111827',
     position: 'relative',
   },
 
@@ -2818,44 +3402,27 @@ const styles = StyleSheet.create({
   searchBarOuter: {
     marginTop: spacing.sm,
     marginHorizontal: 0, // full width — escapes the card padding
-    borderRadius: 28,
-    // Solid white + matching radius + overflow hidden so Android elevation
-    // outline is fully rounded (no square peach corners in the bg).
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 122, 58, 0.35)',
+    borderRadius: 24,
+    // See-through: the blur and wash are layered inside (see HomeHeader).
+    // Matching radius + overflow hidden so Android draws fully rounded
+    // corners. Hairline border (colour set inline per scene), no shadow.
+    backgroundColor: 'transparent',
+    borderWidth: 1,
     overflow: 'hidden',
-    // Darker saffron drop shadow under the pill
-    shadowColor: colors.saffronDark || '#E05A1A',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.42,
-    shadowRadius: 16,
-    elevation: 9,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    height: 58,
-    paddingHorizontal: 6,
-    paddingRight: 6,
+    backgroundColor: 'transparent',
+    height: 48,
+    paddingHorizontal: spacing.md,
   },
-  searchIconBubble: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    alignItems: 'center',
-    justifyContent: 'center',
+  searchIcon: {
     marginRight: spacing.sm,
-    shadowColor: colors.saffronDark,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.35,
-    shadowRadius: 6,
-    elevation: 3,
   },
   searchTextWrap: {
     flex: 1,
-    paddingVertical: 4,
+    justifyContent: 'center',
   },
   searchInputRow: {
     position: 'relative',
@@ -2866,8 +3433,7 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textPrimary,
     fontSize: 14.5,
-    fontWeight: '600',
-    marginBottom: 1,
+    fontWeight: '500',
     padding: 0,
   },
   searchTypewriterOverlay: {
@@ -2879,19 +3445,19 @@ const styles = StyleSheet.create({
   searchTypewriterPrefix: {
     ...typography.body,
     fontSize: 14.5,
-    fontWeight: '600',
+    fontWeight: '500',
     color: colors.textSecondary,
   },
   searchTypewriterText: {
     ...typography.body,
     fontSize: 14.5,
-    fontWeight: '700',
-    color: colors.saffronDark || colors.saffron,
+    fontWeight: '500',
+    color: colors.textSecondary,
   },
   searchTypewriterCaret: {
     fontSize: 15,
     fontWeight: '400',
-    color: colors.saffronDark || colors.saffron,
+    color: colors.textSecondary,
     marginLeft: 1,
     marginTop: -1,
   },
@@ -2901,32 +3467,19 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '500',
   },
-  searchGoPill: {
-    borderRadius: 20,
-    overflow: 'hidden',
-    marginLeft: spacing.xs,
-    shadowColor: colors.saffronDark,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  searchGoGradient: {
-    flexDirection: 'row',
+  searchGoButton: {
+    width: 32,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    width: 40,
-    height: 44,
-    borderRadius: 20,
+    marginLeft: spacing.xs,
   },
   searchClearButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 32,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: spacing.xs,
-    backgroundColor: colors.saffronLight,
   },
   searchBackdrop: {
     position: 'absolute',
@@ -2937,59 +3490,25 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(8, 12, 20, 0.45)',
     zIndex: 5,
   },
+  // No box, border or shadow — the result cards sit straight on the light sky blue.
+  // Negative margin lets the row scroll edge to edge past the header padding.
   searchDropdown: {
-    backgroundColor: colors.bgSurface,
-    marginHorizontal: spacing.sm, // wider than the search bar pill
+    marginHorizontal: -PAGE_GUTTER,
     marginTop: spacing.xs,
-    borderRadius: radius.lg,
+  },
+  searchResultCard: {
+    width: 96,
+    padding: 6,
+    gap: 3,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18,
-    shadowRadius: 18,
-    elevation: 8,
-    overflow: 'hidden',
-  },
-  searchDropdownHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.xs,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  searchDropdownTitle: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    fontSize: 11.5,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-    flex: 1,
-    textTransform: 'uppercase',
-  },
-  searchDropdownClose: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surfaceMuted,
-  },
-  searchResultRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-    paddingBottom: 4, // tighter bottom so the ribbon sits closer to the last item
-    gap: spacing.sm,
+    backgroundColor: colors.bgSurface,
   },
   searchResultImageWrap: {
-    width: 46,
-    height: 46,
-    borderRadius: 12,
+    width: '100%',
+    aspectRatio: 1,
+    borderRadius: 8,
     overflow: 'hidden',
     backgroundColor: colors.surfaceMuted,
   },
@@ -3001,116 +3520,92 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  searchResultInfo: {
-    flex: 1,
-    minWidth: 0,
-  },
   searchResultName: {
     ...typography.body,
-    fontSize: 14,
+    fontSize: 11,
     fontWeight: '700',
     color: colors.textPrimary,
-    marginBottom: 2,
-  },
-  searchResultMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
   },
   searchResultPriceText: {
     ...typography.body,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
     color: colors.saffronDark,
   },
-  searchResultUnit: {
-    ...typography.caption,
-    fontSize: 11.5,
-    color: colors.textSecondary,
-  },
   searchResultBuyBtn: {
+    alignSelf: 'stretch',
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: colors.saffronDark,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
-    shadowRadius: 4,
-    elevation: 2,
   },
   searchResultBuyGradient: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 5,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
   searchResultBuyText: {
     color: '#FFFFFF',
-    fontSize: 12.5,
+    fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.3,
   },
   searchResultStepper: {
+    alignSelf: 'stretch',
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: colors.saffronDark,
     borderRadius: 16,
     paddingHorizontal: 2,
     paddingVertical: 2,
-    gap: 6,
   },
   searchResultStepBtn: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: 'rgba(255,255,255,0.18)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   searchResultStepQty: {
     color: '#FFFFFF',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
-    minWidth: 14,
+    minWidth: 12,
     textAlign: 'center',
   },
-  searchDropdownDivider: {
-    height: 1,
-    backgroundColor: colors.border,
-    marginLeft: spacing.md + 46 + spacing.sm,
-  },
   searchResultList: {
-    // Height when the keyboard is hidden — sized to fit all 6 items
-    // (each ~65px) with no extra space below the last item. The
-    // "View all results" ribbon sits flush against the last item.
-    height: 390,
-  },
-  searchResultListCompact: {
-    // Height when the keyboard is up — only 2 items render, so the
-    // list shrinks to match. No empty space below the 2nd item.
-    height: 130,
+    flexGrow: 0,
   },
   searchResultListContent: {
-    paddingBottom: 0, // ribbon sits flush against the last item
-    flexGrow: 1,
+    paddingHorizontal: PAGE_GUTTER,
+    paddingVertical: spacing.sm,
+    gap: spacing.sm,
   },
-  searchViewAll: {
-    flexDirection: 'row',
+  searchSeeAllCard: {
+    flex: 1, // fills the footer wrapper, which the row stretches to card height
+    width: 72,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
-    paddingVertical: spacing.sm + 4,
-    // Match the dropdown's bottom corners so the ribbon hugs the
-    // rounded edge instead of looking like a square strip.
-    borderBottomLeftRadius: radius.lg,
-    borderBottomRightRadius: radius.lg,
+    gap: spacing.xs,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.bgSurface,
   },
-  searchViewAllText: {
+  searchSeeAllIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchSeeAllText: {
     ...typography.body,
-    fontSize: 13,
+    fontSize: 11.5,
     fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: 0.4,
+    color: colors.textPrimary,
   },
   searchEmptyState: {
     alignItems: 'center',
@@ -3140,9 +3635,14 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
   },
+  // Red pill, centered under the search bar.
   closedBanner: {
+    alignSelf: 'center',
+    marginTop: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.pill,
     backgroundColor: colors.error,
-    padding: spacing.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -3158,7 +3658,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
   },
   homeErrorCard: {
-    marginHorizontal: spacing.md,
+    marginHorizontal: PAGE_GUTTER,
     marginBottom: spacing.sm,
     padding: spacing.md,
     borderRadius: radius.md,
@@ -3172,22 +3672,36 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   toggleContainer: {
-    marginHorizontal: spacing.md,
-    marginTop: spacing.md,
+    marginHorizontal: PAGE_GUTTER,
+    marginTop: 0,
+    marginBottom: -spacing.sm,
+  },
+  // Shop modes sit straight on the page: no card background, border or shadow.
+  toggleCardBare: {
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    shadowOpacity: 0,
+    elevation: 0,
+    paddingTop: spacing.sm,
+    paddingBottom: 0,
   },
   offerCarouselSection: {
     marginTop: spacing.md,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: PAGE_GUTTER,
+  },
+  // The rounded corners live on this clip, not on each banner, so they stay
+  // round while banners slide past each other.
+  offerCarouselClip: {
+    borderRadius: 18,
+    overflow: 'hidden',
   },
   offerBanner: {
-    borderRadius: 18,
     overflow: 'hidden',
     position: 'relative',
   },
   offerBannerImage: {
     width: '100%',
     height: '100%',
-    borderRadius: 18,
   },
   offerBannerSweep: {
     position: 'absolute',
@@ -3199,7 +3713,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.7,
     shadowRadius: 14,
-    elevation: 6,
   },
   offerBannerAccent: {
     position: 'absolute',
@@ -3212,7 +3725,7 @@ const styles = StyleSheet.create({
   offerBannerFallback: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: PAGE_GUTTER,
     backgroundColor: colors.surfaceMuted,
   },
   offerBannerFallbackText: {
@@ -3240,11 +3753,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...typography.h3,
     color: colors.textPrimary,
-    marginHorizontal: spacing.md,
+    marginHorizontal: PAGE_GUTTER,
     marginBottom: spacing.md,
   },
   sectionHeader: {
-    marginHorizontal: spacing.md,
+    marginHorizontal: PAGE_GUTTER,
     marginBottom: spacing.md,
   },
   titleRow: {
@@ -3293,29 +3806,21 @@ const styles = StyleSheet.create({
     marginTop: 2,
     marginLeft: 8,
   },
-  skeletonCategoryRow: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing.md,
-  },
-  skeletonCategoryCard: {
-    aspectRatio: 0.9,
-    borderRadius: radius.lg,
-  },
   categoryScroll: {
     // FlatList in horizontal mode
   },
   categoryScrollContent: {
-    paddingHorizontal: spacing.md,
-    paddingRight: spacing.md + spacing.lg, // extra right padding so last card has breathing room
+    paddingHorizontal: PAGE_GUTTER,
+    paddingRight: PAGE_GUTTER + spacing.lg, // extra right padding so last card has breathing room
     alignItems: 'center',
   },
   seeAllInRow: {
     justifyContent: 'center',
-    paddingLeft: spacing.md,
+    paddingLeft: PAGE_GUTTER,
   },
   seeAllInRowProduct: {
     justifyContent: 'center',
-    paddingLeft: spacing.md,
+    paddingLeft: PAGE_GUTTER,
     alignSelf: 'center',
   },
   seeAllEndRow: {
@@ -3326,30 +3831,18 @@ const styles = StyleSheet.create({
     // FlatList in horizontal mode
   },
   productScrollContent: {
-    paddingHorizontal: spacing.md,
-    paddingRight: spacing.md + spacing.lg, // extra right padding so the See all pill has breathing room
+    paddingHorizontal: PAGE_GUTTER,
+    paddingRight: PAGE_GUTTER + spacing.lg, // extra right padding so the See all pill has breathing room
     alignItems: 'center',
   },
-  skeletonProductRow: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing.md,
-  },
   comboGrid: {
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: PAGE_GUTTER,
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.md,
   },
   comboGridFeatured: {
     alignItems: 'stretch',
-  },
-  skeletonComboGrid: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing.md,
-    gap: spacing.md,
-  },
-  skeletonProductCard: {
-    borderRadius: radius.lg,
   },
   sectionHeaderTop: {
     flexDirection: 'row',

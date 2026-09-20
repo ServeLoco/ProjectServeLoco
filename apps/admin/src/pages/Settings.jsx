@@ -34,6 +34,9 @@ const DEFAULT_SETTINGS = {
   upi_id: '',
   upi_qr_image_id: '',
   upi_qr_image_url: '',
+  nav_promo_image_id: '',
+  nav_promo_image_url: '',
+  nav_promo_link: '',
   minimum_version: '',
   current_version: '',
   rider_capacity_multiplier: 3
@@ -56,6 +59,10 @@ export default function Settings() {
   const [fieldErrors, setFieldErrors] = useState({});
   const fileInputRef = useRef(null);
   const savedImageIdRef = useRef('');
+  const navFileInputRef = useRef(null);
+  const savedNavImageIdRef = useRef('');
+  const [uploadingNavImage, setUploadingNavImage] = useState(false);
+  const [navUploadMessage, setNavUploadMessage] = useState(null);
 
   useEffect(() => {
     // 25.4 — Settings can't be shown/managed for "all" areas at once (§2.10);
@@ -75,6 +82,7 @@ export default function Settings() {
       if (res.data) {
         setSettings({ ...DEFAULT_SETTINGS, ...res.data });
         savedImageIdRef.current = res.data.upi_qr_image_id || '';
+        savedNavImageIdRef.current = res.data.nav_promo_image_id || '';
       }
     } catch (err) {
       console.error(err);
@@ -126,6 +134,55 @@ export default function Settings() {
     } finally {
       setUploadingImage(false);
     }
+  };
+
+  // Nav-bar image: uploaded as-is (no crop / no background fill) so a
+  // transparent PNG stays transparent. The app fits it into its slot.
+  const uploadNavImage = async (event) => {
+    const file = event.target.files && event.target.files[0];
+    if (event.target) event.target.value = '';
+    if (!file) return;
+    const sizeError = getImageUploadError(file);
+    if (sizeError) {
+      setNavUploadMessage({ type: 'error', text: sizeError });
+      return;
+    }
+
+    const data = new FormData();
+    data.append('image', file);
+    const previousPendingId = settings.nav_promo_image_id;
+
+    try {
+      setUploadingNavImage(true);
+      setNavUploadMessage(null);
+      const res = await ImagesApi.upload(data);
+      const image = getUploadedImage(res);
+      setSettings(prev => ({
+        ...prev,
+        nav_promo_image_id: image.id,
+        nav_promo_image_url: image.url,
+      }));
+      // Drop the previous unsaved upload from this session (no orphaned file).
+      if (previousPendingId && previousPendingId !== savedNavImageIdRef.current) {
+        ImagesApi.delete(previousPendingId).catch(() => {});
+      }
+      setNavUploadMessage({ type: 'success', text: 'Image uploaded. Save settings to apply it.' });
+    } catch (err) {
+      console.error(err);
+      setNavUploadMessage({ type: 'error', text: GENERIC_ERROR });
+    } finally {
+      setUploadingNavImage(false);
+    }
+  };
+
+  // Empties the slot. Applied on Save; an unsaved upload is discarded now.
+  const removeNavImage = () => {
+    const pendingId = settings.nav_promo_image_id;
+    if (pendingId && pendingId !== savedNavImageIdRef.current) {
+      ImagesApi.delete(pendingId).catch(() => {});
+    }
+    setSettings(prev => ({ ...prev, nav_promo_image_id: '', nav_promo_image_url: '' }));
+    setNavUploadMessage({ type: 'success', text: 'Image removed. Save settings to apply it.' });
   };
 
   const { fileInputProps, cropperProps } = useImageCropper({
@@ -217,10 +274,30 @@ export default function Settings() {
         return;
       }
 
+      // Nav-bar image link: blank is fine (image just isn't clickable); otherwise
+      // a plain http(s) URL, matching the server.
+      const navLink = (settings.nav_promo_link || '').trim();
+      if (navLink && !/^https?:\/\/\S+$/i.test(navLink)) {
+        const msg = 'Nav image link must start with http:// or https:// and have no spaces.';
+        setFieldErrors({ nav_promo_link: msg });
+        setFormError(msg);
+        setSaving(false);
+        focusFirstInvalid();
+        return;
+      }
+
       const payload = {
         ...settings,
         delivery_charge: Number(settings.delivery_charge),
         night_charge: Number(settings.night_charge),
+        // The server refuses a night start/end time when there is no night
+        // surcharge, and new areas start with 21:00-06:00 filled in — so with a
+        // 0 surcharge every save failed with "Night delivery surcharge must be
+        // > 0 if start and end times are set". Leave the times out of the save
+        // in that case (undefined is not sent): the stored window is left
+        // exactly as it is, which zone pricing still reads.
+        night_charge_start: Number(settings.night_charge) > 0 ? settings.night_charge_start : undefined,
+        night_charge_end: Number(settings.night_charge) > 0 ? settings.night_charge_end : undefined,
         rain_charge_enabled: Boolean(settings.rain_charge_enabled),
         rain_charge: Number(settings.rain_charge || 0),
         fast_delivery_enabled: Boolean(settings.fast_delivery_enabled),
@@ -228,6 +305,8 @@ export default function Settings() {
         standard_delivery_minutes: Number.parseInt(settings.standard_delivery_minutes, 10) || 60,
         fast_delivery_minutes: Number.parseInt(settings.fast_delivery_minutes, 10) || 30,
         upi_qr_image_id: settings.upi_qr_image_id || null,
+        nav_promo_image_id: settings.nav_promo_image_id || null,
+        nav_promo_link: navLink || null,
         minimum_version: minVer || null,
         current_version: curVer || null,
         rider_capacity_multiplier: capacityMultiplier,
@@ -240,10 +319,13 @@ export default function Settings() {
         setSettings(prev => ({ ...prev, ...response.data }));
       }
       savedImageIdRef.current = settings.upi_qr_image_id || '';
+      savedNavImageIdRef.current = settings.nav_promo_image_id || '';
       setSaveSuccess('Settings saved successfully!');
     } catch (err) {
       console.error(err);
-      setFormError(GENERIC_ERROR);
+      // A 400 carries the server's reason (which field is wrong) — show it
+      // instead of the generic message.
+      setFormError(err?.response?.status === 400 && err.message ? err.message : GENERIC_ERROR);
     } finally {
       setSaving(false);
     }
@@ -621,6 +703,84 @@ export default function Settings() {
             {uploadMessage && (
               <p className={`upload-message ${uploadMessage.type}`}>{uploadMessage.text}</p>
             )}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Customer app: nav-bar image ─────────────────────────────────── */}
+      <section className="settings-section">
+        <h2 className="settings-section-title">Nav Bar Image (Customer App)</h2>
+        <div className="settings-form-grid">
+          <div className="settings-form-group full-width">
+            <label className="settings-label">Image</label>
+            <p className="image-dimension-hint">{IMAGE_GUIDANCE.navPromo.label}</p>
+            {settings.nav_promo_image_url ? (
+              <img
+                src={normalizeImageUrl(settings.nav_promo_image_url)}
+                alt="Nav bar"
+                style={{
+                  display: 'block',
+                  maxWidth: 180,
+                  maxHeight: 124,
+                  objectFit: 'contain',
+                  margin: '0.5rem 0',
+                  border: '1px dashed var(--border-color)',
+                  borderRadius: 'var(--radius-md)',
+                }}
+              />
+            ) : (
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0.5rem 0' }}>
+                No image — the space stays empty in the app.
+              </p>
+            )}
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <input type="file" hidden ref={navFileInputRef} accept="image/*" onChange={uploadNavImage} />
+              <button
+                type="button"
+                className="settings-input"
+                style={{ width: 'auto', cursor: 'pointer' }}
+                disabled={uploadingNavImage}
+                onClick={() => navFileInputRef.current?.click()}
+              >
+                {uploadingNavImage ? 'Uploading...' : settings.nav_promo_image_url ? 'Replace image' : 'Upload image'}
+              </button>
+              {settings.nav_promo_image_url && (
+                <button
+                  type="button"
+                  className="settings-input"
+                  style={{ width: 'auto', cursor: 'pointer' }}
+                  disabled={uploadingNavImage}
+                  onClick={removeNavImage}
+                >
+                  Remove image
+                </button>
+              )}
+            </div>
+            {navUploadMessage && (
+              <p className={`upload-message ${navUploadMessage.type}`}>{navUploadMessage.text}</p>
+            )}
+          </div>
+
+          <div className="settings-form-group full-width">
+            <label className="settings-label">Link (opens when the image is tapped)</label>
+            <input
+              type="url"
+              name="nav_promo_link"
+              className="settings-input"
+              placeholder="https://..."
+              value={settings.nav_promo_link || ''}
+              onChange={handleChange}
+              aria-invalid={Boolean(fieldErrors.nav_promo_link)}
+              aria-errormessage={fieldErrors.nav_promo_link ? 'nav_promo_link-error' : undefined}
+            />
+            {fieldErrors.nav_promo_link && (
+              <span id="nav_promo_link-error" className="field-error" style={{ fontSize: '0.8rem', color: 'var(--danger-color)', marginTop: '4px' }}>
+                {fieldErrors.nav_promo_link}
+              </span>
+            )}
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+              Optional. Leave blank and the image shows but does nothing when tapped.
+            </span>
           </div>
         </div>
       </section>

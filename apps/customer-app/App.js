@@ -20,8 +20,15 @@ import {
   useProductAvailabilitySync,
   useAuthRoleSync,
 } from './src/hooks';
-import { useAuthStore } from './src/stores';
+import { useAuthStore, useDeliveryLocationStore } from './src/stores';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
+import {
+  recordHandledError,
+  setCrashUser,
+  clearCrashUser,
+  logBreadcrumb,
+  setCrashKeys,
+} from './src/utils/crashReporting';
 import { OfflineBanner } from './src/components/OfflineBanner';
 import { ToastProvider } from './src/components/Toast';
 import { ForceUpdateModal } from './src/components/ForceUpdateModal';
@@ -264,6 +271,51 @@ function App() {
     };
   }, []);
 
+  // Which build, and on or off line. Both are filterable in Crashlytics, so
+  // "only on 1.9.1" or "only offline" is a single query rather than a hunch.
+  // appVersion comes from the NATIVE version, not app.json — after an OTA the
+  // JS bundle's version no longer matches the binary the crash came from.
+  useEffect(() => {
+    setCrashKeys({
+      appVersion: Application.nativeApplicationVersion ?? appJson?.expo?.version ?? 'unknown',
+      buildVersion: Application.nativeBuildVersion ?? 'unknown',
+    });
+  }, []);
+
+  useEffect(() => {
+    setCrashKeys({ online: isOnline ? 'yes' : 'no' });
+  }, [isOnline]);
+
+  // Which area the phone is shopping in. Area 1 is live and more are coming,
+  // so "is this crash area-specific" is a question we will actually need to
+  // answer, and it is unanswerable after the fact without this.
+  useEffect(() => {
+    const apply = (state) => {
+      setCrashKeys({ areaId: state?.areaId ?? state?.lastAreaId ?? 'none' });
+    };
+    apply(useDeliveryLocationStore.getState());
+    return useDeliveryLocationStore.subscribe(apply);
+  }, []);
+
+  // Tag crash reports with who hit them. Without this a repeating crash in one
+  // rider's background task looks like scattered one-off events instead of the
+  // same account looping, which is exactly what made the top Play Console
+  // crash hard to read.
+  useEffect(() => {
+    const apply = (state) => {
+      if (!state?.isAuthenticated || !state?.user) {
+        clearCrashUser();
+        return;
+      }
+      setCrashUser({
+        userId: state.user.id,
+        role: state.shop ? 'shop' : state.rider ? 'rider' : 'customer',
+      });
+    };
+    apply(useAuthStore.getState());
+    return useAuthStore.subscribe(apply);
+  }, []);
+
   // Show the splash colour while the rehydration + validation is in flight
   // so we never flash the home tabs with a doomed token. CustomerNavigator
   // shows its own spinner while !hasHydrated; we just paint the background
@@ -272,7 +324,12 @@ function App() {
     <SafeAreaProvider>
       {/* barStyle only — status bar bg is deprecated under Android 15 edge-to-edge */}
       <StatusBar barStyle="dark-content" />
-      <ErrorBoundary>
+      <ErrorBoundary
+        onError={(error, componentStack) => {
+          if (componentStack) logBreadcrumb(`Render error in:${componentStack.split('\n')[1] || ''}`);
+          recordHandledError(error, 'ReactRenderError');
+        }}
+      >
         <ToastProvider>
           <View style={{ flex: 1, backgroundColor: colors.bgApp }}>
             <RootNavigator />

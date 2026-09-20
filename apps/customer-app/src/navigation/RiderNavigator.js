@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../theme';
 import TabBarPillButton from '../components/navigation/TabBarPillButton';
 import { useRiderLocationPermission } from '../hooks/useRiderLocationPermission';
+import { ScreenErrorBoundary } from '../components/ErrorBoundary';
 import {
   RiderDashboardScreen,
   RiderHistoryScreen,
@@ -20,6 +21,9 @@ function RiderTabs() {
 
   return (
     <Tab.Navigator
+      screenLayout={({ children, route }) => (
+        <ScreenErrorBoundary routeName={route?.name}>{children}</ScreenErrorBoundary>
+      )}
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: false,
@@ -77,7 +81,12 @@ export default function RiderNavigator() {
   useRiderLocationPermission();
 
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator
+      screenOptions={{ headerShown: false }}
+      screenLayout={({ children, route }) => (
+        <ScreenErrorBoundary routeName={route?.name}>{children}</ScreenErrorBoundary>
+      )}
+    >
       <Stack.Screen name="RiderTabs" component={RiderTabs} />
       <Stack.Screen
         name="RiderOrder"

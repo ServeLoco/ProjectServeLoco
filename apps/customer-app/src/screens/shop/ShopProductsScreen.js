@@ -292,12 +292,65 @@ export default function ShopProductsScreen() {
   const totalCount = products.length;
   const availableCount = useMemo(() => products.filter(p => p.available).length, [products]);
 
-  const renderProductRow = (item, index, arr) => {
+  // One flat entry per group header / product / empty-group line, for the
+  // virtualized FlatList below.
+  //
+  // This screen used to render the whole catalog inside a SINGLE FlatList cell
+  // (data={[{ key: 'sections' }]}), so nothing was virtualized: every group,
+  // every product row and every variant row stayed mounted at once, each with
+  // an SVG icon and an Animated toggle. On a shop with a few hundred products
+  // that is thousands of live Android views, and the shop tab bar's blur
+  // redraws the whole screen once per frame while you scroll — the process ran
+  // out of memory and Android killed it, which looked like the app closing by
+  // itself with no error. Flat rows let FlatList keep only what is on screen.
+  const listRows = useMemo(() => {
+    const rows = [];
+    const pushBlock = (blockKey, header, items, allowEmpty) => {
+      const expanded = isGroupExpanded(blockKey);
+      rows.push({ ...header, key: `h:${blockKey}`, expanded });
+      if (!expanded) return;
+      if (items.length === 0) {
+        if (allowEmpty) rows.push({ type: 'emptyGroup', key: `e:${blockKey}` });
+        return;
+      }
+      items.forEach((p, i) => {
+        if (!p || p.id == null) return;
+        rows.push({
+          type: 'product',
+          key: `p:${blockKey}:${p.id}`,
+          item: p,
+          first: i === 0,
+          last: i === items.length - 1,
+        });
+      });
+    };
+
+    sections.groupSections.forEach(({ group, items }) => {
+      if (!group || group.id == null) return;
+      pushBlock(group.id, { type: 'groupHeader', group, count: items.length }, items, true);
+    });
+    if (sections.ungrouped.length > 0) {
+      pushBlock(
+        UNGROUPED_KEY,
+        { type: 'ungroupedHeader', count: sections.ungrouped.length },
+        sections.ungrouped,
+        false
+      );
+    }
+    // The gap that used to sit under each group block now belongs to whichever
+    // row ends that block.
+    for (let i = 0; i < rows.length; i += 1) {
+      const next = rows[i + 1];
+      rows[i].blockLast = !next || next.type === 'groupHeader' || next.type === 'ungroupedHeader';
+    }
+    return rows;
+  }, [sections, isGroupExpanded]);
+
+  const renderProductRow = (item, isLast) => {
     if (!item || item.id == null) return null;
     const isAvailable = Boolean(item.available);
     const variants = Array.isArray(item.variants) ? item.variants : [];
     const hasVariants = variants.length > 0;
-    const isLast = index === arr.length - 1;
     const initial = (item.name || '?').trim().charAt(0).toUpperCase() || '?';
     // Shop owners see what they are paid (shop_price), never the customer price.
     const shopPrice = item.shopPrice ?? item.shop_price;
@@ -365,6 +418,120 @@ export default function ShopProductsScreen() {
           </View>
         )}
       </View>
+    );
+  };
+
+  // Group headers keep their own BlurView (one per group, a bounded number).
+  // Product rows are plain Views carrying the card's left/right border, so the
+  // block still reads as one rounded card without a blur view per row.
+  const renderListRow = ({ item: row }) => {
+    if (row.type === 'product') {
+      return (
+        <View
+          style={[
+            styles.cardSeg,
+            row.first && styles.cardSegFirst,
+            row.last && styles.cardSegLast,
+            row.blockLast && styles.blockGap,
+          ]}
+        >
+          {renderProductRow(row.item, row.last)}
+        </View>
+      );
+    }
+
+    if (row.type === 'emptyGroup') {
+      return (
+        <View
+          style={[
+            styles.cardSeg, styles.cardSegFirst, styles.cardSegLast,
+            row.blockLast && styles.blockGap,
+          ]}
+        >
+          <View style={styles.emptyGroupWrap}>
+            <AppIcon name="box" size={20} color="rgba(255,255,255,0.5)" />
+            <Text style={styles.emptyGroup}>No products in this group.</Text>
+          </View>
+        </View>
+      );
+    }
+
+    if (row.type === 'ungroupedHeader') {
+      return (
+        <BlurView
+          key={`header-${row.expanded}`}
+          intensity={32}
+          tint="dark"
+          style={[
+            styles.groupHeader,
+            row.expanded && styles.groupHeaderExpanded,
+            row.blockLast && styles.blockGap,
+          ]}
+        >
+          <TouchableOpacity
+            style={styles.groupTitleWrap}
+            onPress={() => toggleGroupExpand(UNGROUPED_KEY)}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.groupIconWrap, styles.groupIconWrapMuted]}>
+              <AppIcon name="box" size={18} color="#FFFFFF" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.groupName}>Ungrouped</Text>
+              <Text style={styles.groupCount}>
+                {row.count} {row.count === 1 ? 'item' : 'items'}
+              </Text>
+            </View>
+            <AppIcon name={row.expanded ? 'down' : 'chevronRight'} size={16} color="#FFFFFF" />
+          </TouchableOpacity>
+        </BlurView>
+      );
+    }
+
+    const group = row.group;
+    return (
+      <BlurView
+        key={`header-${row.expanded}`}
+        intensity={32}
+        tint="dark"
+        style={[
+          styles.groupHeader,
+          row.expanded && styles.groupHeaderExpanded,
+          row.blockLast && styles.blockGap,
+        ]}
+      >
+        <TouchableOpacity
+          style={styles.groupTitleWrap}
+          onPress={() => toggleGroupExpand(group.id)}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.groupIconWrap, !group.active && styles.groupIconWrapMuted]}>
+            <AppIcon name="shoppingBag" size={18} color={group.active ? '#FFFFFF' : 'rgba(255,255,255,0.5)'} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.groupName}>{group.name}</Text>
+            <Text style={styles.groupCount}>
+              {row.count} {row.count === 1 ? 'item' : 'items'}
+            </Text>
+          </View>
+          <AppIcon name={row.expanded ? 'down' : 'chevronRight'} size={16} color="#FFFFFF" />
+        </TouchableOpacity>
+        <View style={styles.groupActions}>
+          <TouchableOpacity
+            style={styles.groupDeleteBtn}
+            onPress={() => handleDeleteGroup(group)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <AppIcon name="delete" size={16} color="#FFFFFF" />
+          </TouchableOpacity>
+          <ShopToggle
+            value={Boolean(group.active)}
+            onValueChange={(v) => handleGroupToggle(group, v)}
+            activeColor={colors.success}
+            size="md"
+          />
+        </View>
+      </BlurView>
     );
   };
 
@@ -448,130 +615,36 @@ export default function ShopProductsScreen() {
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.saffron} />
       ) : (
         <FlatList
-          data={[{ key: 'sections' }]}
-          keyExtractor={(item) => item.key}
+          data={listRows}
+          keyExtractor={(row) => row.key}
+          renderItem={renderListRow}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          initialNumToRender={12}
+          maxToRenderPerBatch={10}
+          windowSize={7}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.saffron} />}
-          renderItem={() => (
-            <>
-              {sections.groupSections.map(({ group, items }) => {
-                const expanded = isGroupExpanded(group.id);
-                return (
-                  <View key={group.id} style={styles.groupBlock}>
-                    <BlurView
-                      key={`header-${expanded}`}
-                      intensity={32}
-                      tint="dark"
-                      style={[styles.groupHeader, expanded && styles.groupHeaderExpanded]}
-                    >
-                      <TouchableOpacity
-                        style={styles.groupTitleWrap}
-                        onPress={() => toggleGroupExpand(group.id)}
-                        activeOpacity={0.7}
-                      >
-                        <View style={[styles.groupIconWrap, !group.active && styles.groupIconWrapMuted]}>
-                          <AppIcon name="shoppingBag" size={18} color={group.active ? '#FFFFFF' : 'rgba(255,255,255,0.5)'} />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.groupName}>{group.name}</Text>
-                          <Text style={styles.groupCount}>
-                            {items.length} {items.length === 1 ? 'item' : 'items'}
-                          </Text>
-                        </View>
-                        <AppIcon name={expanded ? 'down' : 'chevronRight'} size={16} color="#FFFFFF" />
-                      </TouchableOpacity>
-                      <View style={styles.groupActions}>
-                        <TouchableOpacity
-                          style={styles.groupDeleteBtn}
-                          onPress={() => handleDeleteGroup(group)}
-                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                        >
-                          <AppIcon name="delete" size={16} color="#FFFFFF" />
-                        </TouchableOpacity>
-                        <ShopToggle
-                          value={Boolean(group.active)}
-                          onValueChange={(v) => handleGroupToggle(group, v)}
-                          activeColor={colors.success}
-                          size="md"
-                        />
-                      </View>
-                    </BlurView>
-                    {expanded && (
-                      <BlurView intensity={22} tint="dark" style={styles.groupCard}>
-                        {items.length === 0 ? (
-                          <View style={styles.emptyGroupWrap}>
-                            <AppIcon name="box" size={20} color="rgba(255,255,255,0.5)" />
-                            <Text style={styles.emptyGroup}>No products in this group.</Text>
-                          </View>
-                        ) : (
-                          items.map(renderProductRow)
-                        )}
-                      </BlurView>
-                    )}
-                  </View>
-                );
-              })}
-
-              {sections.ungrouped.length > 0 && (
-                <View style={styles.groupBlock}>
-                  <BlurView
-                    key={`header-${isGroupExpanded(UNGROUPED_KEY)}`}
-                    intensity={32}
-                    tint="dark"
-                    style={[styles.groupHeader, isGroupExpanded(UNGROUPED_KEY) && styles.groupHeaderExpanded]}
-                  >
-                    <TouchableOpacity
-                      style={styles.groupTitleWrap}
-                      onPress={() => toggleGroupExpand(UNGROUPED_KEY)}
-                      activeOpacity={0.7}
-                    >
-                      <View style={[styles.groupIconWrap, styles.groupIconWrapMuted]}>
-                        <AppIcon name="box" size={18} color="#FFFFFF" />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.groupName}>Ungrouped</Text>
-                        <Text style={styles.groupCount}>
-                          {sections.ungrouped.length} {sections.ungrouped.length === 1 ? 'item' : 'items'}
-                        </Text>
-                      </View>
-                      <AppIcon
-                        name={isGroupExpanded(UNGROUPED_KEY) ? 'down' : 'chevronRight'}
-                        size={16}
-                        color="#FFFFFF"
-                      />
-                    </TouchableOpacity>
-                  </BlurView>
-                  {isGroupExpanded(UNGROUPED_KEY) && (
-                    <BlurView intensity={22} tint="dark" style={styles.groupCard}>
-                      {sections.ungrouped.map(renderProductRow)}
-                    </BlurView>
-                  )}
+          ListEmptyComponent={
+            products.length === 0 ? (
+              <BlurView intensity={30} tint="dark" style={styles.emptyState}>
+                <View style={styles.emptyIconWrap}>
+                  <AppIcon name="box" size={32} color="#FFFFFF" />
                 </View>
-              )}
-
-              {products.length === 0 && (
-                <BlurView intensity={30} tint="dark" style={styles.emptyState}>
-                  <View style={styles.emptyIconWrap}>
-                    <AppIcon name="box" size={32} color="#FFFFFF" />
-                  </View>
-                  <Text style={styles.emptyTitle}>{loadError ? 'Could not load products' : 'No products yet'}</Text>
-                  <Text style={styles.emptyText}>
-                    {loadError ? 'Pull down to try again.' : 'Add items from your shop menu to manage them here.'}
-                  </Text>
-                </BlurView>
-              )}
-              {products.length > 0 && isSearching && filteredProducts.length === 0 && (
-                <BlurView intensity={30} tint="dark" style={styles.emptyState}>
-                  <View style={styles.emptyIconWrap}>
-                    <AppIcon name="search" size={30} color="#FFFFFF" />
-                  </View>
-                  <Text style={styles.emptyTitle}>No matches</Text>
-                  <Text style={styles.emptyText}>No products match "{searchQuery.trim()}".</Text>
-                </BlurView>
-              )}
-            </>
-          )}
+                <Text style={styles.emptyTitle}>{loadError ? 'Could not load products' : 'No products yet'}</Text>
+                <Text style={styles.emptyText}>
+                  {loadError ? 'Pull down to try again.' : 'Add items from your shop menu to manage them here.'}
+                </Text>
+              </BlurView>
+            ) : isSearching && filteredProducts.length === 0 ? (
+              <BlurView intensity={30} tint="dark" style={styles.emptyState}>
+                <View style={styles.emptyIconWrap}>
+                  <AppIcon name="search" size={30} color="#FFFFFF" />
+                </View>
+                <Text style={styles.emptyTitle}>No matches</Text>
+                <Text style={styles.emptyText}>No products match "{searchQuery.trim()}".</Text>
+              </BlurView>
+            ) : null
+          }
         />
       )}
 
@@ -713,7 +786,23 @@ const styles = StyleSheet.create({
   tabDotOff: { backgroundColor: 'rgba(255,255,255,0.45)' },
 
   listContent: { paddingHorizontal: spacing.md, paddingBottom: spacing.xxxl + spacing.xxl },
-  groupBlock: { marginBottom: spacing.md },
+  blockGap: { marginBottom: spacing.md },
+
+  /* One slice of the group card, drawn per product row. The old card was a
+   * BlurView (intensity 22, tint dark) with an rgba(255,255,255,0.05) fill on
+   * top; on Android that blur is a flat rgba(25,25,25,0.149) tint, so the two
+   * layers composite to the single colour below and the card looks unchanged. */
+  cardSeg: {
+    backgroundColor: 'rgba(85,85,85,0.19)',
+    borderLeftWidth: 1, borderRightWidth: 1, borderColor: 'rgba(255,255,255,0.22)',
+    paddingHorizontal: 6,
+  },
+  cardSegFirst: { paddingTop: 6 },
+  cardSegLast: {
+    paddingBottom: 6, borderBottomWidth: 1,
+    borderBottomLeftRadius: glassRadius.card, borderBottomRightRadius: glassRadius.card,
+    overflow: 'hidden',
+  },
   groupHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     backgroundColor: 'rgba(255,255,255,0.13)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)',
@@ -736,12 +825,6 @@ const styles = StyleSheet.create({
   groupDeleteBtn: {
     width: 30, height: 30, borderRadius: radius.circle, backgroundColor: '#B3211F',
     alignItems: 'center', justifyContent: 'center',
-  },
-  groupCard: {
-    backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: glassRadius.card,
-    borderTopLeftRadius: 0, borderTopRightRadius: 0,
-    borderWidth: 1, borderTopWidth: 0, borderColor: 'rgba(255,255,255,0.22)',
-    padding: 6, overflow: 'hidden',
   },
   emptyGroupWrap: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs,

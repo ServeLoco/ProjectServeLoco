@@ -63,6 +63,10 @@ describe('AdminOrderDetailScreen', () => {
     }
   });
 
+  // First mount of this screen costs ~2s on a cold Metro/babel cache (143ms
+  // warm). Jest's 5s default is enough alone, but not when all 67 suites cold
+  // start in parallel — which is every CI run, since the runner has no cache.
+  // The timeout is the flake; the test itself is fine.
   it('renders order fields', async () => {
     adminApi.getOrder.mockResolvedValue({ data: ORDER });
 
@@ -72,7 +76,7 @@ describe('AdminOrderDetailScreen', () => {
 
     const texts = findAllText(root.root);
     expect(texts).toEqual(expect.arrayContaining(['Yash', '9999999999', '123 Street', '₹500.00']));
-  });
+  }, 30000);
 
   it('confirms then applies a forward status change', async () => {
     adminApi.getOrder.mockResolvedValue({ data: ORDER });

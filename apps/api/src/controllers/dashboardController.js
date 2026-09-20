@@ -6,6 +6,7 @@ const microCache = require('../utils/microCache');
 const { reorderDisplayOrder } = require('../utils/reorder');
 const { requestAreaId, bustAreaCaches } = require('../utils/areaScope');
 const logger = require('../utils/logger');
+const { syncAutoSections, isAutoRowVisible } = require('../utils/autoSections');
 // 30s meant a low-traffic area re-ran the whole multi-query dashboard build on
 // almost every request. Every mutation that can change this payload already
 // calls bustAreaCaches (which clears the 'dashboard' namespace for that area),
@@ -475,8 +476,12 @@ const getDashboard = async (req, res) => {
   const availableWhere = includeClosedShops ? '1=1' : 'p.available = 1';
 
   try {
+    // Rows Home creates by itself (a row per shop, then per category) live in
+    // dashboard_sections like any other; make sure they exist before reading.
+    const validAutoKeys = await syncAutoSections(areaId, expectedStoreType);
+
     let query = `
-      SELECT id, title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at
+      SELECT id, title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, auto_kind, auto_source_id, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at
       FROM dashboard_sections
       WHERE active = 1 AND deleted_at IS NULL AND area_id = ?
         AND (starts_at IS NULL OR starts_at <= NOW())
@@ -491,11 +496,38 @@ const getDashboard = async (req, res) => {
 
     query += ' ORDER BY display_order ASC, id ASC';
 
-    const [sections] = await pool.query(query, params);
+    const [allSections] = await pool.query(query, params);
+    const sections = allSections.filter((row) => isAutoRowVisible(row, validAutoKeys));
 
     // Build each section's items in parallel (Promise.all preserves input order).
     const buildSection = async (section) => {
       let items = [];
+
+      // An automatic shop/category row: no items here — the app loads the
+      // row's first items itself when it is scrolled to. Not hidden when
+      // "empty", because its items are not fetched in this request.
+      if (section.auto_kind) {
+        return {
+          id: section.id,
+          title: section.title,
+          slug: section.slug,
+          sectionType: 'product_block',
+          storeType: section.store_type,
+          displayOrder: section.display_order,
+          maxVisibleItems: section.max_visible_items || 8,
+          showSeeAll: section.show_see_all === 1 || section.show_see_all === true,
+          showHotBadge: section.show_hot_badge === 1 || section.show_hot_badge === true,
+          sectionIcon: section.section_icon || null,
+          auto: true,
+          autoKind: section.auto_kind,
+          auto_kind: section.auto_kind,
+          sourceId: Number(section.auto_source_id),
+          source_id: Number(section.auto_source_id),
+          totalItems: 0,
+          hasMore: false,
+          items: []
+        };
+      }
 
       if (section.section_type === 'offer_banner') {
         const offerStoreFilter = (expectedStoreType && expectedStoreType !== 'all') ? 'AND o.store_type = ?' : '';
@@ -839,14 +871,22 @@ const getAdminSections = async (req, res) => {
       await ensureModeSpecificOfferBannerSections(areaId);
     }
 
-    let query = 'SELECT id, title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at FROM dashboard_sections WHERE deleted_at IS NULL AND area_id = ?';
+    // Make sure the rows Home creates by itself (per shop, per category) exist,
+    // so this list matches the app. They are ordinary rows from here on.
+    const validAutoKeys = (store_type && store_type !== 'all')
+      ? await syncAutoSections(areaId, store_type)
+      : new Set();
+
+    let query = 'SELECT id, title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, auto_kind, auto_source_id, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at FROM dashboard_sections WHERE deleted_at IS NULL AND area_id = ?';
     const params = [areaId];
     if (store_type) {
       query += ' AND (store_type = ? OR (store_type = "all" AND section_type != "offer_banner"))';
       params.push(store_type);
     }
     query += ' ORDER BY display_order ASC, id ASC';
-    const [rows] = await pool.query(query, params);
+    const [allRows] = await pool.query(query, params);
+    // Automatic rows whose shop/category no longer qualifies stay stored but are not listed.
+    const rows = allRows.filter((row) => isAutoRowVisible(row, validAutoKeys));
     res.status(200).json({ data: rows });
   } catch (error) {
     res.status(500).json({ code: 'SERVER_ERROR', message: error.message });
@@ -904,7 +944,7 @@ const getAdminSectionById = async (req, res) => {
     // read another area's section by guessing its (globally sequential)
     // numeric id.
     const [sections] = await pool.query(
-      'SELECT id, title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at FROM dashboard_sections WHERE id = ? AND deleted_at IS NULL AND area_id = ?',
+      'SELECT id, title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, auto_kind, auto_source_id, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at FROM dashboard_sections WHERE id = ? AND deleted_at IS NULL AND area_id = ?',
       [id, areaId]
     );
     if (sections.length === 0) {
@@ -1034,6 +1074,13 @@ const updateAdminSection = async (req, res) => {
         code: 'CONCURRENCY_CONFLICT',
         message: 'This section was updated by another administrator. Please reload and try again.'
       });
+    }
+
+    // An automatic shop/category row belongs to one shop mode (that is where
+    // its shop/category lives); moving it would just make the sync create a
+    // second copy back in the original mode.
+    if (existingSection.auto_kind && store_type !== undefined && store_type !== existingSection.store_type) {
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'An automatic row stays in its own shop mode.' });
     }
 
     const targetStoreType = store_type !== undefined ? store_type : existingSection.store_type;

@@ -64,24 +64,30 @@ const validatePositiveInt = (value, fieldLabel) => {
   return null;
 };
 
+// The customer app's nav-bar image link: http(s) only, so a typo or a pasted
+// script/other scheme can never be opened from the app.
+const NAV_PROMO_LINK_MAX = 500;
+const isValidNavPromoLink = (value) =>
+  typeof value === 'string' && value.length <= NAV_PROMO_LINK_MAX && /^https?:\/\/[^\s]+$/i.test(value);
+
+const resolveImageUrl = async (imageId) => {
+  if (!imageId || !/^\d+$/.test(String(imageId))) return null;
+  const [imageRows] = await pool.query('SELECT id, url FROM images WHERE id = ?', [imageId]);
+  return getStoredImageUrl(imageRows[0]) || null;
+};
+
 const attachSettingsImageUrls = async (settings) => {
   if (!settings) return settings;
 
-  settings.upi_qr_image_url = null;
-  settings.upiQrImageUrl = null;
+  const upiUrl = await resolveImageUrl(settings.upi_qr_image_id);
+  settings.upi_qr_image_url = upiUrl;
+  settings.upiQrImageUrl = upiUrl;
 
-  const imageId = settings.upi_qr_image_id;
-  if (!imageId || !/^\d+$/.test(String(imageId))) {
-    return settings;
-  }
-
-  const [imageRows] = await pool.query('SELECT id, url FROM images WHERE id = ?', [imageId]);
-  const imageUrl = getStoredImageUrl(imageRows[0]);
-
-  if (imageUrl) {
-    settings.upi_qr_image_url = imageUrl;
-    settings.upiQrImageUrl = imageUrl;
-  }
+  // Nav-bar image: both casings, like the UPI image. Link is echoed camelCase too.
+  const navUrl = await resolveImageUrl(settings.nav_promo_image_id);
+  settings.nav_promo_image_url = navUrl;
+  settings.navPromoImageUrl = navUrl;
+  settings.navPromoLink = settings.nav_promo_link || null;
 
   return settings;
 };
@@ -161,6 +167,8 @@ const getSettingsForArea = async (areaId) => {
       free_delivery_above_minimum_active: 1,
       free_delivery_offer_active: 0,
       upi_qr_image_id: null,
+      nav_promo_image_id: null,
+      nav_promo_link: null,
       minimum_version: null,
       current_version: null,
       rider_capacity_multiplier: 3,
@@ -288,6 +296,7 @@ const updateSettings = async (req, res) => {
     'night_charge', 'night_charge_start', 'night_charge_end',
     'rain_charge_enabled', 'rain_charge',
     'whatsapp_number', 'support_phone', 'upi_id', 'upi_qr_image_id',
+    'nav_promo_image_id', 'nav_promo_link',
     'below_threshold_delivery_charge', 'free_delivery_above_minimum_active',
     'free_delivery_offer_active', 'fast_delivery_enabled', 'fast_delivery_charge',
     'standard_delivery_minutes', 'fast_delivery_minutes',
@@ -397,6 +406,17 @@ const updateSettings = async (req, res) => {
     }
   }
 
+  // Nav-bar image link: empty clears it; otherwise it must be a plain http(s) URL.
+  if (hasValue(body.nav_promo_link) && !isValidNavPromoLink(String(body.nav_promo_link).trim())) {
+    return res.status(400).json({
+      code: 'VALIDATION_ERROR',
+      message: `Nav image link must start with http:// or https:// (max ${NAV_PROMO_LINK_MAX} characters)`,
+    });
+  }
+  if (hasValue(body.nav_promo_image_id) && !/^\d+$/.test(String(body.nav_promo_image_id))) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Nav image id must be a number' });
+  }
+
   // App version strings — column is VARCHAR(20); reject anything that
   // wouldn't fit or isn't a plausible version (digits/dots, e.g. "1.2.3").
   for (const field of ['minimum_version', 'current_version']) {
@@ -443,6 +463,10 @@ const updateSettings = async (req, res) => {
       let val = body[field];
       if (['shop_open', 'delivery_available', 'free_delivery_offer_active', 'free_delivery_above_minimum_active', 'rain_charge_enabled', 'radius_pricing_active'].includes(field)) {
         val = (val === true || val === 'true' || val === 1 || val === '1') ? 1 : 0;
+      } else if (field === 'nav_promo_link') {
+        val = hasValue(val) ? String(val).trim() : null;
+      } else if (field === 'nav_promo_image_id') {
+        val = hasValue(val) ? Number(val) : null;
       } else if ([
         'minimum_order_amount',
         'delivery_charge',
@@ -465,9 +489,10 @@ const updateSettings = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'No valid fields provided' });
   }
 
-  const [rows] = await pool.query('SELECT id, upi_qr_image_id FROM settings WHERE area_id = ? LIMIT 1', [areaId]);
+  const [rows] = await pool.query('SELECT id, upi_qr_image_id, nav_promo_image_id FROM settings WHERE area_id = ? LIMIT 1', [areaId]);
   let settingsId = rows[0]?.id;
   const previousImageId = rows[0]?.upi_qr_image_id;
+  const previousNavImageId = rows[0]?.nav_promo_image_id;
   if (rows.length === 0) {
     // Should be unreachable once TASK 24's area-creation endpoint calls
     // createSettingsForArea (below) for every new area — kept as a safety
@@ -494,6 +519,14 @@ const updateSettings = async (req, res) => {
     String(previousImageId) !== String(body.upi_qr_image_id)
   ) {
     await cleanupOrphanedImage(previousImageId);
+  }
+  // Same for the nav-bar image: replacing or removing it frees the old upload.
+  if (
+    body.nav_promo_image_id !== undefined &&
+    previousNavImageId &&
+    String(previousNavImageId) !== String(hasValue(body.nav_promo_image_id) ? body.nav_promo_image_id : '')
+  ) {
+    await cleanupOrphanedImage(previousNavImageId);
   }
   const [updatedRows] = await pool.query('SELECT * FROM settings WHERE area_id = ? LIMIT 1', [areaId]);
   const updatedSettings = await attachSettingsImageUrls(updatedRows[0]);

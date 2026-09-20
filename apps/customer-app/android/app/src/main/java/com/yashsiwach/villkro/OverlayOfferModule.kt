@@ -213,13 +213,26 @@ class OverlayOfferModule(private val reactContext: ReactApplicationContext) :
 
   @ReactMethod
   fun requestPermission() {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
+    // Not every build has this settings screen — several Android Go and
+    // OEM ROMs ship without it, and startActivity then throws
+    // ActivityNotFoundException straight out of the bridge, killing the app
+    // on what is only an opt-in prompt. The heads-up notification with
+    // inline Accept/Reject already works without the overlay, so failing
+    // quietly leaves the rider with a working fallback.
+    try {
       val intent = Intent(
         Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
         Uri.parse("package:" + reactContext.packageName)
       )
       intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
       reactContext.startActivity(intent)
+    } catch (_: Exception) {
+      try {
+        val fallback = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
+        fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        reactContext.startActivity(fallback)
+      } catch (_: Exception) { /* no such screen on this ROM */ }
     }
   }
 

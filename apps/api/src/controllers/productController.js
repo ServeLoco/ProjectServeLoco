@@ -270,7 +270,7 @@ const getProducts = async (req, res) => {
   // empty list, same as deliveryZonesController.listActiveZonesPublic and
   // categoryController.getCategories — never another area's products.
   const areaId = requestAreaId(req);
-  const { categoryId, category_id, search, type, storeType, store_type, isCombo, is_combo, featured, limit, offset, offerId, offer_id } = req.query;
+  const { categoryId, category_id, shopId, shop_id, search, type, storeType, store_type, isCombo, is_combo, featured, limit, offset, offerId, offer_id } = req.query;
   const requestedType = type || storeType || store_type;
   // Pagination: limit+1 trick for hasMore (SQL page size, not post time-window filter length).
   const limitNum = limit !== undefined && Number.isInteger(Number(limit)) && Number(limit) > 0
@@ -311,6 +311,8 @@ const getProducts = async (req, res) => {
     }
   }
   const finalCategoryId = categoryId || category_id;
+  // A shop's own row/list on Home (see utils/autoSections).
+  const finalShopId = shopId || shop_id;
   let finalIsCombo = isCombo !== undefined ? isCombo : is_combo;
   const finalOfferId = offerId || offer_id;
 
@@ -377,7 +379,7 @@ const getProducts = async (req, res) => {
   }
 
   // If filtering by category/categoryType/categoryId and isCombo isn't explicitly set, default to false (exclude combos)
-  if (finalIsCombo === undefined && (finalCategoryId || (requestedType && requestedType !== 'all'))) {
+  if (finalIsCombo === undefined && (finalCategoryId || finalShopId || (requestedType && requestedType !== 'all'))) {
     finalIsCombo = 'false';
   }
 
@@ -407,6 +409,7 @@ const getProducts = async (req, res) => {
   const buildSubQuery = (baseQuery, isComboType) => {
     let q = baseQuery;
     if (finalCategoryId && !isComboType) q += ` AND p.category_id = ${pool.escape(finalCategoryId)}`;
+    if (finalShopId && !isComboType) q += ` AND p.shop_id = ${pool.escape(finalShopId)}`;
     if (normalizedType !== 'all' && !isComboType) q += ` AND c.type = ${pool.escape(normalizedType)}`;
     if (normalizedType !== 'all' && isComboType) q += ` AND p.store_type = ${pool.escape(normalizedType)}`;
     if (search) q += buildSearchClause(search, isComboType);

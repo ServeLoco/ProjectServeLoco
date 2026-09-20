@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Image } from 'expo-image';
 import { StyleSheet, View } from 'react-native';
 import { colors, radius } from '../../theme';
 import { fallbackProductImage } from '../../assets';
+import { useImageRetry } from './RetryingImage';
 
 const FALLBACK_SOURCE = fallbackProductImage;
 
@@ -35,14 +36,15 @@ function ProductImage({
   recyclingKey,
   filter,
 }) {
-  const [error, setError] = useState(false);
+  // A failed load is retried on its own (the connection may have dipped for a
+  // second). The fallback picture shows straight away after the first failure
+  // (so a card is never an empty box) and the real picture replaces it as soon
+  // as a retry loads; after the last retry fails the fallback stays. The hook
+  // resets when uri changes, so recycled cells never keep a stale failure.
+  const { attempt, failed, hadError, onError, onLoad } = useImageRetry(uri);
 
-  // Reset error when uri changes (recycled cells must not keep fallback).
-  useEffect(() => {
-    setError(false);
-  }, [uri]);
-
-  const showFallback = !uri || error;
+  const showFallback = !uri || hadError || failed;
+  const showImage = Boolean(uri) && !failed;
   const hasFallbackImage = Boolean(fallback);
 
   return (
@@ -69,14 +71,16 @@ function ProductImage({
         </View>
       ) : null}
 
-      {!showFallback && uri ? (
+      {showImage ? (
         <Image
+          key={attempt}
           source={{ uri }}
           style={[StyleSheet.absoluteFill, { borderRadius }]}
           contentFit={resizeMode}
           priority={priority}
           transition={200}
-          onError={() => setError(true)}
+          onError={onError}
+          onLoad={onLoad}
           filter={filter}
           recyclingKey={recyclingKey}
         />

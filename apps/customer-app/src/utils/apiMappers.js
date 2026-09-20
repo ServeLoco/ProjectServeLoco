@@ -228,6 +228,12 @@ function normalizeSettings(payload = {}) {
     nightCharge: numberOrZero(pickFirst(settings.nightCharge, settings.night_charge)),
     nightChargeStart: pickFirst(settings.nightChargeStart, settings.night_charge_start, null),
     nightChargeEnd: pickFirst(settings.nightChargeEnd, settings.night_charge_end, null),
+    // Admin's "rain charge" switch — the Home top bar shows its rain scene while it is on.
+    rainChargeEnabled: asBoolean(pickFirst(settings.rainChargeEnabled, settings.rain_charge_enabled), false),
+    // Image shown to the right of the bottom nav bar, and the link it opens
+    // (both set in the admin Settings page; null = empty slot / not tappable).
+    navPromoImageUrl: normalizeImageUrl(pickFirst(settings.navPromoImageUrl, settings.nav_promo_image_url, null)),
+    navPromoLink: pickFirst(settings.navPromoLink, settings.nav_promo_link, null) || null,
     shopLatitude: (() => {
       const v = pickFirst(settings.shopLatitude, settings.shop_latitude, null);
       const n = Number(v);

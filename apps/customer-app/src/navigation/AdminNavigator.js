@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { colors, shadows, radius } from '../theme';
 import AppIcon from '../components/AppIcon';
 import { useAdminRealtime } from '../hooks/useAdminRealtime';
+import { ScreenErrorBoundary } from '../components/ErrorBoundary';
 import {
   AdminDashboardScreen,
   AdminOrdersScreen,
@@ -37,6 +38,9 @@ function TabIcon({ name, focused, size, color }) {
 function AdminTabs() {
   return (
     <Tab.Navigator
+      screenLayout={({ children, route }) => (
+        <ScreenErrorBoundary routeName={route?.name}>{children}</ScreenErrorBoundary>
+      )}
       initialRouteName="AdminHome"
       screenOptions={{
         headerShown: false,
@@ -122,7 +126,12 @@ export default function AdminNavigator() {
 
   return (
     <>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Navigator
+        screenOptions={{ headerShown: false }}
+        screenLayout={({ children, route }) => (
+          <ScreenErrorBoundary routeName={route?.name}>{children}</ScreenErrorBoundary>
+        )}
+      >
         <Stack.Screen name="AdminTabs" component={AdminTabs} />
         <Stack.Screen name="AdminOrderDetail" component={AdminOrderDetailScreen} />
       </Stack.Navigator>

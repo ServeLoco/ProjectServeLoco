@@ -1,3 +1,10 @@
+jest.mock('../src/utils/autoSections', () => ({
+  // These tests are about the admin's own sections; the automatic shop/category
+  // rows (utils/autoSections) have their own test file.
+  syncAutoSections: jest.fn().mockResolvedValue(new Set()),
+  isAutoRowVisible: jest.requireActual('../src/utils/autoSections').isAutoRowVisible,
+}));
+
 /**
  * TASK 12.4 — proves GET /api/dashboard for area 2 never touches area 1's
  * sections, even if a section id or slug would collide.

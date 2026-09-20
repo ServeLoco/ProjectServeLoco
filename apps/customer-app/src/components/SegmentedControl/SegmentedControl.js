@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { StyleSheet, Text, View, Animated, Easing } from 'react-native';
-import { Image } from 'expo-image';
+import RetryingImage from '../ProductImage/RetryingImage';
 import { colors, typography, spacing } from '../../theme';
 import { useReducedMotion } from '../../utils';
 import AppIcon from '../AppIcon';
@@ -202,8 +202,8 @@ function SegmentedControl({
                   ]}
                 >
                   {iconUrl ? (
-                    <Image
-                      source={{ uri: iconUrl }}
+                    <RetryingImage
+                      uri={iconUrl}
                       style={{ width: size, height: size, borderRadius: size / 2 }}
                       contentFit="cover"
                     />

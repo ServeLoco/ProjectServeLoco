@@ -1,6 +1,10 @@
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
+// Applied HERE, not at the bottom next to google-services: the
+// `firebaseCrashlytics { }` block inside buildTypes below only exists once
+// this plugin is applied, and gradle evaluates android { } first.
+apply plugin: 'com.google.firebase.crashlytics'
 
 def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
 
@@ -100,8 +104,15 @@ packagingOptions {
         applicationId 'com.yashsiwach.villkro'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 33
-        versionName "1.8.3"
+        // Kept in step with app.json by hand: android/ is committed, so nothing
+        // regenerates these from app.json on a local build. They drifted two
+        // releases behind (1.8.3/33 while app.json was on 1.9.1/40), which made
+        // every locally built release APK report an old version and hard-gate
+        // itself on the server's minimum_version. The EAS cloud release reads
+        // app.json, so only local builds were affected — but a local .aab would
+        // have been rejected by Play for reusing a versionCode.
+        versionCode 40
+        versionName "1.9.2"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
@@ -127,6 +138,13 @@ packagingOptions {
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
             def enablePngCrunchInRelease = findProperty('android.enablePngCrunchInReleaseBuilds') ?: 'true'
             crunchPngs enablePngCrunchInRelease.toBoolean()
+            // Upload the native debug symbols so a C++ crash inside
+            // libreactnative.so arrives readable instead of as a bare SIGABRT
+            // with hex addresses — Play Console has one of those and it is
+            // unfixable as it stands. Costs build time, nothing at runtime.
+            firebaseCrashlytics {
+                nativeSymbolUploadEnabled true
+            }
         }
     }
     packagingOptions {

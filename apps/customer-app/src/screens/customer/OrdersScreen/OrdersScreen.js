@@ -1009,7 +1009,7 @@ const styles = StyleSheet.create({
   flatListContent: {
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
-    paddingBottom: layout.bottomNavHeight + spacing.lg,
+    paddingBottom: layout.bottomNavHeight + spacing.lg + 12,
   },
 
   /* ----- Skeleton ----- */

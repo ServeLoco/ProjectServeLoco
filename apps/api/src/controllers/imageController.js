@@ -32,7 +32,7 @@ const getUsedImageIds = async () => {
   const [categories] = await pool.query('SELECT DISTINCT image_id FROM categories WHERE image_id IS NOT NULL AND deleted = 0');
   const [combos] = await pool.query('SELECT DISTINCT image_id FROM combos WHERE image_id IS NOT NULL AND deleted = 0');
   const [offers] = await pool.query('SELECT DISTINCT image_id FROM offers WHERE image_id IS NOT NULL AND deleted = 0');
-  const [settings] = await pool.query('SELECT upi_qr_image_id FROM settings WHERE upi_qr_image_id IS NOT NULL');
+  const [settings] = await pool.query('SELECT upi_qr_image_id, nav_promo_image_id FROM settings WHERE upi_qr_image_id IS NOT NULL OR nav_promo_image_id IS NOT NULL');
   const [storeModes] = await pool.query('SELECT DISTINCT icon_image_id FROM store_modes WHERE icon_image_id IS NOT NULL');
   const [productLibrary] = await pool.query('SELECT DISTINCT image_id FROM product_library WHERE image_id IS NOT NULL');
   const [categoryLibrary] = await pool.query('SELECT DISTINCT image_id FROM category_library WHERE image_id IS NOT NULL');
@@ -54,7 +54,10 @@ const getUsedImageIds = async () => {
   addUsage(categories, 'Category');
   addUsage(combos, 'Combo');
   addUsage(offers, 'Offer');
-  addUsage(settings, 'Settings', 'upi_qr_image_id');
+  // One row can carry either image (or both): the UPI QR and the customer
+  // app's nav-bar image both live on settings.
+  addUsage(settings.filter((r) => r.upi_qr_image_id != null), 'Settings', 'upi_qr_image_id');
+  addUsage(settings.filter((r) => r.nav_promo_image_id != null), 'Nav Bar Image', 'nav_promo_image_id');
   addUsage(storeModes, 'Store Mode', 'icon_image_id');
   addUsage(productLibrary, 'Product Library');
   addUsage(categoryLibrary, 'Category Library');

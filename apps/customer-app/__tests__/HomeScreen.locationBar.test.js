@@ -15,15 +15,16 @@ describe('HomeScreen delivery location bar', () => {
 
   // The initial GPS fix can silently fail or time out (see
   // syncDeliveryLocation's best-effort catch) — deliveryCoords then stays
-  // null forever with nothing to retry it automatically. "Change"/"Set"
-  // normally lives inside the deliveryCoords-gated bar, so without this
-  // fallback branch the customer would be stuck on the dashboard with no
-  // way to set a location at all.
+  // null forever with nothing to retry it automatically. The tappable zone
+  // name (which opens the location picker) normally lives inside the
+  // deliveryCoords-gated bar, so without this fallback branch the customer
+  // would be stuck on the dashboard with no way to set a location at all.
   it('offers a manual "Set" action when the initial sync completes without a GPS fix', () => {
     expect(source).toMatch(
       /\(deliveryCoords \? insideDeliveryZone !== false : isInitialLocationSyncComplete\)/
     );
-    expect(source).toMatch(/deliveryCoords \? 'Change' : 'Set'/);
+    expect(source).toMatch(/deliveryCoords \? 'Change delivery location' : 'Set delivery location'/);
+    expect(source).toMatch(/onPress=\{\(\) => setShowLocationPicker\(true\)\}/);
   });
 
   // zoneName is only ever populated in zone-pricing mode, so on a flat-pricing

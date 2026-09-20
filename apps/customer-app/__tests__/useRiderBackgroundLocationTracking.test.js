@@ -13,7 +13,7 @@ import React from 'react';
 import ReactTestRenderer, { act } from 'react-test-renderer';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 
 // The hook reads Platform.OS once, at module scope, to decide whether
 // background location is supported at all (Android only — iOS ships as a
@@ -75,6 +75,11 @@ describe('useRiderBackgroundLocationTracking', () => {
     Location.hasStartedLocationUpdatesAsync.mockResolvedValue(false);
     Location.startLocationUpdatesAsync.mockResolvedValue(undefined);
     Location.stopLocationUpdatesAsync.mockResolvedValue(undefined);
+    AppState.currentState = 'active';
+  });
+
+  afterEach(() => {
+    AppState.currentState = 'active';
   });
 
   it('shows the disclosure before requesting background permission when never shown before', async () => {
@@ -187,5 +192,63 @@ describe('useRiderBackgroundLocationTracking', () => {
     expect(captured.current.disclosureVisible).toBe(true);
 
     expect(() => unmount()).not.toThrow();
+  });
+
+  /**
+   * Requesting "Allow all the time" sends the rider out to a system settings
+   * screen, so our process is backgrounded when the permission finally
+   * resolves. startLocationUpdatesAsync spins up a location foreground
+   * service there, and Android kills the app with
+   * ForegroundServiceDidNotStartInTimeException when a service started from
+   * the background cannot promote itself in time — 21.4% of the app's crash
+   * events in Play Console.
+   */
+  describe('foreground service is never started from the background', () => {
+    it('waits for the app to come back on screen before starting updates', async () => {
+      Location.getBackgroundPermissionsAsync.mockResolvedValue({ status: 'granted', granted: true });
+      AppState.currentState = 'background';
+      const listeners = [];
+      const addSpy = jest.spyOn(AppState, 'addEventListener').mockImplementation((_evt, cb) => {
+        listeners.push(cb);
+        return { remove: jest.fn() };
+      });
+
+      renderHook(true, false);
+      await flush();
+
+      expect(Location.startLocationUpdatesAsync).not.toHaveBeenCalled();
+
+      AppState.currentState = 'active';
+      await act(async () => {
+        listeners.forEach((cb) => cb('active'));
+        await Promise.resolve();
+      });
+      await flush();
+
+      expect(Location.startLocationUpdatesAsync).toHaveBeenCalled();
+      addSpy.mockRestore();
+    });
+
+    it('starts straight away when the app is already on screen', async () => {
+      Location.getBackgroundPermissionsAsync.mockResolvedValue({ status: 'granted', granted: true });
+      AppState.currentState = 'active';
+
+      renderHook(true, false);
+      await flush();
+
+      expect(Location.startLocationUpdatesAsync).toHaveBeenCalled();
+    });
+
+    it('starts when the app state is not yet known, rather than stalling forever', async () => {
+      // currentState is undefined until the native module first reports; a
+      // rider who never shares location is worse than the crash being guarded.
+      Location.getBackgroundPermissionsAsync.mockResolvedValue({ status: 'granted', granted: true });
+      AppState.currentState = undefined;
+
+      renderHook(true, false);
+      await flush();
+
+      expect(Location.startLocationUpdatesAsync).toHaveBeenCalled();
+    });
   });
 });

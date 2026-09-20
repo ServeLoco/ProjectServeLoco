@@ -333,16 +333,33 @@ function bustAreaCaches(areaId) {
 // pull-to-refresh or shop event. Emitting here covers every caller at once
 // instead of adding an emit to each controller.
 //
-// Trailing debounce, because bulk import and bulk price update call
-// bustAreaCaches once per row: the emit lands 5s after the LAST write of a
-// burst, so a 500-row import is one broadcast rather than one per row (or,
-// with a leading-edge debounce, one every 5s for as long as the import
-// runs). MAX_WAIT caps the wait so a steady drip of edits can't starve it
-// forever. Every broadcast makes every connected phone in the area refetch,
-// which is why this is worth the bookkeeping; clients jitter on top.
-const CATALOG_EMIT_DEBOUNCE_MS = 5_000;
+// Leading edge + trailing debounce. The FIRST write after a quiet spell emits
+// at once, so a single price edit reaches phones straight away (the customer
+// app refetches within ~300ms). Bulk import and bulk price update call
+// bustAreaCaches once per row, so writes that follow inside the quiet window
+// only mark it dirty; ONE more emit goes out CATALOG_EMIT_QUIET_MS after the
+// last write of the burst — a 500-row import is two broadcasts, not 500.
+// MAX_WAIT caps the wait so a steady drip of edits can't starve the trailing
+// emit forever. Every broadcast makes every connected phone in the area
+// refetch, which is why this is worth the bookkeeping.
+const CATALOG_EMIT_QUIET_MS = 1_000;
 const CATALOG_EMIT_MAX_WAIT_MS = 30_000;
 const catalogEmitTimers = new Map();
+
+function emitCatalogUpdated(areaId) {
+  try {
+    const { emitToAllCustomers, customerRefetchPushedSince } = require('../realtime/socket');
+    // The caller already pushed something the app answers with a refetch
+    // (a scheduled shop open emits shop.status.updated, then busts caches).
+    // Firing here too would make every phone in the area refetch twice for
+    // one change. Window covers the quiet period plus a second of slack.
+    if (customerRefetchPushedSince(areaId, CATALOG_EMIT_QUIET_MS + 1_000)) return;
+    emitToAllCustomers(areaId, 'catalog.updated', { areaId });
+  } catch (_) {
+    // Realtime is best-effort — the write is already persisted and the
+    // server-side caches are already busted.
+  }
+}
 
 function scheduleCatalogUpdatedEmit(rawAreaId) {
   if (rawAreaId === undefined || rawAreaId === null) return;
@@ -353,26 +370,25 @@ function scheduleCatalogUpdatedEmit(rawAreaId) {
 
   const now = Date.now();
   const pending = catalogEmitTimers.get(areaId);
-  const firstRequestedAt = pending ? pending.firstRequestedAt : now;
-  if (pending) clearTimeout(pending.timer);
+
+  let firstRequestedAt = now;
+  let dirty = false;
+  if (pending) {
+    // Inside a burst: hold the emit until the writes stop.
+    clearTimeout(pending.timer);
+    firstRequestedAt = pending.firstRequestedAt;
+    dirty = true;
+  } else {
+    // Quiet spell: tell the phones now.
+    emitCatalogUpdated(areaId);
+  }
 
   const untilCap = firstRequestedAt + CATALOG_EMIT_MAX_WAIT_MS - now;
-  const delay = Math.max(0, Math.min(CATALOG_EMIT_DEBOUNCE_MS, untilCap));
+  const delay = Math.max(0, Math.min(CATALOG_EMIT_QUIET_MS, untilCap));
 
   const timer = setTimeout(() => {
     catalogEmitTimers.delete(areaId);
-    try {
-      const { emitToAllCustomers, customerRefetchPushedSince } = require('../realtime/socket');
-      // The caller already pushed something the app answers with a refetch
-      // (a scheduled shop open emits shop.status.updated, then busts caches).
-      // Firing here too would make every phone in the area refetch twice for
-      // one change. Window covers the debounce plus a second of slack.
-      if (customerRefetchPushedSince(areaId, CATALOG_EMIT_DEBOUNCE_MS + 1_000)) return;
-      emitToAllCustomers(areaId, 'catalog.updated', { areaId });
-    } catch (_) {
-      // Realtime is best-effort — the write is already persisted and the
-      // server-side caches are already busted.
-    }
+    if (dirty) emitCatalogUpdated(areaId);
   }, delay);
   if (typeof timer.unref === 'function') timer.unref();
   catalogEmitTimers.set(areaId, { timer, firstRequestedAt });

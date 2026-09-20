@@ -205,6 +205,22 @@ jest.mock('@notifee/react-native', () => {
   };
 });
 
+// Mock @react-native-firebase/crashlytics — native module not available in
+// Node/Jest. Modular API only, matching src/utils/crashReporting.js.
+jest.mock('@react-native-firebase/crashlytics', () => {
+  const crashlyticsInstance = { __mock: 'crashlytics' };
+  return {
+    __esModule: true,
+    default: jest.fn(() => crashlyticsInstance),
+    getCrashlytics: jest.fn(() => crashlyticsInstance),
+    log: jest.fn(),
+    recordError: jest.fn(),
+    setAttributes: jest.fn(async () => null),
+    setCrashlyticsCollectionEnabled: jest.fn(async () => null),
+    setUserId: jest.fn(async () => null),
+  };
+});
+
 // Mock @react-native-firebase/messaging — native module not available in Node/Jest.
 // Supports modular API (getMessaging/getToken/onMessage/…) used in production code.
 jest.mock('@react-native-firebase/messaging', () => {

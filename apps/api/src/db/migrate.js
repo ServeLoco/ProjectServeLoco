@@ -1144,6 +1144,10 @@ const migrate = async () => {
     // window — just a flat amount added to the bill while enabled).
     await ensureColumn('settings', 'rain_charge_enabled', 'rain_charge_enabled BOOLEAN DEFAULT FALSE AFTER current_version');
     await ensureColumn('settings', 'rain_charge', 'rain_charge DECIMAL(10, 2) DEFAULT 0.00 AFTER rain_charge_enabled');
+    // Customer app nav-bar image (right of the bottom nav): an uploaded image
+    // and the link it opens. Both nullable — no image means the slot stays empty.
+    await ensureColumn('settings', 'nav_promo_image_id', 'nav_promo_image_id INT NULL DEFAULT NULL');
+    await ensureColumn('settings', 'nav_promo_link', 'nav_promo_link VARCHAR(500) NULL DEFAULT NULL');
     // Radius-based zone pricing master switch. Zone pricing applies only when
     // this is on AND shop_latitude/shop_longitude are set AND at least one
     // active delivery_zones row exists — otherwise flat pricing is used.
@@ -1387,6 +1391,12 @@ const migrate = async () => {
     await ensureColumn('dashboard_sections', 'deleted_at', 'deleted_at TIMESTAMP NULL DEFAULT NULL AFTER version');
     await ensureColumn('dashboard_sections', 'show_hot_badge', 'show_hot_badge BOOLEAN DEFAULT FALSE AFTER show_see_all');
     await ensureColumn('dashboard_sections', 'section_icon', "section_icon VARCHAR(50) DEFAULT NULL AFTER show_hot_badge");
+    // Home rows created automatically from shops and categories (utils/autoSections):
+    // auto_kind is 'shop' or 'category', auto_source_id the shop/category id. Both
+    // NULL for the admin's own sections. Everything else about such a row (order,
+    // visibility, max items, timing) is edited like any other section.
+    await ensureColumn('dashboard_sections', 'auto_kind', 'auto_kind VARCHAR(20) NULL DEFAULT NULL AFTER section_icon');
+    await ensureColumn('dashboard_sections', 'auto_source_id', 'auto_source_id INT NULL DEFAULT NULL AFTER auto_kind');
     await connection.query('ALTER TABLE dashboard_sections MODIFY COLUMN store_type VARCHAR(50) NOT NULL DEFAULT "all"');
     logger.info('Dashboard sections table ready.');
     try {

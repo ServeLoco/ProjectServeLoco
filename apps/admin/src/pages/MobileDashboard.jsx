@@ -667,16 +667,20 @@ export default function MobileDashboard() {
                 <div className="section-meta-info">
                   <span className="section-card-title">{sec.title}</span>
                   <div className="section-card-badges">
-                    <span className="badge badge-type">{sec.section_type.replace('_', ' ')}</span>
+                    <span className="badge badge-type">
+                      {sec.auto_kind ? `${sec.auto_kind} row` : sec.section_type.replace('_', ' ')}
+                    </span>
                     <span className="badge badge-store">{sec.store_type}</span>
                     <span className={`badge ${sec.active ? 'badge-status-active' : 'badge-status-hidden'}`}>
                       {sec.active ? 'Active' : 'Hidden'}
                     </span>
+                    {sec.auto_kind && <span className="badge badge-type" title="Created automatically from your shops and categories">Auto created</span>}
                   </div>
                 </div>
               </div>
             ))
           )}
+
         </div>
       </aside>
 
@@ -686,14 +690,18 @@ export default function MobileDashboard() {
           <>
             <header className="detail-header-bar">
               <h2 className="detail-title">{selectedSection.title} Details</h2>
-              <button 
-                className="btn-danger" 
-                style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}
-                onClick={handleDeleteSection}
-                disabled={savingSection}
-              >
-                Delete Section
-              </button>
+              {selectedSection.auto_kind ? (
+                <span className="badge badge-type" title="Created automatically from your shops and categories">Auto created</span>
+              ) : (
+                <button 
+                  className="btn-danger" 
+                  style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}
+                  onClick={handleDeleteSection}
+                  disabled={savingSection}
+                >
+                  Delete Section
+                </button>
+              )}
             </header>
 
             <div className="detail-body-container">
@@ -716,7 +724,11 @@ export default function MobileDashboard() {
                       className="form-input"
                       value={editForm.title}
                       onChange={handleEditFormChange}
+                      disabled={Boolean(selectedSection.auto_kind)}
                     />
+                    {selectedSection.auto_kind && (
+                      <div className="form-hint">Follows the {selectedSection.auto_kind} name automatically.</div>
+                    )}
                   </div>
                   <div className="form-group">
                     <label className="form-label">Slug</label>
@@ -727,6 +739,7 @@ export default function MobileDashboard() {
                       className="form-input" 
                       value={editForm.slug} 
                       onChange={handleEditFormChange} 
+                      disabled={Boolean(selectedSection.auto_kind)}
                     />
                   </div>
                 </div>
@@ -739,6 +752,7 @@ export default function MobileDashboard() {
                       className="form-select" 
                       value={editForm.store_type} 
                       onChange={handleEditFormChange}
+                      disabled={Boolean(selectedSection.auto_kind)}
                     >
                       <option value="all">All Stores (legacy)</option>
                       {modes.map(m => <option key={m.slug} value={m.slug}>{m.label} Only</option>)}
@@ -887,7 +901,20 @@ export default function MobileDashboard() {
                 </div>
               </form>
 
-              {/* Items Management */}
+              {/* Items Management — automatic rows choose their own items */}
+              {selectedSection.auto_kind ? (
+                <div className="section-items-workspace">
+                  <div className="items-workspace-header">
+                    <h3 className="items-workspace-title">Items</h3>
+                  </div>
+                  <div style={{ padding: '1rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                    {selectedSection.auto_kind === 'shop'
+                      ? 'This row shows the shop\'s items in this shop mode.'
+                      : 'This row shows the category\'s items.'}
+                    {' '}The app picks up to “Max Display Items” of them by itself and keeps them up to date, so there is nothing to assign. Order, visibility, timing, icon and the other settings above work like any other section.
+                  </div>
+                </div>
+              ) : (
               <div className="section-items-workspace">
                 <div className="items-workspace-header">
                   <h3 className="items-workspace-title">
@@ -957,13 +984,16 @@ export default function MobileDashboard() {
                   )}
                 </div>
               </div>
+              )}
 
               {/* Add Items trigger */}
-              <div className="add-items-trigger">
-                <button type="button" className="btn-primary btn-assign-open" onClick={() => setIsAssignOpen(true)}>
-                  + Assign New Item
-                </button>
-              </div>
+              {!selectedSection.auto_kind && (
+                <div className="add-items-trigger">
+                  <button type="button" className="btn-primary btn-assign-open" onClick={() => setIsAssignOpen(true)}>
+                    + Assign New Item
+                  </button>
+                </div>
+              )}
 
             </div>
           </>

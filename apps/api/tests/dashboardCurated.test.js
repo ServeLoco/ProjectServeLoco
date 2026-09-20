@@ -1,3 +1,10 @@
+jest.mock('../src/utils/autoSections', () => ({
+  // These tests are about the admin's own sections; the automatic shop/category
+  // rows (utils/autoSections) have their own test file.
+  syncAutoSections: jest.fn().mockResolvedValue(new Set()),
+  isAutoRowVisible: jest.requireActual('../src/utils/autoSections').isAutoRowVisible,
+}));
+
 const request = require('supertest');
 const express = require('express');
 const dashboardRoutes = require('../src/routes/dashboardRoutes');

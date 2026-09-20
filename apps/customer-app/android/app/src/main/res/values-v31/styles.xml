@@ -1,0 +1,9 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+  <!-- Android 12+ draws its own system splash from the launcher icon. Hide the icon and
+       keep only the dark background, so the splash artwork window background takes over. -->
+  <style name="Theme.App.SplashScreen" parent="AppTheme">
+    <item name="android:windowBackground">@drawable/ic_launcher_background</item>
+    <item name="android:windowSplashScreenBackground">@color/splashscreen_background</item>
+    <item name="android:windowSplashScreenAnimatedIcon">@android:color/transparent</item>
+  </style>
+</resources>

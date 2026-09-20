@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RIDER_BACKGROUND_LOCATION_TASK } from '../tasks/riderBackgroundLocationTask';
@@ -41,6 +41,9 @@ export function useRiderBackgroundLocationTracking(isOnline, hasActiveAssignment
   const [disclosureVisible, setDisclosureVisible] = useState(false);
   const resolveDisclosureRef = useRef(null);
   const runningRef = useRef(false);
+  // Cancels a start() parked in waitForForeground, so it cannot fire the
+  // service after the effect that wanted it has already been torn down.
+  const foregroundWaiterRef = useRef(null);
 
   useEffect(() => {
     // Inert on unsupported platforms: no permission prompt, no task, and no
@@ -79,6 +82,39 @@ export function useRiderBackgroundLocationTracking(isOnline, hasActiveAssignment
       return status === 'granted';
     }
 
+    /**
+     * Resolve once the app is actually on screen (or immediately, if it
+     * already is).
+     *
+     * startLocationUpdatesAsync spins up a location foreground service, and
+     * Android kills the app with
+     * RemoteServiceException$ForegroundServiceDidNotStartInTimeException when
+     * a service started from the background cannot promote itself in time.
+     * That is exactly the state this runs in: requesting "Allow all the time"
+     * sends the rider out to a system settings screen, so by the time the
+     * permission resolves our process is backgrounded. Starting the service
+     * right there is what produced 21.4% of the app's crash events.
+     */
+    function waitForForeground() {
+      const state = AppState.currentState;
+      // Defer only when the app is positively known to be off screen.
+      // currentState is undefined until the native module first reports (cold
+      // start), and parking on "unknown" would leave a rider silently sharing
+      // no location at all — a worse failure than the crash this guards.
+      if (state !== 'background' && state !== 'inactive') return Promise.resolve(true);
+      return new Promise((resolve) => {
+        const sub = AppState.addEventListener('change', (state) => {
+          if (state !== 'active') return;
+          sub.remove();
+          resolve(!cancelled);
+        });
+        foregroundWaiterRef.current = () => {
+          sub.remove();
+          resolve(false);
+        };
+      });
+    }
+
     async function start() {
       if (runningRef.current) return;
       const foreground = await Location.getForegroundPermissionsAsync();
@@ -94,6 +130,10 @@ export function useRiderBackgroundLocationTracking(isOnline, hasActiveAssignment
         runningRef.current = true;
         return;
       }
+
+      // Never start the service from the background — see waitForForeground.
+      const inForeground = await waitForForeground();
+      if (cancelled || !inForeground) return;
 
       await Location.startLocationUpdatesAsync(RIDER_BACKGROUND_LOCATION_TASK, {
         accuracy: IDLE_PING_ACCURACY,
@@ -143,6 +183,10 @@ export function useRiderBackgroundLocationTracking(isOnline, hasActiveAssignment
 
     return () => {
       cancelled = true;
+      if (foregroundWaiterRef.current) {
+        foregroundWaiterRef.current();
+        foregroundWaiterRef.current = null;
+      }
       // The disclosure modal can be up (awaiting the rider's tap) when this
       // effect re-runs (isOnline/hasActiveAssignment flipped, e.g. a job
       // just got assigned) or the component unmounts. Without resolving it

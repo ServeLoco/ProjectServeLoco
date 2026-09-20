@@ -27,8 +27,49 @@ describe('Home store-mode switching', () => {
     expect(capsuleIndex).toBeLessThan(wrapperIndex);
   });
 
-  it('drops an interrupted fade instead of applying a mode the user moved past', () => {
-    expect(homeSource).toMatch(/\.start\(\(\{ finished \}\) => \{[\s\S]{0,400}?if \(!finished\) return;/);
+  it('reacts the moment a mode is tapped, with no fade-out wait', () => {
+    const handler = homeSource.slice(homeSource.indexOf('const selectStoreType = useCallback'));
+    const body = handler.slice(0, handler.indexOf('}, [storeType, sectionsFade]);'));
+    expect(body).toMatch(/setStoreType\(val\);/);
+    // The old handler waited for a 110ms fade-out before swapping.
+    expect(body).not.toMatch(/toValue: 0/);
+    expect(body).toMatch(/sectionsFade\.setValue\(0\.4\);/);
+  });
+
+  it('only redraws Home sections when the fetched data actually changed', () => {
+    expect(homeSource).toMatch(/JSON\.stringify\(previous\) === JSON\.stringify\(sectionsData\)/);
+  });
+
+  it('keeps product cards memoised and their handlers stable across cart changes', () => {
+    expect(homeSource).toMatch(/const HomeProductCard = React\.memo\(/);
+    expect(homeSource).toMatch(/section\.items\.map\(normalizeProductCached\)/);
+    // Handlers read the cart at tap time; depending on `items` would rebuild
+    // them (and re-render every card) on each add.
+    expect(homeSource).toMatch(/\}, \[requireAuth, addCombo, addItem\]\);/);
+    expect(homeSource).toMatch(/\}, \[decrementCombo, removeItem, updateQuantity\]\);/);
+  });
+
+  it('draws Home sections a few at a time, lower ones only as the customer nears them', () => {
+    expect(homeSource).toMatch(/const SECTIONS_INITIAL = 2;/);
+    expect(homeSource).toMatch(/orderedUnits\.slice\(0, renderedSectionCount\)\.map\(/);
+    // The next section is drawn once the drawn ones end within a screen of the view's bottom.
+    expect(homeSource).toMatch(/offset \+ viewport \* 2 < content/);
+    expect(homeSource).toMatch(/count \+ 1/);
+    // A new mode starts from the top again.
+    const handler = homeSource.slice(homeSource.indexOf('const selectStoreType = useCallback'));
+    expect(handler.slice(0, 900)).toMatch(/setRenderedSectionCount\(SECTIONS_INITIAL\)/);
+  });
+
+  it('retries a failed first load on its own instead of waiting for a pull to refresh', () => {
+    expect(homeSource).toMatch(/const DASHBOARD_RETRY_DELAYS_MS = \[1500, 3000, 5000, 8000, 12000\];/);
+    expect(homeSource).toMatch(/dashboardFailuresRef\.current >= DASHBOARD_FAILURES_BEFORE_ERROR/);
+    expect(homeSource).toMatch(/retryDashboardLoadSoon\(\);/);
+    // Connection coming back retries at once.
+    expect(homeSource).toMatch(/addNetInfoListener\(\(state\) =>/);
+  });
+
+  it('lets the first tap on Buy through when the keyboard is open', () => {
+    expect(homeSource).toMatch(/keyboardShouldPersistTaps="handled"\n\s+refreshControl=/);
   });
 
   it('keeps the header and capsule up on a post-first-load fetch', () => {
@@ -36,11 +77,18 @@ describe('Home store-mode switching', () => {
     expect(homeSource).toMatch(/setHasLoadedOnce\(true\);/);
   });
 
-  it('re-warms the other modes after a live event drops their cache', () => {
-    // Both containers are refs; without the counter the prefetch effect
-    // never re-runs and the dropped modes stay cold.
-    expect(homeSource).toMatch(/setCacheGeneration\(gen => gen \+ 1\);/);
-    expect(homeSource).toMatch(/prefetchSectionImages, cacheGeneration\]\);/);
+  it('refetches a catalog.updated push (admin price edit) within a fraction of a second', () => {
+    expect(homeSource).toMatch(/const CATALOG_REFETCH_JITTER_MS = 300;/);
+    expect(homeSource).toMatch(/'catalog\.updated' \? CATALOG_REFETCH_JITTER_MS/);
+  });
+
+  it('always loads a mode fresh — no data reused from an earlier visit or a background prefetch', () => {
+    const handler = homeSource.slice(homeSource.indexOf('const selectStoreType = useCallback'));
+    const body = handler.slice(0, handler.indexOf('}, [storeType, sectionsFade]);'));
+    expect(body).toMatch(/delete sectionsCacheRef\.current\[val\];/);
+    expect(body).toMatch(/setDashboardSections\(\[\]\);/);
+    expect(homeSource).not.toMatch(/prefetchedModesRef/);
+    expect(homeSource).not.toMatch(/dropOtherModeCaches/);
   });
 
   it('tells the customer why the skeleton is still up on a weak link', () => {
@@ -58,5 +106,83 @@ describe('catalog.updated', () => {
   it('revalidates the product list in place, keeping loaded pages', () => {
     expect(productListSource).toMatch(/eventName === 'catalog\.updated'/);
     expect(productListSource).toMatch(/fetchProductsRef\.current\?\.\(\{ silent: true \}\)/);
+    expect(productListSource).toMatch(/Math\.random\(\) \* 300\)/);
+  });
+});
+
+describe('Home loading skeleton', () => {
+  it('is built from the real sections\' sizes with explicit heights, and has no padding of its own', () => {
+    // Explicit heights: LoadingSkeleton's default height would beat an aspectRatio.
+    expect(homeSource).toMatch(/categoryHeight: Math\.round\(categoryWidth \/ 0\.9\)/);
+    expect(homeSource).toMatch(/productHeight: Math\.round\(productWidth \/ 0\.82\)/);
+    expect(homeSource).toMatch(/bannerHeight: Math\.round\(\(contentWidth \* 8\) \/ 16\)/);
+    expect(homeSource).toMatch(/skeletonContainer: \{\n {4}flex: 1,\n {2}\},/);
+    expect(homeSource).not.toMatch(/aspectRatio: 0\.9,\n {4}borderRadius: radius\.lg,\n {2}\},\n {2}categoryScroll/);
+  });
+});
+
+describe('Home offer banner corners', () => {
+  it('rounds one clip around the whole strip, not each banner, so corners stay round mid-slide', () => {
+    expect(homeSource).toMatch(/offerCarouselClip: \{\n {4}borderRadius: 18,\n {4}overflow: 'hidden',/);
+    expect(homeSource).toMatch(/<View style=\{\[styles\.offerCarouselClip, \{ width: bannerWidth \}\]\}>/);
+    expect(homeSource).toMatch(/offerBanner: \{\n {4}overflow: 'hidden',/);
+  });
+
+  it('drives the dots only from the scroll position, so they never snap or flicker', () => {
+    // An `activeIndex === index ? 1 : opacity` override made the new dot jump
+    // to full while the old one dropped, before the strip had even moved.
+    expect(homeSource).not.toMatch(/activeIndex === index/);
+    expect(homeSource).toMatch(/const activeIndexRef = useRef\(0\);/);
+  });
+
+  it('cuts back to the first banner instead of whipping the strip past every banner', () => {
+    expect(homeSource).toMatch(/animated: nextIndex !== 0/);
+  });
+});
+
+describe('Home automatic rows (shops, then categories)', () => {
+  it('draws automatic rows as ordinary sections in the admin\'s order, 8 items each by default, See all opens the shop or category', () => {
+    expect(homeSource).toMatch(/const AUTO_BLOCK_LIMIT = 8;/);
+    expect(homeSource).toMatch(/const AutoProductBlock = React\.memo\(/);
+    // The row's own "max display items" setting drives the limit.
+    expect(homeSource).toMatch(/const limit = Number\(auto\.maxVisibleItems\) > 0/);
+    // A shop row loads by shop, a category row by category.
+    expect(homeSource).toMatch(/auto\.autoKind === 'shop' \? \{ shopId: auto\.sourceId \} : \{ categoryId: auto\.sourceId \}/);
+    expect(homeSource).toMatch(/orderedUnits\.slice\(0, renderedSectionCount\)\.map\(unit => \{/);
+    expect(homeSource).toMatch(/onSeeAll=\{handleAutoSeeAll\}/);
+    expect(homeSource).toMatch(/shopId: auto\.sourceId, sectionTitle: auto\.title/);
+    expect(homeSource).not.toMatch(/seeAllCategoriesRow/);
+    expect(homeSource).not.toMatch(/label="See all categories"/);
+  });
+
+  it('gets them from the dashboard sections (same list and order as the admin), never its own fetch', () => {
+    expect(homeSource).toMatch(/const isAuto = Boolean\(section\.auto\);/);
+    expect(homeSource).toMatch(/isAuto \? \{ kind: 'auto', auto: section \} : \{ kind: 'section', section \}/);
+    expect(homeSource).not.toMatch(/productsApi\.getCategories/);
+    expect(homeSource).not.toMatch(/autoSections/);
+    expect(homeSource).toMatch(/setAutoBlocksRefresh\(\(n\) => n \+ 1\);/);
+  });
+
+  it('refetches them at once on an availability or shop change', () => {
+    const availability = homeSource.slice(homeSource.indexOf('subscribeProductAvailabilityEvents(({ payload })'));
+    expect(availability.slice(0, 700)).toMatch(/setAutoBlocksRefresh\(\(n\) => n \+ 1\);/);
+    const shop = homeSource.slice(homeSource.indexOf("if (eventName === 'shop.status.updated')") - 250);
+    expect(shop.slice(0, 350)).toMatch(/setAutoBlocksRefresh\(\(n\) => n \+ 1\);/);
+  });
+
+  it('draws them one at a time with the admin sections', () => {
+    expect(homeSource).toMatch(/const totalDrawUnits = orderedUnits\.length;/);
+  });
+});
+
+describe('Home puts sections with only unavailable items last', () => {
+  it('keeps the admin\'s order but moves every all-unavailable section (manual or automatic) to the end', () => {
+    expect(homeSource).toMatch(/function isSectionAllUnavailable\(section\)/);
+    expect(homeSource).toMatch(/return \[\.\.\.available, \.\.\.unavailable\];/);
+  });
+
+  it('automatic rows report when all their items are unavailable, and the order follows live', () => {
+    expect(homeSource).toMatch(/onAvailability\?\.\(auto\.id, allUnavailable\)/);
+    expect(homeSource).toMatch(/\[dashboardSections, unavailableAutoIds\]/);
   });
 });
