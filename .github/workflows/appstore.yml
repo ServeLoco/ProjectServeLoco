@@ -1,8 +1,10 @@
 name: App Store (VillKro customer app)
 
-# Mirrors playstore.yml, with one structural difference: iOS cannot be built
-# on the self-hosted Linux runner (Xcode requires macOS), so the build runs on
-# EAS cloud infrastructure. The runner only orchestrates and waits.
+# Mirrors playstore.yml. Both stores build on EAS cloud infrastructure — iOS
+# has no choice (Xcode requires macOS) and Android is set up the same way — so
+# the runner here never compiles anything. It installs deps, runs the suite,
+# and drives the EAS API. That is why it no longer asks for a self-hosted
+# machine: nothing in this file needs one.
 #
 # OTA updates are deliberately NOT published here. `eas update` is
 # platform-agnostic — playstore.yml already publishes to the `production`
@@ -33,27 +35,26 @@ jobs:
   # ── 1. CI gate: lint + tests must pass before we build or submit. ──────────
   ci:
     name: Lint & Test
-    runs-on: [self-hosted, linux, x64, villkro-android]
+    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ${{ env.APP_DIR }}
     steps:
       - uses: actions/checkout@v5
-      # No remote npm cache on self-hosted — see playstore.yml for rationale.
       - uses: actions/setup-node@v5
         with:
           node-version: "22"
-          package-manager-cache: false
+          cache: "npm"
+          cache-dependency-path: ${{ env.APP_DIR }}/package-lock.json
       - run: npm ci
       - run: npm run lint
       - run: npm test -- --ci
 
   # ── 2. Decide whether this merge needs a native rebuild. ──────────────────
-  # Same rules as playstore.yml so both stores stay in lockstep, with a
-  # separate first-deploy marker (iOS has its own "never shipped" state).
+  # Same rules as playstore.yml so both stores stay in lockstep.
   detect-bump:
     name: Detect bump (major vs minor)
-    runs-on: [self-hosted, linux, x64, villkro-android]
+    runs-on: ubuntu-latest
     needs: ci
     env:
       FORCE_MAJOR: ${{ vars.FORCE_MAJOR }}
@@ -112,16 +113,9 @@ jobs:
             REASON="FORCE_MAJOR=true set on the repo"
           fi
 
-          # iOS-specific first-deploy marker. Kept separate from the Android
-          # one so bootstrapping either store does not consume the other's.
-          FIRST_DEPLOY_MARKER="/home/linux-server/Documents/builds/.first-deploy-ios"
-          mkdir -p /home/linux-server/Documents/builds
-          if [ ! -f "$FIRST_DEPLOY_MARKER" ]; then
-            BUMP="major"
-            REASON="first iOS deploy bootstrap (.first-deploy-ios missing)"
-            touch "$FIRST_DEPLOY_MARKER"
-            echo "✓ Created first-deploy marker at $FIRST_DEPLOY_MARKER"
-          fi
+          # The iOS first-deploy marker is gone for the same reason as the
+          # Android one in playstore.yml: it lived on one machine's disk, and a
+          # hosted runner has no such disk. See that file for the full note.
 
           if [ "$PKG_CHANGED" = "true" ]; then
             BUMP="major"
@@ -143,7 +137,7 @@ jobs:
   # ── 3. Cloud build + App Store submit (major bumps only). ─────────────────
   build-submit:
     name: Build / Submit (EAS cloud)
-    runs-on: [self-hosted, linux, x64, villkro-android]
+    runs-on: ubuntu-latest
     needs: detect-bump
     if: needs.detect-bump.outputs.bump == 'major'
     steps:
@@ -151,7 +145,8 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "22"
-          package-manager-cache: false
+          cache: "npm"
+          cache-dependency-path: ${{ env.APP_DIR }}/package-lock.json
 
       - name: Install app deps
         working-directory: ${{ env.APP_DIR }}
@@ -159,6 +154,18 @@ jobs:
 
       - name: Install EAS CLI
         run: npm install -g eas-cli@latest
+
+      # "Persist the version EAS used" below runs `git commit`. On the old
+      # self-hosted box that worked by accident, off a global ~/.gitconfig some
+      # human had set up long ago. A hosted runner has no identity, so the
+      # commit would abort with "Author identity unknown" AFTER the build and
+      # the App Store upload had already succeeded — a green release reported
+      # as a failure. playstore.yml has always configured git here; this file
+      # never did, and only got away with it because of that machine.
+      - name: Configure git for EAS
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name  "github-actions[bot]"
 
       - name: Verify EAS authentication
         env:
@@ -242,7 +249,10 @@ jobs:
             exit 0
           fi
           git add app.json
-          git commit -m "chore: record ios buildNumber $CODE used by EAS [skip ci]"
+          git commit -m "chore: record ios buildNumber $CODE used by EAS [skip ci]" || {
+            echo "::warning::could not commit the buildNumber — skipping the write-back"
+            exit 0
+          }
           git push origin HEAD:main || {
             echo "::warning::could not push the version bump back to main (branch protection?) — app.json still says the old value, next release will collide"
             exit 0
