@@ -156,8 +156,7 @@ describe('Home automatic rows (shops, then categories)', () => {
   });
 
   it('gets them from the dashboard sections (same list and order as the admin), never its own fetch', () => {
-    expect(homeSource).toMatch(/const isAuto = Boolean\(section\.auto\);/);
-    expect(homeSource).toMatch(/isAuto \? \{ kind: 'auto', auto: section \} : \{ kind: 'section', section \}/);
+    expect(homeSource).toMatch(/orderHomeUnits\(dashboardSections\)/);
     expect(homeSource).not.toMatch(/productsApi\.getCategories/);
     expect(homeSource).not.toMatch(/autoSections/);
     expect(homeSource).toMatch(/setAutoBlocksRefresh\(\(n\) => n \+ 1\);/);
@@ -176,13 +175,36 @@ describe('Home automatic rows (shops, then categories)', () => {
 });
 
 describe('Home puts sections with only unavailable items last', () => {
-  it('keeps the admin\'s order but moves every all-unavailable section (manual or automatic) to the end', () => {
-    expect(homeSource).toMatch(/function isSectionAllUnavailable\(section\)/);
-    expect(homeSource).toMatch(/return \[\.\.\.available, \.\.\.unavailable\];/);
+  it('draws the units in the order homeSectionOrder gives (behaviour is covered in homeSectionOrder.test.js)', () => {
+    expect(homeSource).toMatch(/const orderedUnits = useMemo\(\(\) => orderHomeUnits\(dashboardSections\), \[dashboardSections\]\);/);
   });
 
-  it('automatic rows report when all their items are unavailable, and the order follows live', () => {
-    expect(homeSource).toMatch(/onAvailability\?\.\(auto\.id, allUnavailable\)/);
-    expect(homeSource).toMatch(/\[dashboardSections, unavailableAutoIds\]/);
+  it('takes the answer for automatic rows from the server, so the page never reshuffles after rows load', () => {
+    const orderSource = require('fs').readFileSync(
+      require('path').join(__dirname, '..', 'src', 'screens', 'customer', 'HomeScreen', 'homeSectionOrder.js'), 'utf8');
+    expect(orderSource).toMatch(/\? Boolean\(section\.allUnavailable\)/);
+    // No client-side reporting/reordering once a row has loaded.
+    expect(homeSource).not.toMatch(/unavailableAutoIds/);
+    expect(homeSource).not.toMatch(/onAvailability/);
+    // Sellable items first, so a row's few shown items never hide an available one.
+    expect(homeSource).toMatch(/availableFirst: 1,/);
+  });
+});
+
+describe('Home fills in top to bottom', () => {
+  it('a row shows its content only after every automatic row above it has, holding a same-size skeleton until then', () => {
+    expect(homeSource).toMatch(/const revealed = Boolean\(loaded\) && canReveal !== false;/);
+    expect(homeSource).toMatch(/let rowsAboveRevealed = true;/);
+    expect(homeSource).toMatch(/if \(!loadedAutoIds\[auto\.id\]\) rowsAboveRevealed = false;/);
+    expect(homeSource).toMatch(/canReveal=\{canReveal\}/);
+    expect(homeSource).toMatch(/onLoaded=\{handleAutoLoaded\}/);
+  });
+
+  it('a manual section below a row that is still loading waits behind a skeleton (strictly top to bottom)', () => {
+    expect(homeSource).toMatch(/if \(!rowsAboveRevealed\) \{/);
+  });
+
+  it('draws the rows\' skeletons together (one frame apart), not one by one', () => {
+    expect(homeSource).toMatch(/setTimeout\(drawMoreIfNeeded, 16\)/);
   });
 });

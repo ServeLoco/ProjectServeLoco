@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react'
 import { Image as ExpoImage } from 'expo-image';
 import { addEventListener as addNetInfoListener } from '@react-native-community/netinfo';
 import RetryingImage from '../../../components/ProductImage/RetryingImage';
+import { normalizeProductCached, orderHomeUnits } from './homeSectionOrder';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import {
@@ -187,22 +188,6 @@ function HomeSectionsSkeleton({ windowWidth, withBanner = false, modeCount = 2 }
   );
 }
 
-// normalizeProduct builds a fresh object every call. Caching by the raw item
-// keeps each card's props identical between renders, so a cart change only
-// re-renders the card whose quantity changed. A live patch (price, shop
-// closed) replaces the raw item, which drops it out of the cache — the card
-// then re-renders with the new name/price straight away.
-const normalizedProductCache = new WeakMap();
-function normalizeProductCached(raw) {
-  if (!raw || typeof raw !== 'object') return normalizeProduct(raw);
-  let normalized = normalizedProductCache.get(raw);
-  if (!normalized) {
-    normalized = normalizeProduct(raw);
-    normalizedProductCache.set(raw, normalized);
-  }
-  return normalized;
-}
-
 // One product card in a Home rail. Memoised: with stable handlers and cached
 // items, tapping Buy re-renders only this card instead of every card on Home.
 const HomeProductCard = React.memo(function HomeProductCard({
@@ -250,18 +235,6 @@ const HomeProductCard = React.memo(function HomeProductCard({
   );
 });
 
-// A product the card would show as unavailable: turned off, or its shop is closed.
-const isProductUnavailable = (p) =>
-  !p.available || p.shopIsOpen === false || p.shop_is_open === false;
-
-// A product/combo section whose items are ALL unavailable. Such a section goes
-// to the very end of Home (see orderedUnits in HomeScreen).
-function isSectionAllUnavailable(section) {
-  if (section?.sectionType !== 'product_block' && section?.sectionType !== 'combo_block') return false;
-  const items = Array.isArray(section.items) ? section.items : [];
-  return items.length > 0 && items.every((raw) => isProductUnavailable(normalizeProductCached(raw)));
-}
-
 // One automatic row at the end of Home. `auto` is a row the server described
 // (`autoKind` 'shop' or 'category', `sourceId`, `title`): the shop's or
 // category's name, a row of up to AUTO_BLOCK_LIMIT products, and See all when
@@ -280,7 +253,8 @@ const AutoProductBlock = React.memo(function AutoProductBlock({
   onIncrement,
   onDecrement,
   onSeeAll,
-  onAvailability,
+  canReveal,
+  onLoaded,
 }) {
   // "Max display items" from the admin's settings for this row (default 8).
   const limit = Number(auto.maxVisibleItems) > 0 ? Number(auto.maxVisibleItems) : AUTO_BLOCK_LIMIT;
@@ -299,6 +273,8 @@ const AutoProductBlock = React.memo(function AutoProductBlock({
         type: storeType,
         storeType,
         include_closed_shops: 1,
+        // Sellable items first, so the few shown never hide an available one.
+        availableFirst: 1,
         limit,
         latitude: lat,
         longitude: lng,
@@ -335,12 +311,20 @@ const AutoProductBlock = React.memo(function AutoProductBlock({
     };
   }, [auto.id, auto.autoKind, auto.sourceId, limit, storeType, lat, lng, refreshSignal]);
 
-  // Tell Home whether every item here is unavailable, so it can move this
-  // row to the very end of the page.
-  const allUnavailable = Boolean(loaded && loaded.items.length > 0 && loaded.items.every(isProductUnavailable));
+  // Tell Home this row has its data, so the rows below it may show theirs.
   useEffect(() => {
-    if (loaded) onAvailability?.(auto.id, allUnavailable);
-  }, [loaded, allUnavailable, auto.id, onAvailability]);
+    if (loaded) onLoaded?.(auto.id);
+  }, [loaded, auto.id, onLoaded]);
+
+  // The row shows its content only once it has loaded AND every row above it
+  // has shown theirs — so the page fills in top to bottom, in the admin's
+  // order, never from the bottom up. Until then it holds a same-size skeleton.
+  const revealed = Boolean(loaded) && canReveal !== false;
+  const reveal = useRef(new Animated.Value(revealed ? 1 : 0)).current;
+  useEffect(() => {
+    if (!revealed) return;
+    Animated.timing(reveal, { toValue: 1, duration: 220, useNativeDriver: true }).start();
+  }, [revealed, reveal]);
 
   if (loaded && loaded.items.length === 0) return null;
 
@@ -370,9 +354,10 @@ const AutoProductBlock = React.memo(function AutoProductBlock({
           ) : null}
         </View>
       </View>
-      {loaded === null ? (
+      {!revealed ? (
         <SkeletonRail count={3} width={cardWidth} height={Math.round(cardWidth / 0.82)} />
       ) : (
+        <Animated.View style={{ opacity: reveal }}>
         <FlatList
           data={items}
           keyExtractor={(item) => String(item.id)}
@@ -406,6 +391,7 @@ const AutoProductBlock = React.memo(function AutoProductBlock({
             ) : null
           }
         />
+        </Animated.View>
       )}
     </View>
   );
@@ -723,37 +709,22 @@ export default function HomeScreen() {
   const [autoBlocksRefresh, setAutoBlocksRefresh] = useState(0);
   const sectionTotalRef = useRef(0);
   // Drawn one at a time: the admin's sections first, then one block per category.
-  // Automatic rows found to have ONLY unavailable items ({ [autoId]: true }),
-  // reported by the rows themselves once they have loaded.
-  const [unavailableAutoIds, setUnavailableAutoIds] = useState({});
-  const handleAutoAvailability = useCallback((autoId, allUnavailable) => {
-    setUnavailableAutoIds((prev) => {
-      if (Boolean(prev[autoId]) === allUnavailable) return prev;
-      const next = { ...prev };
-      if (allUnavailable) next[autoId] = true; else delete next[autoId];
-      return next;
-    });
+  // Automatic rows that have shown their content ({ [autoId]: true }): a row
+  // reveals only after every row above it has (see AutoProductBlock).
+  const [loadedAutoIds, setLoadedAutoIds] = useState({});
+  const handleAutoLoaded = useCallback((autoId) => {
+    setLoadedAutoIds((prev) => (prev[autoId] ? prev : { ...prev, [autoId]: true }));
   }, []);
   // The page top to bottom, drawn one unit at a time, in the order the admin
   // set on App Home. Rows Home creates by itself (a row per shop / category,
   // flagged `auto`) are ordinary sections in that list — reordered, hidden or
   // timed exactly like the others. Sections with something to buy come first;
-  // last of all, any section whose items are ALL unavailable. Recomputed live,
-  // so a section moves the moment its last item goes out of stock — and comes
-  // back when one is available again.
-  const orderedUnits = useMemo(() => {
-    const available = [];
-    const unavailable = [];
-    for (const section of dashboardSections) {
-      const isAuto = Boolean(section.auto);
-      const allUnavailable = isAuto
-        ? Boolean(unavailableAutoIds[section.id])
-        : isSectionAllUnavailable(section);
-      (allUnavailable ? unavailable : available)
-        .push(isAuto ? { kind: 'auto', auto: section } : { kind: 'section', section });
-    }
-    return [...available, ...unavailable];
-  }, [dashboardSections, unavailableAutoIds]);
+  // last of all, any section whose items are ALL unavailable. Both kinds of
+  // section arrive with that answer already in the dashboard (the server says
+  // it for automatic rows), so the order is fixed before anything is drawn and
+  // the page never reshuffles as rows load. It follows live changes: a section
+  // moves the moment its last item goes out of stock, and back when one returns.
+  const orderedUnits = useMemo(() => orderHomeUnits(dashboardSections), [dashboardSections]);
   const totalDrawUnits = orderedUnits.length;
   sectionTotalRef.current = totalDrawUnits;
   const scrollMetricsRef = useRef({ offset: 0, viewport: 0, content: 0 });
@@ -1333,7 +1304,8 @@ export default function HomeScreen() {
   // otherwise leave no size change to trigger the next one.
   useEffect(() => {
     if (renderedSectionCount >= totalDrawUnits) return undefined;
-    const timer = setTimeout(drawMoreIfNeeded, 80);
+    // One frame apart: the rows' skeletons appear together, not one by one.
+    const timer = setTimeout(drawMoreIfNeeded, 16);
     return () => clearTimeout(timer);
   }, [renderedSectionCount, totalDrawUnits, drawMoreIfNeeded]);
 
@@ -1415,7 +1387,7 @@ export default function HomeScreen() {
     dashboardFailuresRef.current = 0;
     clearTimeout(dashboardRetryTimerRef.current);
     setRenderedSectionCount(SECTIONS_INITIAL);
-    setUnavailableAutoIds({});
+    setLoadedAutoIds({});
     setDashboardSections([]);
     setIsLoading(true);
     setStoreType(val);
@@ -1805,9 +1777,14 @@ export default function HomeScreen() {
               <HomeSectionsSkeleton windowWidth={windowWidth} />
             </View>
           ) : null}
-          {orderedUnits.slice(0, renderedSectionCount).map(unit => {
+          {(() => {
+            // Every automatic row above the current one has shown its content?
+            let rowsAboveRevealed = true;
+            return orderedUnits.slice(0, renderedSectionCount).map(unit => {
             if (unit.kind === 'auto') {
               const { auto } = unit;
+              const canReveal = rowsAboveRevealed;
+              if (!loadedAutoIds[auto.id]) rowsAboveRevealed = false;
               return (
                 <AutoProductBlock
                   key={`${currentApiStoreType}:${auto.id}`}
@@ -1821,11 +1798,23 @@ export default function HomeScreen() {
                   onIncrement={handleIncrement}
                   onDecrement={handleDecrement}
                   onSeeAll={handleAutoSeeAll}
-                  onAvailability={handleAutoAvailability}
+                  canReveal={canReveal}
+                  onLoaded={handleAutoLoaded}
                 />
               );
             }
             const { section } = unit;
+            // A section below a row that has not shown its content yet waits
+            // behind a skeleton, so the page fills in strictly top to bottom.
+            if (!rowsAboveRevealed) {
+              const waitingSizes = homeSkeletonSizes(windowWidth);
+              return (
+                <View key={section.id} style={styles.section}>
+                  <SkeletonSectionTitle />
+                  <SkeletonRail count={3} width={waitingSizes.productWidth} height={waitingSizes.productHeight} />
+                </View>
+              );
+            }
             if (section.sectionType === 'offer_banner') {
               return (
                 <OfferBannerCarousel
@@ -2045,7 +2034,8 @@ export default function HomeScreen() {
             }
 
             return null;
-          })}
+            });
+          })()}
           {renderedSectionCount < totalDrawUnits ? (
             <View style={styles.section}>
               <SkeletonSectionTitle />
