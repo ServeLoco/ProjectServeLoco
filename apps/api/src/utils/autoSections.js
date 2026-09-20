@@ -24,10 +24,25 @@ const AUTO_ITEM_LIMIT = 8;
 
 const keyOf = (kind, sourceId) => `${kind}:${Number(sourceId)}`;
 
+// A product the app can sell right now: switched on, its shop open, and not in
+// an inactive group. This is the same test the customer app uses to grey a
+// card out, so the "everything here is unavailable" flag below agrees with it.
+const SELLABLE_PRODUCT_TAIL = `p.available = 1
+  AND (p.group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = p.group_id AND g.active = 1 AND g.area_id = p.area_id))`;
+
 // What SHOULD exist for this mode, in display order: shops, then categories.
+// Each also says whether ANYTHING in it is sellable (has_available), so Home
+// can put all-unavailable rows last from the very first paint instead of
+// discovering it row by row after they load.
 const getAutoSectionSources = async (areaId, storeType) => {
   const [shops] = await pool.query(
-    `SELECT s.id, s.name
+    `SELECT s.id, s.name,
+       (s.is_open = 1 AND EXISTS (
+         SELECT 1 FROM products p JOIN categories c ON c.id = p.category_id
+         WHERE p.shop_id = s.id AND p.deleted = 0 AND p.is_combo = 0 AND p.area_id = s.area_id
+           AND c.deleted = 0 AND c.active = 1 AND c.type = ?
+           AND ${SELLABLE_PRODUCT_TAIL}
+       )) AS has_available
      FROM shops s
      WHERE s.area_id = ? AND s.active = 1
        AND EXISTS (
@@ -36,11 +51,17 @@ const getAutoSectionSources = async (areaId, storeType) => {
            AND c.deleted = 0 AND c.active = 1 AND c.type = ?
        )
      ORDER BY s.name ASC, s.id ASC`,
-    [areaId, storeType]
+    [storeType, areaId, storeType]
   );
 
   const [categories] = await pool.query(
-    `SELECT c.id, c.name
+    `SELECT c.id, c.name,
+       EXISTS (
+         SELECT 1 FROM products p LEFT JOIN shops sh ON sh.id = p.shop_id
+         WHERE p.category_id = c.id AND p.deleted = 0 AND p.is_combo = 0 AND p.area_id = c.area_id
+           AND (p.shop_id IS NULL OR (sh.is_open = 1 AND sh.active = 1))
+           AND ${SELLABLE_PRODUCT_TAIL}
+       ) AS has_available
      FROM categories c
      WHERE c.area_id = ? AND c.active = 1 AND c.deleted = 0 AND c.type = ?
        AND EXISTS (
@@ -52,25 +73,31 @@ const getAutoSectionSources = async (areaId, storeType) => {
   );
 
   return [
-    ...shops.map((shop) => ({ kind: 'shop', sourceId: Number(shop.id), title: shop.name })),
-    ...categories.map((category) => ({ kind: 'category', sourceId: Number(category.id), title: category.name })),
+    ...shops.map((shop) => ({ kind: 'shop', sourceId: Number(shop.id), title: shop.name, hasAvailable: Boolean(Number(shop.has_available ?? 1)) })),
+    ...categories.map((category) => ({ kind: 'category', sourceId: Number(category.id), title: category.name, hasAvailable: Boolean(Number(category.has_available ?? 1)) })),
   ];
 };
 
 /**
- * Creates/updates the auto rows for one shop mode. Returns the Set of
- * `kind:sourceId` keys that are valid right now — callers hide any auto row
- * not in it. Never throws (returns an empty Set): a failure here must not
- * break Home or the admin page.
+ * Creates/updates the auto rows for one shop mode. Returns
+ *   { valid, unavailable }: two Sets of `kind:sourceId` keys — `valid` are the
+ * rows that exist right now (callers hide any auto row not in it) and
+ * `unavailable` the valid ones with nothing sellable in them (Home puts those
+ * last). Never throws (returns empty Sets): a failure here must not break
+ * Home or the admin page.
  */
 const syncAutoSections = async (areaId, storeType) => {
   const valid = new Set();
-  if (!storeType || storeType === 'all') return valid;
+  const unavailable = new Set();
+  if (!storeType || storeType === 'all') return { valid, unavailable };
 
   try {
     const sources = await getAutoSectionSources(areaId, storeType);
-    if (sources.length === 0) return valid;
-    sources.forEach((source) => valid.add(keyOf(source.kind, source.sourceId)));
+    if (sources.length === 0) return { valid, unavailable };
+    sources.forEach((source) => {
+      valid.add(keyOf(source.kind, source.sourceId));
+      if (!source.hasAvailable) unavailable.add(keyOf(source.kind, source.sourceId));
+    });
 
     const [existing] = await pool.query(
       `SELECT id, auto_kind, auto_source_id, title, deleted_at
@@ -114,9 +141,9 @@ const syncAutoSections = async (areaId, storeType) => {
     }
   } catch (error) {
     logger.error('[autoSections] sync failed:', error.message);
-    return new Set();
+    return { valid: new Set(), unavailable: new Set() };
   }
-  return valid;
+  return { valid, unavailable };
 };
 
 // Is this dashboard_sections row shown? Manual rows always; auto rows only
@@ -124,4 +151,4 @@ const syncAutoSections = async (areaId, storeType) => {
 const isAutoRowVisible = (row, validKeys) =>
   !row.auto_kind || validKeys.has(keyOf(row.auto_kind, row.auto_source_id));
 
-module.exports = { syncAutoSections, getAutoSectionSources, isAutoRowVisible, AUTO_ITEM_LIMIT };
+module.exports = { syncAutoSections, getAutoSectionSources, isAutoRowVisible, autoRowKey: keyOf, AUTO_ITEM_LIMIT };

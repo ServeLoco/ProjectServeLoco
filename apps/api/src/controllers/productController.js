@@ -270,7 +270,7 @@ const getProducts = async (req, res) => {
   // empty list, same as deliveryZonesController.listActiveZonesPublic and
   // categoryController.getCategories — never another area's products.
   const areaId = requestAreaId(req);
-  const { categoryId, category_id, shopId, shop_id, search, type, storeType, store_type, isCombo, is_combo, featured, limit, offset, offerId, offer_id } = req.query;
+  const { categoryId, category_id, shopId, shop_id, availableFirst, available_first, search, type, storeType, store_type, isCombo, is_combo, featured, limit, offset, offerId, offer_id } = req.query;
   const requestedType = type || storeType || store_type;
   // Pagination: limit+1 trick for hasMore (SQL page size, not post time-window filter length).
   const limitNum = limit !== undefined && Number.isInteger(Number(limit)) && Number(limit) > 0
@@ -427,7 +427,14 @@ const getProducts = async (req, res) => {
     finalQuery = buildSubQuery(productQuery, false);
   }
 
-  finalQuery += ' ORDER BY cat_display_order ASC, item_display_order ASC, id ASC';
+  // Home's automatic shop/category rows ask for sellable items first, so a row
+  // that shows only its first few items never hides an available one behind
+  // unavailable ones (and "all shown are unavailable" means all are).
+  const sellableFirst = ['1', 'true'].includes(String(availableFirst ?? available_first ?? '').toLowerCase())
+    && !(finalIsCombo === true || finalIsCombo === '1' || finalIsCombo === 'true');
+  finalQuery += sellableFirst
+    ? ' ORDER BY (available = 1 AND shop_is_open = 1) DESC, cat_display_order ASC, item_display_order ASC, id ASC'
+    : ' ORDER BY cat_display_order ASC, item_display_order ASC, id ASC';
   if (limitNum != null) {
     finalQuery += ' LIMIT ? OFFSET ?';
     finalParams.push(limitNum + 1, offsetNum);

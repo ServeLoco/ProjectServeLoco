@@ -26,7 +26,7 @@ router.use(getLimiter);
 // cache) doing a conditional GET gets a 304 and renders page 1's body for
 // page 2. Keep this list in sync with every query param getProducts reads.
 const ETAG_BUSTING_PARAMS = [
-  'categoryId', 'category_id', 'shopId', 'shop_id', 'search', 'type', 'storeType', 'store_type',
+  'categoryId', 'category_id', 'shopId', 'shop_id', 'availableFirst', 'available_first', 'search', 'type', 'storeType', 'store_type',
   'isCombo', 'is_combo', 'featured', 'offerId', 'offer_id',
   'limit', 'offset', 'includeClosedShops', 'include_closed_shops',
 ];

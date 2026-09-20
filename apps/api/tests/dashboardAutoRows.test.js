@@ -43,7 +43,7 @@ describe('GET /api/dashboard — automatic rows', () => {
   it('returns an auto row as a descriptor with no items, in the admin\'s display order', async () => {
     pool.query
       .mockResolvedValueOnce([[DEFAULT_AREA]]) // resolveCustomerArea
-      .mockResolvedValueOnce([[{ id: 4, name: 'Hot Bites' }]]) // shops that qualify
+      .mockResolvedValueOnce([[{ id: 4, name: 'Hot Bites', has_available: 0 }]]) // shops that qualify (nothing sellable)
       .mockResolvedValueOnce([[]]) // categories that qualify
       .mockResolvedValueOnce([[{ id: 70, auto_kind: 'shop', auto_source_id: 4, title: 'Hot Bites', deleted_at: null }]]) // existing auto rows
       .mockResolvedValueOnce([[
@@ -57,8 +57,36 @@ describe('GET /api/dashboard — automatic rows', () => {
     expect(row).toMatchObject({
       id: 70, title: 'Hot Bites', sectionType: 'product_block', auto: true,
       autoKind: 'shop', sourceId: 4, items: [], maxVisibleItems: 8,
+      // decided by the server, so the page never reshuffles after rows load
+      allUnavailable: true,
       showHotBadge: true, sectionIcon: 'star',
     });
+  });
+
+  it('returns the sections in the admin\'s App Home order, with automatic rows exactly where the admin put them', async () => {
+    pool.query
+      .mockResolvedValueOnce([[DEFAULT_AREA]])
+      .mockResolvedValueOnce([[{ id: 4, name: 'Hot Bites', has_available: 1 }, { id: 9, name: 'Sweet Spot', has_available: 0 }]]) // shops
+      .mockResolvedValueOnce([[]]) // categories
+      .mockResolvedValueOnce([[
+        { id: 70, auto_kind: 'shop', auto_source_id: 4, title: 'Hot Bites', deleted_at: null },
+        { id: 71, auto_kind: 'shop', auto_source_id: 9, title: 'Sweet Spot', deleted_at: null },
+      ]])
+      // Rows as the database hands them over: the admin dragged Sweet Spot to
+      // the top, ahead of the manual sections; Hot Bites stayed at the end.
+      .mockResolvedValueOnce([[
+        sectionRow({ id: 71, slug: 'auto-shop-9', display_order: 0, auto_kind: 'shop', auto_source_id: 9 }),
+        sectionRow({ id: 1, slug: 'offers', section_type: 'offer_banner', display_order: 1 }),
+        sectionRow({ id: 70, slug: 'auto-shop-4', display_order: 3, auto_kind: 'shop', auto_source_id: 4 }),
+      ]])
+      .mockResolvedValue([[]]);
+
+    const res = await request(app).get('/api/dashboard?storeType=packed');
+
+    expect(res.statusCode).toBe(200);
+    // The (empty) offer banner is hidden as usual; the automatic rows keep
+    // the admin's positions, and each says whether anything in it is sellable.
+    expect(res.body.data.sections.map((sec) => [sec.id, sec.allUnavailable])).toEqual([[71, true], [70, false]]);
   });
 
   it('hides an auto row whose shop no longer sells anything in this mode', async () => {

@@ -6,7 +6,7 @@ const microCache = require('../utils/microCache');
 const { reorderDisplayOrder } = require('../utils/reorder');
 const { requestAreaId, bustAreaCaches } = require('../utils/areaScope');
 const logger = require('../utils/logger');
-const { syncAutoSections, isAutoRowVisible } = require('../utils/autoSections');
+const { syncAutoSections, isAutoRowVisible, autoRowKey } = require('../utils/autoSections');
 // 30s meant a low-traffic area re-ran the whole multi-query dashboard build on
 // almost every request. Every mutation that can change this payload already
 // calls bustAreaCaches (which clears the 'dashboard' namespace for that area),
@@ -478,7 +478,7 @@ const getDashboard = async (req, res) => {
   try {
     // Rows Home creates by itself (a row per shop, then per category) live in
     // dashboard_sections like any other; make sure they exist before reading.
-    const validAutoKeys = await syncAutoSections(areaId, expectedStoreType);
+    const { valid: validAutoKeys, unavailable: unavailableAutoKeys } = await syncAutoSections(areaId, expectedStoreType);
 
     let query = `
       SELECT id, title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, auto_kind, auto_source_id, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at
@@ -519,6 +519,10 @@ const getDashboard = async (req, res) => {
           showHotBadge: section.show_hot_badge === 1 || section.show_hot_badge === true,
           sectionIcon: section.section_icon || null,
           auto: true,
+          // Nothing sellable in it right now — Home puts such rows last, decided
+          // here so the page never reshuffles after its rows load.
+          allUnavailable: unavailableAutoKeys.has(autoRowKey(section.auto_kind, section.auto_source_id)),
+          all_unavailable: unavailableAutoKeys.has(autoRowKey(section.auto_kind, section.auto_source_id)),
           autoKind: section.auto_kind,
           auto_kind: section.auto_kind,
           sourceId: Number(section.auto_source_id),
@@ -873,9 +877,9 @@ const getAdminSections = async (req, res) => {
 
     // Make sure the rows Home creates by itself (per shop, per category) exist,
     // so this list matches the app. They are ordinary rows from here on.
-    const validAutoKeys = (store_type && store_type !== 'all')
+    const { valid: validAutoKeys } = (store_type && store_type !== 'all')
       ? await syncAutoSections(areaId, store_type)
-      : new Set();
+      : { valid: new Set() };
 
     let query = 'SELECT id, title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, auto_kind, auto_source_id, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at FROM dashboard_sections WHERE deleted_at IS NULL AND area_id = ?';
     const params = [areaId];

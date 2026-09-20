@@ -14,8 +14,8 @@ beforeEach(() => {
   jest.resetAllMocks();
 });
 
-const SHOPS = [{ id: 4, name: 'Hot Bites' }, { id: 9, name: 'Sweet Spot' }];
-const CATEGORIES = [{ id: 12, name: 'Burgers' }];
+const SHOPS = [{ id: 4, name: 'Hot Bites', has_available: 1 }, { id: 9, name: 'Sweet Spot', has_available: 0 }];
+const CATEGORIES = [{ id: 12, name: 'Burgers', has_available: 1 }];
 
 describe('syncAutoSections', () => {
   it('creates a row for each new shop then category, after everything already in the list', async () => {
@@ -26,9 +26,11 @@ describe('syncAutoSections', () => {
       .mockResolvedValueOnce([[{ max_order: 5 }]]) // current max display_order
       .mockResolvedValue([{}]); // inserts
 
-    const valid = await syncAutoSections(1, 'fast_food');
+    const { valid, unavailable } = await syncAutoSections(1, 'fast_food');
 
     expect([...valid].sort()).toEqual(['category:12', 'shop:4', 'shop:9']);
+    // Sweet Spot has nothing sellable — flagged so Home can put it last from the start.
+    expect([...unavailable]).toEqual(['shop:9']);
     const inserts = pool.query.mock.calls.filter(([sql]) => /INSERT IGNORE INTO dashboard_sections/.test(sql));
     expect(inserts).toHaveLength(3);
     // area, title, slug, store type, display_order, max items, kind, source id
@@ -63,21 +65,23 @@ describe('syncAutoSections', () => {
     const [shopSql, shopParams] = pool.query.mock.calls[0];
     const [catSql, catParams] = pool.query.mock.calls[1];
     expect(shopSql).toContain('s.area_id = ?');
-    expect(shopParams).toEqual([7, 'packed']);
+    // shop mode (availability check), area, shop mode (which shops qualify)
+    expect(shopParams).toEqual(['packed', 7, 'packed']);
     expect(catSql).toContain('c.area_id = ?');
     expect(catParams).toEqual([7, 'packed']);
   });
 
   it('does nothing for "all" or no mode', async () => {
-    expect((await syncAutoSections(1, 'all')).size).toBe(0);
-    expect((await syncAutoSections(1, undefined)).size).toBe(0);
+    expect((await syncAutoSections(1, 'all')).valid.size).toBe(0);
+    expect((await syncAutoSections(1, undefined)).valid.size).toBe(0);
     expect(pool.query).not.toHaveBeenCalled();
   });
 
   it('never throws — a failure just means no automatic rows', async () => {
     pool.query.mockRejectedValue(new Error('db down'));
-    const valid = await syncAutoSections(1, 'packed');
+    const { valid, unavailable } = await syncAutoSections(1, 'packed');
     expect(valid.size).toBe(0);
+    expect(unavailable.size).toBe(0);
   });
 });
 
@@ -90,5 +94,19 @@ describe('isAutoRowVisible', () => {
     expect(isAutoRowVisible({ auto_kind: 'shop', auto_source_id: 4 }, valid)).toBe(true);
     expect(isAutoRowVisible({ auto_kind: 'shop', auto_source_id: 5 }, valid)).toBe(false);
     expect(isAutoRowVisible({ auto_kind: 'category', auto_source_id: 4 }, valid)).toBe(false);
+  });
+});
+
+describe('availability of an automatic row', () => {
+  it('a shop row counts only sellable items (switched on, shop open, group active)', async () => {
+    pool.query.mockResolvedValue([[]]);
+    await syncAutoSections(1, 'packed');
+    const shopSql = pool.query.mock.calls[0][0];
+    expect(shopSql).toContain('s.is_open = 1');
+    expect(shopSql).toContain('p.available = 1');
+    expect(shopSql).toContain('product_groups');
+    const categorySql = pool.query.mock.calls[1][0];
+    expect(categorySql).toContain('sh.is_open = 1');
+    expect(categorySql).toContain('p.available = 1');
   });
 });

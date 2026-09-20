@@ -1,7 +1,7 @@
 jest.mock('../src/utils/autoSections', () => ({
   // These tests are about the admin's own sections; the automatic shop/category
   // rows (utils/autoSections) have their own test file.
-  syncAutoSections: jest.fn().mockResolvedValue(new Set()),
+  syncAutoSections: async () => ({ valid: new Set(), unavailable: new Set() }),
   isAutoRowVisible: jest.requireActual('../src/utils/autoSections').isAutoRowVisible,
 }));
 
@@ -111,6 +111,34 @@ describe('GET /api/products', () => {
     expect(firstSql).toContain('s.is_open = 1');
     expect(res.body.data.products[0]).toHaveProperty('shopIsOpen', 1);
     expect(res.body.data.products[0]).toHaveProperty('shop_is_open', 1);
+  });
+
+  it('lists one shop\'s items when shopId is given (Home\'s shop rows)', async () => {
+    mockDefaultAreaLookup();
+    pool.query.mockResolvedValueOnce([[mockProductRow()]]);
+    mockProductHelpers();
+
+    await request(app).get('/api/products?shopId=7&type=packed&include_closed_shops=1&limit=8');
+
+    const sql = pool.query.mock.calls[1][0];
+    expect(sql).toContain("p.shop_id = '7'");
+  });
+
+  it('puts sellable items first when availableFirst=1 (Home\'s automatic rows)', async () => {
+    mockDefaultAreaLookup();
+    pool.query.mockResolvedValueOnce([[mockProductRow()]]);
+    mockProductHelpers();
+    await request(app).get('/api/products?categoryId=3&availableFirst=1&include_closed_shops=1&limit=8');
+    expect(pool.query.mock.calls[1][0]).toContain('ORDER BY (available = 1 AND shop_is_open = 1) DESC, cat_display_order ASC');
+  });
+
+  it('keeps the normal order when availableFirst is not asked for', async () => {
+    mockDefaultAreaLookup();
+    pool.query.mockResolvedValueOnce([[mockProductRow()]]);
+    mockProductHelpers();
+    await request(app).get('/api/products?categoryId=3&include_closed_shops=1&limit=8');
+    expect(pool.query.mock.calls[1][0]).toContain('ORDER BY cat_display_order ASC');
+    expect(pool.query.mock.calls[1][0]).not.toContain('available = 1 AND shop_is_open = 1) DESC');
   });
 
   it('includes closed-shop products with include_closed_shops=1 and surfaces shop_is_open: 0', async () => {
