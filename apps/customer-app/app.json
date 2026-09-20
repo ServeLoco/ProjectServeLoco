@@ -2,7 +2,7 @@
   "expo": {
     "name": "VillKro",
     "slug": "villkro",
-    "version": "1.9.2",
+    "version": "1.9.5",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "assetBundlePatterns": [
@@ -69,7 +69,7 @@
         "ITSAppUsesNonExemptEncryption": false
       },
       "bundleIdentifier": "com.yashsiwach.villkro",
-      "buildNumber": "10"
+      "buildNumber": "11"
     },
     "android": {
       "softwareKeyboardLayoutMode": "resize",
@@ -90,7 +90,7 @@
         "android.permission.RECORD_AUDIO"
       ],
       "package": "com.yashsiwach.villkro",
-      "versionCode": 40,
+      "versionCode": 41,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon/adaptive-icon-foreground.png",
         "backgroundImage": "./assets/icon/adaptive-icon-background.png",
@@ -103,7 +103,7 @@
       }
     },
     "owner": "yashsiwch",
-    "runtimeVersion": "1.9.2",
+    "runtimeVersion": "1.9.5",
     "updates": {
       "url": "https://u.expo.dev/1df5a9bf-de34-48ea-96f4-68f598d7d318"
     }
