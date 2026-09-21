@@ -2,6 +2,7 @@ const mysql = require('mysql2/promise');
 const bcrypt = require('bcrypt');
 const config = require('../config/env');
 const { getMysqlSslOptions } = require('./mysqlSsl');
+const { AUTO_SECTION_KEY_INDEX, AUTO_SECTION_KEY_COLUMNS, removeDuplicateAutoSections } = require('./autoSectionKey');
 const logger = require('../utils/logger');
 
 // One-time backfill helpers: turn a legacy circle/square/rectangle zone
@@ -2433,6 +2434,17 @@ const migrate = async () => {
 
     await dropIndexIfExists('dashboard_sections', 'idx_section_store_slug');
     await ensureUniqueIndex('dashboard_sections', 'idx_section_area_store_slug', 'area_id, store_type, slug, deleted_at');
+
+    // Automatic Home rows are one per shop/category per mode, but the slug key
+    // above can't hold that: deleted_at is NULL on a live row and NULLs never
+    // collide, so requests syncing at the same moment each inserted their own
+    // copy of every row. Clear the copies that exist (the key can't be added
+    // while they do), then add the key that stops new ones.
+    const removedAutoCopies = await removeDuplicateAutoSections(connection);
+    if (removedAutoCopies > 0) {
+      logger.info(`[migrate] removed ${removedAutoCopies} duplicate automatic Home rows.`);
+    }
+    await ensureUniqueIndex('dashboard_sections', AUTO_SECTION_KEY_INDEX, AUTO_SECTION_KEY_COLUMNS);
 
     await dropIndexIfExists('admin_notifications', 'uniq_admin_inbox_event');
     await ensureUniqueIndex('admin_notifications', 'uniq_admin_inbox_area_event', 'area_id, type, related_id');

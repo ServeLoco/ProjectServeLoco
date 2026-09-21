@@ -118,8 +118,10 @@ const syncAutoSections = async (areaId, storeType) => {
       let nextOrder = Number(orderRows[0]?.max_order ?? -1) + 1;
       for (const source of missing) {
         const slug = `auto-${source.kind}-${source.sourceId}`;
-        // INSERT IGNORE: two requests syncing at once must not fail on the
-        // (area, mode, slug) unique key — the loser just skips.
+        // INSERT IGNORE: two requests syncing at once both get here for the
+        // same source. The unique key on (area, mode, auto_kind, auto_source_id)
+        // (db/autoSectionKey.js) lets the first in and makes the other skip —
+        // the slug key can't, its deleted_at column is NULL on a live row.
         await pool.query(
           `INSERT IGNORE INTO dashboard_sections
              (area_id, title, slug, section_type, store_type, active, display_order,
