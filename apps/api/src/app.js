@@ -63,6 +63,21 @@ app.use(compression({ threshold: 1024 }));
 app.use(helmet());
 app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" })); // Allow image loading across origins
 
+// Public policy pages (privacy policy + terms of service) — required for Google Play listing.
+// Mounted before /api routes so a request to /policies/* resolves to a static HTML file.
+// index() is overridden so /policies (no trailing file) renders index.html.
+// Mounted before the CORS check on purpose: these are public pages, so a request
+// with an unlisted Origin must still get the page, not a 500 "Not allowed by CORS".
+app.use('/policies', express.static(path.join(__dirname, '..', 'public', 'policies'), {
+  index: 'index.html',
+  // extensions: ['html'] makes /policies/privacy resolve to /policies/privacy.html
+  // and /policies/terms resolve to /policies/terms.html. Without this,
+  // express.static looks for a file literally named privacy (no extension)
+  // and 404s. Same for /policies/terms.
+  extensions: ['html'],
+  fallthrough: false,
+}));
+
 const allowedOrigins = config.CORS_ORIGIN ? config.CORS_ORIGIN.split(',') : [];
 const corsOptions = {
   origin: function (origin, callback) {
@@ -95,19 +110,6 @@ if (config.STORAGE_DRIVER !== 's3') {
     immutable: true,
   }));
 }
-
-// Public policy pages (privacy policy + terms of service) — required for Google Play listing.
-// Mounted before /api routes so a request to /policies/* resolves to a static HTML file.
-// index() is overridden so /policies (no trailing file) renders index.html.
-app.use('/policies', express.static(path.join(__dirname, '..', 'public', 'policies'), {
-  index: 'index.html',
-  // extensions: ['html'] makes /policies/privacy resolve to /policies/privacy.html
-  // and /policies/terms resolve to /policies/terms.html. Without this,
-  // express.static looks for a file literally named privacy (no extension)
-  // and 404s. Same for /policies/terms.
-  extensions: ['html'],
-  fallthrough: false,
-}));
 
 // Cheap liveness + health — registered BEFORE the /api rate limiter so they
 // never 429 (load balancers / mobile reachability must always work).
