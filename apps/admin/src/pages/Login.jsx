@@ -50,7 +50,7 @@ export default function Login() {
       <div className="login-split">
         {/* Left branding panel */}
         <div className="login-brand-panel">
-          <div className="login-brand-logo">VK</div>
+          <img className="login-brand-logo" src="/logo.png" alt="VillKro" />
           <h1 className="login-brand-title">VillKro</h1>
           <p className="login-brand-tagline">Manage your store with clarity and speed.</p>
           <ul className="login-brand-features">
@@ -64,7 +64,7 @@ export default function Login() {
         {/* Right form panel */}
         <div className="login-card">
           <div className="login-card-inner">
-            <div className="login-logo-badge">VK</div>
+            <img className="login-logo-badge" src="/logo.png" alt="VillKro" />
             <h2 className="login-title">Welcome back</h2>
             <p className="login-subtitle">Sign in to your admin panel</p>
 

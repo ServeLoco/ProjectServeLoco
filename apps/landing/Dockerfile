@@ -1,5 +1,5 @@
 # Landing page for serveloco.app
-# Serves a single static index.html plus the favicon.
+# Serves the static landing page, its logo/icon images and /get/.
 
 FROM nginx:alpine
 

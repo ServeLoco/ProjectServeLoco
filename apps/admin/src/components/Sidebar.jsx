@@ -76,7 +76,7 @@ export default function Sidebar() {
       <aside className={`admin-sidebar${mobileOpen ? ' mobile-open' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-logo">
-            <span className="sidebar-logo-text">VK</span>
+            <img className="sidebar-logo-img" src="/logo.png" alt="VillKro" />
           </div>
           <div className="sidebar-brand-text">
             <span className="sidebar-brand-name">VillKro</span>
