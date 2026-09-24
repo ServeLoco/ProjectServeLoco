@@ -311,7 +311,7 @@ export default function DeliveryZones() {
     <>
       <td>
         <input type="text" className="form-input zone-input" value={form.name} required maxLength={MAX_NAME_LENGTH}
-          onChange={(e) => onChange('name', e.target.value)} placeholder="e.g. Rampur village" />
+          onChange={(e) => onChange('name', e.target.value)} placeholder="e.g. Rampur or Sector 14" />
       </td>
       <td>
         <select className="form-input zone-parent-select" value={form.parent_zone_id}
@@ -366,8 +366,8 @@ export default function DeliveryZones() {
       <div className="page-header">
         <h1>Delivery Zones</h1>
         <p className="page-subtitle">
-          Draw each zone as its own irregular boundary on the map — a big village zone, and
-          smaller sub-village zones inside it. Give a sub-village zone a parent and it always
+          Draw each zone as its own irregular boundary on the map — a big zone for a whole town,
+          city or village, and smaller sub-zones inside it. Give a sub-zone a parent and it always
           wins over its parent&apos;s pricing wherever the two overlap, no matter how small it is.
           Each zone gets its own charges, delivery times, night surcharge and Cash-on-Delivery
           policy.
@@ -503,7 +503,7 @@ export default function DeliveryZones() {
           </table>
         </div>
         {zones.length === 0 && (
-          <p className="zone-empty">No zones yet — draw your first one above (e.g. your main village).</p>
+          <p className="zone-empty">No zones yet — draw your first one above (e.g. your main town or city).</p>
         )}
       </div>
     </div>

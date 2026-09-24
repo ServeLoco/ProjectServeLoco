@@ -6,14 +6,14 @@
   <meta name="theme-color" content="#0B0B0C">
   <meta name="color-scheme" content="dark">
   <title>VillKro - Local shops, delivered fast</title>
-  <meta name="description" content="VillKro is the hyperlocal delivery app for Gorakhpur, Haryana. Order groceries, food and daily essentials from shops you already trust, and track your order live.">
+  <meta name="description" content="VillKro is a local delivery app for towns and cities. Order groceries, food and daily essentials from shops you already trust, and track your order live.">
   <link rel="canonical" href="https://serveloco.app/">
   <meta name="robots" content="index, follow">
 
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://serveloco.app/">
   <meta property="og:title" content="VillKro - Local shops, delivered fast">
-  <meta property="og:description" content="Groceries, food and daily essentials from neighbourhood shops, delivered to your door. Gaon Ka Apna App.">
+  <meta property="og:description" content="Groceries, food and daily essentials from neighbourhood shops, delivered to your door. Eat. Explore. Enjoy.">
   <meta property="og:image" content="https://serveloco.app/og-image.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
@@ -136,7 +136,9 @@
       box-shadow: 0 0 0 1px var(--line-2), 0 6px 20px rgba(255,106,0,0.25);
       transition: transform 0.5s var(--ease);
     }
-    .brand:hover img { transform: rotate(-8deg) scale(1.06); }
+    .brand:hover img:first-child { transform: rotate(-8deg) scale(1.06); }
+    .brand img.brand-name { width: auto; height: 22px; border-radius: 0; box-shadow: none; }
+    .foot-wordmark { width: 220px; height: auto; }
     .nav-links { display: flex; align-items: center; gap: 30px; }
     .nav-links a:not(.btn) { color: var(--text-2); font-weight: 600; font-size: 15px; transition: color 0.2s; }
     .nav-links a:not(.btn):hover { color: var(--text); }
@@ -561,7 +563,7 @@
     <div class="container nav-inner">
       <a href="/" class="brand" aria-label="VillKro home">
         <img src="/logo.png" alt="" width="36" height="36">
-        <span>VillKro</span>
+        <img class="brand-name" src="/wordmark-name.png" alt="VillKro" width="593" height="142">
       </a>
       <nav class="nav-links" id="navLinks">
         <a href="#features">Features</a>
@@ -582,7 +584,7 @@
       <div class="speed" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
       <div class="container hero-grid">
         <div>
-          <span class="eyebrow"><span class="live-dot"></span><b>Live now</b> in Gorakhpur, Haryana</span>
+          <span class="eyebrow"><span class="live-dot"></span><b>Live now</b> in towns &amp; cities</span>
           <h1>
             <span class="word"><span style="animation-delay:.05s">Your</span></span>
             <span class="word"><span style="animation-delay:.12s">local</span></span>
@@ -687,14 +689,14 @@
       <div class="container">
         <div class="head reveal">
           <span class="kicker">Why VillKro</span>
-          <h2>Built for our town.<br><span class="grad-text">Made for our people.</span></h2>
+          <h2>Built for your neighbourhood.<br><span class="grad-text">Made for everyone.</span></h2>
           <p class="sub">Everything you need to shop from local stores, without leaving home.</p>
         </div>
         <div class="bento stagger">
           <article class="card wide">
             <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9 4.5 4h15L21 9"/><path d="M4 9v11h16V9"/><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/><path d="M10 20v-5h4v5"/></svg></div>
             <h3>Real shops from your area</h3>
-            <p>Order from the kirana stores, dairies and eateries you already visit &mdash; not faraway warehouses. Your money stays in your town.</p>
+            <p>Order from the kirana stores, dairies and eateries you already visit &mdash; not faraway warehouses. Your money stays local.</p>
           </article>
           <article class="card wide">
             <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg></div>
@@ -766,7 +768,7 @@
         <div class="cta reveal">
           <div>
             <img class="cta-logo" src="/logo.png" alt="VillKro logo" width="72" height="72">
-            <span class="kicker">Gaon Ka Apna App</span>
+            <span class="kicker">Eat. Explore. Enjoy.</span>
             <h2>Download VillKro <span class="grad-text">today.</span></h2>
             <p class="sub">Free on Android and iPhone. Get your first order delivered today.</p>
             <div class="stores">
@@ -798,11 +800,11 @@
         <div class="faq stagger">
           <details>
             <summary>What is VillKro?</summary>
-            <div class="ans">VillKro is a delivery app for your town. You order from local shops near you &mdash; groceries, food, dairy and daily essentials &mdash; and a rider brings it to your door.</div>
+            <div class="ans">VillKro is a delivery app for towns and cities. You order from local shops near you &mdash; groceries, food, dairy and daily essentials &mdash; and a rider brings it to your door.</div>
           </details>
           <details>
             <summary>Where does VillKro deliver?</summary>
-            <div class="ans">We are live in Gorakhpur, Haryana. Open the app and set your location to see the shops that deliver to you.</div>
+            <div class="ans">VillKro runs in several towns and cities, and we keep adding new areas. Open the app and set your location to see the shops that deliver to you.</div>
           </details>
           <details>
             <summary>How do I pay?</summary>
@@ -830,8 +832,8 @@
     <div class="container">
       <div class="foot">
         <div>
-          <a href="/" class="brand"><img src="/logo.png" alt="" width="36" height="36"><span>VillKro</span></a>
-          <p>Gaon Ka Apna App. Fast home delivery from local shops in Gorakhpur, Haryana.</p>
+          <a href="/" aria-label="VillKro home"><img class="foot-wordmark" src="/wordmark.png" alt="VillKro - Eat, Explore, Enjoy" width="593" height="240" loading="lazy"></a>
+          <p>Fast home delivery from local shops, in towns and cities.</p>
         </div>
         <div>
           <h4>Product</h4>
@@ -855,13 +857,13 @@
           <ul>
             <li><a href="mailto:decodelabsofficial@gmail.com">decodelabsofficial@gmail.com</a></li>
             <li><a href="https://instagram.com/villkro" target="_blank" rel="noopener">Instagram &middot; @villkro</a></li>
-            <li>Gorakhpur, Haryana 125047</li>
+            <li>Office: Gorakhpur, Haryana 125047</li>
           </ul>
         </div>
       </div>
       <div class="foot-bottom">
         <span>&copy; 2026 VillKro Private Limited</span>
-        <span>Made with &#10084;&#65039; in Gorakhpur, Haryana</span>
+        <span>Made with &#10084;&#65039; in India</span>
       </div>
     </div>
   </footer>
