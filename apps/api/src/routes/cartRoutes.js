@@ -3,7 +3,9 @@ const router = express.Router();
 const rateLimit = require('express-rate-limit');
 const asyncHandler = require('../utils/asyncHandler');
 const { calculateCart, validateCouponHandler, getAvailableCoupons } = require('../controllers/cartController');
+const { getCartSuggestions } = require('../controllers/suggestionController');
 const { requireCustomer } = require('../middleware/authMiddleware');
+const { resolveCustomerArea } = require('../middleware/areaMiddleware');
 
 const getLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -22,5 +24,6 @@ router.use(getLimiter);
 router.post('/calculate', postLimiter, requireCustomer, asyncHandler(calculateCart));
 router.post('/validate-coupon', postLimiter, requireCustomer, asyncHandler(validateCouponHandler));
 router.get('/available-coupons', requireCustomer, asyncHandler(getAvailableCoupons));
+router.get('/suggestions', requireCustomer, resolveCustomerArea, asyncHandler(getCartSuggestions));
 
 module.exports = router;

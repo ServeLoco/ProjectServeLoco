@@ -301,13 +301,14 @@ async function recomputeAreaBbox(areaId) {
 
 /**
  * Fans out to every area-scoped cache: microCache namespaces
- * (dashboard/categories/delivery-zones), the settings cache, and the
+ * (dashboard/categories/delivery-zones/suggest), the settings cache, and the
  * store-mode cache, all keyed by areaId as of TASK 15.
  */
 function bustAreaCaches(areaId) {
   microCache.bust('dashboard', areaId);
   microCache.bust('categories', areaId);
   microCache.bust('delivery-zones', areaId);
+  microCache.bust('suggest', areaId);
   areaZonesCache.del(`zones:${areaId}`);
 
   // Lazy requires: both controllers require areaScope-adjacent utilities

@@ -1466,6 +1466,10 @@ const reorderAdminSectionItems = async (req, res) => {
 };
 
 module.exports = {
+  // Shared with suggestionController so a suggested product is shaped
+  // exactly like a Home row product (images, variants, duplicate casings).
+  resolveImageUrls,
+  mapProductRows,
   getDashboard,
   getSectionItems,
   getAdminSections,
