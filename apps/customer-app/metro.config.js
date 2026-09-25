@@ -19,6 +19,9 @@ config.resolver.blockList = [
   /node_modules\/.*\/windows\/.*/,
   /android\/build\/.*/,
   /android\/app\/build\/.*/,
+  // Native (CMake) build cache from a local dev build — hundreds of MB of
+  // generated files that exhaust the file-watcher limit (ENOSPC) on start.
+  /android\/app\/\.cxx\/.*/,
   /android\/\.gradle\/.*/,
 ];
 
