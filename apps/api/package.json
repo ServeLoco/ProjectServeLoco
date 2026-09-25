@@ -14,7 +14,8 @@
     "db:migrate": "node src/db/migrate.js",
     "db:migrate:dev": "cross-env APP_ENV=development NODE_ENV=development node src/db/migrate.js",
     "db:migrate:prod": "cross-env APP_ENV=production NODE_ENV=production node src/db/migrate.js",
-    "seed": "node src/db/seed_demo.js"
+    "seed": "node src/db/seed_demo.js",
+    "suggestions:build": "node src/services/suggestions/buildPairs.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.658.0",

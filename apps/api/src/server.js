@@ -10,6 +10,7 @@ const { startRiderOfferSweeper, stopRiderOfferSweeper } = require('./realtime/ri
 const { startShopAlertSweeper, stopShopAlertSweeper } = require('./realtime/shopAlertSweeper');
 const { startShopScheduleSweeper, stopShopScheduleSweeper } = require('./realtime/shopScheduleSweeper');
 const { startRollupScheduler, stopRollupScheduler } = require('./services/analytics/rollup');
+const { startSuggestionScheduler, stopSuggestionScheduler } = require('./services/suggestions/buildPairs');
 
 const PORT = config.PORT;
 let server;
@@ -105,6 +106,8 @@ const startServer = async () => {
     initRealtime(server);
     // Daily analytics rollup — backfills yesterday on startup, then runs at 00:05.
     startRollupScheduler();
+    // Cart "Add more" suggestions — rebuilt nightly at 03:00 from delivered orders.
+    startSuggestionScheduler();
     // Auto-accept any orders that were Pending before this restart.
     orderAutoAccept.rehydratePendingOrders().catch(() => {});
     // Expire due rider offers and continue assignment chains after restarts.
@@ -139,6 +142,7 @@ const shutdown = async () => {
   stopShopAlertSweeper();
   stopShopScheduleSweeper();
   stopRollupScheduler();
+  stopSuggestionScheduler();
   if (global.__purgeTimer) clearInterval(global.__purgeTimer);
   await closeRealtime();
 
