@@ -1,6 +1,8 @@
 const {
   scorePairs,
   borrowFromSimilar,
+  feedbackFactors,
+  applyFeedback,
   tokenize,
   nameSimilarity,
   TOP_PER_PRODUCT,
@@ -93,5 +95,39 @@ describe('borrowFromSimilar (new products)', () => {
     const borrowed = borrowFromSimilar(catalogue, learned);
     expect(borrowed.has(10)).toBe(false);
     expect(borrowed.has(30)).toBe(false);
+  });
+});
+
+describe('feedback from the cart row', () => {
+  it('lifts products people add from the row and sinks ones they skip', () => {
+    const factors = feedbackFactors(new Map([
+      [1, { shown: 200, added: 40 }], // added 20% of the time
+      [2, { shown: 200, added: 0 }],  // never added
+      [3, { shown: 200, added: 10 }], // about average
+    ]));
+    expect(factors.get(1)).toBeGreaterThan(1.5);
+    expect(factors.get(2)).toBe(0.5);
+    expect(factors.get(3)).toBeCloseTo(1, 0);
+  });
+
+  it('barely moves a product that was shown only a few times', () => {
+    const factors = feedbackFactors(new Map([
+      [1, { shown: 500, added: 25 }],
+      [2, { shown: 2, added: 0 }],
+    ]));
+    expect(factors.get(2)).toBeGreaterThan(0.85);
+  });
+
+  it('has no effect before anything was shown', () => {
+    expect(feedbackFactors(new Map()).size).toBe(0);
+  });
+
+  it('re-ranks matches by the feedback factor', () => {
+    const matches = new Map([[10, [
+      { pairedId: 1, score: 1, coCount: 5 },
+      { pairedId: 2, score: 0.8, coCount: 5 },
+    ]]]);
+    const adjusted = applyFeedback(matches, new Map([[1, 0.5], [2, 1.5]]));
+    expect(adjusted.get(10).map((m) => m.pairedId)).toEqual([2, 1]);
   });
 });

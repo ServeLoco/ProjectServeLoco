@@ -15,6 +15,11 @@ const VALID_TYPES = new Set([
   'checkout_start',
   'checkout_abandon',
   'order_placed',
+  // Cart "Add more" row: the product was shown / added from the row. The
+  // nightly suggestions build (services/suggestions/buildPairs.js) reads
+  // these to lift products people take and sink ones they skip.
+  'suggestion_impression',
+  'suggestion_add',
 ]);
 
 // Whitelist of payload fields we keep. Anything else (location, deviceId, raw

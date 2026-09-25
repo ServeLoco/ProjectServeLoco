@@ -11,10 +11,17 @@
 // and once shortly after boot when the last build is older than a day.
 
 const { pool } = require('../../db/mysql');
+const mongodb = require('../../db/mongodb');
 const { listAreas } = require('../../utils/areaScope');
 const { msUntilNextIst } = require('../../utils/businessTime');
 const logger = require('../../utils/logger');
-const { scorePairs, borrowFromSimilar, MIN_CO_COUNT } = require('./scorePairs');
+const {
+  scorePairs,
+  borrowFromSimilar,
+  feedbackFactors,
+  applyFeedback,
+  MIN_CO_COUNT,
+} = require('./scorePairs');
 
 const WINDOW_DAYS = 180;
 // Recency weight = e^(-age/DECAY_DAYS): today 1.0, 60 days ago ~0.37.
@@ -24,6 +31,7 @@ const RUN_MINUTE = 0;
 const BOOT_DELAY_MS = 60 * 1000;
 const STALE_AFTER_HOURS = 26;
 const INSERT_BATCH = 500;
+const FEEDBACK_DAYS = 30;
 
 const RECENCY_WEIGHT = `EXP(-TIMESTAMPDIFF(DAY, o.created_at, NOW()) / ${DECAY_DAYS})`;
 const DELIVERED_IN_WINDOW = `
@@ -88,6 +96,37 @@ const loadCatalogue = async (areaId) => {
   return rows.map((row) => ({ id: row.id, name: row.name, categoryId: row.category_id }));
 };
 
+// Shown/added counts per product from the cart row (analytics_events, served
+// by the { areaId, type, createdAt } index). MongoDB being down only means
+// no feedback tonight — orders alone still build the pairs.
+const loadFeedback = async (areaId) => {
+  try {
+    const since = new Date(Date.now() - FEEDBACK_DAYS * 24 * 60 * 60 * 1000);
+    const rows = await mongodb.getDb().collection('analytics_events').aggregate([
+      {
+        $match: {
+          areaId,
+          type: { $in: ['suggestion_impression', 'suggestion_add'] },
+          createdAt: { $gte: since },
+          productId: { $ne: null },
+        },
+      },
+      { $group: { _id: { productId: '$productId', type: '$type' }, count: { $sum: 1 } } },
+    ]).toArray();
+    const stats = new Map();
+    for (const row of rows) {
+      const productId = toNumber(row._id.productId);
+      if (!stats.has(productId)) stats.set(productId, { shown: 0, added: 0 });
+      const key = row._id.type === 'suggestion_add' ? 'added' : 'shown';
+      stats.get(productId)[key] += row.count;
+    }
+    return stats;
+  } catch (error) {
+    logger.warn({ err: error, areaId }, '[suggestions] feedback unavailable, using orders only');
+    return new Map();
+  }
+};
+
 const flattenMatches = (areaId, matchesByItem, source) => {
   const rows = [];
   for (const [itemId, matches] of matchesByItem) {
@@ -140,9 +179,11 @@ const buildAreaPairs = async (areaId) => {
   const categoryWeights = await loadItemWeights(CATEGORY_ITEMS, areaId);
   const categoryPairRows = await loadPairRows(CATEGORY_ITEMS, areaId);
   const catalogue = await loadCatalogue(areaId);
+  const factors = feedbackFactors(await loadFeedback(areaId));
 
-  const learned = scorePairs({ pairRows: productPairRows, itemWeights: productWeights, totalWeight });
-  const borrowed = borrowFromSimilar(catalogue, learned);
+  const scored = scorePairs({ pairRows: productPairRows, itemWeights: productWeights, totalWeight });
+  const learned = applyFeedback(scored, factors);
+  const borrowed = applyFeedback(borrowFromSimilar(catalogue, scored), factors);
   const categoryMatches = scorePairs({ pairRows: categoryPairRows, itemWeights: categoryWeights, totalWeight });
 
   const productRows = [
@@ -155,6 +196,7 @@ const buildAreaPairs = async (areaId) => {
   return {
     areaId,
     learnedProducts: learned.size,
+    feedbackProducts: factors.size,
     borrowedProducts: borrowed.size,
     productRows: productRows.length,
     categoryRows: categoryRows.length,
@@ -237,12 +279,16 @@ module.exports = {
 };
 
 // CLI: `npm run suggestions:build` — build now instead of waiting for 03:00
-// (e.g. right after the first deploy). Needs only MySQL.
+// (e.g. right after the first deploy). MongoDB is optional: without it the
+// build uses orders only.
 if (require.main === module) {
-  buildAllPairs()
-    .then((results) => {
+  mongodb.connect()
+    .catch(() => {}) // no MongoDB = no feedback, still a full build
+    .then(buildAllPairs)
+    .then(async (results) => {
       logger.info({ areas: results.length }, '[suggestions] manual build done');
-      return pool.end();
+      await mongodb.close();
+      await pool.end();
     })
     .catch((error) => {
       logger.error({ err: error }, '[suggestions] manual build failed');

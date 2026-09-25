@@ -130,9 +130,55 @@ const borrowFromSimilar = (products, learned) => {
   return borrowed;
 };
 
+// Feedback from the cart row itself. A product added from the row more often
+// than the area's average gets lifted, one shown a lot and never added sinks.
+// FEEDBACK_PRIOR pseudo-impressions at the average rate keep a product seen
+// only a few times near 1×, and the factor stays within [MIN, MAX] so
+// feedback reorders matches but never erases what orders taught.
+const FEEDBACK_PRIOR = 20;
+const FEEDBACK_MIN = 0.5;
+const FEEDBACK_MAX = 2;
+
+/**
+ * @param {Map<number, {shown:number, added:number}>} stats  per suggested product
+ * @returns {Map<number, number>} score multiplier per product (absent = 1)
+ */
+const feedbackFactors = (stats) => {
+  const factors = new Map();
+  let shown = 0;
+  let added = 0;
+  for (const s of stats.values()) {
+    shown += s.shown;
+    added += s.added;
+  }
+  if (shown === 0) return factors;
+  const baseRate = (added + 1) / (shown + 10);
+
+  for (const [productId, s] of stats) {
+    if (s.shown === 0) continue;
+    const rate = (s.added + baseRate * FEEDBACK_PRIOR) / (s.shown + FEEDBACK_PRIOR);
+    factors.set(productId, Math.min(Math.max(rate / baseRate, FEEDBACK_MIN), FEEDBACK_MAX));
+  }
+  return factors;
+};
+
+/** Multiply each match by its product's feedback factor and re-rank. */
+const applyFeedback = (matchesByItem, factors) => {
+  if (factors.size === 0) return matchesByItem;
+  const adjusted = new Map();
+  for (const [itemId, matches] of matchesByItem) {
+    adjusted.set(itemId, matches
+      .map((match) => ({ ...match, score: match.score * (factors.get(match.pairedId) || 1) }))
+      .sort((a, b) => b.score - a.score || a.pairedId - b.pairedId));
+  }
+  return adjusted;
+};
+
 module.exports = {
   scorePairs,
   borrowFromSimilar,
+  feedbackFactors,
+  applyFeedback,
   tokenize,
   nameSimilarity,
   MIN_CO_COUNT,

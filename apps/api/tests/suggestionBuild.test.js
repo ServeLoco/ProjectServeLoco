@@ -12,6 +12,13 @@ jest.mock('../src/db/mysql', () => {
   };
 });
 
+const mockEvents = { rows: [] };
+jest.mock('../src/db/mongodb', () => ({
+  getDb: () => ({
+    collection: () => ({ aggregate: () => ({ toArray: async () => mockEvents.rows }) }),
+  }),
+}));
+
 jest.mock('../src/utils/areaScope', () => ({
   listAreas: jest.fn().mockResolvedValue([{ id: 1, active: 1 }]),
 }));
@@ -75,6 +82,39 @@ describe('buildAreaPairs', () => {
     expect(connection.rollback).toHaveBeenCalled();
     expect(connection.commit).not.toHaveBeenCalled();
     expect(connection.release).toHaveBeenCalled();
+  });
+});
+
+describe('feedback', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockEvents.rows = [];
+  });
+
+  it('lets cart-row feedback reorder learned matches', async () => {
+    // Burger (1) goes with Coke (2) and Fries (3) about equally from orders,
+    // but people skip Coke in the row and take Fries.
+    pool.query
+      .mockResolvedValueOnce([[{ weight: 100 }]])
+      .mockResolvedValueOnce([[{ item_id: 1, weight: 30 }, { item_id: 2, weight: 20 }, { item_id: 3, weight: 20 }]])
+      .mockResolvedValueOnce([[
+        { productId: 1, pairedId: 2, coCount: 15, weighted: 15 },
+        { productId: 1, pairedId: 3, coCount: 14, weighted: 14 },
+      ]])
+      .mockResolvedValueOnce([[]])
+      .mockResolvedValueOnce([[]])
+      .mockResolvedValueOnce([[]]);
+    mockEvents.rows = [
+      { _id: { productId: 2, type: 'suggestion_impression' }, count: 300 },
+      { _id: { productId: 3, type: 'suggestion_impression' }, count: 300 },
+      { _id: { productId: 3, type: 'suggestion_add' }, count: 60 },
+    ];
+
+    const result = await buildAreaPairs(1);
+
+    expect(result.feedbackProducts).toBe(2);
+    const inserted = connection.query.mock.calls[1][1][0].filter((row) => row[1] === 1);
+    expect(inserted.map((row) => row[2])).toEqual([3, 2]);
   });
 });
 

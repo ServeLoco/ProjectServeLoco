@@ -102,6 +102,11 @@ describe('validateEvent', () => {
     });
   });
 
+  it('accepts the cart suggestion row events', () => {
+    expect(validateEvent({ type: 'suggestion_impression', productId: 7 })).toEqual({ type: 'suggestion_impression', productId: 7 });
+    expect(validateEvent({ type: 'suggestion_add', productId: 7, price: 99 })).toEqual({ type: 'suggestion_add', productId: 7, price: 99 });
+  });
+
   it('drops unknown event types', () => {
     expect(validateEvent({ type: 'search', productId: 1 })).toBeNull();
     expect(validateEvent({ type: 'cart_add_extra', productId: 1 })).toBeNull();
