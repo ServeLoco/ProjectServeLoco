@@ -74,6 +74,16 @@ describe('buildAreaPairs', () => {
     expect(connection.release).toHaveBeenCalled();
   });
 
+  it("clears the area's cached cart suggestions once the new pairs are in", async () => {
+    const microCache = require('../src/utils/microCache');
+    microCache.set('suggest:1:3', [{ stale: true }], 60_000);
+    microCache.set('suggest:2:3', [{ other: true }], 60_000);
+    queueReads();
+    await buildAreaPairs(1);
+    expect(microCache.get('suggest:1:3')).toBeUndefined();
+    expect(microCache.get('suggest:2:3')).toEqual([{ other: true }]);
+  });
+
   it('rolls back and keeps the old rows when a write fails', async () => {
     queueReads({ productPairs: [{ productId: 1, pairedId: 2, coCount: 15, weighted: 15 }] });
     connection.query.mockRejectedValueOnce(new Error('db down'));

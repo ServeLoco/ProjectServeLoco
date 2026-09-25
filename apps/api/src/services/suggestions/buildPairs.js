@@ -13,6 +13,7 @@
 const { pool } = require('../../db/mysql');
 const mongodb = require('../../db/mongodb');
 const { listAreas } = require('../../utils/areaScope');
+const microCache = require('../../utils/microCache');
 const { msUntilNextIst } = require('../../utils/businessTime');
 const logger = require('../../utils/logger');
 const {
@@ -193,6 +194,9 @@ const buildAreaPairs = async (areaId) => {
   const categoryRows = flattenMatches(areaId, categoryMatches);
 
   await replaceAreaRows(areaId, productRows, categoryRows);
+  // Carts cached against yesterday's pairs (suggestionController) see the
+  // new ones on their next request, not up to one cache TTL later.
+  microCache.bust('suggest', areaId);
   return {
     areaId,
     learnedProducts: learned.size,
