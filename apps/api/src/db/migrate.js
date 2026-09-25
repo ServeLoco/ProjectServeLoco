@@ -2557,6 +2557,39 @@ const migrate = async () => {
     }
     logger.info('[migrate] users.last_area_id backfilled from order history.');
 
+    // Cart "Add more" suggestions (services/suggestions/buildPairs.js).
+    // Derived data only — rebuilt per area every night from delivered orders,
+    // so no FK to products (a pair row for a since-deleted product is
+    // harmless: the read path joins the sellable-product filter anyway).
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS product_pairs (
+        area_id INT NOT NULL,
+        product_id INT NOT NULL,
+        paired_product_id INT NOT NULL,
+        score DECIMAL(12, 6) NOT NULL,
+        co_count INT NOT NULL DEFAULT 0,
+        source ENUM('orders', 'similar') NOT NULL DEFAULT 'orders',
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (area_id, product_id, paired_product_id),
+        INDEX idx_product_pairs_lookup (area_id, product_id, score),
+        CONSTRAINT fk_product_pairs_area FOREIGN KEY (area_id) REFERENCES areas(id) ON DELETE CASCADE
+      );
+    `);
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS category_pairs (
+        area_id INT NOT NULL,
+        category_id INT NOT NULL,
+        paired_category_id INT NOT NULL,
+        score DECIMAL(12, 6) NOT NULL,
+        co_count INT NOT NULL DEFAULT 0,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (area_id, category_id, paired_category_id),
+        INDEX idx_category_pairs_lookup (area_id, category_id, score),
+        CONSTRAINT fk_category_pairs_area FOREIGN KEY (area_id) REFERENCES areas(id) ON DELETE CASCADE
+      );
+    `);
+    logger.info('Suggestion pair tables ready.');
+
     logger.info('Migration and seeding completed successfully!');
   } catch (error) {
     logger.error('Migration failed:', error);
