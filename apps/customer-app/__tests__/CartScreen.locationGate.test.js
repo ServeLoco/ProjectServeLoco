@@ -24,7 +24,8 @@ jest.mock('react-native-safe-area-context', () => {
 });
 jest.mock('expo-linear-gradient', () => ({ LinearGradient: 'LinearGradient' }));
 jest.mock('../src/api', () => ({
-  cartApi: { calculate: jest.fn() },
+  // suggestions: the "Add more" row asks for its own list; empty here.
+  cartApi: { calculate: jest.fn(), suggestions: jest.fn(() => Promise.resolve({ products: [] })) },
 }));
 jest.mock('../src/hooks/useDeliveryLocationSync', () => ({
   syncDeliveryLocation: jest.fn(),

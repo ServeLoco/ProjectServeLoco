@@ -20,6 +20,7 @@ import {
   LoadingSkeleton,
   QuantityStepper,
   PressableScale,
+  CartSuggestions,
 } from '../../../components';
 import { colors, typography, spacing, radius, shadows, layout, borderWidth, motionConfig, entryDistance, easing, smallMs, staggerMs, screenMs } from '../../../theme';
 import { useCartStore, useSettingsStore, useDeliveryZonesStore, useDeliveryLocationStore } from '../../../stores';
@@ -1283,6 +1284,9 @@ export default function CartScreen() {
                 );
               })}
             </Animated.View>
+
+            {/* "Add more" — what goes with this cart */}
+            <CartSuggestions />
 
             {/* Shop Closed Warning */}
             {shopStatus === 'closed' && (

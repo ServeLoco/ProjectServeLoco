@@ -38,6 +38,7 @@ export { default as ReconnectingPill } from './ConnectionStatus';
 export { default as ExitAppModal } from './ExitAppModal';
 export { default as ForceUpdateModal } from './ForceUpdateModal';
 export { default as VariantSheet } from './VariantSheet';
+export { default as CartSuggestions } from './CartSuggestions';
 export { default as LocationPicker } from './LocationPicker';
 export { default as ChangeLocationModal } from './ChangeLocationModal';
 export { default as RiderLiveMap } from './RiderLiveMap';
