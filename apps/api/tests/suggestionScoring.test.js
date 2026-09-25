@@ -5,6 +5,7 @@ const {
   applyFeedback,
   tokenize,
   nameSimilarity,
+  wordWeights,
   TOP_PER_PRODUCT,
 } = require('../src/services/suggestions/scorePairs');
 
@@ -59,6 +60,21 @@ describe('name similarity', () => {
     expect([...tokenize('Veg Cheese-Burger (Large)')]).toEqual(['veg', 'cheese', 'burger', 'large']);
   });
 
+  it('ignores a word that is in every product name', () => {
+    const names = ['Amul Milk', 'Amul Butter', 'Amul Cheese', 'Amul Paneer'].map(tokenize);
+    const weights = wordWeights(names);
+    expect(weights.get('amul')).toBe(0);
+    expect(nameSimilarity(names[0], names[1], weights)).toBe(0);
+  });
+
+  it('counts a rare shared word more than a common one', () => {
+    const names = ['Veg Burger', 'Veg Pizza', 'Veg Roll', 'Veg Momos', 'Cheese Burger'].map(tokenize);
+    const weights = wordWeights(names);
+    const burgers = nameSimilarity(names[0], names[4], weights); // share "burger" (rare)
+    const vegs = nameSimilarity(names[0], names[1], weights);    // share "veg" (common)
+    expect(burgers).toBeGreaterThan(vegs);
+  });
+
   it('scores shared words', () => {
     expect(nameSimilarity(tokenize('Cheese Burger'), tokenize('Aloo Tikki Burger'))).toBeCloseTo(1 / 4);
     expect(nameSimilarity(tokenize('Cheese Burger'), tokenize('Masala Dosa'))).toBe(0);
@@ -76,6 +92,8 @@ describe('borrowFromSimilar (new products)', () => {
     { id: 30, name: 'Matar Paneer', categoryId: 2 },
     { id: 40, name: 'Kadai Paneer', categoryId: 2 },
     { id: 50, name: 'Chef Special', categoryId: 3 },
+    { id: 20, name: 'Coke', categoryId: 4 },
+    { id: 31, name: 'Tandoori Roti', categoryId: 5 },
   ];
 
   it('gives a new product the matches of the closest-named product', () => {
@@ -89,6 +107,13 @@ describe('borrowFromSimilar (new products)', () => {
 
   it('borrows nothing when no name is close', () => {
     expect(borrowFromSimilar(catalogue, learned).has(50)).toBe(false);
+  });
+
+  it('is not fooled by a word every product shares', () => {
+    const branded = catalogue.map((p) => ({ ...p, name: `VillKro ${p.name}` }));
+    const borrowed = borrowFromSimilar(branded, learned);
+    expect(borrowed.has(50)).toBe(false); // "VillKro Chef Special" is still like nothing
+    expect(borrowed.get(11).map((m) => m.pairedId)).toEqual([20]);
   });
 
   it('never overwrites a product that has its own history', () => {

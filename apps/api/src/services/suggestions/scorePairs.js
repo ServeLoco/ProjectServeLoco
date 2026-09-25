@@ -75,12 +75,37 @@ const tokenize = (name) => new Set(
     .filter((token) => token.length >= 2)
 );
 
-/** Shared words ÷ all words (Jaccard). 0 = nothing in common, 1 = same words. */
-const nameSimilarity = (tokensA, tokensB) => {
-  if (tokensA.size === 0 || tokensB.size === 0) return 0;
+/**
+ * How rare each word is across the catalogue: log(products / products using
+ * it). A word in every name (a brand, "fresh", a size like "500g") scores
+ * ~0 and can't make two products look alike; "burger" or "paneer" can.
+ * Learned from the area's own names — no stop-word list.
+ */
+const wordWeights = (tokenSets) => {
+  const uses = new Map();
+  for (const tokens of tokenSets) {
+    for (const token of tokens) uses.set(token, (uses.get(token) || 0) + 1);
+  }
+  const weights = new Map();
+  for (const [token, count] of uses) weights.set(token, Math.log(tokenSets.length / count));
+  return weights;
+};
+
+/**
+ * Weighted shared words ÷ weighted all words (Jaccard). 0 = nothing
+ * meaningful in common, 1 = the same words. Without `weights` every word
+ * counts 1.
+ */
+const nameSimilarity = (tokensA, tokensB, weights = null) => {
+  const weightOf = (token) => (weights ? weights.get(token) ?? 0 : 1);
   let shared = 0;
-  for (const token of tokensA) if (tokensB.has(token)) shared += 1;
-  return shared / (tokensA.size + tokensB.size - shared);
+  let union = 0;
+  for (const token of tokensA) {
+    union += weightOf(token);
+    if (tokensB.has(token)) shared += weightOf(token);
+  }
+  for (const token of tokensB) if (!tokensA.has(token)) union += weightOf(token);
+  return union > 0 ? shared / union : 0;
 };
 
 /**
@@ -97,18 +122,18 @@ const nameSimilarity = (tokensA, tokensB) => {
  */
 const borrowFromSimilar = (products, learned) => {
   const borrowed = new Map();
-  const donors = products
-    .filter((p) => learned.has(p.id))
-    .map((p) => ({ ...p, tokens: tokenize(p.name) }));
+  const named = products.map((p) => ({ ...p, tokens: tokenize(p.name) }));
+  const donors = named.filter((p) => learned.has(p.id));
   if (donors.length === 0) return borrowed;
+  const weights = wordWeights(named.map((p) => p.tokens));
 
-  for (const product of products) {
+  for (const product of named) {
     if (learned.has(product.id)) continue;
-    const tokens = tokenize(product.name);
+    const { tokens } = product;
     let best = null;
     let bestSimilarity = 0;
     for (const donor of donors) {
-      let similarity = nameSimilarity(tokens, donor.tokens);
+      let similarity = nameSimilarity(tokens, donor.tokens, weights);
       if (similarity === 0) continue;
       if (donor.categoryId === product.categoryId) similarity += 0.1;
       if (similarity > bestSimilarity) {
@@ -181,6 +206,7 @@ module.exports = {
   applyFeedback,
   tokenize,
   nameSimilarity,
+  wordWeights,
   MIN_CO_COUNT,
   TOP_PER_PRODUCT,
 };
