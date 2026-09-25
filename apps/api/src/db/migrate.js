@@ -2588,6 +2588,20 @@ const migrate = async () => {
         CONSTRAINT fk_category_pairs_area FOREIGN KEY (area_id) REFERENCES areas(id) ON DELETE CASCADE
       );
     `);
+    // The row's last fallback: the area's best sellers of the last 30 days,
+    // counted by the same nightly build so the cart never runs that
+    // aggregation itself.
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS product_popularity (
+        area_id INT NOT NULL,
+        product_id INT NOT NULL,
+        orders INT NOT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (area_id, product_id),
+        INDEX idx_product_popularity_rank (area_id, orders),
+        CONSTRAINT fk_product_popularity_area FOREIGN KEY (area_id) REFERENCES areas(id) ON DELETE CASCADE
+      );
+    `);
     logger.info('Suggestion pair tables ready.');
 
     logger.info('Migration and seeding completed successfully!');

@@ -24,7 +24,6 @@ const MAX_PER_CATEGORY = 2;
 // Candidates kept in cache — more than the row shows, so dropping in-cart,
 // out-of-hours and per-category overflow still leaves enough.
 const CANDIDATE_POOL = 40;
-const TOP_SELLER_DAYS = 30;
 const PERSONAL_ORDERS = 20;
 // Catalogue edits bust this early (bustAreaCaches); the TTL only covers what
 // no admin write announces, like a shop's scheduled open/close.
@@ -34,7 +33,15 @@ const CACHE_TTL_MS = 120_000;
 // always outranks plain popularity.
 const CATEGORY_WEIGHT = 0.3;
 const POPULAR_WEIGHT = 0.01;
+// A customer's own habit, scaled by how often (up to PERSONAL_MAX_TIMES of
+// their recent orders): their score grows by up to half, and an item that
+// relates to the cart (a learned pair or a partner category) also gets up to
+// half of the best candidate's score on top — enough for "always buys
+// Sprite" to show Sprite next to a burger, never enough to push in
+// something unrelated to the cart.
 const PERSONAL_BOOST = 0.5;
+const PERSONAL_RELATED_SHARE = 0.5;
+const PERSONAL_MAX_TIMES = 4;
 
 // Same "can be bought right now" rules as Home rows (dashboardController's
 // product_block): available, not deleted, shop open, group active.
@@ -55,15 +62,12 @@ const addVote = (votes, id, score) => {
   votes.set(id, (votes.get(id) || 0) + score);
 };
 
+// Counted by the nightly build (product_popularity) — aggregating recent
+// orders here took ~0.7s per uncached cart at 100k orders.
 const loadTopSellers = async (areaId) => {
   const [rows] = await pool.query(
-    `SELECT oi.product_id, COUNT(DISTINCT o.id) AS orders
-     FROM orders o
-     JOIN order_items oi ON oi.order_id = o.id
-     WHERE o.area_id = ? AND o.status = 'Delivered'
-       AND o.created_at >= NOW() - INTERVAL ${TOP_SELLER_DAYS} DAY
-       AND oi.item_type = 'product'
-     GROUP BY oi.product_id
+    `SELECT product_id, orders FROM product_popularity
+     WHERE area_id = ?
      ORDER BY orders DESC
      LIMIT ${CANDIDATE_POOL}`,
     [areaId]
@@ -114,10 +118,10 @@ const buildCandidates = async (areaId, cartIds) => {
 
   const scored = rows.map((row) => {
     const pop = popularity.get(row.id) || 0;
-    const score = (votes.get(row.id) || 0)
-      + (categoryScores.get(row.category_id) || 0) * CATEGORY_WEIGHT * Math.max(pop, 0.1)
-      + pop * POPULAR_WEIGHT;
-    return { row, score };
+    const vote = votes.get(row.id) || 0;
+    const categoryScore = categoryScores.get(row.category_id) || 0;
+    const score = vote + categoryScore * CATEGORY_WEIGHT * Math.max(pop, 0.1) + pop * POPULAR_WEIGHT;
+    return { row, score, related: vote > 0 || categoryScore > 0 };
   });
   scored.sort((a, b) => b.score - a.score || a.row.id - b.row.id);
   const top = scored.slice(0, CANDIDATE_POOL);
@@ -127,6 +131,7 @@ const buildCandidates = async (areaId, cartIds) => {
   const shaped = mapProductRows(topRows);
   return top.map((entry, index) => ({
     score: entry.score,
+    related: entry.related,
     from: entry.row.available_from_time,
     until: entry.row.available_until_time,
     product: shaped[index],
@@ -152,12 +157,14 @@ const loadPersonalCounts = async (areaId, userId) => {
 };
 
 const pickSuggestions = (candidates, personal, limit) => {
-  const ranked = candidates
-    .filter((candidate) => isWithinTimeWindow(candidate.from, candidate.until))
+  const sellable = candidates.filter((candidate) => isWithinTimeWindow(candidate.from, candidate.until));
+  const best = sellable.reduce((max, candidate) => Math.max(max, candidate.score), 0);
+  const ranked = sellable
     .map((candidate) => {
-      const times = personal.get(candidate.product.id) || 0;
-      const boost = 1 + PERSONAL_BOOST * Math.min(times, 4) / 4;
-      return { ...candidate, score: candidate.score * boost };
+      const habit = Math.min(personal.get(candidate.product.id) || 0, PERSONAL_MAX_TIMES) / PERSONAL_MAX_TIMES;
+      const score = candidate.score * (1 + PERSONAL_BOOST * habit)
+        + (candidate.related ? best * PERSONAL_RELATED_SHARE * habit : 0);
+      return { ...candidate, score };
     })
     .sort((a, b) => b.score - a.score || a.product.id - b.product.id);
 

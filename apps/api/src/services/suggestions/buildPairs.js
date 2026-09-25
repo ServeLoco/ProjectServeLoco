@@ -3,7 +3,7 @@
 // Per active area: read delivered orders from the last WINDOW_DAYS, count
 // which products (and categories) were bought together, score the pairs
 // (scorePairs.js) and replace that area's rows in product_pairs /
-// category_pairs. The grouping runs inside MySQL, so the API process only
+// category_pairs / product_popularity. The grouping runs inside MySQL, so the API process only
 // sorts the already-grouped rows. Readers (controllers/suggestionController.js)
 // never compute anything — they read these tables.
 //
@@ -33,6 +33,8 @@ const BOOT_DELAY_MS = 60 * 1000;
 const STALE_AFTER_HOURS = 26;
 const INSERT_BATCH = 500;
 const FEEDBACK_DAYS = 30;
+const POPULAR_DAYS = 30;
+const POPULAR_KEEP = 50;
 
 const RECENCY_WEIGHT = `EXP(-TIMESTAMPDIFF(DAY, o.created_at, NOW()) / ${DECAY_DAYS})`;
 const DELIVERED_IN_WINDOW = `
@@ -89,6 +91,23 @@ const loadPairRows = async (itemsSql, areaId) => {
   }));
 };
 
+// Best sellers of the last POPULAR_DAYS — the cart row's last fallback.
+const loadPopular = async (areaId) => {
+  const [rows] = await pool.query(
+    `SELECT oi.product_id, COUNT(DISTINCT o.id) AS orders
+     FROM orders o
+     JOIN order_items oi ON oi.order_id = o.id
+     WHERE o.area_id = ? AND o.status = 'Delivered'
+       AND o.created_at >= NOW() - INTERVAL ${POPULAR_DAYS} DAY
+       AND oi.item_type = 'product'
+     GROUP BY oi.product_id
+     ORDER BY orders DESC
+     LIMIT ${POPULAR_KEEP}`,
+    [areaId]
+  );
+  return rows.map((row) => [areaId, toNumber(row.product_id), toNumber(row.orders)]);
+};
+
 const loadCatalogue = async (areaId) => {
   const [rows] = await pool.query(
     'SELECT id, name, category_id FROM products WHERE area_id = ? AND deleted = 0',
@@ -143,7 +162,7 @@ const flattenMatches = (areaId, matchesByItem, source) => {
 // Replace one area's rows atomically: readers see yesterday's matches until
 // COMMIT, then today's — never an empty table in between. A failed build
 // rolls back and leaves yesterday's rows serving.
-const replaceAreaRows = async (areaId, productRows, categoryRows) => {
+const replaceAreaRows = async (areaId, productRows, categoryRows, popularRows) => {
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
@@ -160,6 +179,10 @@ const replaceAreaRows = async (areaId, productRows, categoryRows) => {
         'INSERT INTO category_pairs (area_id, category_id, paired_category_id, score, co_count) VALUES ?',
         [categoryRows.slice(i, i + INSERT_BATCH)]
       );
+    }
+    await connection.query('DELETE FROM product_popularity WHERE area_id = ?', [areaId]);
+    if (popularRows.length > 0) {
+      await connection.query('INSERT INTO product_popularity (area_id, product_id, orders) VALUES ?', [popularRows]);
     }
     await connection.commit();
   } catch (error) {
@@ -180,6 +203,7 @@ const buildAreaPairs = async (areaId) => {
   const categoryWeights = await loadItemWeights(CATEGORY_ITEMS, areaId);
   const categoryPairRows = await loadPairRows(CATEGORY_ITEMS, areaId);
   const catalogue = await loadCatalogue(areaId);
+  const popularRows = await loadPopular(areaId);
   const factors = feedbackFactors(await loadFeedback(areaId));
 
   const scored = scorePairs({ pairRows: productPairRows, itemWeights: productWeights, totalWeight });
@@ -193,7 +217,7 @@ const buildAreaPairs = async (areaId) => {
   ];
   const categoryRows = flattenMatches(areaId, categoryMatches);
 
-  await replaceAreaRows(areaId, productRows, categoryRows);
+  await replaceAreaRows(areaId, productRows, categoryRows, popularRows);
   // Carts cached against yesterday's pairs (suggestionController) see the
   // new ones on their next request, not up to one cache TTL later.
   microCache.bust('suggest', areaId);
@@ -204,6 +228,7 @@ const buildAreaPairs = async (areaId) => {
     borrowedProducts: borrowed.size,
     productRows: productRows.length,
     categoryRows: categoryRows.length,
+    popularRows: popularRows.length,
   };
 };
 

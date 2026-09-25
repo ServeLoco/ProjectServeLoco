@@ -26,15 +26,16 @@ jest.mock('../src/utils/areaScope', () => ({
 const { pool, __connection: connection } = require('../src/db/mysql');
 const { buildAreaPairs, buildAllPairs } = require('../src/services/suggestions/buildPairs');
 
-// Queue the six reads buildAreaPairs makes, in order.
-const queueReads = ({ productPairs = [], categoryPairs = [], catalogue = [] } = {}) => {
+// Queue the seven reads buildAreaPairs makes, in order.
+const queueReads = ({ productPairs = [], categoryPairs = [], catalogue = [], popular = [] } = {}) => {
   pool.query
     .mockResolvedValueOnce([[{ weight: 100 }]])                                   // totals
     .mockResolvedValueOnce([[{ item_id: 1, weight: 30 }, { item_id: 2, weight: 20 }]]) // product weights
     .mockResolvedValueOnce([productPairs])
     .mockResolvedValueOnce([[{ item_id: 7, weight: 40 }, { item_id: 8, weight: 30 }]]) // category weights
     .mockResolvedValueOnce([categoryPairs])
-    .mockResolvedValueOnce([catalogue]);
+    .mockResolvedValueOnce([catalogue])
+    .mockResolvedValueOnce([popular]);
 };
 
 describe('buildAreaPairs', () => {
@@ -84,6 +85,16 @@ describe('buildAreaPairs', () => {
     expect(microCache.get('suggest:2:3')).toEqual([{ other: true }]);
   });
 
+  it('saves the best sellers for the cart row fallback', async () => {
+    queueReads({ popular: [{ product_id: 6, orders: 50 }, { product_id: 1, orders: 20 }] });
+    const result = await buildAreaPairs(1);
+    expect(result.popularRows).toBe(2);
+    const popularSql = pool.query.mock.calls[6][0];
+    expect(popularSql).toMatch(/o\.status = 'Delivered'/);
+    const write = connection.query.mock.calls.find((call) => /INSERT INTO product_popularity/.test(call[0]));
+    expect(write[1][0]).toEqual([[1, 6, 50], [1, 1, 20]]);
+  });
+
   it('rolls back and keeps the old rows when a write fails', async () => {
     queueReads({ productPairs: [{ productId: 1, pairedId: 2, coCount: 15, weighted: 15 }] });
     connection.query.mockRejectedValueOnce(new Error('db down'));
@@ -111,6 +122,7 @@ describe('feedback', () => {
         { productId: 1, pairedId: 2, coCount: 15, weighted: 15 },
         { productId: 1, pairedId: 3, coCount: 14, weighted: 14 },
       ]])
+      .mockResolvedValueOnce([[]])
       .mockResolvedValueOnce([[]])
       .mockResolvedValueOnce([[]])
       .mockResolvedValueOnce([[]]);

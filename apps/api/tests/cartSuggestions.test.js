@@ -149,11 +149,18 @@ describe('GET /api/cart/suggestions', () => {
     expect(names(res)).toEqual(['Naan', 'Milk']);
   });
 
-  it("boosts what this customer usually orders", async () => {
-    db.personal = [{ product_id: 14, times: 4 }]; // Sprite 0.6 × 1.5 = 0.9
-    db.pairs = db.pairs.filter((p) => p.paired_product_id !== 13);
+  it("boosts what this customer usually orders when it goes with the cart", async () => {
+    // Sprite 0.6 × 1.5 + half of the best (Coke 0.9) = 1.35 — above Coke.
+    db.personal = [{ product_id: 14, times: 4 }];
     const res = await get('productIds=3');
-    expect(names(res).slice(0, 2)).toEqual(['Coke', 'Sprite']);
+    expect(names(res).slice(0, 2)).toEqual(['Sprite', 'Coke']);
+  });
+
+  it("does not push in a habit that has nothing to do with the cart", async () => {
+    // Milk is only a best seller here — no pair, no partner category.
+    db.personal = [{ product_id: 6, times: 4 }];
+    const res = await get('productIds=3');
+    expect(names(res).indexOf('Milk')).toBe(names(res).length - 1);
   });
 
   it('returns an empty list for an empty cart without touching the database', async () => {
