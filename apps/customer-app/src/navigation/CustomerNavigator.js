@@ -367,46 +367,53 @@ const styles = StyleSheet.create({
 // reachable the instant the user is authenticated. Home itself asks for
 // location (inline card in its top slot, see useHomeLocationPermission) so
 // browsing was never blocked by a separate full-screen route.
-function CustomerNavigatorTree({ isAuthenticated }) {
-  // StickyMiniCart free-delivery line: keep store progress synced on every
-  // cart change (Home / list / categories), not only Cart/Checkout screens.
+// StickyMiniCart free-delivery line: keep store progress synced on every
+// cart change (Home / list / categories), not only Cart/Checkout screens.
+// Its own component so a cart change re-runs only this, never the navigator.
+function CartProgressSync({ isAuthenticated }) {
   useSyncCartFreeDeliveryProgress({ enabled: isAuthenticated });
+  return null;
+}
 
+function CustomerNavigatorTree({ isAuthenticated }) {
   return (
-    <Stack.Navigator
-      screenLayout={({ children, route }) => (
-        <ScreenErrorBoundary routeName={route?.name}>{children}</ScreenErrorBoundary>
-      )}
-      screenOptions={{
-        headerShown: false,
-        animation: 'fade_from_bottom',
-        animationDuration: 200,
-      }}
-    >
-      {isAuthenticated ? (
-        <>
-          <Stack.Screen name="MainTabs" component={CustomerBottomTabs} />
+    <>
+      <CartProgressSync isAuthenticated={isAuthenticated} />
+      <Stack.Navigator
+        screenLayout={({ children, route }) => (
+          <ScreenErrorBoundary routeName={route?.name}>{children}</ScreenErrorBoundary>
+        )}
+        screenOptions={{
+          headerShown: false,
+          animation: 'fade_from_bottom',
+          animationDuration: 200,
+        }}
+      >
+        {isAuthenticated ? (
+          <>
+            <Stack.Screen name="MainTabs" component={CustomerBottomTabs} />
 
-          {/* Product Flow */}
-          <Stack.Screen name="Categories"    component={CategoriesScreen} />
-          <Stack.Screen name="ProductList"   component={ProductListScreen} />
-          <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
+            {/* Product Flow */}
+            <Stack.Screen name="Categories"    component={CategoriesScreen} />
+            <Stack.Screen name="ProductList"   component={ProductListScreen} />
+            <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
 
-          {/* Checkout Flow */}
-          <Stack.Screen name="Cart"              component={CartScreen} />
-          <Stack.Screen name="Checkout"          component={CheckoutScreen} />
-          <Stack.Screen name="OrderConfirmation" component={OrderConfirmationScreen} />
+            {/* Checkout Flow */}
+            <Stack.Screen name="Cart"              component={CartScreen} />
+            <Stack.Screen name="Checkout"          component={CheckoutScreen} />
+            <Stack.Screen name="OrderConfirmation" component={OrderConfirmationScreen} />
 
-          {/* Account / Misc Flow */}
-          <Stack.Screen name="OrderDetail"   component={OrderDetailScreen} />
-          <Stack.Screen name="RiderTracking" component={RiderTrackingScreen} />
-          <Stack.Screen name="EditProfile"   component={EditProfileScreen} />
-          <Stack.Screen name="Notifications" component={NotificationsScreen} />
-        </>
-      ) : (
-        <Stack.Screen name="Auth" component={AuthScreen} />
-      )}
-    </Stack.Navigator>
+            {/* Account / Misc Flow */}
+            <Stack.Screen name="OrderDetail"   component={OrderDetailScreen} />
+            <Stack.Screen name="RiderTracking" component={RiderTrackingScreen} />
+            <Stack.Screen name="EditProfile"   component={EditProfileScreen} />
+            <Stack.Screen name="Notifications" component={NotificationsScreen} />
+          </>
+        ) : (
+          <Stack.Screen name="Auth" component={AuthScreen} />
+        )}
+      </Stack.Navigator>
+    </>
   );
 }
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Keyboard, Platform, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
@@ -29,7 +29,7 @@ import AppIcon from '../AppIcon';
  *                 very bottom where the tab bar would be (used on stack
  *                 screens like ProductList / Categories that have no tab bar).
  */
-function StickyMiniCart({ itemCount = 0, total, totalAmount, onPress, visible = true, style, aboveTabBar = false }) {
+function StickyMiniCartBar({ cartItems, itemCount = 0, total, totalAmount, onPress, visible = true, style, aboveTabBar = false }) {
   const insets = useSafeAreaInsets();
 
   // Server progress from cart/calculate + live recompute from local cart so
@@ -38,7 +38,6 @@ function StickyMiniCart({ itemCount = 0, total, totalAmount, onPress, visible = 
   // so admin price syncs and stepper qty changes show immediately.
   const storedProgress = useCartStore((s) => s.freeDeliveryProgress);
   const freeDeliveryUnlockedFlag = useCartStore((s) => s.freeDeliveryUnlocked);
-  const cartItems = useCartStore((s) => s.items);
 
   const { localSubtotal, localItemCount } = useMemo(() => {
     let subtotal = 0;
@@ -361,5 +360,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#3DDC97',
   },
 });
+
+const MemoStickyMiniCartBar = React.memo(StickyMiniCartBar);
+
+// The bar follows the cart one step behind the tap (useDeferredValue): React
+// first draws the tapped card's new quantity, then updates this bar right
+// after, so a Buy tap is not held up by the bar's re-draw.
+function StickyMiniCart(props) {
+  const cartItems = useDeferredValue(useCartStore((s) => s.items));
+  return <MemoStickyMiniCartBar {...props} cartItems={cartItems} />;
+}
 
 export default React.memo(StickyMiniCart);

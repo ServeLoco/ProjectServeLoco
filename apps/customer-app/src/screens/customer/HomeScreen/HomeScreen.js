@@ -119,6 +119,8 @@ const SEARCH_FETCH_LIMIT = 18;
 // will land and nothing jumps when it arrives. Heights are explicit because
 // LoadingSkeleton sets its own default height, which would beat an
 // aspectRatio and squash the cards into thin bars.
+const NO_CART_ITEMS = [];
+
 function homeSkeletonSizes(windowWidth) {
   const contentWidth = windowWidth - (PAGE_GUTTER * 2);
   const categoryWidth = Math.floor(contentWidth * CATEGORY_CARD_RATIO);
@@ -188,18 +190,30 @@ function HomeSectionsSkeleton({ windowWidth, withBanner = false, modeCount = 2 }
   );
 }
 
-// One product card in a Home rail. Memoised: with stable handlers and cached
-// items, tapping Buy re-renders only this card instead of every card on Home.
+// How many of this product (all its variants) or this combo are in the cart.
+function cartQuantityOf(items, id, isCombo) {
+  let total = 0;
+  for (const line of items) {
+    const lineIsCombo = (line.type || 'product') === 'combo';
+    if (lineIsCombo !== Boolean(isCombo) || String(line.product?.id) !== String(id)) continue;
+    total += Number(line.quantity) || 0;
+  }
+  return total;
+}
+
+// One product card in a Home rail. Memoised, and it reads its own cart
+// quantity from the store: a Buy tap re-draws only the tapped card, not Home
+// or the other rows, so the stepper shows on the very next frame.
 const HomeProductCard = React.memo(function HomeProductCard({
   item,
   isItemCombo,
-  quantity,
   width,
   anim,
   onAdd,
   onIncrement,
   onDecrement,
 }) {
+  const quantity = useCartStore((state) => cartQuantityOf(state.items, item.id, isItemCombo));
   const enter = useMemo(() => anim || new Animated.Value(1), [anim]);
   const translateY = useMemo(
     () => enter.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }),
@@ -259,8 +273,6 @@ const AutoProductBlock = React.memo(function AutoProductBlock({
   // "Max display items" from the admin's settings for this row (default 8).
   const limit = Number(auto.maxVisibleItems) > 0 ? Number(auto.maxVisibleItems) : AUTO_BLOCK_LIMIT;
   const [loaded, setLoaded] = useState(null); // null = first load still running
-  // Re-draw on every cart change so each card's quantity stays right.
-  useCartStore((state) => state.items);
 
   useEffect(() => {
     let cancelled = false;
@@ -372,7 +384,6 @@ const AutoProductBlock = React.memo(function AutoProductBlock({
             <HomeProductCard
               item={item}
               isItemCombo={false}
-              quantity={useCartStore.getState().getProductQuantity(item.id)}
               width={cardWidth}
               onAdd={onAdd}
               onIncrement={onIncrement}
@@ -397,204 +408,25 @@ const AutoProductBlock = React.memo(function AutoProductBlock({
   );
 });
 
-export default function HomeScreen() {
-  const navigation = useNavigation();
-  const insets = useSafeAreaInsets();
-  // Top bar look. While the admin's rain charge is on, the rain scene wins
-  // over the clock: light grey bar with drifting clouds and falling rain.
-  // Otherwise it follows the time of day: day (7 AM – 6 PM IST) is a sky blue
-  // bar with sun, cloud and birds; night is a light black bar with a turning
-  // moon and twinkling stars.
-  const rainChargeEnabled = useSettingsStore(state => state.rainChargeEnabled);
-  const isRainy = rainChargeEnabled === true;
-  const isDaytime = useIsDaytime();
-  const isLightBar = isRainy || isDaytime;
-  const barRgb = isRainy ? RAIN_BAR_RGB : isDaytime ? DAY_BAR_RGB : NIGHT_BAR_RGB;
-  const barColor = `rgb(${barRgb})`;
-  const barFadeColors = isRainy ? RAIN_FADE_COLORS : isDaytime ? DAY_FADE_COLORS : NIGHT_FADE_COLORS;
-  // What sits on the bar flips with it: black on a light bar, white on the dark one.
-  const onBarColor = isLightBar ? '#111827' : '#FFFFFF';
-  const barButtonBg = isLightBar ? '#111827' : '#FFFFFF';
-  const barButtonIcon = isLightBar ? '#FFFFFF' : '#111827';
-  const { width: windowWidth } = useWindowDimensions();
-  const { requireAuth } = useAuthGate();
-  
-  // Stores
+// The product option sheet (sizes / types) opened by a card's Select button.
+// It holds its own open/closed state, so opening or closing it re-draws only
+// the sheet — not the whole Home screen — and it appears straight away.
+const HomeVariantSheet = React.forwardRef(function HomeVariantSheet(_props, ref) {
+  const [product, setProduct] = useState(null);
+  React.useImperativeHandle(ref, () => ({ open: setProduct }), []);
+  const handleClose = useCallback(() => setProduct(null), []);
+  return <VariantSheet visible={!!product} product={product} onClose={handleClose} />;
+});
+
+// The free-delivery refresh for Home, in its own tiny component so that it
+// alone re-runs on a cart change — not the whole Home screen. Draws nothing.
+function HomeCartProgressSync({ deliveryZoneId, deliveryCoords, deliveryZonesVersion }) {
   const items = useCartStore(state => state.items);
-  const addItem = useCartStore(state => state.addItem);
-  const addCombo = useCartStore(state => state.addCombo);
-  const decrementCombo = useCartStore(state => state.decrementCombo);
-  const getComboQuantity = useCartStore(state => state.getComboQuantity);
-  const getProductQuantity = useCartStore(state => state.getProductQuantity);
-  const updateQuantity = useCartStore(state => state.updateQuantity);
-  const [variantSheetProduct, setVariantSheetProduct] = useState(null);
-  const removeItem = useCartStore(state => state.removeItem);
   const appliedCouponCode = useCartStore(state => state.appliedCouponCode);
   const appliedCouponId = useCartStore(state => state.appliedCouponId);
   const couponAutoApplyDisabled = useCartStore(state => state.couponAutoApplyDisabled);
   const setFreeDeliveryProgress = useCartStore(state => state.setFreeDeliveryProgress);
   const setFreeDeliveryUnlocked = useCartStore(state => state.setFreeDeliveryUnlocked);
-  // Bumped by useDeliveryZoneSync on a delivery_zones.updated push (admin
-  // saved a zone) — included below purely to retrigger the progress refresh.
-  const deliveryZonesVersion = useDeliveryZonesStore(state => state.version);
-  const shopStatus = useSettingsStore(state => state.shopStatus);
-  const setSettings = useSettingsStore(state => state.setSettings);
-  const isSettingsStale = useSettingsStore(state => state.isStale);
-  const markSettingsFetched = useSettingsStore(state => state.markFetched);
-
-  // Delivery location — set in the background by useDeliveryLocationSync
-  // (live GPS) or manually below (Change Location) when GPS falls outside
-  // every admin-configured zone. insideDeliveryZone is null until the first
-  // check resolves, so the banner only shows once we actually know.
-  const deliveryCoords = useDeliveryLocationStore(state => state.coords);
-  const deliveryAreaId = useDeliveryLocationStore(state => state.areaId);
-  // TASK 28.3 — dashboard/store-modes fetches key off the live pin (the same
-  // resolveCustomerArea chain the pin already drives everywhere else)
-  // instead of the server's users.last_area_id/default fallback. A ref, not
-  // a dependency, so a sub-meter GPS jitter that doesn't cross a zone
-  // boundary never re-triggers loadHomeData's fetch — only an actual zone
-  // change (deliveryZoneId, already a dependency below) does.
-  const deliveryCoordsRef = useRef(deliveryCoords);
-  deliveryCoordsRef.current = deliveryCoords;
-  // Boolean, not the coords object: this gates the first dashboard fetch
-  // (see the load effect), and a raw GPS fix changes object identity on
-  // nearly every fix, which as a dependency would be a refetch storm.
-  const hasDeliveryPin = Boolean(deliveryCoords);
-  // Read (not written) by loadHomeData to build bootstrap's If-None-Match.
-  // Refs, not dependencies — loadHomeData's own success path is what writes
-  // these (applyBootstrapResult), so depending on them directly would rebuild
-  // the callback on every success and re-fire the mount effect in a loop.
-  const deliveryAreaIdRef = useRef(null);
-  deliveryAreaIdRef.current = deliveryAreaId;
-  const deliveryCatalogVersionRef = useRef(null);
-  deliveryCatalogVersionRef.current = useDeliveryLocationStore(state => state.catalogVersion);
-  const insideDeliveryZone = useDeliveryLocationStore(state => state.insideZone);
-  const deliveryZoneName = useDeliveryLocationStore(state => state.zoneName);
-  // Line under the zone name: the address saved on the profile (filled from the
-  // customer's orders), else the area of the pin — village/city, state, pin code.
-  const savedAddress = useAuthStore(state => state.profile?.address);
-  const savedAddressText = typeof savedAddress === 'string' ? savedAddress.trim() : '';
-  const areaLine = useAreaLine(deliveryCoords, Boolean(deliveryCoords) && !savedAddressText);
-  const locationSubline = deliveryCoords ? (savedAddressText || areaLine) : null;
-  const deliveryZoneId = useDeliveryLocationStore(state => state.zoneId);
-  const isInitialLocationSyncComplete = useDeliveryLocationStore(state => state.isInitialSyncComplete);
-  const recentDeliveryLocations = useDeliveryLocationStore(state => state.recentLocations);
-  const setManualDeliveryLocation = useDeliveryLocationStore(state => state.setManualLocation);
-  const setDeliveryLocationLabel = useDeliveryLocationStore(state => state.setLocationLabel);
-  const [showLocationPicker, setShowLocationPicker] = useState(false);
-  const [savingLocation, setSavingLocation] = useState(false);
-  // Inline "Enable Location" card (top slot, replaces the old full-screen
-  // LocationPermissionGate route) — only shown while there's no usable
-  // coords at all. A manual pin or a granted permission both fall straight
-  // through to the existing locationBar / out-of-zone EmptyState below,
-  // unchanged, so returning users with a saved location never see it.
-  const { status: locationPermStatus, requestAllow: requestLocationAllow, openSettings: openLocationSettings } = useHomeLocationPermission();
-  const [requestingLocationAllow, setRequestingLocationAllow] = useState(false);
-  const needsLocationPermission = !hasDeliveryPin
-    && (locationPermStatus === 'denied' || locationPermStatus === 'blocked');
-  // Permission granted but the sync still produced no usable fix — GPS timed
-  // out, or iOS returned a reduced-accuracy fix that useDeliveryLocationSync
-  // rejects (Precise Location off fuzzes to kilometres, far coarser than a
-  // ~2km zone). This state used to fall straight through to the dashboard,
-  // which then fetched with no pin; the server answers a pinless request from
-  // another area entirely, so there is no "show something" option here. Every
-  // route to the catalog runs through a resolved live pin or shows a card.
-  // Waits for the permission read to settle too: a denied-permission sync
-  // bails and marks itself complete almost immediately, which could beat
-  // locationPermStatus out of 'checking' and flash this card for an instant
-  // before the Allow card it should have shown.
-  const locationUnresolved = !hasDeliveryPin && isInitialLocationSyncComplete
-    && locationPermStatus !== 'checking' && !needsLocationPermission;
-  // Same gate the dashboard body below uses (needsLocationPermission /
-  // out-of-zone EmptyState) — the inline dashboard search dropdown hits the
-  // same ungated catalog endpoint and was showing results with no location
-  // and to customers confirmed outside every zone.
-  const isLocationGated = needsLocationPermission || locationUnresolved
-    || (isInitialLocationSyncComplete && insideDeliveryZone === false);
-  const handleAllowLocation = useCallback(async () => {
-    setRequestingLocationAllow(true);
-    try {
-      await requestLocationAllow();
-    } finally {
-      setRequestingLocationAllow(false);
-    }
-  }, [requestLocationAllow]);
-  const [isLocationSlow, setIsLocationSlow] = useState(false);
-  const [retryingLocation, setRetryingLocation] = useState(false);
-  // syncDeliveryLocation dedupes concurrent runs itself and releases its
-  // throttle when a run settles nothing, so a retry here always gets a real
-  // attempt rather than being swallowed by the 5-minute resume throttle.
-  const handleRetryLocation = useCallback(async () => {
-    setRetryingLocation(true);
-    try {
-      await syncDeliveryLocation();
-    } finally {
-      setRetryingLocation(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (isInitialLocationSyncComplete) {
-      setIsLocationSlow(false);
-      return undefined;
-    }
-    const timer = setTimeout(() => setIsLocationSlow(true), 2500);
-    return () => clearTimeout(timer);
-  }, [isInitialLocationSyncComplete]);
-
-  const handleConfirmPickedLocation = useCallback(async (lat, lng, selectedLabel = null) => {
-    setSavingLocation(true);
-    try {
-      const res = await cartApi.calculate({ items: [], latitude: lat, longitude: lng });
-      const body = res?.data || res || {};
-      const outOfRange = Boolean(body.outOfRange ?? body.out_of_range);
-      // An exclusion square blocks delivery while still reporting
-      // outOfRange: false — both mean "we can't deliver here".
-      const excluded = Boolean(body.excluded ?? body.is_excluded);
-      const exclusionMessage = body.exclusionMessage || body.exclusion_message;
-
-      const zone = body.deliveryZone || body.delivery_zone || null;
-      const deliverable = !(outOfRange || excluded);
-      // Save the pin either way and close the picker — an undeliverable pin
-      // still needs to land back on the dashboard, which already renders the
-      // "We don't deliver here yet" screen off insideZone === false.
-      setManualDeliveryLocation(
-        lat,
-        lng,
-        deliverable,
-        deliverable ? (zone?.name || null) : null,
-        deliverable ? (zone?.id ?? null) : null,
-      );
-      if (selectedLabel && deliverable) {
-        setDeliveryLocationLabel(selectedLabel);
-      }
-      setShowLocationPicker(false);
-      // cart/calculate above resolves the ZONE. It says nothing about which
-      // AREA that zone belongs to, so without this the store keeps the
-      // previous area's id, settings (UPI, support number) and socket room
-      // while the catalog silently follows the new pin — and the cross-area
-      // cart wipe compares against a stale lastAreaId and never fires.
-      // Runs for an undeliverable pin too, which is how the stale area gets
-      // cleared rather than lingering behind the out-of-zone screen. Awaited
-      // so the dashboard behind the picker re-renders against the area it is
-      // about to load from.
-      await syncAreaInfo(lat, lng);
-      if (deliverable) {
-        showToast('Delivery location updated', { type: 'success' });
-      } else {
-        showToast(
-          excluded
-            ? (exclusionMessage || 'We cannot deliver to that location.')
-            : "We don't deliver to that location yet",
-          { type: 'error' },
-        );
-      }
-    } catch (_) {
-      showToast('Could not verify that location. Please try again.', { type: 'error' });
-    } finally {
-      setSavingLocation(false);
-    }
-  }, [setManualDeliveryLocation, setDeliveryLocationLabel]);
 
   // Keeps StickyMiniCart's "Add ₹X more for FREE delivery" hint (and its
   // progress bar) live on the dashboard the same way Cart/Checkout's bill
@@ -655,6 +487,209 @@ export default function HomeScreen() {
     setFreeDeliveryProgress,
     setFreeDeliveryUnlocked,
   ]);
+
+  return null;
+}
+
+export default function HomeScreen() {
+  const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
+  // Top bar look. While the admin's rain charge is on, the rain scene wins
+  // over the clock: light grey bar with drifting clouds and falling rain.
+  // Otherwise it follows the time of day: day (7 AM – 6 PM IST) is a sky blue
+  // bar with sun, cloud and birds; night is a light black bar with a turning
+  // moon and twinkling stars.
+  const rainChargeEnabled = useSettingsStore(state => state.rainChargeEnabled);
+  const isRainy = rainChargeEnabled === true;
+  const isDaytime = useIsDaytime();
+  const isLightBar = isRainy || isDaytime;
+  const barRgb = isRainy ? RAIN_BAR_RGB : isDaytime ? DAY_BAR_RGB : NIGHT_BAR_RGB;
+  const barColor = `rgb(${barRgb})`;
+  const barFadeColors = isRainy ? RAIN_FADE_COLORS : isDaytime ? DAY_FADE_COLORS : NIGHT_FADE_COLORS;
+  // What sits on the bar flips with it: black on a light bar, white on the dark one.
+  const onBarColor = isLightBar ? '#111827' : '#FFFFFF';
+  const barButtonBg = isLightBar ? '#111827' : '#FFFFFF';
+  const barButtonIcon = isLightBar ? '#FFFFFF' : '#111827';
+  const { width: windowWidth } = useWindowDimensions();
+  const { requireAuth } = useAuthGate();
+  
+  // Stores. Home does not watch the cart lines itself — each card, the mini
+  // cart and HomeCartProgressSync do — so a Buy tap never re-draws all of Home.
+  const addItem = useCartStore(state => state.addItem);
+  const addCombo = useCartStore(state => state.addCombo);
+  const decrementCombo = useCartStore(state => state.decrementCombo);
+  const updateQuantity = useCartStore(state => state.updateQuantity);
+  // The option sheet (Select) keeps its own open state — see HomeVariantSheet.
+  const variantSheetRef = useRef(null);
+  const openVariantSheet = useCallback((product) => variantSheetRef.current?.open(product), []);
+  const removeItem = useCartStore(state => state.removeItem);
+  // Bumped by useDeliveryZoneSync on a delivery_zones.updated push (admin
+  // saved a zone) — included below purely to retrigger the progress refresh.
+  const deliveryZonesVersion = useDeliveryZonesStore(state => state.version);
+  const shopStatus = useSettingsStore(state => state.shopStatus);
+  const setSettings = useSettingsStore(state => state.setSettings);
+  const isSettingsStale = useSettingsStore(state => state.isStale);
+  const markSettingsFetched = useSettingsStore(state => state.markFetched);
+
+  // Delivery location — set in the background by useDeliveryLocationSync
+  // (live GPS) or manually below (Change Location) when GPS falls outside
+  // every admin-configured zone. insideDeliveryZone is null until the first
+  // check resolves, so the banner only shows once we actually know.
+  const deliveryCoords = useDeliveryLocationStore(state => state.coords);
+  const deliveryAreaId = useDeliveryLocationStore(state => state.areaId);
+  // TASK 28.3 — dashboard/store-modes fetches key off the live pin (the same
+  // resolveCustomerArea chain the pin already drives everywhere else)
+  // instead of the server's users.last_area_id/default fallback. A ref, not
+  // a dependency, so a sub-meter GPS jitter that doesn't cross a zone
+  // boundary never re-triggers loadHomeData's fetch — only an actual zone
+  // change (deliveryZoneId, already a dependency below) does.
+  const deliveryCoordsRef = useRef(deliveryCoords);
+  deliveryCoordsRef.current = deliveryCoords;
+  // Boolean, not the coords object: this gates the first dashboard fetch
+  // (see the load effect), and a raw GPS fix changes object identity on
+  // nearly every fix, which as a dependency would be a refetch storm.
+  const hasDeliveryPin = Boolean(deliveryCoords);
+  // Read (not written) by loadHomeData to build bootstrap's If-None-Match.
+  // Refs, not dependencies — loadHomeData's own success path is what writes
+  // these (applyBootstrapResult), so depending on them directly would rebuild
+  // the callback on every success and re-fire the mount effect in a loop.
+  const deliveryAreaIdRef = useRef(null);
+  deliveryAreaIdRef.current = deliveryAreaId;
+  const deliveryCatalogVersionRef = useRef(null);
+  deliveryCatalogVersionRef.current = useDeliveryLocationStore(state => state.catalogVersion);
+  const insideDeliveryZone = useDeliveryLocationStore(state => state.insideZone);
+  const deliveryZoneName = useDeliveryLocationStore(state => state.zoneName);
+  // Line under the zone name: the address saved on the profile (filled from the
+  // customer's orders), else the area of the pin — village/city, state, pin code.
+  const savedAddress = useAuthStore(state => state.profile?.address);
+  const savedAddressText = typeof savedAddress === 'string' ? savedAddress.trim() : '';
+  const areaLine = useAreaLine(deliveryCoords, Boolean(deliveryCoords) && !savedAddressText);
+  const locationSubline = deliveryCoords ? (savedAddressText || areaLine) : null;
+  const deliveryZoneId = useDeliveryLocationStore(state => state.zoneId);
+  const isInitialLocationSyncComplete = useDeliveryLocationStore(state => state.isInitialSyncComplete);
+  const recentDeliveryLocations = useDeliveryLocationStore(state => state.recentLocations);
+  const setManualDeliveryLocation = useDeliveryLocationStore(state => state.setManualLocation);
+  const setDeliveryLocationLabel = useDeliveryLocationStore(state => state.setLocationLabel);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [savingLocation, setSavingLocation] = useState(false);
+  const savingLocationRef = useRef(false);
+  // Inline "Enable Location" card (top slot, replaces the old full-screen
+  // LocationPermissionGate route) — only shown while there's no usable
+  // coords at all. A manual pin or a granted permission both fall straight
+  // through to the existing locationBar / out-of-zone EmptyState below,
+  // unchanged, so returning users with a saved location never see it.
+  const { status: locationPermStatus, requestAllow: requestLocationAllow, openSettings: openLocationSettings } = useHomeLocationPermission();
+  const [requestingLocationAllow, setRequestingLocationAllow] = useState(false);
+  const needsLocationPermission = !hasDeliveryPin
+    && (locationPermStatus === 'denied' || locationPermStatus === 'blocked');
+  // Permission granted but the sync still produced no usable fix — GPS timed
+  // out, or iOS returned a reduced-accuracy fix that useDeliveryLocationSync
+  // rejects (Precise Location off fuzzes to kilometres, far coarser than a
+  // ~2km zone). This state used to fall straight through to the dashboard,
+  // which then fetched with no pin; the server answers a pinless request from
+  // another area entirely, so there is no "show something" option here. Every
+  // route to the catalog runs through a resolved live pin or shows a card.
+  // Waits for the permission read to settle too: a denied-permission sync
+  // bails and marks itself complete almost immediately, which could beat
+  // locationPermStatus out of 'checking' and flash this card for an instant
+  // before the Allow card it should have shown.
+  const locationUnresolved = !hasDeliveryPin && isInitialLocationSyncComplete
+    && locationPermStatus !== 'checking' && !needsLocationPermission;
+  // Same gate the dashboard body below uses (needsLocationPermission /
+  // out-of-zone EmptyState) — the inline dashboard search dropdown hits the
+  // same ungated catalog endpoint and was showing results with no location
+  // and to customers confirmed outside every zone.
+  const isLocationGated = needsLocationPermission || locationUnresolved
+    || (isInitialLocationSyncComplete && insideDeliveryZone === false);
+  const handleAllowLocation = useCallback(async () => {
+    setRequestingLocationAllow(true);
+    try {
+      await requestLocationAllow();
+    } finally {
+      setRequestingLocationAllow(false);
+    }
+  }, [requestLocationAllow]);
+  const [isLocationSlow, setIsLocationSlow] = useState(false);
+  const [retryingLocation, setRetryingLocation] = useState(false);
+  // syncDeliveryLocation dedupes concurrent runs itself and releases its
+  // throttle when a run settles nothing, so a retry here always gets a real
+  // attempt rather than being swallowed by the 5-minute resume throttle.
+  const handleRetryLocation = useCallback(async () => {
+    setRetryingLocation(true);
+    try {
+      await syncDeliveryLocation();
+    } finally {
+      setRetryingLocation(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isInitialLocationSyncComplete) {
+      setIsLocationSlow(false);
+      return undefined;
+    }
+    const timer = setTimeout(() => setIsLocationSlow(true), 2500);
+    return () => clearTimeout(timer);
+  }, [isInitialLocationSyncComplete]);
+
+  const handleConfirmPickedLocation = useCallback(async (lat, lng, selectedLabel = null) => {
+    // One save at a time: a second tap (Confirm or a recent location) while
+    // the first is still checking the zone could land a different pin last.
+    if (savingLocationRef.current) return;
+    savingLocationRef.current = true;
+    setSavingLocation(true);
+    try {
+      const res = await cartApi.calculate({ items: [], latitude: lat, longitude: lng });
+      const body = res?.data || res || {};
+      const outOfRange = Boolean(body.outOfRange ?? body.out_of_range);
+      // An exclusion square blocks delivery while still reporting
+      // outOfRange: false — both mean "we can't deliver here".
+      const excluded = Boolean(body.excluded ?? body.is_excluded);
+      const exclusionMessage = body.exclusionMessage || body.exclusion_message;
+
+      const zone = body.deliveryZone || body.delivery_zone || null;
+      const deliverable = !(outOfRange || excluded);
+      // Save the pin either way and close the picker — an undeliverable pin
+      // still needs to land back on the dashboard, which already renders the
+      // "We don't deliver here yet" screen off insideZone === false.
+      setManualDeliveryLocation(
+        lat,
+        lng,
+        deliverable,
+        deliverable ? (zone?.name || null) : null,
+        deliverable ? (zone?.id ?? null) : null,
+      );
+      if (selectedLabel && deliverable) {
+        setDeliveryLocationLabel(selectedLabel);
+      }
+      setShowLocationPicker(false);
+      // cart/calculate above resolves the ZONE. It says nothing about which
+      // AREA that zone belongs to, so without this the store keeps the
+      // previous area's id, settings (UPI, support number) and socket room
+      // while the catalog silently follows the new pin — and the cross-area
+      // cart wipe compares against a stale lastAreaId and never fires.
+      // Runs for an undeliverable pin too, which is how the stale area gets
+      // cleared rather than lingering behind the out-of-zone screen. Awaited
+      // so the dashboard behind the picker re-renders against the area it is
+      // about to load from.
+      await syncAreaInfo(lat, lng);
+      if (deliverable) {
+        showToast('Delivery location updated', { type: 'success' });
+      } else {
+        showToast(
+          excluded
+            ? (exclusionMessage || 'We cannot deliver to that location.')
+            : "We don't deliver to that location yet",
+          { type: 'error' },
+        );
+      }
+    } catch (_) {
+      showToast('Could not verify that location. Please try again.', { type: 'error' });
+    } finally {
+      savingLocationRef.current = false;
+      setSavingLocation(false);
+    }
+  }, [setManualDeliveryLocation, setDeliveryLocationLabel]);
 
   const { modes, refetchModes } = useStoreModes(deliveryCoords);
   // 'fast_food' is only the pre-fetch fallback — swapped for the admin's
@@ -773,14 +808,6 @@ export default function HomeScreen() {
   // the address fades out at the middle of the screen, measured from here.
   const [locationBodyX, setLocationBodyX] = useState(0);
   const currentApiStoreType = storeType;
-  const cartItemCount = useMemo(
-    () => items.reduce((total, item) => total + (Number(item.quantity) || 0), 0),
-    [items]
-  );
-  const cartDisplayTotal = useMemo(
-    () => items.reduce((total, item) => total + ((Number(item.variant?.price ?? item.product?.price) || 0) * (Number(item.quantity) || 0)), 0),
-    [items]
-  );
 
   // When dashboard product cards refresh, push live catalog prices into cart
   // lines (qty unchanged) so sticky total = price × quantity stays current.
@@ -1410,12 +1437,12 @@ export default function HomeScreen() {
       if (product.isCombo || product.is_combo || product.comboItems?.length) {
         addCombo(product);
       } else if ((product.variants?.length ?? 0) > 1) {
-        setVariantSheetProduct(product);
+        openVariantSheet(product);
       } else {
         addItem(product, 1, product.variants?.[0] ?? null);
       }
     });
-  }, [requireAuth, addCombo, addItem]);
+  }, [requireAuth, addCombo, addItem, openVariantSheet]);
 
   const handleIncrement = React.useCallback((product) => {
     requireAuth(null, () => {
@@ -1450,6 +1477,12 @@ export default function HomeScreen() {
       updateQuantity(product.id, currentQty - 1, 'product', variantId);
     }
   }, [decrementCombo, removeItem, updateQuantity]);
+
+  // Read only when the exit popup opens (opening it re-draws Home), so Home
+  // needn't re-draw on every cart change just to keep this number fresh.
+  const cartItemCount = isExitModalOpen
+    ? useCartStore.getState().items.reduce((total, item) => total + (Number(item.quantity) || 0), 0)
+    : 0;
 
   const handleCartPress = React.useCallback(() => {
     navigation.navigate('Cart');
@@ -1615,18 +1648,16 @@ export default function HomeScreen() {
             pulseAnim={pulseAnim}
             onNotificationsPress={() => navigation.navigate('Notifications')}
             onCartPress={() => navigation.navigate('Cart')}
-            cartItemCount={cartItemCount}
             onSearchPress={handleSearchPress}
             onProductPress={handleProductPress}
             onSearchOpenChange={setIsSearchOverlayOpen}
             isLocationGated={isLocationGated}
             dismissSignal={searchDismissSignal}
-            cartItems={items}
             addItem={addItem}
             updateQuantity={updateQuantity}
             removeItem={removeItem}
             requireAuth={requireAuth}
-            onOpenVariantSheet={setVariantSheetProduct}
+            onOpenVariantSheet={openVariantSheet}
             deliveryCoords={deliveryCoords}
             onBarLayout={setSearchBarBottom}
             onDropdownHeight={setSearchDropdownHeight}
@@ -2004,7 +2035,6 @@ export default function HomeScreen() {
                         <HomeProductCard
                           item={item}
                           isItemCombo={isItemCombo}
-                          quantity={isItemCombo ? getComboQuantity(item) : getProductQuantity(item.id)}
                           width={productCardWidth}
                           anim={staggerComboAnims[idx]}
                           onAdd={handleAddToCart}
@@ -2056,19 +2086,18 @@ export default function HomeScreen() {
           Hidden outside the delivery area — nothing here can be ordered. */}
       {insideDeliveryZone !== false && (
         <StickyMiniCart
-          itemCount={cartItemCount}
-          totalAmount={cartDisplayTotal}
           onPress={handleCartPress}
           aboveTabBar
         />
       )}
       <ReconnectingPill />
-
-      <VariantSheet
-        visible={!!variantSheetProduct}
-        product={variantSheetProduct}
-        onClose={() => setVariantSheetProduct(null)}
+      <HomeCartProgressSync
+        deliveryZoneId={deliveryZoneId}
+        deliveryCoords={deliveryCoords}
+        deliveryZonesVersion={deliveryZonesVersion}
       />
+
+      <HomeVariantSheet ref={variantSheetRef} />
 
       <ExitAppModal
         visible={isExitModalOpen}
@@ -2097,13 +2126,11 @@ function HomeHeader({
   pulseAnim,
   onNotificationsPress,
   onCartPress,
-  cartItemCount = 0,
   onSearchPress,
   onProductPress,
   onSearchOpenChange,
   dismissSignal,
   isLocationGated,
-  cartItems = [],
   addItem,
   updateQuantity,
   removeItem,
@@ -2121,6 +2148,9 @@ function HomeHeader({
 
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  // The cart is read only while search results are on screen (their Buy /
+  // stepper need it), so a Buy tap on a Home card doesn't re-draw the header.
+  const cartItems = useCartStore(state => (searchResults.length > 0 ? state.items : NO_CART_ITEMS));
   const [isSearching, setIsSearching] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   // Idle typewriter placeholder: "Coca Cola" → erase → "Pizza" → …

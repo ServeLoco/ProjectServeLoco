@@ -8,3 +8,4 @@ export * from './notificationChime';
 export * from './freeDeliveryProgress';
 
 // OTA workflow test: 2026-06-20 15:26:59
+export * from './address';

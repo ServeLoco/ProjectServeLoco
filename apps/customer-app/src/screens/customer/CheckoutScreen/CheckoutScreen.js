@@ -17,6 +17,8 @@ import {
   Dimensions,
   PanResponder,
   Easing,
+  TextInput,
+  Keyboard,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
@@ -31,9 +33,10 @@ import {
 } from '../../../components';
 import { colors, typography, spacing, radius, shadows, smallMs, easing } from '../../../theme';
 import { useCartStore, useSettingsStore, useAuthStore, useDeliveryLocationStore, useDeliveryZonesStore } from '../../../stores';
-import { cartApi, ordersApi, imagesApi, settingsApi, riderCapacityApi, subscribeRiderCapacityEvents } from '../../../api';
+import { authApi, cartApi, ordersApi, imagesApi, settingsApi, riderCapacityApi, subscribeRiderCapacityEvents } from '../../../api';
 import { trackEvent } from '../../../api/analyticsClient';
 import { asArray, buildProgressHintText, imageRecordToUrl, normalizeCartCalculation, normalizeOrder, normalizeSettings } from '../../../utils';
+import { ADDRESS_MAX_LENGTH, formatAddress, tidyAddressInput } from '../../../utils/address';
 import { isCodBlockedDuringNight } from '../../../utils/nightDelivery';
 import { formatEtaMinutes } from '../../../utils/formatEta';
 import { uuidv4 } from '../../../utils/uuid';
@@ -178,6 +181,7 @@ export default function CheckoutScreen() {
   const nightCharge = useSettingsStore(state => state.nightCharge);
   const setSettings = useSettingsStore(state => state.setSettings);
   const userProfile = useAuthStore(state => state.profile);
+  const setProfile = useAuthStore(state => state.setProfile);
   // This is populated by the app-start sync and updated when Home's Change
   // Location flow saves a manual pin. Used as map fallback center only —
   // the checkout map itself auto-locates to live GPS on open.
@@ -203,6 +207,35 @@ export default function CheckoutScreen() {
 
   // Form State
   const [address, setAddress] = useState(userProfile?.address || '');
+  // Optional address the customer types above Confirm location (house no.,
+  // street, landmark). Pre-filled from the profile's default address. When
+  // filled it is the order's address; when empty the pin's looked-up
+  // address (`address` above) is used, as before.
+  const [addressDetails, setAddressDetails] = useState(() => formatAddress(userProfile?.address || ''));
+  const [addressDetailsFocused, setAddressDetailsFocused] = useState(false);
+  const addressDetailsFocusedRef = useRef(false);
+  // The app is edge-to-edge, so Android does not shrink the screen for the
+  // keyboard — it would cover the map-step sheet and the address box being
+  // typed in. Lift the sheet by the keyboard's height while that box is in use.
+  const keyboardLift = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const lift = (toValue) => Animated.timing(keyboardLift, {
+      toValue,
+      duration: smallMs,
+      easing,
+      useNativeDriver: false,
+    }).start();
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      if (addressDetailsFocusedRef.current) lift(e?.endCoordinates?.height || 0);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => lift(0));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, [keyboardLift]);
   const [coordinates, setCoordinates] = useState(null);
   const coordinatesRef = useRef(null);
   // Guards the empty-cart bounce-out below from firing more than once —
@@ -1186,11 +1219,13 @@ export default function CheckoutScreen() {
           return true;
         });
 
+      const typedAddress = formatAddress(addressDetails);
+      const orderAddress = typedAddress || address.trim();
       const orderResponse = await ordersApi.createOrder(
         {
           items: orderItems,
-          deliveryAddress: address.trim(),
-          address: address.trim(),
+          deliveryAddress: orderAddress,
+          address: orderAddress,
           // Explicit numbers + aliases so the API never drops the delivery pin.
           latitude: hasPin ? pinLat : undefined,
           longitude: hasPin ? pinLng : undefined,
@@ -1220,7 +1255,7 @@ export default function CheckoutScreen() {
         order: {
           ...responseOrder,
           id: orderId,
-          address: address.trim(),
+          address: orderAddress,
           total: responseOrder?.total || currentBill.grandTotal,
           paymentMethod,
         },
@@ -1242,6 +1277,23 @@ export default function CheckoutScreen() {
       );
       clearCart();
       orderPlacedRef.current = true;
+      // No default address on the profile yet — keep the one typed for this
+      // order as the default, so the next checkout is pre-filled with it.
+      if (typedAddress && !String(userProfile?.address || '').trim() && userProfile?.name) {
+        authApi.updateProfile({
+          name: userProfile.name,
+          fullName: userProfile.name,
+          whatsappNumber: userProfile.whatsapp,
+          whatsapp: userProfile.whatsapp,
+          deliveryAddress: typedAddress,
+          address: typedAddress,
+        })
+          .then((response) => {
+            const updated = response?.user || response?.profile || response?.data;
+            setProfile(updated || { ...userProfile, address: typedAddress });
+          })
+          .catch(() => {});
+      }
       trackEvent('order_placed', { orderId: Number(orderId) || undefined });
       // Order created successfully — clear the key so a future checkout
       // session generates a fresh one.
@@ -1284,7 +1336,7 @@ export default function CheckoutScreen() {
         return;
       }
     }
-    if (!address.trim()) {
+    if (!formatAddress(addressDetails) && !address.trim()) {
       if (locationMode === 'gps') {
         setSubmitError('Waiting for address… try again in a moment.');
         return;
@@ -1609,6 +1661,7 @@ export default function CheckoutScreen() {
           styles.checkoutSheet,
           !mapMode && styles.checkoutSheetManual,
           mapMode && { height: sheetHeightAnim },
+          mapMode && { transform: [{ translateY: Animated.multiply(keyboardLift, -1) }] },
         ]}
         {...(mapMode ? sheetPanResponder.panHandlers : {})}
       >
@@ -1701,6 +1754,73 @@ export default function CheckoutScreen() {
                       </Text>
                     </View>
                   ) : null}
+                  <View>
+                    <View style={styles.addressFieldLabelRow}>
+                      <Text style={styles.addressFieldLabel}>Delivery address</Text>
+                      <View style={styles.addressFieldOptionalPill}>
+                        <Text style={styles.addressFieldOptional}>Optional</Text>
+                      </View>
+                      {addressDetailsFocused ? (
+                        <Text
+                          style={[
+                            styles.addressFieldCount,
+                            addressDetails.length >= ADDRESS_MAX_LENGTH - 10 && styles.addressFieldCountNearMax,
+                          ]}
+                        >
+                          {addressDetails.length}/{ADDRESS_MAX_LENGTH}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <View
+                      // Never flattened: the focus style below changes the
+                      // box, and on Android a flattened parent getting
+                      // re-created moves the input and drops its focus, so
+                      // the keyboard closed right after opening.
+                      collapsable={false}
+                      style={[
+                        styles.addressFieldWrap,
+                        addressDetails ? styles.addressFieldWrapFilled : null,
+                        addressDetailsFocused ? styles.addressFieldWrapFocused : null,
+                      ]}
+                    >
+                      <View collapsable={false} style={styles.addressFieldLeadingIcon}>
+                        <AppIcon name="location" size={18} strokeWidth={2.6} color={colors.textInverse} />
+                      </View>
+                      <TextInput
+                        style={styles.addressFieldInput}
+                        value={addressDetails}
+                        onChangeText={(t) => setAddressDetails(tidyAddressInput(t))}
+                        onFocus={() => {
+                          addressDetailsFocusedRef.current = true;
+                          setAddressDetailsFocused(true);
+                        }}
+                        onBlur={() => {
+                          addressDetailsFocusedRef.current = false;
+                          setAddressDetailsFocused(false);
+                          setAddressDetails((prev) => formatAddress(prev));
+                        }}
+                        placeholder="House no., street, landmark"
+                        placeholderTextColor={colors.textTertiary}
+                        maxLength={ADDRESS_MAX_LENGTH}
+                        autoCapitalize="words"
+                        autoCorrect={false}
+                        returnKeyType="done"
+                        blurOnSubmit
+                        accessibilityLabel="Delivery address, optional"
+                      />
+                      {addressDetails ? (
+                        <TouchableOpacity
+                          onPress={() => setAddressDetails('')}
+                          style={styles.addressFieldClear}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          accessibilityRole="button"
+                          accessibilityLabel="Clear address"
+                        >
+                          <AppIcon name="close" size={12} strokeWidth={2.6} color={colors.textSecondary} />
+                        </TouchableOpacity>
+                      ) : null}
+                    </View>
+                  </View>
                   <SheetActionBtn
                     label={confirmingContinue ? 'Saving…' : 'Confirm location'}
                     icon="check"
@@ -2484,7 +2604,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   sheetScrollContent: {
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: 10,
     paddingBottom: spacing.xl,
     flexGrow: 0,
   },
@@ -2493,7 +2613,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
     marginBottom: spacing.sm,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: 10,
   },
   sheetHeaderManual: {
     paddingTop: spacing.sm,
@@ -2570,7 +2690,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   sheetFooter: {
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: 10,
     paddingTop: spacing.sm,
     paddingBottom: spacing.sm,
     borderTopWidth: StyleSheet.hairlineWidth,
@@ -2668,90 +2788,97 @@ const styles = StyleSheet.create({
   addressFieldLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
-    marginBottom: spacing.xs,
-  },
-  addressFieldLabelIcon: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: colors.saffronLight,
-    borderWidth: 1,
-    borderColor: colors.saffron + '35',
-    alignItems: 'center',
-    justifyContent: 'center',
+    gap: 6,
+    marginBottom: 8,
+    minHeight: 20,
   },
   addressFieldLabel: {
-    ...typography.labelSmall,
+    ...typography.label,
+    fontSize: 13,
     color: colors.textPrimary,
+    fontWeight: '800',
+    letterSpacing: 0.1,
+  },
+  addressFieldOptionalPill: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: radius.pill,
+    backgroundColor: '#F1F2F4',
+  },
+  addressFieldOptional: {
+    ...typography.caption,
+    fontSize: 10,
+    lineHeight: 13,
+    color: colors.textSecondary,
     fontWeight: '700',
-    letterSpacing: 0.2,
+    letterSpacing: 0.3,
+  },
+  addressFieldCount: {
+    ...typography.caption,
+    fontSize: 11,
+    color: colors.textTertiary,
+    fontWeight: '600',
+    marginLeft: 'auto',
+  },
+  addressFieldCountNearMax: {
+    color: colors.saffronDark,
   },
   addressFieldWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 52,
-    paddingHorizontal: spacing.md,
-    gap: spacing.sm,
-    backgroundColor: colors.bgInput,
-    borderRadius: radius.input,
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
-  },
-  addressFieldWrapFocused: {
-    backgroundColor: colors.bgSurface,
+    minHeight: 54,
+    paddingLeft: 8,
+    paddingRight: 12,
+    gap: 10,
+    backgroundColor: '#F6F7F9',
+    borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: colors.saffron,
-    shadowColor: colors.saffron,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.14,
-    shadowRadius: 8,
-    elevation: 4,
+    borderColor: '#F6F7F9',
   },
   addressFieldWrapFilled: {
     backgroundColor: colors.bgSurface,
-    borderColor: colors.borderStrong,
+    borderColor: '#E3E6EA',
+  },
+  addressFieldWrapFocused: {
+    backgroundColor: colors.bgSurface,
+    borderColor: colors.saffron,
+    shadowColor: colors.saffron,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.16,
+    shadowRadius: 10,
+    elevation: 3,
   },
   addressFieldLeadingIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: colors.bgSurface,
-    borderWidth: 1,
-    borderColor: colors.border,
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    backgroundColor: colors.saffron,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  addressFieldLeadingIconFocused: {
-    backgroundColor: colors.saffronLight,
-    borderColor: colors.saffron + '55',
-  },
-  addressFieldLeadingIconFilled: {
-    backgroundColor: colors.saffronLight,
-    borderColor: colors.saffron + '35',
+    shadowColor: colors.saffron,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 2,
   },
   addressFieldInput: {
     flex: 1,
     fontSize: 14,
     lineHeight: 20,
     color: colors.textPrimary,
-    fontWeight: '500',
+    fontWeight: '600',
     paddingVertical: 14,
     margin: 0,
     includeFontPadding: false,
     textAlignVertical: 'center',
   },
   addressFieldClear: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.bgSurface,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#ECEEF1',
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadows.xs,
-  },
-  addressFieldClearHidden: {
-    opacity: 0,
   },
   gpsContainer: {
     marginTop: spacing.sm,

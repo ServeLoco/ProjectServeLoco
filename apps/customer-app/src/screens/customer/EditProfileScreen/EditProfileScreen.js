@@ -19,6 +19,7 @@ import {
 import { colors, spacing } from '../../../theme';
 import { useAuthStore } from '../../../stores';
 import { authApi } from '../../../api';
+import { ADDRESS_MAX_LENGTH, formatAddress, tidyAddressInput } from '../../../utils/address';
 
 export default function EditProfileScreen() {
   const navigation = useNavigation();
@@ -29,7 +30,7 @@ export default function EditProfileScreen() {
   // Form State
   const [name, setName] = useState(profile?.name || '');
   const [whatsapp, setWhatsapp] = useState(profile?.whatsapp || '');
-  const [address, setAddress] = useState(profile?.address || '');
+  const [address, setAddress] = useState(() => tidyAddressInput(profile?.address || ''));
 
   // Validation State
   const [errors, setErrors] = useState({});
@@ -82,6 +83,7 @@ export default function EditProfileScreen() {
 
   const handleSave = async () => {
     if (!validate()) return;
+    const cleanAddress = formatAddress(address);
 
     setIsSaving(true);
     Animated.spring(btnScale, { toValue: 0.95, useNativeDriver: true }).start();
@@ -92,10 +94,10 @@ export default function EditProfileScreen() {
         fullName: name,
         whatsappNumber: whatsapp,
         whatsapp,
-        deliveryAddress: address,
-        address,
+        deliveryAddress: cleanAddress,
+        address: cleanAddress,
       });
-      const updatedProfile = response?.user || response?.profile || response?.data || { ...profile, name, whatsapp, address };
+      const updatedProfile = response?.user || response?.profile || response?.data || { ...profile, name, whatsapp, address: cleanAddress };
       setIsSaving(false);
       setIsSuccess(true);
       setProfile(updatedProfile);
@@ -148,7 +150,8 @@ export default function EditProfileScreen() {
               label="Delivery Address"
               placeholder="House No, Building, Street, Area"
               value={address}
-              onChangeText={(t) => { setAddress(t); setErrors(prev => ({ ...prev, address: null })); }}
+              onChangeText={(t) => { setAddress(tidyAddressInput(t)); setErrors(prev => ({ ...prev, address: null })); }}
+              maxLength={ADDRESS_MAX_LENGTH}
               multiline
               numberOfLines={4}
               error={errors.address}

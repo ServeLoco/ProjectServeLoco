@@ -39,6 +39,9 @@ function ChangeLocationModal({ visible, initialCenter, recentLocations = [], onS
   const [searching, setSearching] = useState(false);
   const [selectedLabel, setSelectedLabel] = useState(null);
   const debounceRef = useRef(null);
+  // Set when a suggestion is picked: filling the box with its name must not
+  // run a fresh search, or the list pops straight back open.
+  const skipSearchRef = useRef(false);
   const abortRef = useRef(null);
   // Where the currently-held selectedLabel actually points.
   const labelCoordRef = useRef(null);
@@ -56,6 +59,13 @@ function ChangeLocationModal({ visible, initialCenter, recentLocations = [], onS
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     abortRef.current?.abort?.();
+
+    if (skipSearchRef.current) {
+      skipSearchRef.current = false;
+      setSuggestions([]);
+      setSearching(false);
+      return undefined;
+    }
 
     const trimmed = query.trim();
     if (trimmed.length < 2) {
@@ -89,6 +99,7 @@ function ChangeLocationModal({ visible, initialCenter, recentLocations = [], onS
 
   const handleSelectSuggestion = useCallback((place) => {
     Keyboard.dismiss();
+    skipSearchRef.current = true;
     setQuery(place.name);
     setSuggestions([]);
     setSelectedLabel(place.placeName || place.name);

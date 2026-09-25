@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View, Animated } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -44,6 +44,90 @@ const PebbleGradient = () => (
 // The pebble is only 28px tall, so a tap just above or below it used to fall
 // through to the card and open the detail screen. Extra touch area, same look.
 const PEBBLE_HIT_SLOP = { top: 10, bottom: 10, left: 8, right: 8 };
+
+const GRAYSCALE_FILTER = [{ grayscale: 1 }];
+
+// The card's picture layers: photo, closed wash, gradients, unit badge and
+// discount ribbon. Memoised on plain values, so a Buy / + / − tap (which only
+// changes the quantity) re-draws the price row and button, not these.
+const CardArt = React.memo(function CardArt({
+  imageUrl,
+  isUnavailable,
+  unit,
+  discountLabel,
+  compact,
+  recyclingKey,
+}) {
+  return (
+    <>
+      {/* Full-bleed image — grayscale when the product's shop is closed */}
+      <ProductImage
+        uri={imageUrl}
+        width="100%"
+        height="100%"
+        resizeMode="cover"
+        priority="high"
+        filter={isUnavailable ? GRAYSCALE_FILTER : undefined}
+        recyclingKey={recyclingKey}
+      />
+
+      {/* Closed-shop / product-off white wash (reinforces muted look, esp. on iOS) */}
+      {isUnavailable ? (
+        <View style={styles.closedWash} pointerEvents="none">
+          <View style={styles.closedWashInner} />
+        </View>
+      ) : null}
+
+      {/* Single unavailable label — centered horizontally, just above vertical center */}
+      {isUnavailable ? (
+        <View style={styles.shopClosedLabel} pointerEvents="none">
+          <Text style={styles.shopClosedText}>Item Unavailable</Text>
+        </View>
+      ) : null}
+
+      {/* Duotone vignette — darkens the top corners slightly */}
+      <LinearGradient
+        colors={['rgba(10,8,6,0.22)', 'rgba(10,8,6,0)']}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 0.35 }}
+        pointerEvents="none"
+        style={StyleSheet.absoluteFillObject}
+      />
+
+      {/* Bottom scrim for white text legibility */}
+      <LinearGradient
+        colors={['rgba(10,8,6,0)', 'rgba(10,8,6,0.86)']}
+        pointerEvents="none"
+        style={styles.bottomScrim}
+      />
+
+      {/* Unit badge (top-left) */}
+      {unit ? (
+        <View style={[styles.unitBadge, compact && styles.unitBadgeCompact]}>
+          <Text style={[styles.unitBadgeText, compact && styles.unitBadgeTextCompact]} numberOfLines={1}>
+            {unit}
+          </Text>
+        </View>
+      ) : null}
+
+      {/* Corner-fold discount ribbon (top-right) */}
+      {discountLabel && !isUnavailable ? (
+        <View style={[styles.ribbonMask, compact && styles.ribbonMaskCompact]} pointerEvents="none">
+          <LinearGradient
+            colors={['#34D399', '#0F9D63']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.ribbonStrip, compact && styles.ribbonStripCompact]}
+          >
+            <Text style={[styles.ribbonText, compact && styles.ribbonTextCompact]} numberOfLines={1}>
+              {discountLabel}
+            </Text>
+          </LinearGradient>
+        </View>
+      ) : null}
+    </>
+  );
+});
 
 function ProductCard({
   product = {},
@@ -124,10 +208,12 @@ function ProductCard({
     }).start();
   };
 
-  const cardScale = pressAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 0.97],
-  });
+  // Made once: a new interpolation on every render would re-link the native
+  // animation graph each time the quantity changes.
+  const cardScale = useMemo(
+    () => pressAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0.97] }),
+    [pressAnim]
+  );
 
   const pebbleStyle = [styles.pebble, compact && styles.pebbleCompact];
   const stepBtnStyle = [styles.stepBtn, compact && styles.stepBtnCompact];
@@ -239,71 +325,14 @@ function ProductCard({
         accessibilityState={{ disabled: isUnavailable }}
       >
         <View style={[styles.cardInner, compact && styles.cardInnerCompact]}>
-          {/* Full-bleed image — grayscale when the product's shop is closed */}
-          <ProductImage
-            uri={resolvedImageUrl}
-            width="100%"
-            height="100%"
-            resizeMode="cover"
-            priority="high"
-            filter={isUnavailable ? [{ grayscale: 1 }] : undefined}
+          <CardArt
+            imageUrl={resolvedImageUrl}
+            isUnavailable={isUnavailable}
+            unit={resolvedUnit}
+            discountLabel={resolvedDiscountLabel}
+            compact={compact}
             recyclingKey={product?.id != null ? String(product.id) : undefined}
           />
-
-          {/* Closed-shop / product-off white wash (reinforces muted look, esp. on iOS) */}
-          {isUnavailable ? (
-            <View style={styles.closedWash} pointerEvents="none">
-              <View style={styles.closedWashInner} />
-            </View>
-          ) : null}
-
-          {/* Single unavailable label — centered horizontally, just above vertical center */}
-          {isUnavailable ? (
-            <View style={styles.shopClosedLabel} pointerEvents="none">
-              <Text style={styles.shopClosedText}>Item Unavailable</Text>
-            </View>
-          ) : null}
-
-          {/* Duotone vignette — darkens the top corners slightly */}
-          <LinearGradient
-            colors={['rgba(10,8,6,0.22)', 'rgba(10,8,6,0)']}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 0.35 }}
-            pointerEvents="none"
-            style={StyleSheet.absoluteFillObject}
-          />
-
-          {/* Bottom scrim for white text legibility */}
-          <LinearGradient
-            colors={['rgba(10,8,6,0)', 'rgba(10,8,6,0.86)']}
-            pointerEvents="none"
-            style={styles.bottomScrim}
-          />
-
-          {/* Unit badge (top-left) */}
-          {resolvedUnit ? (
-            <View style={[styles.unitBadge, compact && styles.unitBadgeCompact]}>
-              <Text style={[styles.unitBadgeText, compact && styles.unitBadgeTextCompact]} numberOfLines={1}>
-                {resolvedUnit}
-              </Text>
-            </View>
-          ) : null}
-
-          {/* Corner-fold discount ribbon (top-right) */}
-          {resolvedDiscountLabel && !isUnavailable ? (
-            <View style={[styles.ribbonMask, compact && styles.ribbonMaskCompact]} pointerEvents="none">
-              <LinearGradient
-                colors={['#34D399', '#0F9D63']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={[styles.ribbonStrip, compact && styles.ribbonStripCompact]}
-              >
-                <Text style={[styles.ribbonText, compact && styles.ribbonTextCompact]} numberOfLines={1}>
-                  {resolvedDiscountLabel}
-                </Text>
-              </LinearGradient>
-            </View>
-          ) : null}
 
           {/* Bottom stack: glass name plate, then price + control row */}
           <View style={[styles.bottomStrip, compact && styles.bottomStripCompact]}>

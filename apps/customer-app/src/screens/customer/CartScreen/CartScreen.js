@@ -13,7 +13,6 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   AppScreen,
-  AppHeader,
   AppIcon,
   ProductImage,
   EmptyState,
@@ -151,6 +150,10 @@ export default function CartScreen() {
   const validItems = useMemo(
     () => items.filter(item => item?.product?.id),
     [items],
+  );
+  const cartItemCount = useMemo(
+    () => validItems.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0),
+    [validItems],
   );
 
   // Cart-item entrance stagger: only the items present at mount animate in
@@ -780,7 +783,9 @@ export default function CartScreen() {
 
     return (
       <Animated.View style={[styles.billCard, { opacity: listOpacity }]}>
-        <Text style={styles.billTitle}>Bill Summary</Text>
+        <View style={styles.billHeader}>
+          <Text style={styles.billTitle}>Bill Summary</Text>
+        </View>
 
         {deliveryBlocked ? (
           <View style={styles.deliveryBlockedRow} accessibilityLiveRegion="polite">
@@ -820,14 +825,10 @@ export default function CartScreen() {
           )}
         </View>
 
-        <View style={styles.billDivider} />
-
         <View style={styles.grandTotalRow}>
           <Text style={styles.grandTotalLabel}>Grand Total</Text>
           <Text style={styles.grandTotalValue}>₹{bill.grandTotal}</Text>
         </View>
-
-        {unlockProgress ? <View style={styles.fdDivider} /> : null}
 
         {unlockProgress ? renderUnlockProgress() : null}
       </Animated.View>
@@ -1152,24 +1153,47 @@ export default function CartScreen() {
   };
 
   return (
-    <AppScreen style={styles.container} safeAreaBottom={false}>
-      <AppHeader
-        title="Your Cart"
-        onBack={() => navigation.goBack()}
-        rightActions={validItems.length > 0 ? [
-          {
-            icon: (
-              <View style={styles.clearBtnContent}>
-                <AppIcon name="delete" size={12} color={colors.error} />
-                <Text style={styles.clearBtnText}>Clear</Text>
-              </View>
-            ),
-            onPress: handleClear,
-            label: 'Clear Cart',
-            style: styles.clearHeaderBtn,
-          }
-        ] : []}
-      />
+    <AppScreen style={styles.container} bg={colors.bgSurface} safeAreaBottom={false}>
+      <View style={styles.cartHeader}>
+        <PressableScale
+          onPress={() => navigation.goBack()}
+          style={styles.cartHeaderBack}
+          scaleTo={0.92}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
+          <AppIcon name="back" size={20} strokeWidth={2.4} color={colors.textPrimary} />
+        </PressableScale>
+
+        <View style={styles.cartHeaderTitleWrap}>
+          <Text style={styles.cartHeaderTitle} numberOfLines={1}>Your Cart</Text>
+          {cartItemCount > 0 ? (
+            <View style={styles.cartHeaderSubRow}>
+              <View style={styles.cartHeaderDot} />
+              <Text style={styles.cartHeaderSub} numberOfLines={1}>
+                {cartItemCount} {cartItemCount === 1 ? 'item' : 'items'} in your bag
+              </Text>
+            </View>
+          ) : null}
+        </View>
+
+        {validItems.length > 0 ? (
+          <PressableScale
+            onPress={handleClear}
+            style={styles.clearHeaderBtn}
+            scaleTo={0.94}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Clear Cart"
+          >
+            <View style={styles.clearBtnContent}>
+              <AppIcon name="delete" size={13} strokeWidth={2.4} color={colors.textInverse} />
+              <Text style={styles.clearBtnText}>Clear</Text>
+            </View>
+          </PressableScale>
+        ) : null}
+      </View>
 
       {validItems.length === 0 ? (
         renderEmptyState()
@@ -1200,7 +1224,6 @@ export default function CartScreen() {
                 const itemAnim = getItemAnim(itemKey);
                 const qty = Number(item.quantity) || 0;
                 const unitPrice = Number(item.variant?.price ?? item.product.price ?? 0);
-                const lineTotal = unitPrice * qty;
                 // Live unit price + line total (price × qty) so both update when
                 // either admin price sync or stepper qty changes.
                 const metaBits = [
@@ -1223,9 +1246,9 @@ export default function CartScreen() {
                     <View style={styles.itemRow}>
                       <ProductImage
                         uri={item.product.imageUri || item.product.imageUrl}
-                        width={52}
-                        height={52}
-                        borderRadius={radius.sm}
+                        width={60}
+                        height={60}
+                        borderRadius={radius.md}
                         style={styles.itemImage}
                       />
 
@@ -1237,9 +1260,6 @@ export default function CartScreen() {
                           <Text style={styles.itemMeta} numberOfLines={1}>
                             {metaBits.join(' · ')}
                           </Text>
-                        ) : null}
-                        {lineTotal > 0 ? (
-                          <Text style={styles.itemLineTotal}>₹{lineTotal.toFixed(0)}</Text>
                         ) : null}
                         {!item.product.available ? (
                           <Text style={styles.itemUnavailable}>Currently unavailable</Text>
@@ -1346,22 +1366,74 @@ function BillRow({ label, value, valueStyle, strikethroughValue }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.bgApp,
+    backgroundColor: colors.bgSurface,
   },
   content: {
     flex: 1,
   },
-  clearHeaderBtn: {
-    width: 'auto',
-    height: 30,
+  cartHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.errorLight,
-    borderWidth: 1,
-    borderColor: colors.errorBorder,
+    gap: 12,
+    minHeight: 64,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: colors.bgSurface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E3E6EA',
+  },
+  cartHeaderBack: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F4F5F7',
+  },
+  cartHeaderTitleWrap: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  cartHeaderTitle: {
+    ...typography.labelLarge,
+    fontSize: 19,
+    lineHeight: 24,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    letterSpacing: -0.2,
+  },
+  cartHeaderSubRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 1,
+  },
+  cartHeaderDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.saffron,
+  },
+  cartHeaderSub: {
+    ...typography.caption,
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  clearHeaderBtn: {
+    height: 34,
+    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.error,
     borderRadius: radius.pill,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: 12,
     gap: 4,
+    shadowColor: colors.error,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 2,
   },
   clearBtnContent: {
     flexDirection: 'row',
@@ -1370,9 +1442,9 @@ const styles = StyleSheet.create({
   },
   clearBtnText: {
     ...typography.labelSmall,
-    color: colors.error,
-    fontWeight: '700',
-    fontSize: 11,
+    color: colors.textInverse,
+    fontWeight: '800',
+    fontSize: 12,
   },
   emptyState: {
     flex: 1,
@@ -1381,38 +1453,39 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
   },
   scrollContent: {
-    paddingTop: spacing.md,
-    paddingHorizontal: spacing.screenPaddingH,
+    paddingTop: 12,
+    paddingHorizontal: 10,
   },
 
-  // ── Cart items (white outer card, compact rows inside) ────────
+  // ── Cart items (light outlined list, rows split by hairlines) ──
   itemsCard: {
     backgroundColor: colors.bgSurface,
-    borderRadius: radius.lg,
-    borderWidth: borderWidth.thin,
-    borderColor: colors.border,
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.sm,
-    marginBottom: spacing.md,
-    ...shadows.sm,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#ECEEF1',
+    shadowColor: '#101828',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+    paddingHorizontal: 12,
+    marginBottom: 12,
   },
   itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.md,
-    gap: spacing.md,
+    paddingVertical: 12,
+    gap: 12,
   },
   itemDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.divider,
-    marginLeft: 52 + spacing.md, // under text (image width + gap)
+    backgroundColor: colors.borderStrong,
   },
   itemImage: {
-    width: 52,
-    height: 52,
-    borderRadius: radius.sm,
-    backgroundColor: colors.surfaceMuted,
+    width: 60,
+    height: 60,
+    borderRadius: radius.md,
+    backgroundColor: '#F4F5F7',
   },
   itemBody: {
     flex: 1,
@@ -1424,38 +1497,31 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontWeight: '700',
     fontSize: 14,
-    lineHeight: 18,
+    lineHeight: 19,
   },
   itemMeta: {
     ...typography.caption,
     color: colors.textSecondary,
-    marginTop: 3,
-  },
-  itemLineTotal: {
-    ...typography.label,
-    color: colors.textPrimary,
-    fontWeight: '700',
-    fontSize: 13,
-    marginTop: 3,
+    marginTop: 4,
   },
   itemUnavailable: {
     ...typography.captionMedium,
     color: colors.error,
-    marginTop: 2,
+    marginTop: 4,
   },
   itemStepperWrap: {
     flexShrink: 0,
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'flex-end',
   },
 
   shopClosedBox: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.errorLight,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: spacing.md,
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 12,
     borderWidth: borderWidth.thin,
     borderColor: colors.errorBorder,
     gap: spacing.sm,
@@ -1469,21 +1535,35 @@ const styles = StyleSheet.create({
   // ── Bill Summary ──────────────────────────────────────────────
   billCard: {
     backgroundColor: colors.bgSurface,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    borderWidth: borderWidth.thin,
-    borderColor: colors.border,
-    marginBottom: spacing.md,
-    ...shadows.sm,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#ECEEF1',
+    shadowColor: '#101828',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    marginBottom: 12,
+  },
+  billHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingBottom: 12,
+    marginBottom: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E3E6EA',
   },
   billTitle: {
-    ...typography.h4,
+    ...typography.label,
+    fontSize: 15,
     color: colors.textPrimary,
-    fontWeight: '700',
-    marginBottom: spacing.md,
+    fontWeight: '800',
   },
   billRows: {
-    gap: spacing.sm,
+    gap: 10,
   },
   billRow: {
     flexDirection: 'row',
@@ -1492,12 +1572,14 @@ const styles = StyleSheet.create({
   },
   billRowLabel: {
     ...typography.body,
-    color: colors.textSecondary,
+    fontSize: 14,
+    color: '#4B5563',
   },
   billRowValue: {
     ...typography.label,
+    fontSize: 14,
     color: colors.textPrimary,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   freeDeliveryValue: {
     color: colors.success,
@@ -1535,35 +1617,37 @@ const styles = StyleSheet.create({
   discountValue: {
     color: colors.success,
   },
-  billDivider: {
-    height: borderWidth.thin,
-    backgroundColor: colors.divider,
-    marginVertical: spacing.md,
-  },
   grandTotalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: '#F6F7F9',
   },
   grandTotalLabel: {
-    ...typography.h4,
+    ...typography.label,
+    fontSize: 16,
     color: colors.textPrimary,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   grandTotalValue: {
     ...typography.priceLarge,
+    fontSize: 20,
     color: colors.textPrimary,
     fontWeight: '800',
   },
 
-  fdDivider: {
-    height: borderWidth.thin,
-    backgroundColor: colors.divider,
-    marginTop: spacing.md,
-    marginBottom: spacing.md,
-  },
   freeDeliveryBox: {
-    marginTop: 0,
+    marginTop: 14,
+    backgroundColor: colors.bgSurface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 122, 58, 0.22)',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
   },
   fdTitleRow: {
     flexDirection: 'row',
@@ -1589,7 +1673,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
   },
   fdProgressTrack: {
-    height: 14,
+    height: 12,
     backgroundColor: 'rgba(255, 122, 58, 0.12)',
     borderRadius: radius.pill,
     overflow: 'hidden',
@@ -1634,9 +1718,10 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   billSkeletonDivider: {
-    height: borderWidth.thin,
-    backgroundColor: colors.divider,
-    marginVertical: spacing.md,
+    borderTopWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: colors.borderStrong,
+    marginVertical: 14,
   },
   billSlowNotice: {
     ...typography.caption,
@@ -1908,8 +1993,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgSurface,
     borderTopWidth: borderWidth.thin,
     borderTopColor: colors.border,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
+    paddingHorizontal: 10,
+    paddingTop: 10,
     ...shadows.lg,
   },
   checkoutBtn: {

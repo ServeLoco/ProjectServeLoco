@@ -54,7 +54,8 @@ describe('ProductCard renders a single unavailable state for closed shop or out-
   });
 
   it('passes a grayscale filter to the product image when unavailable', () => {
-    expect(source).toMatch(/filter=\{isUnavailable \? \[\{ grayscale: 1 \}\] : undefined\}/);
+    expect(source).toMatch(/const GRAYSCALE_FILTER = \[\{ grayscale: 1 \}\];/);
+    expect(source).toMatch(/filter=\{isUnavailable \? GRAYSCALE_FILTER : undefined\}/);
   });
 
   it('overlays a semi-transparent white wash when unavailable', () => {
@@ -73,7 +74,8 @@ describe('ProductCard renders a single unavailable state for closed shop or out-
   });
 
   it('hides the discount ribbon whenever unavailable', () => {
-    expect(source).toMatch(/resolvedDiscountLabel && !isUnavailable/);
+    expect(source).toMatch(/\{discountLabel && !isUnavailable \?/);
+    expect(source).toMatch(/discountLabel=\{resolvedDiscountLabel\}/);
   });
 });
 

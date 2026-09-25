@@ -236,6 +236,12 @@ export default function LocationPicker({
   const recenterRingA = useRef(new Animated.Value(0)).current;
   const recenterRingB = useRef(new Animated.Value(0)).current;
   const [confirming, setConfirming] = useState(false);
+  // Sync lock for Confirm: `confirming` state only lands on the next render,
+  // so two quick taps both got through and each saved a pin — the second one
+  // mid-move, landing the pin somewhere the customer never chose.
+  const confirmLockRef = useRef(false);
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
   const [recentering, setRecentering] = useState(false);
   const [gpsError, setGpsError] = useState(null);
   // Tiles fetch over the network — on a slow connection the map frame is just
@@ -832,7 +838,9 @@ export default function LocationPicker({
           }
           setPinActive(true);
           // Do not move the camera — only save the pin under the marker.
-          onConfirmRef.current(lat, lng);
+          // Awaited so Confirm stays locked until the parent has finished
+          // saving (Home checks the zone before closing the picker).
+          await onConfirmRef.current(lat, lng);
         }
       } catch (_) { /* ignore */ }
     };
@@ -944,15 +952,17 @@ export default function LocationPicker({
   }, [clearZoomRetries]);
 
   const handleConfirm = useCallback(async () => {
-    if (confirming || recentering) return;
+    if (confirmLockRef.current || recentering) return;
+    confirmLockRef.current = true;
     setConfirming(true);
     setGpsError(null);
     try {
       await commitPin({ immediate: true });
     } finally {
-      setConfirming(false);
+      confirmLockRef.current = false;
+      if (mountedRef.current) setConfirming(false);
     }
-  }, [commitPin, confirming, recentering]);
+  }, [commitPin, recentering]);
 
   // Parent (checkout sheet, or a search-box result) calls confirm / locate /
   // fly-to via mutable apiRef.
@@ -1321,7 +1331,11 @@ export default function LocationPicker({
                 showConfirmHint && styles.actionBtnHinted,
               ]}
               onPress={handleConfirm}
-              disabled={confirming || (mapboxAvailable && !mapStyleLoaded)}
+              // Not disabled while confirming (the lock in handleConfirm
+              // already drops extra taps): disabled fades the pill to 50%
+              // and Android then draws its elevation shadow through it as a
+              // hard-edged box behind the green button.
+              disabled={mapboxAvailable && !mapStyleLoaded}
               scaleTo={0.97}
               accessibilityRole="button"
               accessibilityLabel="Confirm location"
@@ -1344,7 +1358,7 @@ export default function LocationPicker({
                 style={pinActive ? styles.actionTitlePrimary : styles.actionTitleSecondary}
                 numberOfLines={1}
               >
-                {confirming ? 'Saving…' : pinActive ? 'Location confirmed' : 'Confirm location'}
+                {confirming ? 'Please wait…' : pinActive ? 'Location confirmed' : 'Confirm location'}
               </Text>
             </PressableScale>
           </Animated.View>
@@ -1700,7 +1714,10 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     width: '65%',
     height: 54,
-    borderRadius: radius.pill,
+    // Exactly half the height, not radius.pill: on Android a radius bigger
+    // than the view makes the elevation shadow fall back to a square outline,
+    // which showed as sharp corners behind the green "confirmed" pill.
+    borderRadius: 27,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1714,7 +1731,15 @@ const styles = StyleSheet.create({
   },
   actionBtnPrimary: {
     backgroundColor: colors.success,
-    ...shadows.md,
+    // Same border width as the white state (just invisible) so the pill
+    // keeps its exact size and outline when it turns green.
+    borderWidth: 1.5,
+    borderColor: colors.success,
+    shadowColor: colors.success,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.28,
+    shadowRadius: 10,
+    elevation: 4,
   },
   actionBtnHinted: {
     borderColor: colors.saffron || colors.primary,
