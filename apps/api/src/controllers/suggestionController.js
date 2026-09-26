@@ -5,10 +5,10 @@
 // recent history. Each cart item votes for its learned matches and the votes
 // add up, so an item that goes with two things in the cart ranks first. When
 // the learned matches run short, the cart's categories' learned partner
-// categories fill in. Whatever is still empty is filled from the cart's own
-// shop mode (fast food, packed…): the same shop's items first, then the
-// mode's best sellers — so the row is there even before anything is learned,
-// and never jumps to another mode just because something sells well there.
+// categories fill in. Whatever is still empty is filled with the area's most
+// ordered products, from any shop or mode; products nobody has ordered yet
+// come last, the cart's own shop and then its mode first — so the row is
+// full even before anything is learned.
 //
 // Any failure answers an empty list — this row must never break the cart.
 
@@ -20,14 +20,14 @@ const { attachVariants } = require('./productController');
 const { resolveImageUrls, mapProductRows } = require('./dashboardController');
 const logger = require('../utils/logger');
 
-const DEFAULT_LIMIT = 5;
+const DEFAULT_LIMIT = 9;
 const MAX_LIMIT = 10;
 const MAX_CART_IDS = 30;
 const MAX_PER_CATEGORY = 2;
 // Candidates kept in cache — more than the row shows, so dropping in-cart,
 // out-of-hours and per-category overflow still leaves enough.
 const CANDIDATE_POOL = 40;
-// How many same-mode products are read to fill the row.
+// How many most-ordered products are read to fill the row.
 const FILL_POOL = 40;
 const PERSONAL_ORDERS = 20;
 // Catalogue edits bust this early (bustAreaCaches); the TTL only covers what
@@ -35,11 +35,10 @@ const PERSONAL_ORDERS = 20;
 const CACHE_TTL_MS = 120_000;
 
 // Tiers: anything related to the cart (a learned match or a partner
-// category) always ranks above plain filler. Within the filler, the cart's
-// own shop comes before the rest of the mode, then best sellers.
+// category) always ranks above plain filler. The filler ranks by how often
+// it is ordered; the cart's own shop, then its mode, only break ties.
 const CATEGORY_WEIGHT = 0.3;
 const POPULAR_WEIGHT = 0.01;
-const SAME_SHOP_WEIGHT = 0.02;
 // A customer's own habit, scaled by how often (up to PERSONAL_MAX_TIMES of
 // their recent orders): their score grows by up to half, and an item that
 // relates to the cart (a learned pair or a partner category) also gets up to
@@ -69,10 +68,12 @@ const addVote = (votes, id, score) => {
   votes.set(id, (votes.get(id) || 0) + score);
 };
 
-// Related before filler, then by score, then by id so equal scores keep a
-// stable order.
+// Related before filler, then by score, then (for equal scores) the cart's
+// own shop, its mode, and id so the order stays stable.
 const byRank = (idOf) => (a, b) => (Number(b.related) - Number(a.related))
   || (b.score - a.score)
+  || (Number(Boolean(b.sameShop)) - Number(Boolean(a.sameShop)))
+  || (Number(Boolean(b.sameMode)) - Number(Boolean(a.sameMode)))
   || (idOf(a) - idOf(b));
 
 // Counted by the nightly build (product_popularity) — aggregating recent
@@ -90,29 +91,32 @@ const loadTopSellers = async (areaId) => {
 };
 
 /**
- * Everything that does not depend on who is asking: scored, sellable,
- * fully shaped products for this set of cart items. Cached per area + cart.
+ * Sellable products to fill the row: most ordered first, from any shop or
+ * mode. Never-ordered products follow — the cart's own shops, then its
+ * modes. A cart line with no shop (the platform's own stock) counts products
+ * with no shop as "the same shop".
  */
-/**
- * Sellable products of the cart's shop modes, the cart's own shops first,
- * then the mode's best sellers. A cart line with no shop (the platform's own
- * stock) counts products with no shop as "the same shop".
- */
-const loadModeFill = async (areaId, cartIds, modes, shopIds, hasNoShopItem) => {
-  if (modes.length === 0) return [];
+const loadFill = async (areaId, cartIds, modes, shopIds, hasNoShopItem) => {
   const [rows] = await pool.query(
     `SELECT p.id
      FROM products p
      JOIN categories c ON c.id = p.category_id AND c.active = 1 AND c.deleted = 0
      LEFT JOIN product_popularity pop ON pop.area_id = p.area_id AND pop.product_id = p.id
-     WHERE c.type IN (?) AND p.id NOT IN (?) AND ${SELLABLE}
-     ORDER BY (p.shop_id IN (?) OR (? AND p.shop_id IS NULL)) DESC, COALESCE(pop.orders, 0) DESC, p.id ASC
+     WHERE p.id NOT IN (?) AND ${SELLABLE}
+     ORDER BY COALESCE(pop.orders, 0) DESC,
+              (p.shop_id IN (?) OR (? AND p.shop_id IS NULL)) DESC,
+              (c.type IN (?)) DESC,
+              p.id ASC
      LIMIT ${FILL_POOL}`,
-    [modes, cartIds, areaId, shopIds.length > 0 ? shopIds : [0], hasNoShopItem ? 1 : 0]
+    [cartIds, areaId, shopIds.length > 0 ? shopIds : [0], hasNoShopItem ? 1 : 0, modes.length > 0 ? modes : ['']]
   );
   return rows.map((row) => Number(row.id));
 };
 
+/**
+ * Everything that does not depend on who is asking: scored, sellable,
+ * fully shaped products for this set of cart items. Cached per area + cart.
+ */
 const buildCandidates = async (areaId, cartIds) => {
   const [[pairRows], [cartRows], topSellers] = await Promise.all([
     pool.query(
@@ -144,7 +148,7 @@ const buildCandidates = async (areaId, cartIds) => {
         [areaId, cartCategoryIds]
       ).then(([rows]) => rows)
       : [],
-    loadModeFill(areaId, cartIds, modes, cartShopIds, hasNoShopItem),
+    loadFill(areaId, cartIds, modes, cartShopIds, hasNoShopItem),
   ]);
   const categoryScores = new Map();
   for (const row of categoryRows) addVote(categoryScores, Number(row.paired_category_id), Number(row.score));
@@ -170,12 +174,10 @@ const buildCandidates = async (areaId, cartIds) => {
     const vote = votes.get(row.id) || 0;
     const categoryScore = categoryScores.get(row.category_id) || 0;
     const related = vote > 0 || categoryScore > 0;
-    // Plain filler stays in the cart's own shop mode.
-    if (!related && !modeSet.has(row.category_type)) continue;
     const score = related
       ? vote + categoryScore * CATEGORY_WEIGHT * Math.max(pop, 0.1) + pop * POPULAR_WEIGHT
-      : (isSameShop(row) ? SAME_SHOP_WEIGHT : 0) + pop * POPULAR_WEIGHT;
-    scored.push({ row, score, related });
+      : pop * POPULAR_WEIGHT;
+    scored.push({ row, score, related, sameShop: isSameShop(row), sameMode: modeSet.has(row.category_type) });
   }
   scored.sort(byRank((entry) => entry.row.id));
   const top = scored.slice(0, CANDIDATE_POOL);
@@ -186,6 +188,8 @@ const buildCandidates = async (areaId, cartIds) => {
   return top.map((entry, index) => ({
     score: entry.score,
     related: entry.related,
+    sameShop: entry.sameShop,
+    sameMode: entry.sameMode,
     from: entry.row.available_from_time,
     until: entry.row.available_until_time,
     product: shaped[index],

@@ -1269,7 +1269,7 @@ export default function CartScreen() {
               })}
             </Animated.View>
 
-            {/* "Add more" — what goes with this cart */}
+            {/* "People also ordered" — what goes with this cart */}
             <CartSuggestions />
 
             {/* Shop Closed Warning */}

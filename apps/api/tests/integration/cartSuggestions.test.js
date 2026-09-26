@@ -285,13 +285,13 @@ describeWithMysql('cart suggestions against a real database', () => {
   describe('what the cart row shows', () => {
     const BLOCKED = () => [p.off, p.deleted, p.closedShop, p.offGroup, p.notNow, p.combo];
 
-    it('shows the best matches first, at most 5, never a blocked product', async () => {
+    it('shows the best matches first, at most 9, never a blocked product', async () => {
       const res = await suggest([p.burger]);
       expect(res.status).toBe(200);
       const ids = idsOf(res);
       expect(ids[0]).toBe(p.coke);
       expect(ids).toContain(p.fries);
-      expect(ids.length).toBeLessThanOrEqual(5);
+      expect(ids.length).toBeLessThanOrEqual(9);
       for (const blocked of BLOCKED()) expect(ids).not.toContain(blocked);
       expect(ids).not.toContain(p.burger);
     });
@@ -338,8 +338,8 @@ describeWithMysql('cart suggestions against a real database', () => {
 
     it('falls back to best sellers for a product with nothing learned', async () => {
       const ids = idsOf(await suggest([p.chefSpecial]));
-      expect(ids).toHaveLength(5);
-      // The two best sellers of the mode.
+      expect(ids).toHaveLength(9);
+      // The two best sellers of the area.
       expect(ids.slice(0, 2)).toEqual([p.burger, p.water]);
     });
 
@@ -347,7 +347,7 @@ describeWithMysql('cart suggestions against a real database', () => {
       const ids = idsOf(await suggest([p.paneer]));
       expect(ids[0]).toBe(p.naan);
       expect(ids).toContain(p.roti);
-      expect(ids).toHaveLength(5);
+      expect(ids).toHaveLength(9);
     });
 
     it('answers an empty list for an area with no orders at all', async () => {
@@ -362,7 +362,7 @@ describeWithMysql('cart suggestions against a real database', () => {
       }
     });
 
-    it('fills the row from the same shop, then the same shop mode, before any order exists', async () => {
+    it('fills the row before any order exists: same shop, then same mode, then the rest', async () => {
       const fresh = await createArea('F');
       const category = (name, type, active = 1) => insert(
         'INSERT INTO categories (name, slug, type, active, area_id) VALUES (?, ?, ?, ?, ?)',
@@ -392,10 +392,10 @@ describeWithMysql('cart suggestions against a real database', () => {
         await buildAreaPairs(fresh);
 
         const ids = idsOf(await suggest([burger], { areaId: fresh }));
-        expect(ids).toEqual([shake, fries, pizza]);
-        for (const never of [closedShopItem, hiddenItem, chips, biscuits]) expect(ids).not.toContain(never);
+        expect(ids).toEqual([shake, fries, pizza, chips, biscuits]);
+        for (const never of [closedShopItem, hiddenItem]) expect(ids).not.toContain(never);
 
-        expect(idsOf(await suggest([chips], { areaId: fresh }))).toEqual([biscuits]);
+        expect(idsOf(await suggest([chips], { areaId: fresh }))).toEqual([biscuits, burger, shake, fries, pizza]);
       } finally {
         await pool.query('DELETE FROM products WHERE area_id = ?', [fresh]);
         await pool.query('DELETE FROM shops WHERE area_id = ?', [fresh]);

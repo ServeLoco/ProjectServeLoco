@@ -60,13 +60,17 @@ const answer = (sql, params) => {
   }
   if (sql.includes('ORDER BY orders DESC')) return db.topSellers;
   if (sql.includes('c.type IN (?)')) {
-    // Same mode, sellable, not in the cart; same shop first, then sales.
-    const [modes, cartIds, , shopIds, noShop] = params;
+    // Any sellable product not in the cart: most ordered first, then the
+    // cart's own shop, then its mode.
+    const [cartIds, , shopIds, noShop, modes] = params;
     const sales = (id) => (db.topSellers.find((t) => t.product_id === id) || {}).orders || 0;
     const same = (id) => (shopOf(id) == null ? Boolean(noShop) : shopIds.includes(shopOf(id)));
     return Object.keys(PRODUCTS).map(Number)
-      .filter((id) => modes.includes(modeOf(id)) && !cartIds.includes(id) && !db.unavailable.includes(id))
-      .sort((a, b) => Number(same(b)) - Number(same(a)) || sales(b) - sales(a) || a - b)
+      .filter((id) => !cartIds.includes(id) && !db.unavailable.includes(id))
+      .sort((a, b) => sales(b) - sales(a)
+        || Number(same(b)) - Number(same(a))
+        || Number(modes.includes(modeOf(b))) - Number(modes.includes(modeOf(a)))
+        || a - b)
       .map((id) => ({ id }));
   }
   if (sql.includes('LEFT JOIN categories cat')) {
@@ -125,7 +129,7 @@ describe('GET /api/cart/suggestions', () => {
   });
 
   it('shows at most 2 from one category', async () => {
-    const res = await get('productIds=3');
+    const res = await get('productIds=3&limit=5');
     const drinks = res.body.products.filter((p) => p.categoryId === 10);
     expect(drinks).toHaveLength(2); // Coke, Pepsi — not Sprite
   });
@@ -149,28 +153,42 @@ describe('GET /api/cart/suggestions', () => {
     expect(names(res)).not.toContain('Fries');
   });
 
-  it('fills the row from the same shop, then the same shop mode, when nothing is learned yet', async () => {
+  it('fills the row with the most ordered, from any shop, when nothing is learned yet', async () => {
     db.pairs = [];
     db.topSellers = [{ product_id: 6, orders: 90 }, { product_id: 11, orders: 50 }, { product_id: 1, orders: 20 }];
     const res = await get('productIds=3');
-    // Fries shares the burger's shop; then the mode's best sellers; never
-    // Milk, the packed mode's best seller.
-    expect(names(res)).toEqual(['Fries', 'Naan', 'Coke', 'Roti', 'Matar Paneer']);
+    // Most ordered first — Milk too, though it is another mode. Never-ordered
+    // items follow: the burger's own shop (Fries), then its mode; Sprite, a
+    // third drink, only closes the row.
+    expect(names(res)).toEqual(['Milk', 'Naan', 'Coke', 'Fries', 'Roti', 'Matar Paneer', 'Pepsi', 'Sprite']);
+  });
+
+  it('shows 9 by default: related first, then the most ordered', async () => {
+    PRODUCTS[2] = { name: 'Bread', category_id: 61, mode: 'packed' };
+    try {
+      const res = await get('productIds=3');
+      expect(names(res)).toHaveLength(9);
+      expect(names(res).slice(0, 4)).toEqual(['Coke', 'Fries', 'Pepsi', 'Milk']);
+    } finally {
+      delete PRODUCTS[2];
+    }
   });
 
   it('keeps the row filled after the related items run out', async () => {
     const res = await get('productIds=3');
     expect(names(res).slice(0, 3)).toEqual(['Coke', 'Fries', 'Pepsi']);
-    expect(names(res)).toHaveLength(5);
-    expect(names(res)).not.toContain('Milk');
+    // Milk, the best seller, comes right after the related items.
+    expect(names(res)[3]).toBe('Milk');
+    // Everything else in the catalogue, so the row is as full as it can be.
+    expect(names(res)).toHaveLength(8);
   });
 
-  it('lets a small shop mode repeat a category rather than show a short row', async () => {
-    // Only drinks and the burger itself are left to show.
+  it('repeats a category rather than show a short row', async () => {
+    // Only drinks and Milk are left to show.
     db.pairs = [];
     db.unavailable = [8, 9, 10, 11];
     const res = await get('productIds=3');
-    expect(names(res)).toEqual(['Coke', 'Pepsi', 'Sprite']);
+    expect(names(res)).toEqual(['Milk', 'Coke', 'Pepsi', 'Sprite']);
   });
 
   it('uses learned category pairs when the product itself has no matches', async () => {
@@ -178,16 +196,17 @@ describe('GET /api/cart/suggestions', () => {
     db.categoryPairs = [{ category_id: 70, paired_category_id: 80, score: 1.4 }]; // Curries → Breads
     db.topSellers = [{ product_id: 6, orders: 50 }, { product_id: 11, orders: 20 }];
     const res = await get('productIds=10');
-    expect(names(res).slice(0, 2)).toEqual(['Naan', 'Roti']);
-    expect(names(res)).not.toContain('Milk');
+    expect(names(res).slice(0, 3)).toEqual(['Naan', 'Roti', 'Milk']);
   });
 
-  it("shows the packed mode's items for a packed cart", async () => {
+  it('puts the best seller first for a cart with nothing learned', async () => {
     db.pairs = [];
     PRODUCTS[2] = { name: 'Bread', category_id: 61, mode: 'packed' };
     try {
       const res = await get('productIds=2');
-      expect(names(res)).toEqual(['Milk']);
+      expect(names(res)[0]).toBe('Milk');
+      expect(names(res)).toHaveLength(9);
+      expect(names(res)).not.toContain('Bread');
     } finally {
       delete PRODUCTS[2];
     }

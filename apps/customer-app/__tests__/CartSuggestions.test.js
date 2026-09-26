@@ -1,5 +1,5 @@
 /**
- * The cart's "Add more" row: asks the server what goes with the cart, shows
+ * The cart's "People also ordered" row: asks the server what goes with the cart, shows
  * it, adds from it, and stays out of the way when there is nothing to show.
  */
 import React from 'react';
@@ -62,8 +62,14 @@ describe('CartSuggestions', () => {
   it('asks for what goes with the cart items and the delivery pin', async () => {
     await renderRow();
     expect(cartApi.suggestions).toHaveBeenCalledWith(expect.objectContaining({
-      productIds: ['3'], latitude: 26.1, longitude: 76.2,
+      productIds: ['3'], latitude: 26.1, longitude: 76.2, limit: 9,
     }));
+  });
+
+  it('is titled "People also ordered"', async () => {
+    const tree = await renderRow();
+    const titles = tree.root.findAll((n) => n.type === 'Text' && n.props.accessibilityRole === 'header');
+    expect(titles.map((n) => n.props.children)).toEqual(['People also ordered']);
   });
 
   it('shows the suggested products and reports each one as shown once', async () => {
@@ -85,6 +91,24 @@ describe('CartSuggestions', () => {
     // Adding from the row is not a reason to reload it.
     expect(cartApi.suggestions).toHaveBeenCalledTimes(1);
     expect(cardNames(tree)).toEqual(['Coke', 'Fries']);
+  });
+
+  it('says in the header how many items were added from the row', async () => {
+    const tree = await renderRow();
+    const texts = () => tree.root.findAll((n) => n.type === 'Text').map((n) => [].concat(n.props.children).join(''));
+    expect(texts()).toContain('Goes well with your cart');
+
+    const addCoke = tree.root.findAll((n) => n.props.accessibilityLabel === 'Add Coke to cart' && typeof n.props.onPress === 'function');
+    await act(async () => { addCoke[0].props.onPress(); });
+    await flush(1000);
+    expect(texts()).toContain('1 item added from here');
+
+    // Taken back out of the cart, the header goes back to the tagline.
+    await act(async () => {
+      useCartStore.setState({ items: useCartStore.getState().items.filter((line) => String(line.product.id) !== '1') });
+    });
+    await flush(1000);
+    expect(texts()).toContain('Goes well with your cart');
   });
 
   it('asks again when the cart changes elsewhere', async () => {
