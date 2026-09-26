@@ -51,6 +51,19 @@ describe('analyticsClient', () => {
       expect(body.events).toHaveLength(20);
     });
 
+    it('files the batch under where the phone is: the delivery pin rides along', async () => {
+      const { useDeliveryLocationStore } = require('../src/stores/useDeliveryLocationStore');
+      useDeliveryLocationStore.setState({ coords: { lat: 12.9716, lng: 77.6046 } });
+      trackEvent('product_view', { productId: 1 });
+      await flushEvents();
+      expect(apiClient.post.mock.calls[0][1]).toEqual(expect.objectContaining({ latitude: 12.9716, longitude: 77.6046 }));
+
+      useDeliveryLocationStore.setState({ coords: null });
+      trackEvent('product_view', { productId: 2 });
+      await flushEvents();
+      expect(apiClient.post.mock.calls[1][1]).not.toHaveProperty('latitude');
+    });
+
     it('does not flush an empty queue', async () => {
       await flushEvents();
       expect(apiClient.post).not.toHaveBeenCalled();

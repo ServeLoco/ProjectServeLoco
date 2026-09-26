@@ -161,6 +161,12 @@ describe('insertEvents', () => {
     expect(docs[0].createdAt).toBeInstanceOf(Date);
   });
 
+  it('stamps the area AND zone the batch\'s pin resolved to', async () => {
+    mongo.__mocks.insertMany.mockResolvedValue({ insertedCount: 1 });
+    await insertEvents(123, [{ type: 'product_view', productId: 5 }], 2, 9);
+    expect(mongo.__mocks.insertMany.mock.calls[0][0][0]).toMatchObject({ areaId: 2, zoneId: 9 });
+  });
+
   it('caps at 50 valid events per call', async () => {
     mongo.__mocks.insertMany.mockResolvedValue({ insertedCount: 50 });
     const many = Array.from({ length: 80 }, () => ({ type: 'product_view', productId: 1 }));

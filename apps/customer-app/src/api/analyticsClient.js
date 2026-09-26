@@ -11,6 +11,7 @@
 import { AppState } from 'react-native';
 import { emitAnalyticsScreen } from './realtimeClient';
 import { apiClient } from './httpClient';
+import { useDeliveryLocationStore } from '../stores/useDeliveryLocationStore';
 
 const MAX_QUEUE = 20;
 const FLUSH_INTERVAL_MS = 15_000;
@@ -41,7 +42,13 @@ async function flushEvents() {
   const batch = queue.splice(0, queue.length);
 
   try {
-    await apiClient.post('/analytics/events', { events: batch }, { auth: 'customer' });
+    // The delivery pin files the batch under the area and zone the phone is
+    // in; without one the server falls back to where it was last seen.
+    const coords = useDeliveryLocationStore.getState().coords;
+    const pin = coords?.lat != null && coords?.lng != null
+      ? { latitude: coords.lat, longitude: coords.lng }
+      : {};
+    await apiClient.post('/analytics/events', { events: batch, ...pin }, { auth: 'customer' });
     needsRetry = false;
   } catch (_) {
     // Retry once: put the batch back for the next flush. If this is already

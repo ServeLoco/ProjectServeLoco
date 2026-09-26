@@ -68,9 +68,11 @@ const withAreaCodes = async (rows, areaIdField = 'areaId') => {
 const postEvents = async (req, res) => {
   const userId = req.user?.id;
   const events = Array.isArray(req.body?.events) ? req.body.events : [];
-  // req.areaId comes from resolveCustomerArea on this route (§9.5/§4.2:
-  // pin → users.last_area_id → default area).
-  const accepted = await insertEvents(userId, events, req.areaId);
+  // req.areaId/zoneId come from resolveCustomerArea on this route: the pin
+  // the app sends with each batch (where the phone is), else the area the
+  // phone was last seen in, else none — never the last-order or default
+  // area, which filed a customer browsing in one area under another.
+  const accepted = await insertEvents(userId, events, req.areaId, req.zoneId ?? null);
   res.status(202).json({ accepted });
 };
 

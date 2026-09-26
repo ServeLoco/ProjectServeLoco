@@ -72,11 +72,13 @@ const validateEvent = (event) => {
  * @param {number} userId
  * @param {unknown[]} events
  * @param {number} [areaId] - from resolveCustomerArea on the ingest route
- *   (§9.5/§4.2 chain: pin → last_area_id → default area). Stamped on every
+ *   (the batch's pin, else where the phone was last seen, else null). Stamped on every
  *   doc so the rollup can group by (areaId, date).
+ * @param {number|null} [zoneId] - the zone the batch's pin resolved to
+ *   (resolveCustomerArea), null without a pin — per-zone analytics.
  * @returns {Promise<number>} number of accepted events
  */
-const insertEvents = async (userId, events, areaId) => {
+const insertEvents = async (userId, events, areaId, zoneId = null) => {
   if (!Array.isArray(events)) return 0;
 
   const docs = [];
@@ -84,7 +86,7 @@ const insertEvents = async (userId, events, areaId) => {
     if (docs.length >= MAX_EVENTS_PER_CALL) break;
     const clean = validateEvent(ev);
     if (!clean) continue;
-    docs.push({ userId, areaId, ...clean, createdAt: new Date() });
+    docs.push({ userId, areaId, zoneId, ...clean, createdAt: new Date() });
   }
 
   if (docs.length === 0) return 0;
