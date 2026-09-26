@@ -69,6 +69,19 @@ describe('Reports API', () => {
     expect(pool.query.mock.calls[0][0]).toContain('MONTH');
   });
 
+  it('the customers report counts only the area\'s own customers, not every account', async () => {
+    pool.query.mockResolvedValueOnce([[{ total_customers: 7 }]]);
+
+    await request(app)
+      .get('/api/admin/reports/customers')
+      .set('Authorization', `Bearer ${token}`);
+
+    const [sql, params] = pool.query.mock.calls[0];
+    expect(sql).toContain('u.current_area_id = ?');
+    expect(sql).toContain('o.area_id = ?');
+    expect(params).toEqual([1, 1]);
+  });
+
   it('should return shop-wise report grouped with products, excluding cancelled orders', async () => {
     pool.query
       .mockResolvedValueOnce([[

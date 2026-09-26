@@ -626,6 +626,8 @@ const getTopProductsReport = async (req, res) => {
 // order history. total/trusted/blocked customer counts are platform-wide by
 // nature; scoping them would just be wrong, not more precise.
 const getCustomersReport = async (req, res) => {
+  const areaId = resolveAreaOrAll(req, res);
+  if (areaId === undefined) return;
   const { period } = req.query;
   const allowedPeriods = ['today', 'week', 'month', 'all'];
   if (period && !allowedPeriods.includes(period)) {
@@ -634,22 +636,30 @@ const getCustomersReport = async (req, res) => {
 
   let dateFilter = '1=1';
   if (period === 'today') {
-    dateFilter = istIsToday('created_at');
+    dateFilter = istIsToday('u.created_at');
   } else if (period === 'week') {
-    dateFilter = istIsThisWeek('created_at');
+    dateFilter = istIsThisWeek('u.created_at');
   } else if (period === 'month') {
-    dateFilter = istIsThisMonth('created_at');
+    dateFilter = istIsThisMonth('u.created_at');
   }
 
+  // Customers are global accounts, so one area's report counts that area's
+  // customers: whose phone was last seen in the area, or who have ordered
+  // there. 'All areas' counts every account. Used to count every account
+  // platform-wide in every area's report.
+  const areaWhere = areaId === 'all'
+    ? ''
+    : 'WHERE (u.current_area_id = ? OR EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = u.id AND o.area_id = ?))';
   const [[metrics]] = await pool.query(`
     SELECT
       COUNT(*) as total_customers,
       COUNT(CASE WHEN ${dateFilter} THEN 1 END) as new_customers,
-      COUNT(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as new_customers_30d,
-      COUNT(CASE WHEN trusted = 1 THEN 1 END) as trusted_customers,
-      COUNT(CASE WHEN blocked = 1 THEN 1 END) as blocked_customers
-    FROM users
-  `);
+      COUNT(CASE WHEN u.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as new_customers_30d,
+      COUNT(CASE WHEN u.trusted = 1 THEN 1 END) as trusted_customers,
+      COUNT(CASE WHEN u.blocked = 1 THEN 1 END) as blocked_customers
+    FROM users u
+    ${areaWhere}
+  `, areaId === 'all' ? [] : [areaId, areaId]);
   res.status(200).json({ data: metrics });
 };
 
