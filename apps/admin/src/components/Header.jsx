@@ -21,6 +21,7 @@ const PAGE_META = {
   '/reports': { title: 'Reports', subtitle: 'Sales & analytics' },
   '/health': { title: 'System Health', subtitle: 'Backend diagnostics' },
   '/analytics': { title: 'Analytics', subtitle: 'Live presence & behavior' },
+  '/heat-map': { title: 'App Opens Map', subtitle: 'Where people open the app' },
   '/bulk-import': { title: 'Bulk Import', subtitle: 'CSV + ZIP product import' },
   '/areas': { title: 'Areas', subtitle: 'Multi-area configuration' },
   '/admins': { title: 'Admins', subtitle: 'Admin accounts and roles' },

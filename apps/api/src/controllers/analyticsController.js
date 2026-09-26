@@ -4,7 +4,8 @@
 // empty/default data rather than 500.
 
 const { getDb } = require('../db/mongodb');
-const { istDateKey } = require('../utils/businessTime');
+const { istDateKey, istInstantFromWallClock, BUSINESS_TZ } = require('../utils/businessTime');
+const { parseBoundary } = require('../utils/deliveryPricing');
 const { pool } = require('../db/mysql');
 const { insertEvents } = require('../services/analytics/eventStore');
 const { requestAreaId, listAreas } = require('../utils/areaScope');
@@ -391,4 +392,128 @@ const getActiveUsers = async (req, res) => {
   res.status(200).json({ data, minutes });
 };
 
-module.exports = { postEvents, getSummary, getProducts, getWindowShoppers, getUserDrillDown, getHourly, getActiveUsers };
+// ── Admin: GET heatmap?date=YYYY-MM-DD&days=1 ─────────────────────────────
+// Where the app was OPENED: every session's first pin (rounded to ~100 m by
+// realtime/customerLocation.js), grouped into those ~100 m cells, for one IST
+// day (or the `days` ending on it). Scoped by the area the pin was IN when
+// the app opened (locAreaId), not by where the customer orders. "All areas"
+// also shows opens outside every zone — demand where there is no service
+// yet. Sessions expire after 30 days, which bounds the range.
+const HEATMAP_MAX_DAYS = 30;
+const HEATMAP_MAX_CELLS = 5000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+const DATE_KEY_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+const getHeatmap = async (req, res) => {
+  const areaId = resolveAreaOrAll(req, res);
+  if (areaId === undefined) return;
+
+  const rawDate = String(req.query.date || '');
+  const date = DATE_KEY_RE.test(rawDate) ? rawDate : istDateKey();
+  const dayStart = istInstantFromWallClock(`${date} 00:00:00`);
+  if (!dayStart) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'date must be YYYY-MM-DD' });
+  }
+  const days = Math.min(Math.max(parseInt(req.query.days, 10) || 1, 1), HEATMAP_MAX_DAYS);
+  const end = new Date(dayStart.getTime() + DAY_MS);
+  const start = new Date(end.getTime() - days * DAY_MS);
+
+  const empty = { cells: [], totals: [], byHour: [], byZone: [] };
+  let facet = empty;
+  try {
+    const col = safeCollection('analytics_sessions');
+    if (col) {
+      // createdAt (== connectedAt) so the range rides the TTL / area indexes.
+      const match = {
+        createdAt: { $gte: start, $lt: end },
+        loc: { $type: 'object' },
+        ...(areaId === 'all' ? {} : { locAreaId: areaId }),
+      };
+      const [result] = await col.aggregate([
+        { $match: match },
+        { $facet: {
+          cells: [
+            { $group: { _id: { lat: '$loc.lat', lng: '$loc.lng' }, opens: { $sum: 1 }, users: { $addToSet: '$userId' } } },
+            { $project: { _id: 0, lat: '$_id.lat', lng: '$_id.lng', opens: 1, users: { $size: '$users' } } },
+            { $sort: { opens: -1 } },
+            { $limit: HEATMAP_MAX_CELLS + 1 },
+          ],
+          totals: [
+            { $group: { _id: null, opens: { $sum: 1 }, users: { $addToSet: '$userId' } } },
+            { $project: { _id: 0, opens: 1, users: { $size: '$users' } } },
+          ],
+          byHour: [
+            { $group: { _id: { $hour: { date: '$createdAt', timezone: BUSINESS_TZ } }, opens: { $sum: 1 } } },
+          ],
+          byZone: [
+            { $group: { _id: { areaId: '$locAreaId', zoneId: '$locZoneId' }, opens: { $sum: 1 }, users: { $addToSet: '$userId' } } },
+            { $project: { _id: 0, areaId: '$_id.areaId', zoneId: '$_id.zoneId', opens: 1, users: { $size: '$users' } } },
+            { $sort: { opens: -1 } },
+          ],
+        } },
+      ]).toArray();
+      facet = result || empty;
+    }
+  } catch (_) { /* fire-and-forget — an empty map, never a 500 */ }
+
+  // Zone outlines for the map, and names for the per-zone list — one query.
+  let zoneRows = [];
+  try {
+    const [rows] = await pool.query(
+      `SELECT id, area_id, name, boundary FROM delivery_zones WHERE active = 1${areaId === 'all' ? '' : ' AND area_id = ?'}`,
+      areaId === 'all' ? [] : [areaId]
+    );
+    zoneRows = rows;
+  } catch (_) { /* the map still renders without outlines */ }
+  const zoneNames = new Map(zoneRows.map((z) => [Number(z.id), z.name || null]));
+  const areasById = new Map((await listAreas()).map((a) => [Number(a.id), a]));
+
+  const byHour = Array(24).fill(0);
+  for (const row of facet.byHour || []) {
+    if (Number.isInteger(row._id) && row._id >= 0 && row._id < 24) byHour[row._id] = row.opens;
+  }
+  const cells = (facet.cells || []).slice(0, HEATMAP_MAX_CELLS);
+  const byZone = (facet.byZone || []).map((row) => {
+    const area = row.areaId != null ? areasById.get(Number(row.areaId)) : null;
+    const outside = row.areaId == null;
+    return {
+      areaId: row.areaId ?? null,
+      area_id: row.areaId ?? null,
+      areaCode: area?.code || null,
+      area_code: area?.code || null,
+      zoneId: row.zoneId ?? null,
+      zone_id: row.zoneId ?? null,
+      zoneName: outside ? null : (zoneNames.get(Number(row.zoneId)) || null),
+      zone_name: outside ? null : (zoneNames.get(Number(row.zoneId)) || null),
+      outside,
+      opens: row.opens,
+      users: row.users,
+    };
+  });
+  const totals = (facet.totals || [])[0] || { opens: 0, users: 0 };
+
+  res.status(200).json({
+    data: {
+      date,
+      days,
+      areaId,
+      area_id: areaId,
+      totals,
+      points: cells,
+      truncated: (facet.cells || []).length > HEATMAP_MAX_CELLS,
+      byHour,
+      by_hour: byHour,
+      byZone,
+      by_zone: byZone,
+      zones: zoneRows.map((z) => ({
+        id: z.id,
+        areaId: z.area_id,
+        area_id: z.area_id,
+        name: z.name || null,
+        boundary: parseBoundary(z.boundary),
+      })),
+    },
+  });
+};
+
+module.exports = { postEvents, getSummary, getProducts, getWindowShoppers, getUserDrillDown, getHourly, getActiveUsers, getHeatmap };

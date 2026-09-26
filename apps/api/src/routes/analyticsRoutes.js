@@ -3,7 +3,7 @@ const rateLimit = require('express-rate-limit');
 const asyncHandler = require('../utils/asyncHandler');
 const { requireCustomer, requireAdmin } = require('../middleware/authMiddleware');
 const { resolveCustomerArea } = require('../middleware/areaMiddleware');
-const { postEvents, getSummary, getProducts, getWindowShoppers, getUserDrillDown, getHourly, getActiveUsers } = require('../controllers/analyticsController');
+const { postEvents, getSummary, getProducts, getWindowShoppers, getUserDrillDown, getHourly, getActiveUsers, getHeatmap } = require('../controllers/analyticsController');
 
 // Customer analytics router — mounted at /api/analytics
 const router = express.Router();
@@ -29,6 +29,7 @@ adminRouter.get('/window-shoppers', asyncHandler(getWindowShoppers));
 adminRouter.get('/user/:id', asyncHandler(getUserDrillDown));
 adminRouter.get('/hourly', asyncHandler(getHourly));
 adminRouter.get('/active-users', asyncHandler(getActiveUsers));
+adminRouter.get('/heatmap', asyncHandler(getHeatmap));
 
 module.exports = router;
 module.exports.adminRouter = adminRouter;

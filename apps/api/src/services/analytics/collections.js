@@ -101,6 +101,8 @@ const ensureAnalyticsIndexes = async (db) => {
   const sessions = db.collection('analytics_sessions');
   await sessions.createIndex({ userId: 1, createdAt: -1 });
   await sessions.createIndex({ areaId: 1, createdAt: -1 });
+  // The heat map reads app-open locations by the area they were in.
+  await sessions.createIndex({ locAreaId: 1, createdAt: -1 });
 
   const events = db.collection('analytics_events');
   await events.createIndex({ userId: 1, createdAt: -1 });

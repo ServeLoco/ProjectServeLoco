@@ -284,6 +284,7 @@ export const AnalyticsApi = {
   user: (id, days) => apiClient(withQuery(`/admin/analytics/user/${id}`, { days }), { method: 'GET' }),
   hourly: (days) => apiClient(withQuery('/admin/analytics/hourly', { days }), { method: 'GET' }),
   activeUsers: (minutes, search) => apiClient(withQuery('/admin/analytics/active-users', { minutes, search }), { method: 'GET' }),
+  heatmap: ({ date, days }) => apiClient(withQuery('/admin/analytics/heatmap', { date, days }), { method: 'GET' }),
 };
 
 // Product library (TASK 19/26) — identity shared, GET is any admin, writes

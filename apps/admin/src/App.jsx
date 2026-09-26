@@ -30,6 +30,7 @@ import Health from './pages/Health';
 import BulkImport from './pages/BulkImport';
 import Analytics from './pages/Analytics';
 import AnalyticsUserDetail from './pages/AnalyticsUserDetail';
+import HeatMap from './pages/HeatMap';
 import Areas from './pages/Areas';
 import Admins from './pages/Admins';
 import Library from './pages/Library';
@@ -101,6 +102,7 @@ function App() {
                     <Route path="/bulk-import" element={<BulkImport />} />
                     <Route path="/analytics" element={<Analytics />} />
                     <Route path="/analytics/user/:id" element={<AnalyticsUserDetail />} />
+                    <Route path="/heat-map" element={<HeatMap />} />
                     <Route element={<SuperAdminRoute />}>
                       <Route path="/areas" element={<Areas />} />
                       <Route path="/admins" element={<Admins />} />

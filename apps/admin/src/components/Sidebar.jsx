@@ -41,6 +41,7 @@ const NAV_GROUPS = [
       { path: '/settings', label: 'Settings', icon: '⚙️' },
       { path: '/reports', label: 'Reports', icon: '📊' },
       { path: '/analytics', label: 'Analytics', icon: '📈' },
+      { path: '/heat-map', label: 'App Opens Map', icon: '🗺️' },
       { path: '/health', label: 'System Health', icon: '💚' },
     ],
   },
