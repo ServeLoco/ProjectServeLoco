@@ -26,20 +26,24 @@ const token = jwt.sign({ id: 1, role: 'customer' }, process.env.JWT_SECRET || 's
 
 // Catalogue: 3 Burger (Fast Food 30), 10 Matar Paneer (Curries 70),
 // 1 Coke / 13 Pepsi / 14 Sprite (Drinks 10), 8 Fries (Snacks 20),
-// 9 Roti / 11 Naan (Breads 80), 6 Milk (Dairy 60).
+// 9 Roti / 11 Naan (Breads 80) — all in the fast_food shop mode, Burger and
+// Fries from shop 5. 6 Milk (Dairy 60) is in the packed mode.
 const PRODUCTS = {
   1: { name: 'Coke', category_id: 10 },
-  3: { name: 'Burger', category_id: 30 },
-  6: { name: 'Milk', category_id: 60 },
-  8: { name: 'Fries', category_id: 20 },
+  3: { name: 'Burger', category_id: 30, shop_id: 5 },
+  6: { name: 'Milk', category_id: 60, mode: 'packed' },
+  8: { name: 'Fries', category_id: 20, shop_id: 5 },
   9: { name: 'Roti', category_id: 80 },
   10: { name: 'Matar Paneer', category_id: 70 },
   11: { name: 'Naan', category_id: 80 },
   13: { name: 'Pepsi', category_id: 10 },
   14: { name: 'Sprite', category_id: 10 },
 };
+const modeOf = (id) => PRODUCTS[id].mode || 'fast_food';
+const shopOf = (id) => PRODUCTS[id].shop_id ?? null;
 const productRow = (id) => ({
-  id, ...PRODUCTS[id], price: '50.00', available: 1, deleted: 0, is_combo: 0,
+  id, name: PRODUCTS[id].name, category_id: PRODUCTS[id].category_id, shop_id: shopOf(id),
+  category_type: modeOf(id), price: '50.00', available: 1, deleted: 0, is_combo: 0,
   image_id: null, available_from_time: null, available_until_time: null,
 });
 
@@ -51,10 +55,20 @@ const answer = (sql, params) => {
   if (sql.includes('FROM category_pairs')) {
     return db.categoryPairs.filter((p) => params[1].includes(p.category_id));
   }
-  if (sql.includes('SELECT id, category_id FROM products')) {
-    return params[1].map((id) => ({ id, category_id: PRODUCTS[id].category_id }));
+  if (sql.includes('SELECT p.id, p.category_id, p.shop_id')) {
+    return params[1].map((id) => ({ id, category_id: PRODUCTS[id].category_id, shop_id: shopOf(id), mode: modeOf(id) }));
   }
   if (sql.includes('ORDER BY orders DESC')) return db.topSellers;
+  if (sql.includes('c.type IN (?)')) {
+    // Same mode, sellable, not in the cart; same shop first, then sales.
+    const [modes, cartIds, , shopIds, noShop] = params;
+    const sales = (id) => (db.topSellers.find((t) => t.product_id === id) || {}).orders || 0;
+    const same = (id) => (shopOf(id) == null ? Boolean(noShop) : shopIds.includes(shopOf(id)));
+    return Object.keys(PRODUCTS).map(Number)
+      .filter((id) => modes.includes(modeOf(id)) && !cartIds.includes(id) && !db.unavailable.includes(id))
+      .sort((a, b) => Number(same(b)) - Number(same(a)) || sales(b) - sales(a) || a - b)
+      .map((id) => ({ id }));
+  }
   if (sql.includes('LEFT JOIN categories cat')) {
     return params[0].filter((id) => PRODUCTS[id] && !db.unavailable.includes(id)).map(db.rowFor);
   }
@@ -135,10 +149,28 @@ describe('GET /api/cart/suggestions', () => {
     expect(names(res)).not.toContain('Fries');
   });
 
-  it('fills the row with best sellers when nothing is learned yet', async () => {
+  it('fills the row from the same shop, then the same shop mode, when nothing is learned yet', async () => {
     db.pairs = [];
+    db.topSellers = [{ product_id: 6, orders: 90 }, { product_id: 11, orders: 50 }, { product_id: 1, orders: 20 }];
     const res = await get('productIds=3');
-    expect(names(res)).toEqual(['Milk']);
+    // Fries shares the burger's shop; then the mode's best sellers; never
+    // Milk, the packed mode's best seller.
+    expect(names(res)).toEqual(['Fries', 'Naan', 'Coke', 'Roti', 'Matar Paneer']);
+  });
+
+  it('keeps the row filled after the related items run out', async () => {
+    const res = await get('productIds=3');
+    expect(names(res).slice(0, 3)).toEqual(['Coke', 'Fries', 'Pepsi']);
+    expect(names(res)).toHaveLength(5);
+    expect(names(res)).not.toContain('Milk');
+  });
+
+  it('lets a small shop mode repeat a category rather than show a short row', async () => {
+    // Only drinks and the burger itself are left to show.
+    db.pairs = [];
+    db.unavailable = [8, 9, 10, 11];
+    const res = await get('productIds=3');
+    expect(names(res)).toEqual(['Coke', 'Pepsi', 'Sprite']);
   });
 
   it('uses learned category pairs when the product itself has no matches', async () => {
@@ -146,7 +178,19 @@ describe('GET /api/cart/suggestions', () => {
     db.categoryPairs = [{ category_id: 70, paired_category_id: 80, score: 1.4 }]; // Curries → Breads
     db.topSellers = [{ product_id: 6, orders: 50 }, { product_id: 11, orders: 20 }];
     const res = await get('productIds=10');
-    expect(names(res)).toEqual(['Naan', 'Milk']);
+    expect(names(res).slice(0, 2)).toEqual(['Naan', 'Roti']);
+    expect(names(res)).not.toContain('Milk');
+  });
+
+  it("shows the packed mode's items for a packed cart", async () => {
+    db.pairs = [];
+    PRODUCTS[2] = { name: 'Bread', category_id: 61, mode: 'packed' };
+    try {
+      const res = await get('productIds=2');
+      expect(names(res)).toEqual(['Milk']);
+    } finally {
+      delete PRODUCTS[2];
+    }
   });
 
   it("boosts what this customer usually orders when it goes with the cart", async () => {
@@ -157,10 +201,10 @@ describe('GET /api/cart/suggestions', () => {
   });
 
   it("does not push in a habit that has nothing to do with the cart", async () => {
-    // Milk is only a best seller here — no pair, no partner category.
-    db.personal = [{ product_id: 6, times: 4 }];
+    // Matar Paneer is only filler here — no pair, no partner category.
+    db.personal = [{ product_id: 10, times: 4 }];
     const res = await get('productIds=3');
-    expect(names(res).indexOf('Milk')).toBe(names(res).length - 1);
+    expect(names(res).slice(0, 3)).toEqual(['Coke', 'Fries', 'Pepsi']);
   });
 
   it('returns an empty list for an empty cart without touching the database', async () => {

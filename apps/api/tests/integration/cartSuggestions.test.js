@@ -338,8 +338,16 @@ describeWithMysql('cart suggestions against a real database', () => {
 
     it('falls back to best sellers for a product with nothing learned', async () => {
       const ids = idsOf(await suggest([p.chefSpecial]));
-      expect(ids.length).toBeGreaterThan(0);
-      expect(ids).toContain(p.water);
+      expect(ids).toHaveLength(5);
+      // The two best sellers of the mode.
+      expect(ids.slice(0, 2)).toEqual([p.burger, p.water]);
+    });
+
+    it('keeps the row full after the related items run out', async () => {
+      const ids = idsOf(await suggest([p.paneer]));
+      expect(ids[0]).toBe(p.naan);
+      expect(ids).toContain(p.roti);
+      expect(ids).toHaveLength(5);
     });
 
     it('answers an empty list for an area with no orders at all', async () => {
@@ -351,6 +359,48 @@ describeWithMysql('cart suggestions against a real database', () => {
         expect(res.body.products).toEqual([]);
       } finally {
         await pool.query('DELETE FROM areas WHERE id = ?', [emptyArea]);
+      }
+    });
+
+    it('fills the row from the same shop, then the same shop mode, before any order exists', async () => {
+      const fresh = await createArea('F');
+      const category = (name, type, active = 1) => insert(
+        'INSERT INTO categories (name, slug, type, active, area_id) VALUES (?, ?, ?, ?, ?)',
+        [`${FIXTURE_TAG} F ${name}`, `${FIXTURE_TAG}-f-${name}`, type, active, fresh]
+      );
+      const shop = (name, isOpen) => insert(
+        'INSERT INTO shops (name, is_open, active, area_id) VALUES (?, ?, 1, ?)',
+        [`${FIXTURE_TAG} F ${name}`, isOpen, fresh]
+      );
+      try {
+        const mains = await category('mains', 'fast_food');
+        const snacks = await category('snacks', 'fast_food');
+        const hiddenCategory = await category('hidden', 'fast_food', 0);
+        const packed = await category('packed', 'packed');
+        const cafe = await shop('cafe', 1);
+        const otherCafe = await shop('other', 1);
+        const shut = await shop('shut', 0);
+
+        const burger = await createProduct(fresh, mains, 'F Burger', { shopId: cafe });
+        const shake = await createProduct(fresh, snacks, 'F Shake', { shopId: cafe });
+        const fries = await createProduct(fresh, snacks, 'F Fries', { shopId: cafe });
+        const pizza = await createProduct(fresh, mains, 'F Pizza', { shopId: otherCafe });
+        const closedShopItem = await createProduct(fresh, mains, 'F Shut Item', { shopId: shut });
+        const hiddenItem = await createProduct(fresh, hiddenCategory, 'F Hidden', { shopId: cafe });
+        const chips = await createProduct(fresh, packed, 'F Chips');
+        const biscuits = await createProduct(fresh, packed, 'F Biscuits');
+        await buildAreaPairs(fresh);
+
+        const ids = idsOf(await suggest([burger], { areaId: fresh }));
+        expect(ids).toEqual([shake, fries, pizza]);
+        for (const never of [closedShopItem, hiddenItem, chips, biscuits]) expect(ids).not.toContain(never);
+
+        expect(idsOf(await suggest([chips], { areaId: fresh }))).toEqual([biscuits]);
+      } finally {
+        await pool.query('DELETE FROM products WHERE area_id = ?', [fresh]);
+        await pool.query('DELETE FROM shops WHERE area_id = ?', [fresh]);
+        await pool.query('DELETE FROM categories WHERE area_id = ?', [fresh]);
+        await pool.query('DELETE FROM areas WHERE id = ?', [fresh]);
       }
     });
 
