@@ -10,6 +10,7 @@ jest.mock('../src/api', () => ({
   cartApi: { calculate: jest.fn() },
   bootstrapApi: { getBootstrap: jest.fn() },
   emitAreaChanged: jest.fn(),
+  setRealtimeLocation: jest.fn(),
 }));
 jest.mock('../src/components/Toast', () => ({ showToast: jest.fn() }));
 
@@ -463,13 +464,10 @@ describe('syncDeliveryLocation revalidates the cart on a zone change', () => {
       };
     }
 
-    // The cart/cache half of the old "do nothing on a first resolve" rule
-    // still holds — nothing is assembled against the wrong area yet. The
-    // socket half does not: the server picks the room at connect time from
-    // its own no-pin guess, so a customer whose first resolve is area 1 was
-    // left sitting in whatever room that guess produced, receiving another
-    // team's broadcasts for the whole session.
-    it('joins the resolved area room on the first-ever resolve (null -> id) without clearing the cart', async () => {
+    // A first-ever resolve has nothing assembled against the wrong area. The
+    // socket room is not the app's business any more: the server resolves the
+    // pin the socket sends (setRealtimeLocation) and picks the room itself.
+    it('keeps the cart on the first-ever resolve (null -> id) and never announces an area', async () => {
       useCartStore.setState({ items: [CART_ITEM] });
       cartApi.calculate.mockResolvedValueOnce(zoneCalculateResponse({ zoneId: 9, zoneName: 'Zone A' }));
       bootstrapApi.getBootstrap.mockResolvedValueOnce(bootstrapResponse({ areaId: 1 }));
@@ -477,10 +475,10 @@ describe('syncDeliveryLocation revalidates the cart on a zone change', () => {
       await syncDeliveryLocation();
 
       expect(useCartStore.getState().items).toHaveLength(1);
-      expect(emitAreaChanged).toHaveBeenCalledWith(1);
+      expect(emitAreaChanged).not.toHaveBeenCalled();
     });
 
-    it('does not re-emit the room join when the resolved area has not changed', async () => {
+    it('does not announce an area when the resolved area has not changed', async () => {
       useDeliveryLocationStore.setState({ areaId: 1, lastAreaId: 1, zoneId: 9, catalogVersion: 3 });
       cartApi.calculate.mockResolvedValueOnce(zoneCalculateResponse({ zoneId: 12, zoneName: 'Zone B' }));
       bootstrapApi.getBootstrap.mockResolvedValueOnce(bootstrapResponse({ areaId: 1 }));
@@ -490,7 +488,7 @@ describe('syncDeliveryLocation revalidates the cart on a zone change', () => {
       expect(emitAreaChanged).not.toHaveBeenCalled();
     });
 
-    it('clears the cart, invalidates the catalog/dashboard cache, and rejoins the socket room when the resolved area actually changes', async () => {
+    it('clears the cart and invalidates the catalog/dashboard cache when the resolved area actually changes', async () => {
       const { setCached } = require('../src/utils/apiCache');
       useDeliveryLocationStore.setState({ areaId: 1, lastAreaId: 1, zoneId: 9, catalogVersion: 3 });
       useCartStore.setState({ items: [CART_ITEM], appliedCouponCode: 'SAVE10', appliedCouponId: 7 });
@@ -510,7 +508,7 @@ describe('syncDeliveryLocation revalidates the cart on a zone change', () => {
       const { getCached } = require('../src/utils/apiCache');
       expect(getCached('products:{"zoneId":9}')).toBeNull();
       expect(getCached('dashboard:fast_food')).toBeNull();
-      expect(emitAreaChanged).toHaveBeenCalledWith(2);
+      expect(emitAreaChanged).not.toHaveBeenCalled();
     });
 
     it('does NOT clear the cart when the zone changes but the area stays the same', async () => {
@@ -566,7 +564,7 @@ describe('syncDeliveryLocation revalidates the cart on a zone change', () => {
 
       expect(useCartStore.getState().items).toEqual([]);
       expect(getCached('dashboard:fast_food')).toBeNull();
-      expect(emitAreaChanged).toHaveBeenCalledWith(2);
+      expect(emitAreaChanged).not.toHaveBeenCalled();
       expect(useDeliveryLocationStore.getState().lastAreaId).toBe(2);
     });
   });

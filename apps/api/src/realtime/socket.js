@@ -6,6 +6,7 @@ const { getRevokedBefore } = require('../utils/adminAuthState');
 const { createPresenceTracker } = require('./presence');
 const sessionStore = require('../services/analytics/sessionStore');
 const { listAreas, getAreaById } = require('../utils/areaScope');
+const { parsePin, resolveCustomerLocation, saveCustomerLocation } = require('./customerLocation');
 const logger = require('../utils/logger');
 
 // Room for events that belong to the platform rather than to any one area
@@ -111,41 +112,6 @@ const authenticateSocket = async (socket, next) => {
   return next();
 };
 
-// Best-effort area for ANALYTICS ATTRIBUTION ONLY — never for room
-// membership. Mirrors resolveCustomerArea's no-pin fallback chain
-// (users.last_area_id, then the default area).
-//
-// This chain used to decide which `customers:<areaId>` room a socket joined,
-// and was removed for good reason: it put a customer standing in area 2 into
-// area 1's broadcast room because that is where they last ordered, leaking
-// another team's pushes. Rooms still refuse to guess — joinAreaRoom waits for
-// a real pin.
-//
-// Presence is a different question. A customer whose areaId is null matches
-// NO per-area snapshot (getLiveSnapshot filters `entry.areaId !== areaId`),
-// so with nothing to stand in they became invisible in every admin view,
-// including "All areas", and their analytics_sessions doc was written
-// unattributed — which is exactly what happened the moment this deployed:
-// the live panel read 0 with customers online and area-filtered history
-// stopped at the deploy. A guess that setPresenceArea corrects the moment
-// the pin resolves beats being invisible.
-const resolveAreaIdForSocketUser = async (userId) => {
-  try {
-    const { getUserState } = require('../utils/userState');
-    const state = await getUserState(userId);
-    if (state?.lastAreaId) return state.lastAreaId;
-  } catch (_) {
-    // fall through to default area
-  }
-  try {
-    const { getDefaultArea } = require('../utils/areaScope');
-    const defaultArea = await getDefaultArea();
-    return defaultArea ? defaultArea.id : null;
-  } catch (_) {
-    return null;
-  }
-};
-
 // Rooms are per-area (§3.5) so a zone/settings/order broadcast in area 2
 // never reaches an area 1 socket. `customer:<userId>` stays global — it's
 // identity-scoped, not area-scoped. A socket that hasn't resolved an area
@@ -187,10 +153,11 @@ const joinAreaRoom = async (socket) => {
   }
 };
 
-// Client-pushed rejoin when the app's own area pin changes mid-connection
-// (23.3) — leaves the old `customers:<areaId>` room (if any) and joins the
-// new one. No-op for admins (their room comes from the JWT's areaId claim,
-// not a client-chosen pin).
+// LEGACY — app builds from before 'location:update' (below). Client-pushed
+// rejoin when the app's own area pin changes mid-connection (23.3) — leaves
+// the old `customers:<areaId>` room (if any) and joins the new one. No-op for
+// admins (their room comes from the JWT's areaId claim, not a client-chosen
+// pin). Current builds send their pin instead and never emit this.
 //
 // newAreaId is client-supplied and unverifiable against the customer's real
 // pin at this layer (no pin exists here at all, H7) — but it must still name
@@ -206,9 +173,8 @@ const joinAreaRoom = async (socket) => {
 // catalog noise, never a data leak (multi-area audit finding #5). The rate
 // limit below is defense in depth against a modified client spamming rejoins
 // to enumerate active areas or thrash room membership, not a confidentiality
-// control — closing this properly means resolving the area server-side from
-// a client-sent pin (lat/lng), matching resolveCustomerArea's HTTP path,
-// which needs a customer-app payload change and is out of scope here.
+// control — 'location:update' below is the proper fix: the area is resolved
+// server-side from the pin, matching resolveCustomerArea's HTTP path.
 const AREA_CHANGED_MAX_PER_WINDOW = 10;
 const AREA_CHANGED_WINDOW_MS = 60_000;
 
@@ -240,6 +206,57 @@ const rejoinAreaRoom = async (socket, newAreaId) => {
   // ordered. A session whose pin never resolves stays unattributed and shows
   // only under "All areas".
   if (presenceTracker) presenceTracker.setPresenceArea(socket.id, newAreaId);
+};
+
+const moveCustomerToArea = (socket, areaId) => {
+  if (socket.data.areaId === areaId) return;
+  if (socket.data.areaId) socket.leave(`customers:${socket.data.areaId}`);
+  if (areaId) socket.join(`customers:${areaId}`);
+  socket.data.areaId = areaId;
+};
+
+// The phone's own pin: in the handshake of every connect AND reconnect (the
+// app's socket auth is re-read each time), and as 'location:update' whenever
+// it moves. Resolved to an area + zone HERE, never taken from the client
+// (§2.3). This is what puts a returning customer in their area's broadcast
+// room — the app used to announce its area only when it CHANGED, so a phone
+// reopening in its usual area, or reconnecting after a network drop, sat in
+// no room and missed every price/shop/delivery push. It also files the live
+// presence under where the phone is now, not where it last ordered.
+//
+// Outside every zone the socket leaves its area room: no area's broadcasts
+// apply to it. Out-of-order answers (a slow resolve overtaken by a newer
+// pin) are dropped by the sequence check.
+const applyCustomerLocation = async (socket, pin) => {
+  const auth = socket.data.auth;
+  if (!auth || auth.role !== 'customer' || !pin) return null;
+  socket.data.locationSeq = (socket.data.locationSeq || 0) + 1;
+  const seq = socket.data.locationSeq;
+  const located = await resolveCustomerLocation(pin);
+  if (seq !== socket.data.locationSeq || socket.disconnected) return null;
+
+  moveCustomerToArea(socket, located.areaId);
+  socket.data.zoneId = located.zoneId;
+  if (!socket.data.openLoc) socket.data.openLoc = located.loc;
+  if (presenceTracker) presenceTracker.setPresenceLocation(socket.id, located);
+  saveCustomerLocation(auth.id, located.areaId, located.zoneId).catch(() => {});
+  return located;
+};
+
+const LOCATION_MAX_PER_WINDOW = 10;
+const LOCATION_WINDOW_MS = 60_000;
+
+const handleLocationUpdate = async (socket, data) => {
+  const now = Date.now();
+  if (!socket.data.locationWindowStart || now - socket.data.locationWindowStart > LOCATION_WINDOW_MS) {
+    socket.data.locationWindowStart = now;
+    socket.data.locationCount = 0;
+  }
+  socket.data.locationCount += 1;
+  if (socket.data.locationCount > LOCATION_MAX_PER_WINDOW) return null;
+  const pin = parsePin(data);
+  if (!pin) return null;
+  return applyCustomerLocation(socket, pin);
 };
 
 const joinRoleRoom = (socket) => {
@@ -293,6 +310,7 @@ const initRealtime = (server) => {
   presenceTracker = createPresenceTracker({
     sessionStore,
     emitToAdmins,
+    emitToPlatformAdmins,
     // Liveness probe for the tracker's reaper — the Map is keyed by socket.id,
     // so io.sockets.sockets is the authoritative "is this still connected".
     isSocketAlive: (socketId) => io.sockets.sockets.has(socketId),
@@ -317,15 +335,14 @@ const initRealtime = (server) => {
     if (auth && auth.role === 'customer') {
       const platform = socket.handshake.auth?.platform || null;
       const appVersion = socket.handshake.auth?.appVersion || null;
-      // joinAreaRoom already resolves+caches the same lookup on socket.data.areaId
-      // (guarded by the same NODE_ENV!=='test' check) — reuse it here instead of
-      // querying users.last_area_id twice per connection.
-      joinAreaRoom(socket)
-        .then(async () => {
-          // joinAreaRoom resolves a MySQL lookup, so the socket can already be
-          // gone by the time we get here — its 'disconnect' would have fired
-          // before the entry existed, and adding it now means opening a session
-          // doc that immediately needs closing. The reaper would clear it within
+      const handshakePin = parsePin(socket.handshake.auth);
+      (handshakePin ? applyCustomerLocation(socket, handshakePin) : Promise.resolve(null))
+        .catch(() => null)
+        .then(() => {
+          // Resolving the pin is a DB read, so the socket can already be gone
+          // by the time we get here — its 'disconnect' would have fired before
+          // the entry existed, and adding it now means opening a session doc
+          // that immediately needs closing. The reaper would clear it within
           // one 5s tick either way; skipping is cheaper and keeps the Mongo
           // write off a connection that no longer exists.
           if (socket.disconnected) return undefined;
@@ -334,14 +351,13 @@ const initRealtime = (server) => {
             role: auth.role,
             platform,
             appVersion,
-            // socket.data.areaId is set only once a real pin arrives. Until
-            // then attribute the session to the customer's last known area
-            // rather than to nothing — see resolveAreaIdForSocketUser. The
-            // app only emits 'area:changed' when the resolved area DIFFERS
-            // from the one it has stored, so a returning customer opening
-            // the app in their usual area never emits it at all and would
-            // otherwise stay unattributed for the whole session.
-            areaId: socket.data.areaId || await resolveAreaIdForSocketUser(auth.id),
+            // Whatever the pin has resolved to by now — a 'location:update'
+            // may have landed while the handshake pin was resolving. null
+            // until the app has a pin (never a guess from the last order or
+            // the default area): such a phone shows only in "All areas".
+            areaId: socket.data.areaId ?? null,
+            zoneId: socket.data.zoneId ?? null,
+            loc: socket.data.openLoc ?? null,
           });
         })
         .catch(() => {});
@@ -362,6 +378,11 @@ const initRealtime = (server) => {
     socket.on('area:changed', (data) => {
       const newAreaId = data && Number(data.areaId);
       if (newAreaId) rejoinAreaRoom(socket, newAreaId).catch(() => {});
+    });
+
+    // The customer's pin moved mid-connection (see applyCustomerLocation).
+    socket.on('location:update', (data) => {
+      handleLocationUpdate(socket, data).catch(() => {});
     });
 
     socket.on('disconnect', (reason) => {
@@ -533,6 +554,10 @@ module.exports = {
   // Exported for unit testing only — validates the client-supplied areaId
   // against a real DB-backed lookup (bug fix, multi-area audit finding #13).
   rejoinAreaRoom,
+  // Exported for unit testing only — resolves through areaScope (a real DB
+  // read), mocked in socketCustomerLocation.test.js.
+  applyCustomerLocation,
+  handleLocationUpdate,
   // Exported for unit testing only — its admin branch now calls
   // getLiveAdminState (a real DB read), guarded the same NODE_ENV!=='test'
   // way as the rest of this file's DB-touching connection logic (bug fix,

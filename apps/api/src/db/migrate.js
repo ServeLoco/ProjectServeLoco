@@ -2557,6 +2557,18 @@ const migrate = async () => {
     }
     logger.info('[migrate] users.last_area_id backfilled from order history.');
 
+    // Where the customer's phone IS (its live pin, resolved to an area and
+    // zone over the socket — realtime/customerLocation.js), as opposed to
+    // last_area_id, where they last ORDERED. Ids only, never coordinates.
+    // Area broadcasts and area reports reach customers by it. Nullable,
+    // appended at the end (INSTANT on MySQL 8, no table rebuild), no backfill:
+    // it fills in as phones connect. No FK, same reasoning as last_area_id.
+    await ensureColumnAtEnd('users', 'current_area_id', 'current_area_id INT NULL DEFAULT NULL');
+    await ensureColumnAtEnd('users', 'current_zone_id', 'current_zone_id INT NULL DEFAULT NULL');
+    await ensureColumnAtEnd('users', 'location_seen_at', 'location_seen_at DATETIME NULL DEFAULT NULL');
+    await ensureIndex('users', 'idx_users_current_area', 'current_area_id');
+    logger.info('[migrate] users.current_area_id / current_zone_id ready.');
+
     // Cart "Add more" suggestions (services/suggestions/buildPairs.js).
     // Derived data only — rebuilt per area every night from delivered orders,
     // so no FK to products (a pair row for a since-deleted product is

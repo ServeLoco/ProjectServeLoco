@@ -19,6 +19,7 @@ jest.mock('../src/api', () => ({
   cartApi: { calculate: jest.fn() },
   bootstrapApi: { getBootstrap: jest.fn() },
   emitAreaChanged: jest.fn(),
+  setRealtimeLocation: jest.fn(),
 }));
 jest.mock('../src/components/Toast', () => ({ showToast: jest.fn() }));
 
@@ -52,7 +53,7 @@ describe('syncAreaInfo (the manual pin path now runs this too)', () => {
     useCartStore.setState({ items: [{ product: { id: 5, name: 'Amul Milk' }, quantity: 1 }] });
   });
 
-  it('moves the store, the socket room and the cart when the pin lands in another area', async () => {
+  it('moves the store and the cart when the pin lands in another area', async () => {
     bootstrapApi.getBootstrap.mockResolvedValue(AREA_9_BOOTSTRAP);
 
     await syncAreaInfo(29.5374, 75.7106);
@@ -61,7 +62,9 @@ describe('syncAreaInfo (the manual pin path now runs this too)', () => {
     expect(state.areaId).toBe(9);
     expect(state.lastAreaId).toBe(9);
     expect(state.catalogVersion).toBe(13);
-    expect(emitAreaChanged).toHaveBeenCalledWith(9);
+    // The socket room is the server's call now (it resolves the pin the
+    // socket sends) — the app never announces an area of its own.
+    expect(emitAreaChanged).not.toHaveBeenCalled();
     // An area-1-priced cart must never reach area 9's checkout.
     expect(useCartStore.getState().items).toEqual([]);
     // Area 9's own UPI — paying the wrong area's account is real money.

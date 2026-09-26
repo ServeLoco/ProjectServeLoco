@@ -16,6 +16,7 @@ jest.mock('../src/api', () => ({
   cartApi: { calculate: jest.fn() },
   bootstrapApi: { getBootstrap: jest.fn() },
   emitAreaChanged: jest.fn(),
+  setRealtimeLocation: jest.fn(),
 }));
 jest.mock('../src/components/Toast', () => ({ showToast: jest.fn() }));
 

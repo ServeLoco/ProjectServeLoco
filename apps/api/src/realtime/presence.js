@@ -21,6 +21,11 @@ const SCREEN_WHITELIST = new Set([
 
 const DEFAULT_INTERVAL_MS = 5000;
 
+// Snapshot key for phones whose pin is outside every zone of every area (or
+// not known yet). They belong to no area's team, so only super admins get
+// this one — it is what makes "All areas" add up to everyone online.
+const OUTSIDE_AREAS = 'outside';
+
 /**
  * @param {{sessionStore:{openSession:Function,closeSession:Function}, emitToAdmins:Function,
  *   isSocketAlive?:(socketId:string)=>boolean}} deps
@@ -30,7 +35,7 @@ const DEFAULT_INTERVAL_MS = 5000;
  * @param {{intervalMs?:number, now?:()=>Date}} [opts]
  */
 const createPresenceTracker = (deps, opts = {}) => {
-  const { sessionStore, emitToAdmins, isSocketAlive } = deps;
+  const { sessionStore, emitToAdmins, emitToPlatformAdmins, isSocketAlive } = deps;
   const intervalMs = opts.intervalMs || DEFAULT_INTERVAL_MS;
   const now = opts.now || (() => new Date());
 
@@ -69,12 +74,14 @@ const createPresenceTracker = (deps, opts = {}) => {
     const entry = {
       userId: meta.userId,
       role: meta.role,
-      // null at connect: no pin exists at the socket layer (H7), and there
-      // is no default area to guess with — every area is an equal tenant.
-      // Filled in by setPresenceArea below once the app resolves its live
-      // pin and emits 'area:changed'. A session that never resolves one
-      // stays null and shows up only in the admin panel's "All areas" view.
+      // Where the phone is right now: the area/zone its pin resolved to
+      // (socket handshake, then setPresenceLocation on every move). null
+      // until a pin arrives, and while it is outside every zone — never a
+      // guess from the last order or the default area. Such phones show up
+      // only in the super admin's "All areas" view.
       areaId: meta.areaId ?? null,
+      zoneId: meta.zoneId ?? null,
+      loc: meta.loc ?? null,
       platform: meta.platform || null,
       appVersion: meta.appVersion || null,
       screen: null,
@@ -91,7 +98,9 @@ const createPresenceTracker = (deps, opts = {}) => {
         userId: meta.userId,
         platform: meta.platform,
         appVersion: meta.appVersion,
-        areaId: meta.areaId,
+        areaId: meta.areaId ?? null,
+        zoneId: meta.zoneId ?? null,
+        loc: meta.loc ?? null,
       });
     } catch (_) {
       // fire-and-forget — sessionStore already swallows, but double-guard
@@ -99,6 +108,15 @@ const createPresenceTracker = (deps, opts = {}) => {
 
     if (presence.get(socketId) === entry) {
       entry.sessionId = sessionId;
+      // A pin that arrived while openSession was in flight only reached the
+      // in-memory entry — carry it over to the doc now.
+      const moved = entry.areaId !== (meta.areaId ?? null) || entry.zoneId !== (meta.zoneId ?? null);
+      const lateLoc = entry.loc && !meta.loc ? entry.loc : null;
+      if (sessionId && (moved || lateLoc)) {
+        Promise.resolve(sessionStore.setSessionLocation?.(sessionId, {
+          areaId: entry.areaId, zoneId: entry.zoneId, loc: lateLoc,
+        })).catch(() => {});
+      }
       return;
     }
 
@@ -159,10 +177,15 @@ const createPresenceTracker = (deps, opts = {}) => {
     const byPlatform = { android: 0, ios: 0 };
     const byArea = {};
 
+    const byZone = {};
     let online = 0;
     for (const entry of presence.values()) {
       if (entry.role !== 'customer') continue;
-      if (areaId !== undefined && entry.areaId !== areaId) continue;
+      if (areaId === OUTSIDE_AREAS) {
+        if (entry.areaId != null) continue;
+      } else if (areaId !== undefined && entry.areaId !== areaId) {
+        continue;
+      }
       online += 1;
 
       if (entry.platform) {
@@ -176,11 +199,16 @@ const createPresenceTracker = (deps, opts = {}) => {
 
       const areaKey = entry.areaId == null ? 'unknown' : String(entry.areaId);
       byArea[areaKey] = (byArea[areaKey] || 0) + 1;
+      if (entry.zoneId != null) {
+        const zoneKey = String(entry.zoneId);
+        byZone[zoneKey] = (byZone[zoneKey] || 0) + 1;
+      }
 
       const connectedMin = Math.max(0, Math.round((now() - entry.connectedAt) / 60000));
       users.push({
         userId: entry.userId,
         areaId: entry.areaId,
+        zoneId: entry.zoneId,
         screen: entry.screen,
         platform: entry.platform,
         connectedMin,
@@ -212,6 +240,7 @@ const createPresenceTracker = (deps, opts = {}) => {
       byScreen,
       byPlatform,
       byArea,
+      byZone,
       users,
     };
   };
@@ -239,6 +268,9 @@ const createPresenceTracker = (deps, opts = {}) => {
       areaIds.forEach((areaId) => {
         emitToAdmins(areaId, 'analytics.live', getLiveSnapshot(areaId));
       });
+      if (typeof emitToPlatformAdmins === 'function') {
+        emitToPlatformAdmins('analytics.live', getLiveSnapshot(OUTSIDE_AREAS));
+      }
     } catch (_) {
       // never throw from the timer
     }
@@ -268,10 +300,30 @@ const createPresenceTracker = (deps, opts = {}) => {
     }
   };
 
+  // The phone's pin resolved (socket handshake or 'location:update'). areaId/
+  // zoneId are null outside every zone — the live panel shows where the phone
+  // is NOW. `loc` is only kept the first time: it is the session's app-open
+  // location for the heat map.
+  const setPresenceLocation = (socketId, { areaId = null, zoneId = null, loc = null } = {}) => {
+    const entry = presence.get(socketId);
+    if (!entry) return;
+    const moved = entry.areaId !== areaId || entry.zoneId !== zoneId;
+    const firstLoc = loc && !entry.loc ? loc : null;
+    entry.areaId = areaId;
+    entry.zoneId = zoneId;
+    if (firstLoc) entry.loc = firstLoc;
+    // No sessionId yet: openSession is still in flight, and addPresence
+    // carries this over once it lands.
+    if (!entry.sessionId || (!moved && !firstLoc)) return;
+    Promise.resolve(sessionStore.setSessionLocation?.(entry.sessionId, { areaId, zoneId, loc: firstLoc }))
+      .catch(() => {});
+  };
+
   return {
     addPresence,
     updateScreen,
     setPresenceArea,
+    setPresenceLocation,
     removePresence,
     reapDeadSockets,
     getLiveSnapshot,
@@ -280,4 +332,4 @@ const createPresenceTracker = (deps, opts = {}) => {
   };
 };
 
-module.exports = { createPresenceTracker, SCREEN_WHITELIST };
+module.exports = { createPresenceTracker, SCREEN_WHITELIST, OUTSIDE_AREAS };

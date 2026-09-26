@@ -13,15 +13,21 @@ const logger = require('../../utils/logger');
  * default area to guess with — and is filled in by setSessionArea below once
  * the app resolves its live pin. A session that never resolves one stays
  * null, which the admin analytics read as "All areas only".
- * @param {{userId:number, platform:string, appVersion:string, areaId?:number}} meta
+ * @param {{userId:number, platform:string, appVersion:string, areaId?:number,
+ *   zoneId?:number|null, loc?:{lat:number,lng:number}|null}} meta
  * @returns {Promise<string|null>}
  */
-const openSession = async ({ userId, platform, appVersion, areaId }) => {
+const openSession = async ({ userId, platform, appVersion, areaId, zoneId = null, loc = null }) => {
   try {
     const now = new Date();
     const res = await getDb().collection('analytics_sessions').insertOne({
       userId,
       areaId,
+      zoneId,
+      // Where the app was opened (rounded ~100 m) and which area/zone that
+      // was — the heat map's data. Written once per session: this is the
+      // app-open location, not a track of where the phone went afterwards.
+      ...(loc ? { loc, locAreaId: areaId ?? null, locZoneId: zoneId } : {}),
       platform: platform || null,
       appVersion: appVersion || null,
       connectedAt: now,
@@ -88,4 +94,30 @@ const setSessionArea = async (sessionId, areaId) => {
   }
 };
 
-module.exports = { openSession, closeSession, setSessionArea };
+/**
+ * The session's pin resolved (socket handshake or 'location:update'). areaId/
+ * zoneId follow the phone, but never back to null: a session that started in
+ * an area and then wandered outside every zone still counts for that area.
+ * `loc` is only passed for a session's FIRST location (see openSession).
+ */
+const setSessionLocation = async (sessionId, { areaId = null, zoneId = null, loc = null } = {}) => {
+  if (!sessionId) return;
+  const set = {};
+  if (areaId) {
+    set.areaId = areaId;
+    set.zoneId = zoneId;
+  }
+  if (loc) {
+    set.loc = loc;
+    set.locAreaId = areaId ?? null;
+    set.locZoneId = zoneId ?? null;
+  }
+  if (Object.keys(set).length === 0) return;
+  try {
+    await getDb().collection('analytics_sessions').updateOne({ _id: sessionId }, { $set: set });
+  } catch (e) {
+    logger.error('[analytics] setSessionLocation failed:', e.message);
+  }
+};
+
+module.exports = { openSession, closeSession, setSessionArea, setSessionLocation };

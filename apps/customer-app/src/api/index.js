@@ -7,6 +7,7 @@ export {
   disconnectCustomerRealtime,
   emitAreaChanged,
   emitRealtimeForeground,
+  setRealtimeLocation,
   getRealtimeConnectionState,
   subscribeNotificationEvents,
   subscribeOrderEvents,

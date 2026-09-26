@@ -83,6 +83,10 @@ const LIFECYCLE_EVENTS = [
 let socket = null;
 let activeToken = null;
 let hasConnected = false;
+// The delivery pin, as last handed over by setRealtimeLocation. Read by the
+// socket's auth callback on every connect AND reconnect, so the server always
+// knows where this phone is — see the API's realtime/customerLocation.js.
+let currentPin = null;
 
 const listeners = new Map();
 
@@ -302,7 +306,12 @@ function connectCustomerRealtime(token) {
   // handling — the server's authenticateSocket only reads `token`.
   const appVersion = Constants.expoConfig?.version || Constants.manifest?.version || null;
   socket = io(getRealtimeBaseUrl(), {
-    auth: { token, platform: Platform.OS, appVersion },
+    // A callback, not an object: socket.io runs it before every connection
+    // attempt, reconnects included, so each one carries the CURRENT pin. The
+    // server resolves it to an area/zone, puts the socket in that area's
+    // broadcast room and counts the phone there. A fixed object would replay
+    // the pin from whenever the socket was first created.
+    auth: (cb) => cb({ token, platform: Platform.OS, appVersion, ...(currentPin || {}) }),
     reconnection: true,
     // Polling-first-then-upgrade (socket.io's own default order) rather than
     // websocket-first: a websocket upgrade attempt can stall silently behind
@@ -365,6 +374,24 @@ function emitAnalyticsScreen(screen) {
 // `on('area:changed', ...)` calls rejoinAreaRoom. Silently no-ops if the
 // socket isn't connected — the next real connect already joins the
 // current area via users.last_area_id anyway.
+// Hand the delivery pin to the socket layer. Sent straight away when the pin
+// actually moved and the socket is up; otherwise the next (re)connect's auth
+// callback carries it. Same pin twice is a no-op — this is called on every
+// delivery-location store change, most of which don't touch the pin.
+function setRealtimeLocation(coords) {
+  const lat = Number(coords?.lat);
+  const lng = Number(coords?.lng);
+  if (coords?.lat == null || coords?.lng == null || !Number.isFinite(lat) || !Number.isFinite(lng)) return;
+  if (currentPin && currentPin.latitude === lat && currentPin.longitude === lng) return;
+  currentPin = { latitude: lat, longitude: lng };
+  if (!socket || !socket.connected) return;
+  try {
+    socket.emit('location:update', currentPin);
+  } catch (_) {
+    // best-effort — the next reconnect sends it anyway
+  }
+}
+
 function emitAreaChanged(areaId) {
   if (!socket || !socket.connected || areaId == null) return;
   try {
@@ -379,6 +406,7 @@ export {
   disconnectCustomerRealtime,
   emitAnalyticsScreen,
   emitAreaChanged,
+  setRealtimeLocation,
   emitRealtimeForeground,
   getRealtimeConnectionState,
   subscribeAuthRoleEvents,

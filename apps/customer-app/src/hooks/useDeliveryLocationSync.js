@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
 import * as Location from 'expo-location';
-import { cartApi, bootstrapApi, emitAreaChanged } from '../api';
+import { cartApi, bootstrapApi, setRealtimeLocation } from '../api';
 import { useDeliveryLocationStore } from '../stores/useDeliveryLocationStore';
 import { useCartStore } from '../stores/useCartStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
@@ -105,18 +105,15 @@ function applyBootstrapResult(result) {
     brandColor: result.area?.brandColor ?? result.area?.brand_color ?? null,
     catalogVersion: result.catalogVersion ?? null,
   });
-  if (nextAreaId != null && nextAreaId !== previousAreaId) {
-    // Room switch fires on EVERY resolve into a new area, the first one
-    // included. The socket joins customers:<area> at connect time from the
-    // server's own no-pin guess, so a customer who has never ordered sat in
-    // another area's broadcast room for the whole session — receiving that
-    // team's zone/settings/notification pushes — because the first resolve
-    // (null -> id) did not count as a "change". Cheap and idempotent.
-    emitAreaChanged(nextAreaId);
-    // The cart wipe and catalog drop stay restricted to a move between two
-    // REAL areas: on a first-ever resolve there is nothing assembled against
-    // the wrong area to throw away.
-    if (previousAreaId != null) invalidateForAreaChange();
+  // The socket's broadcast room is not switched here: the pin itself goes to
+  // the server on every (re)connect and on every move (setRealtimeLocation,
+  // wired in useDeliveryLocationSync below), and the server picks the room.
+  //
+  // The cart wipe and catalog drop stay restricted to a move between two
+  // REAL areas: on a first-ever resolve there is nothing assembled against
+  // the wrong area to throw away.
+  if (nextAreaId != null && previousAreaId != null && nextAreaId !== previousAreaId) {
+    invalidateForAreaChange();
   }
   // 28.6 — support_phone/whatsapp_number/UPI must reflect the resolved
   // area, not a stale globally-cached value. Same store, same normalizer
@@ -454,6 +451,15 @@ function syncDeliveryLocation() {
  * and whichever sync follows the grant applies it instead.
  */
 function useDeliveryLocationSync() {
+  // Keep the socket told where this phone is. A store subscription, not a
+  // selector: the component running this hook sits at the app root, and a
+  // re-render there on every pin move would re-render the whole tree.
+  // setRealtimeLocation ignores repeats of the same pin.
+  useEffect(() => {
+    setRealtimeLocation(useDeliveryLocationStore.getState().coords);
+    return useDeliveryLocationStore.subscribe((state) => setRealtimeLocation(state.coords));
+  }, []);
+
   useEffect(() => {
     syncDeliveryLocation();
 

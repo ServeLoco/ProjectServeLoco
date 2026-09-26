@@ -1,4 +1,4 @@
-const { createPresenceTracker, SCREEN_WHITELIST } = require('../src/realtime/presence');
+const { createPresenceTracker, SCREEN_WHITELIST, OUTSIDE_AREAS } = require('../src/realtime/presence');
 
 // Minimal fake session store + emitter injected into the factory so no Mongo or
 // socket.io is needed for unit testing the in-memory presence logic.
@@ -7,8 +7,10 @@ const makeDeps = () => ({
     openSession: jest.fn().mockResolvedValue('sess-id-1'),
     closeSession: jest.fn().mockResolvedValue(),
     setSessionArea: jest.fn().mockResolvedValue(),
+    setSessionLocation: jest.fn().mockResolvedValue(),
   },
   emitToAdmins: jest.fn(),
+  emitToPlatformAdmins: jest.fn(),
 });
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -25,7 +27,9 @@ describe('createPresenceTracker', () => {
     const deps = makeDeps();
     const t = createPresenceTracker(deps);
     await t.addPresence('sock1', { userId: 123, role: 'customer', platform: 'android', appVersion: '1.4.2' });
-    expect(deps.sessionStore.openSession).toHaveBeenCalledWith({ userId: 123, platform: 'android', appVersion: '1.4.2' });
+    expect(deps.sessionStore.openSession).toHaveBeenCalledWith({
+      userId: 123, platform: 'android', appVersion: '1.4.2', areaId: null, zoneId: null, loc: null,
+    });
     const snap = t.getLiveSnapshot();
     expect(snap.online).toBe(1);
     expect(snap.users).toHaveLength(1);
@@ -167,6 +171,7 @@ describe('createPresenceTracker', () => {
       byScreen: {},
       byPlatform: { android: 0, ios: 0 },
       byArea: {},
+      byZone: {},
       users: [],
     });
   });
@@ -298,5 +303,79 @@ describe('setPresenceArea', () => {
     expect(() => t.setPresenceArea('sock1', 2)).not.toThrow();
     expect(t.getLiveSnapshot().users[0].areaId).toBe(2);
     expect(deps.sessionStore.setSessionArea).not.toHaveBeenCalled();
+  });
+
+  describe('setPresenceLocation — where the phone is now', () => {
+    const LOC = { lat: 12.972, lng: 77.605 };
+
+    it('files the phone under its area and zone, and the session doc too', async () => {
+      const deps = makeDeps();
+      const t = createPresenceTracker(deps);
+      await t.addPresence('sock1', { userId: 7, role: 'customer', platform: 'android' });
+
+      t.setPresenceLocation('sock1', { areaId: 2, zoneId: 5, loc: LOC });
+
+      const snap = t.getLiveSnapshot(2);
+      expect(snap.online).toBe(1);
+      expect(snap.byZone).toEqual({ 5: 1 });
+      expect(snap.users[0]).toMatchObject({ userId: 7, areaId: 2, zoneId: 5 });
+      expect(t.getLiveSnapshot(1).online).toBe(0);
+      expect(deps.sessionStore.setSessionLocation).toHaveBeenCalledWith('sess-id-1', { areaId: 2, zoneId: 5, loc: LOC });
+    });
+
+    it('keeps only the FIRST location (the app-open point) and skips no-op moves', async () => {
+      const deps = makeDeps();
+      const t = createPresenceTracker(deps);
+      await t.addPresence('sock1', { userId: 7, role: 'customer' });
+
+      t.setPresenceLocation('sock1', { areaId: 2, zoneId: 5, loc: LOC });
+      t.setPresenceLocation('sock1', { areaId: 2, zoneId: 5, loc: { lat: 1, lng: 1 } });
+      t.setPresenceLocation('sock1', { areaId: 2, zoneId: 6, loc: { lat: 1, lng: 1 } });
+
+      expect(deps.sessionStore.setSessionLocation.mock.calls).toEqual([
+        ['sess-id-1', { areaId: 2, zoneId: 5, loc: LOC }],
+        ['sess-id-1', { areaId: 2, zoneId: 6, loc: null }],
+      ]);
+    });
+
+    it('a phone outside every zone leaves its area and counts only in the super admin\'s outside snapshot', async () => {
+      const deps = makeDeps();
+      const t = createPresenceTracker(deps);
+      await t.addPresence('sock1', { userId: 7, role: 'customer', areaId: 2, zoneId: 5, loc: LOC });
+      await t.addPresence('sock2', { userId: 8, role: 'customer', areaId: 2, zoneId: 5, loc: LOC });
+
+      t.setPresenceLocation('sock1', { areaId: null, zoneId: null, loc: null });
+
+      expect(t.getLiveSnapshot(2).online).toBe(1);
+      const outside = t.getLiveSnapshot(OUTSIDE_AREAS);
+      expect(outside.areaId).toBe(OUTSIDE_AREAS);
+      expect(outside.online).toBe(1);
+      expect(outside.users[0].userId).toBe(7);
+    });
+
+    it('a pin that lands while the session doc is still opening is carried over once it opens', async () => {
+      const deps = makeDeps();
+      let resolveOpen;
+      deps.sessionStore.openSession.mockReturnValue(new Promise((r) => { resolveOpen = r; }));
+      const t = createPresenceTracker(deps);
+      const adding = t.addPresence('sock1', { userId: 7, role: 'customer' });
+
+      t.setPresenceLocation('sock1', { areaId: 2, zoneId: 5, loc: LOC });
+      expect(deps.sessionStore.setSessionLocation).not.toHaveBeenCalled();
+
+      resolveOpen('sess-late');
+      await adding;
+      expect(deps.sessionStore.setSessionLocation).toHaveBeenCalledWith('sess-late', { areaId: 2, zoneId: 5, loc: LOC });
+    });
+
+    it('emitLiveSnapshot also pushes the outside-every-zone snapshot to super admins', async () => {
+      const deps = makeDeps();
+      const t = createPresenceTracker(deps);
+      await t.addPresence('sock1', { userId: 7, role: 'customer' });
+
+      await t.emitLiveSnapshot();
+
+      expect(deps.emitToPlatformAdmins).toHaveBeenCalledWith('analytics.live', expect.objectContaining({ areaId: OUTSIDE_AREAS, online: 1 }));
+    });
   });
 });
