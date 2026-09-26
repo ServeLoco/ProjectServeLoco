@@ -175,18 +175,13 @@ describe('GET /bootstrap (TASK 27.3-27.6)', () => {
     expect(res.headers.etag).toEqual('"1-901-5"');
   });
 
-  it('no pin at all falls back through users.last_area_id / the default area (resolveCustomerArea\'s own chain), not "we don\'t deliver here"', async () => {
-    pool.query
-      .mockResolvedValueOnce([[AREA_1]]) // listAreas() for getDefaultArea — also populates areasCache, so getAreaById needs no query of its own
-      .mockResolvedValueOnce([[]]) // getActiveZonesForArea
-      .mockResolvedValueOnce([[{ area_id: 1, shop_open: 1 }]]) // settings
-      .mockResolvedValueOnce([[]]); // store modes
-
+  it('no pin at all is "we don\'t deliver here" — never the default area, and no query', async () => {
     const res = await request(app).get('/api/bootstrap');
 
     expect(res.statusCode).toEqual(200);
-    expect(res.body.deliverable).toBe(true);
-    expect(res.body.area.id).toEqual(1);
-    expect(res.body.zone).toBeNull(); // no pin was ever matched to a specific zone
+    expect(res.body.deliverable).toBe(false);
+    expect(res.body.area).toBeNull();
+    expect(res.body.settings).toBeNull();
+    expect(pool.query).not.toHaveBeenCalled();
   });
 });

@@ -3,6 +3,7 @@ const express = require('express');
 const productRoutes = require('../src/routes/productRoutes');
 const { pool } = require('../src/db/mysql');
 const areaScope = require('../src/utils/areaScope');
+const { TEST_PIN, mockPinInArea1 } = require('./helpers/testPin');
 
 jest.mock('../src/db/mysql', () => ({
   pool: { query: jest.fn() }
@@ -25,31 +26,31 @@ describe('Product Combo Fallback', () => {
   });
 
   it('should return 404 when product is not found and type=combo is not specified', async () => {
-    // Route now resolves an area first (bug fix, multi-area audit finding
-    // #4 — GET /products/:id used to have no area scoping at all). No pin
-    // on this request -> resolveCustomerArea falls back to the default area.
-    pool.query.mockResolvedValueOnce([[AREA_1]]); // getDefaultArea's areas lookup
+    // Route resolves an area first (bug fix, multi-area audit finding #4 —
+    // GET /products/:id used to have no area scoping at all): the app's pin,
+    // two lookups (tests/helpers/testPin.js).
+    mockPinInArea1(pool, AREA_1);
     pool.query.mockResolvedValueOnce([[]]); // product lookup — empty
 
-    const res = await request(app).get('/api/products/1');
+    const res = await request(app).get('/api/products/1').query(TEST_PIN);
     expect(res.statusCode).toEqual(404);
     expect(res.body.message).toEqual('Product not found');
-    expect(pool.query).toHaveBeenCalledTimes(2);
-    expect(pool.query.mock.calls[1][0]).toContain('FROM products');
+    expect(pool.query).toHaveBeenCalledTimes(3);
+    expect(pool.query.mock.calls[2][0]).toContain('FROM products');
   });
 
   it('should load combo when type=combo is specified', async () => {
-    pool.query.mockResolvedValueOnce([[AREA_1]]); // getDefaultArea's areas lookup
+    mockPinInArea1(pool, AREA_1);
     // Return combo for combo
     pool.query.mockResolvedValueOnce([[{ id: 1, name: 'My Combo' }]]);
     // Resolve images and items mock
     pool.query.mockResolvedValueOnce([[]]);
     pool.query.mockResolvedValueOnce([[]]);
 
-    const res = await request(app).get('/api/products/1?type=combo');
+    const res = await request(app).get('/api/products/1?type=combo').query(TEST_PIN);
     expect(res.statusCode).toEqual(200);
     expect(res.body.data.name).toEqual('My Combo');
-    expect(pool.query.mock.calls[1][0]).toContain('FROM combos');
+    expect(pool.query.mock.calls[2][0]).toContain('FROM combos');
   });
 
   // Bug fix (multi-area audit finding #4): this route used to have zero

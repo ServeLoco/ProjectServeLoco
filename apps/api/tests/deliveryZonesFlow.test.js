@@ -220,10 +220,13 @@ describe('Delivery zone pricing — cart preview', () => {
   // how a customer with the location gate dismissed still got a full price
   // breakdown for an address nobody had checked.
   it('refuses to quote when no coordinates are sent and zone pricing is on', async () => {
-    // No pin at all: resolveAreaForPoint short-circuits before touching the
-    // DB (Number(undefined) isn't finite), so resolveAreaIdForPricing goes
-    // straight to getDefaultArea() — only 1 extra call, not 2.
-    pool.query.mockResolvedValueOnce([[AREA_ROW]]);
+    // No pin while zones are in use: there is no delivery area at all (never
+    // the default area). resolveAreaIdForPricing reads the areas list and
+    // area 1's zones to learn that; the preview then prices the cart's own
+    // lines in their own area.
+    pool.query.mockResolvedValueOnce([[AREA_ROW]]); // areas
+    pool.query.mockResolvedValueOnce([ZONE_ROWS]); // area 1's zones — geography in use
+    pool.query.mockResolvedValueOnce([[{ area_id: 1, n: 1 }]]); // the cart's own area
     pool.query
       .mockResolvedValueOnce([[ZONE_SETTINGS]])
       .mockResolvedValueOnce([[{ id: 1, price: 100, available: 1, name: 'Test Product' }]])
@@ -241,6 +244,13 @@ describe('Delivery zone pricing — cart preview', () => {
     expect(res.body.outOfRange).toBe(true);
     expect(res.body.deliveryCharge).toBe(0);
     expect(res.body.codAllowed).toBe(false);
+    expect(res.body.requiresLocation).toBe(true);
+    expect(res.body.areaId).toBeNull();
+    // No area, so no area's coupon is applied, listed or hinted at.
+    expect(res.body.appliedCoupon).toBeNull();
+    expect(res.body.availableCoupons).toEqual([]);
+    expect(pickBestAutoApply).not.toHaveBeenCalled();
+    expect(res.body.items).toEqual([expect.objectContaining({ id: 1, unitPrice: 100 })]);
   });
 
   it('lets a free-delivery coupon waive the zone standard charge', async () => {

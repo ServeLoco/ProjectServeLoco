@@ -10,6 +10,7 @@
 
 const { pool } = require('../db/mysql');
 const { resolveAreaForPoint } = require('../utils/areaScope');
+const { bustUserState } = require('../utils/userState');
 
 // 3 decimals: ~110 m of latitude, ~100 m of longitude at Indian latitudes.
 const LOCATION_DECIMALS = 3;
@@ -72,6 +73,8 @@ const saveCustomerLocation = async (userId, areaId, zoneId) => {
     'UPDATE users SET current_area_id = ?, current_zone_id = ?, location_seen_at = NOW() WHERE id = ?',
     [areaId, zoneId, userId]
   );
+  // The cached user row carries current_area_id (the pin-less fallback).
+  bustUserState(userId);
   return true;
 };
 

@@ -15,6 +15,7 @@ jest.mock('../src/utils/autoSections', () => ({
  */
 
 const request = require('supertest');
+const { TEST_PIN, mockPinInArea1 } = require('./helpers/testPin');
 const express = require('express');
 const productRoutes = require('../src/routes/productRoutes');
 const dashboardRoutes = require('../src/routes/dashboardRoutes');
@@ -32,12 +33,10 @@ jest.mock('../src/db/mysql', () => ({
 }));
 
 const DEFAULT_AREA = { id: 1, code: 'A1', name: 'Area 1', active: 1, is_default: 1 };
-// productRoutes carries resolveCustomerArea (TASK 11) — unauthenticated,
-// no-pin requests resolve via its default-area fallback, one
-// `SELECT * FROM areas` before the real query. dashboardRoutes/cartRoutes
-// don't mount it yet (TASK 12/13), so only the "GET /api/products" tests
-// below need this.
-const mockDefaultAreaLookup = () => pool.query.mockResolvedValueOnce([[DEFAULT_AREA]]);
+// Public catalog reads carry the app's pin (tests/helpers/testPin.js):
+// resolving it reads the areas list, then area 1's zones, before the
+// controller's own queries.
+const mockPinAreaLookup = () => mockPinInArea1(pool, DEFAULT_AREA);
 
 const app = express();
 app.use(express.json());
@@ -98,14 +97,14 @@ describe('GET /api/products', () => {
   });
 
   it('excludes closed-shop products by default and projects shop_is_open', async () => {
-    mockDefaultAreaLookup();
+    mockPinAreaLookup();
     pool.query.mockResolvedValueOnce([[mockProductRow()]]);
     mockProductHelpers();
 
-    const res = await request(app).get('/api/products');
+    const res = await request(app).get('/api/products').query(TEST_PIN);
 
     expect(res.statusCode).toEqual(200);
-    const firstSql = pool.query.mock.calls[1][0];
+    const firstSql = pool.query.mock.calls[2][0];
     expect(firstSql).toContain('shop_is_open');
     expect(firstSql).toContain('LEFT JOIN shops sh ON sh.id = p.shop_id');
     expect(firstSql).toContain('s.is_open = 1');
@@ -114,42 +113,42 @@ describe('GET /api/products', () => {
   });
 
   it('lists one shop\'s items when shopId is given (Home\'s shop rows)', async () => {
-    mockDefaultAreaLookup();
+    mockPinAreaLookup();
     pool.query.mockResolvedValueOnce([[mockProductRow()]]);
     mockProductHelpers();
 
-    await request(app).get('/api/products?shopId=7&type=packed&include_closed_shops=1&limit=8');
+    await request(app).get('/api/products?shopId=7&type=packed&include_closed_shops=1&limit=8').query(TEST_PIN);
 
-    const sql = pool.query.mock.calls[1][0];
+    const sql = pool.query.mock.calls[2][0];
     expect(sql).toContain("p.shop_id = '7'");
   });
 
   it('puts sellable items first when availableFirst=1 (Home\'s automatic rows)', async () => {
-    mockDefaultAreaLookup();
+    mockPinAreaLookup();
     pool.query.mockResolvedValueOnce([[mockProductRow()]]);
     mockProductHelpers();
-    await request(app).get('/api/products?categoryId=3&availableFirst=1&include_closed_shops=1&limit=8');
-    expect(pool.query.mock.calls[1][0]).toContain('ORDER BY (available = 1 AND shop_is_open = 1) DESC, cat_display_order ASC');
+    await request(app).get('/api/products?categoryId=3&availableFirst=1&include_closed_shops=1&limit=8').query(TEST_PIN);
+    expect(pool.query.mock.calls[2][0]).toContain('ORDER BY (available = 1 AND shop_is_open = 1) DESC, cat_display_order ASC');
   });
 
   it('keeps the normal order when availableFirst is not asked for', async () => {
-    mockDefaultAreaLookup();
+    mockPinAreaLookup();
     pool.query.mockResolvedValueOnce([[mockProductRow()]]);
     mockProductHelpers();
-    await request(app).get('/api/products?categoryId=3&include_closed_shops=1&limit=8');
-    expect(pool.query.mock.calls[1][0]).toContain('ORDER BY cat_display_order ASC');
-    expect(pool.query.mock.calls[1][0]).not.toContain('available = 1 AND shop_is_open = 1) DESC');
+    await request(app).get('/api/products?categoryId=3&include_closed_shops=1&limit=8').query(TEST_PIN);
+    expect(pool.query.mock.calls[2][0]).toContain('ORDER BY cat_display_order ASC');
+    expect(pool.query.mock.calls[2][0]).not.toContain('available = 1 AND shop_is_open = 1) DESC');
   });
 
   it('includes closed-shop products with include_closed_shops=1 and surfaces shop_is_open: 0', async () => {
-    mockDefaultAreaLookup();
+    mockPinAreaLookup();
     pool.query.mockResolvedValueOnce([[mockProductRow({ shop_is_open: 0 })]]);
     mockProductHelpers();
 
-    const res = await request(app).get('/api/products?include_closed_shops=1');
+    const res = await request(app).get('/api/products?include_closed_shops=1').query(TEST_PIN);
 
     expect(res.statusCode).toEqual(200);
-    const firstSql = pool.query.mock.calls[1][0];
+    const firstSql = pool.query.mock.calls[2][0];
     expect(firstSql).toContain('shop_is_open');
     expect(firstSql).not.toContain('s.is_open = 1');
     expect(firstSql).toContain('s.active = 1');
@@ -158,20 +157,20 @@ describe('GET /api/products', () => {
   });
 
   it('honours camelCase alias in request: includeClosedShops=1', async () => {
-    mockDefaultAreaLookup();
+    mockPinAreaLookup();
     pool.query.mockResolvedValueOnce([[mockProductRow({ shop_is_open: 0 })]]);
     mockProductHelpers();
 
-    const res = await request(app).get('/api/products?includeClosedShops=1');
+    const res = await request(app).get('/api/products?includeClosedShops=1').query(TEST_PIN);
 
     expect(res.statusCode).toEqual(200);
-    const firstSql = pool.query.mock.calls[1][0];
+    const firstSql = pool.query.mock.calls[2][0];
     expect(firstSql).not.toContain('s.is_open = 1');
     expect(res.body.data.products[0]).toHaveProperty('shopIsOpen', 0);
   });
 
   it('applies the same shop-closed handling to offer product lists', async () => {
-    mockDefaultAreaLookup();
+    mockPinAreaLookup();
     // 1) offer validation
     pool.query.mockResolvedValueOnce([[{ store_type: 'packed', active: 1, deleted: 0, is_clickable: 1 }]]);
     // 2) offer_products query with closed shop
@@ -179,11 +178,11 @@ describe('GET /api/products', () => {
     // 3) image / variant queries
     mockProductHelpers();
 
-    const res = await request(app).get('/api/products?offerId=1&include_closed_shops=1');
+    const res = await request(app).get('/api/products?offerId=1&include_closed_shops=1').query(TEST_PIN);
 
     expect(res.statusCode).toEqual(200);
     // calls[0] is the area lookup, calls[1] is offer validation, calls[2] is offer_products.
-    const offerProductSql = pool.query.mock.calls[2][0];
+    const offerProductSql = pool.query.mock.calls[3][0];
     expect(offerProductSql).toContain('shop_is_open');
     expect(offerProductSql).not.toContain('s.is_open = 1');
     expect(offerProductSql).toContain('s.active = 1');
@@ -198,16 +197,16 @@ describe('GET /api/dashboard and /api/dashboard/sections/:slug/items', () => {
   });
 
   it('excludes closed-shop products in dashboard product_block by default', async () => {
-    mockDefaultAreaLookup();
+    mockPinAreaLookup();
     pool.query.mockResolvedValueOnce([[mockSectionRow()]]);
     pool.query.mockResolvedValueOnce([[mockProductRow({ section_item_id: 101 })]]);
     pool.query.mockResolvedValueOnce([[]]);
     pool.query.mockResolvedValueOnce([[]]);
 
-    const res = await request(app).get('/api/dashboard?storeType=packed');
+    const res = await request(app).get('/api/dashboard?storeType=packed').query(TEST_PIN);
 
     expect(res.statusCode).toEqual(200);
-    const sectionSql = pool.query.mock.calls[2][0];
+    const sectionSql = pool.query.mock.calls[3][0];
     expect(sectionSql).toContain('shop_is_open');
     expect(sectionSql).toContain('s.is_open = 1');
     expect(res.body.data.sections[0].items[0]).toHaveProperty('shopIsOpen', 1);
@@ -215,16 +214,16 @@ describe('GET /api/dashboard and /api/dashboard/sections/:slug/items', () => {
   });
 
   it('includes closed-shop products in dashboard product_block with include_closed_shops=1', async () => {
-    mockDefaultAreaLookup();
+    mockPinAreaLookup();
     pool.query.mockResolvedValueOnce([[mockSectionRow()]]);
     pool.query.mockResolvedValueOnce([[mockProductRow({ section_item_id: 101, shop_is_open: 0 })]]);
     pool.query.mockResolvedValueOnce([[]]);
     pool.query.mockResolvedValueOnce([[]]);
 
-    const res = await request(app).get('/api/dashboard?storeType=packed&include_closed_shops=1');
+    const res = await request(app).get('/api/dashboard?storeType=packed&include_closed_shops=1').query(TEST_PIN);
 
     expect(res.statusCode).toEqual(200);
-    const sectionSql = pool.query.mock.calls[2][0];
+    const sectionSql = pool.query.mock.calls[3][0];
     expect(sectionSql).toContain('shop_is_open');
     expect(sectionSql).not.toContain('s.is_open = 1');
     expect(sectionSql).toContain('s.active = 1');
@@ -233,16 +232,16 @@ describe('GET /api/dashboard and /api/dashboard/sections/:slug/items', () => {
   });
 
   it('includes closed-shop products in section items with include_closed_shops=1', async () => {
-    mockDefaultAreaLookup();
+    mockPinAreaLookup();
     pool.query.mockResolvedValueOnce([[mockSectionRow()]]);
     pool.query.mockResolvedValueOnce([[mockProductRow({ section_item_id: 101, shop_is_open: 0 })]]);
     pool.query.mockResolvedValueOnce([[]]);
     pool.query.mockResolvedValueOnce([[]]);
 
-    const res = await request(app).get('/api/dashboard/sections/popular/items?storeType=packed&include_closed_shops=1');
+    const res = await request(app).get('/api/dashboard/sections/popular/items?storeType=packed&include_closed_shops=1').query(TEST_PIN);
 
     expect(res.statusCode).toEqual(200);
-    const sectionSql = pool.query.mock.calls[2][0];
+    const sectionSql = pool.query.mock.calls[3][0];
     expect(sectionSql).toContain('shop_is_open');
     expect(sectionSql).not.toContain('s.is_open = 1');
     expect(res.body.data.items[0]).toHaveProperty('shopIsOpen', 0);

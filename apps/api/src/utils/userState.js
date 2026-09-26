@@ -34,23 +34,50 @@ const MAX_CACHED_USERS = 5000;
 const userStateCache = createTtlCache({ ttlMs: USER_STATE_TTL_MS, maxEntries: MAX_CACHED_USERS });
 
 /**
- * @returns {Promise<{blocked: boolean, lastAreaId: number|null}|null>}
+ * @returns {Promise<{blocked: boolean, lastAreaId: number|null,
+ *   currentAreaId: number|null, locationSeenAt: Date|null}|null>}
  *   null when the user row does not exist (deleted account, forged token).
  *   Throws on a DB failure — callers must treat that as a 500, never as
  *   "user not found" (see requireCustomer's own comment).
  */
 const getUserState = async (userId) => {
   return userStateCache.wrap(String(userId), async () => {
-    const [rows] = await pool.query('SELECT blocked, last_area_id FROM users WHERE id = ?', [userId]);
+    const [rows] = await pool.query(
+      'SELECT blocked, last_area_id, current_area_id, location_seen_at FROM users WHERE id = ?',
+      [userId]
+    );
     if (rows.length === 0) return null;
     return {
       blocked: Boolean(rows[0].blocked),
       lastAreaId: rows[0].last_area_id != null ? Number(rows[0].last_area_id) : null,
+      currentAreaId: rows[0].current_area_id != null ? Number(rows[0].current_area_id) : null,
+      locationSeenAt: rows[0].location_seen_at ? new Date(rows[0].location_seen_at) : null,
     };
   });
 };
 
-/** Call after ANY write to users.blocked or users.last_area_id. */
+// How long the phone's last live pin can stand in for a request that carries
+// none. Long enough to cover a session's pin-less calls; short enough that
+// yesterday's town doesn't decide today's catalog.
+const LIVE_AREA_FRESH_MS = 12 * 60 * 60 * 1000;
+
+/**
+ * The area the customer's PHONE was last seen in (its live pin, resolved over
+ * the socket — realtime/customerLocation.js), if seen recently. The only
+ * stand-in for a missing pin: never the area of their last order, and never
+ * the default area — a customer with no known location gets no area at all.
+ * @param {{currentAreaId?: number|null, locationSeenAt?: Date|null}|null} state
+ */
+const liveAreaIdOf = (state, now = Date.now()) => {
+  if (!state || !state.currentAreaId || !state.locationSeenAt) return null;
+  return now - state.locationSeenAt.getTime() <= LIVE_AREA_FRESH_MS ? state.currentAreaId : null;
+};
+
+const getLiveAreaId = async (userId) => (userId ? liveAreaIdOf(await getUserState(userId)) : null);
+
+/** Call after ANY write to users.blocked, last_area_id or current_area_id. */
 const bustUserState = (userId) => userStateCache.del(userId === undefined ? undefined : String(userId));
 
-module.exports = { getUserState, bustUserState, USER_STATE_TTL_MS };
+module.exports = {
+  getUserState, getLiveAreaId, liveAreaIdOf, bustUserState, USER_STATE_TTL_MS, LIVE_AREA_FRESH_MS,
+};

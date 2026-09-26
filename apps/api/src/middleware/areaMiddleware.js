@@ -6,8 +6,8 @@
  * Phase C). Built now so its own behavior — especially the area_admin
  * cross-area 403 — is unit-tested independent of the Phase C sweep.
  */
-const { resolveAreaForPoint, getDefaultArea } = require('../utils/areaScope');
-const { getUserState } = require('../utils/userState');
+const { resolveAreaForPoint } = require('../utils/areaScope');
+const { getLiveAreaId } = require('../utils/userState');
 
 const extractPin = (source) => {
   if (!source) return { lat: undefined, lng: undefined };
@@ -72,11 +72,15 @@ const resolveAdminArea = (req, res, next) => {
 /**
  * Resolution order (§4.2, §2.4):
  *   1. a pin on this request (body or query) -> zone -> area
- *   2. the customer's users.last_area_id (their most recent order's area)
- *   3. the default area, ONLY when no pin was supplied at all
- * A supplied pin that resolves to no zone yields req.areaId = null and
- * req.zoneId = null — the caller must treat that as "we don't deliver
- * here yet", never silently fall back to the default area.
+ *   2. no pin: the area the customer's PHONE was last seen in (its live pin,
+ *      sent over the socket), if recent — logged-in requests only
+ *   3. otherwise null — "we don't deliver here yet" / "set your location"
+ * A supplied pin that resolves to no zone yields null too. There is no
+ * default-area fallback and no last-ORDER-area fallback any more: a pin-less
+ * request used to get area 1's catalog (or wherever the customer last
+ * ordered) while they stood in another area. Every current app build sends
+ * its pin; the only pin-less public read that stays lenient is getSettings
+ * (version gate / support contact), which falls back on its own.
  */
 const resolveCustomerArea = async (req, res, next) => {
   try {
@@ -93,26 +97,19 @@ const resolveCustomerArea = async (req, res, next) => {
       return next();
     }
 
+    req.zoneId = null;
     if (req.user && req.user.id) {
-      // requireCustomer already loaded this row (blocked + last_area_id in one
-      // cached read) and parked the value on req.user, so the common case
-      // costs zero queries here. `undefined` means it was never looked up —
-      // the test-env branch in requireCustomer, or a route that mounts this
-      // middleware without it — so fall back to the same cached loader rather
-      // than a second raw query against the row we just read.
-      const lastAreaId = req.user.lastAreaId !== undefined
-        ? req.user.lastAreaId
-        : (await getUserState(req.user.id))?.lastAreaId ?? null;
-      if (lastAreaId) {
-        req.areaId = lastAreaId;
-        req.zoneId = null;
-        return next();
-      }
+      // requireCustomer already loaded the cached user row and parked the
+      // answer on req.user, so the common case costs zero queries here.
+      // `undefined` means it was never looked up (the test-env branch in
+      // requireCustomer, or a route without it) — ask the same cache.
+      req.areaId = req.user.liveAreaId !== undefined
+        ? req.user.liveAreaId
+        : await getLiveAreaId(req.user.id);
+      return next();
     }
 
-    const defaultArea = await getDefaultArea();
-    req.areaId = defaultArea ? defaultArea.id : null;
-    req.zoneId = null;
+    req.areaId = null;
     next();
   } catch (error) {
     next(error);

@@ -6,6 +6,7 @@ jest.mock('../src/utils/autoSections', () => ({
 }));
 
 const request = require('supertest');
+const { TEST_PIN, mockPinInArea1 } = require('./helpers/testPin');
 const express = require('express');
 const adminRoutes = require('../src/routes/adminRoutes');
 const dashboardRoutes = require('../src/routes/dashboardRoutes');
@@ -43,10 +44,10 @@ const { clearAll: clearMicroCache } = require('../src/utils/microCache');
 const areaScope = require('../src/utils/areaScope');
 
 const DEFAULT_AREA = { id: 1, code: 'A1', name: 'Area 1', active: 1, is_default: 1 };
-// GET /api/dashboard carries resolveCustomerArea (TASK 12) — unauthenticated,
-// no-pin request resolves via its default-area fallback, one
-// `SELECT * FROM areas` before the real sections query.
-const mockDefaultAreaLookup = () => pool.query.mockResolvedValueOnce([[DEFAULT_AREA]]);
+// Public catalog reads carry the app's pin (tests/helpers/testPin.js):
+// resolving it reads the areas list, then area 1's zones, before the
+// controller's own queries.
+const mockPinAreaLookup = () => mockPinInArea1(pool, DEFAULT_AREA);
 
 describe('Dashboard Public and Admin API Tests', () => {
   beforeEach(() => {
@@ -57,7 +58,7 @@ describe('Dashboard Public and Admin API Tests', () => {
 
   describe('Public API: GET /api/dashboard', () => {
     it('should return dynamic dashboard sections', async () => {
-      mockDefaultAreaLookup();
+      mockPinAreaLookup();
       pool.query.mockResolvedValueOnce([[
         {
           id: 1,
@@ -99,7 +100,7 @@ describe('Dashboard Public and Admin API Tests', () => {
         }
       ]]);
 
-      const res = await request(app).get('/api/dashboard?storeType=fast_food');
+      const res = await request(app).get('/api/dashboard?storeType=fast_food').query(TEST_PIN);
 
       expect(res.statusCode).toEqual(200);
       expect(res.body.data.sections).toHaveLength(1);
@@ -109,7 +110,7 @@ describe('Dashboard Public and Admin API Tests', () => {
     });
 
     it('product_block: relaxes the available filter and still returns a toggled-off product when include_closed_shops=1', async () => {
-      mockDefaultAreaLookup();
+      mockPinAreaLookup();
       pool.query.mockResolvedValueOnce([[
         {
           id: 3,
@@ -139,7 +140,7 @@ describe('Dashboard Public and Admin API Tests', () => {
 
       pool.query.mockResolvedValueOnce([[]]); // attachVariants query for product id 30
 
-      const res = await request(app).get('/api/dashboard?storeType=packed&include_closed_shops=1');
+      const res = await request(app).get('/api/dashboard?storeType=packed&include_closed_shops=1').query(TEST_PIN);
 
       expect(res.statusCode).toEqual(200);
       expect(res.body.data.sections).toHaveLength(1);
@@ -154,7 +155,7 @@ describe('Dashboard Public and Admin API Tests', () => {
     });
 
     it('product_block: keeps the strict available filter when include_closed_shops is not set', async () => {
-      mockDefaultAreaLookup();
+      mockPinAreaLookup();
       pool.query.mockResolvedValueOnce([[
         {
           id: 4,
@@ -170,7 +171,7 @@ describe('Dashboard Public and Admin API Tests', () => {
       ]]);
       pool.query.mockResolvedValueOnce([[]]);
 
-      const res = await request(app).get('/api/dashboard?storeType=packed');
+      const res = await request(app).get('/api/dashboard?storeType=packed').query(TEST_PIN);
 
       expect(res.statusCode).toEqual(200);
       const productQueryCall = pool.query.mock.calls.find(call => /FROM dashboard_section_items dsi\s+JOIN products p/.test(call[0]));
@@ -178,7 +179,7 @@ describe('Dashboard Public and Admin API Tests', () => {
     });
 
     it('should hide the category section when no items are explicitly assigned', async () => {
-      mockDefaultAreaLookup();
+      mockPinAreaLookup();
       pool.query.mockResolvedValueOnce([[
         {
           id: 2,
@@ -196,14 +197,14 @@ describe('Dashboard Public and Admin API Tests', () => {
       // No dashboard_section_items rows linked to this section.
       pool.query.mockResolvedValueOnce([[]]);
 
-      const res = await request(app).get('/api/dashboard?storeType=packed');
+      const res = await request(app).get('/api/dashboard?storeType=packed').query(TEST_PIN);
 
       expect(res.statusCode).toEqual(200);
       expect(res.body.data.sections).toHaveLength(0);
     });
 
     it('should hide the offer banner section when linked items are stale or inactive', async () => {
-      mockDefaultAreaLookup();
+      mockPinAreaLookup();
       pool.query.mockResolvedValueOnce([[
         {
           id: 5,
@@ -221,7 +222,7 @@ describe('Dashboard Public and Admin API Tests', () => {
       // Linked dashboard rows are stale, inactive, or missing for this section.
       pool.query.mockResolvedValueOnce([[]]);
 
-      const res = await request(app).get('/api/dashboard?storeType=fast_food');
+      const res = await request(app).get('/api/dashboard?storeType=fast_food').query(TEST_PIN);
 
       expect(res.statusCode).toEqual(200);
       expect(res.body.data.sections).toHaveLength(0);

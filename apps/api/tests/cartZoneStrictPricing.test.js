@@ -178,4 +178,76 @@ describe('a delivery charge may only come from a matched zone', () => {
     expect(res.body.deliveryCharge).toEqual(0);
     expect(res.body.deliveryWithinRange).toEqual(false);
   });
+
+  describe('no delivery area: nothing from any area but the cart\'s own lines', () => {
+    const coupons = require('../src/utils/coupons');
+
+    // The cart's product lives in area 2; the default area is 1.
+    const mockCartInArea2 = ({ rain = 0 } = {}) => {
+      mockDb({ radiusPricingActive: 1 });
+      const base = pool.query.getMockImplementation();
+      pool.query.mockImplementation(async (sql, params) => {
+        const q = String(sql);
+        if (q.includes('UNION ALL')) return [[{ area_id: 2, n: 1 }]];
+        if (q.includes('FROM settings') && rain) {
+          const [[row]] = await base(sql, params);
+          return [[{ ...row, rain_charge_enabled: 1, rain_charge: rain }]];
+        }
+        return base(sql, params);
+      });
+    };
+    const paramsOf = (fragment) => pool.query.mock.calls
+      .filter(([sql]) => String(sql).includes(fragment))
+      .map(([, params]) => params);
+
+    it('prices the lines in the area they came from, never the default area', async () => {
+      mockCartInArea2();
+
+      const res = await calculate({ latitude: 25.0, longitude: 80.0 });
+
+      expect(res.statusCode).toEqual(200);
+      expect(res.body.areaId).toBeNull();
+      expect(res.body.items).toEqual([expect.objectContaining({ id: 1, unitPrice: 100 })]);
+      expect(paramsOf('FROM settings WHERE area_id')).toEqual([[2]]);
+      expect(paramsOf('SELECT id, name, price FROM products')[0]).toEqual([[1], 2]);
+    });
+
+    it('applies, lists and hints no coupon; a typed code says why', async () => {
+      mockCartInArea2();
+
+      const res = await request(app)
+        .post('/api/cart/calculate')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ items: [{ productId: 1, quantity: 2 }], latitude: 25.0, longitude: 80.0, couponCode: 'SAVE10' });
+
+      expect(res.body.appliedCoupon).toBeNull();
+      expect(res.body.availableCoupons).toEqual([]);
+      expect(res.body.freeDeliveryProgress).toBeNull();
+      expect(res.body.nearestOfferProgress).toBeNull();
+      expect(res.body.couponError).toMatch(/service area/i);
+      expect(coupons.validateCoupon).not.toHaveBeenCalled();
+      expect(coupons.pickBestAutoApply).not.toHaveBeenCalled();
+      expect(coupons.findApplicableCoupons).not.toHaveBeenCalled();
+    });
+
+    it('adds no rain charge', async () => {
+      mockCartInArea2({ rain: 15 });
+
+      const res = await calculate({ latitude: 25.0, longitude: 80.0 });
+
+      expect(res.body.rainCharge).toEqual(0);
+      expect(res.body.grandTotal).toEqual(200);
+    });
+
+    it('no pin at all is the same refusal, flagged as needing a location', async () => {
+      mockCartInArea2();
+
+      const res = await calculate({});
+
+      expect(res.body.areaId).toBeNull();
+      expect(res.body.requiresLocation).toBe(true);
+      expect(res.body.valid).toBe(false);
+      expect(coupons.pickBestAutoApply).not.toHaveBeenCalled();
+    });
+  });
 });

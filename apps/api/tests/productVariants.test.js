@@ -9,6 +9,7 @@
  */
 
 const request = require('supertest');
+const { TEST_PIN, mockPinInArea1 } = require('./helpers/testPin');
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const productRoutes = require('../src/routes/productRoutes');
@@ -33,11 +34,10 @@ readApp.use(express.json());
 readApp.use('/api/products', productRoutes);
 
 const DEFAULT_AREA = { id: 1, code: 'A1', name: 'Area 1', active: 1, is_default: 1 };
-// Both GET /api/products and GET /api/products/:id carry resolveCustomerArea
-// (TASK 11 / bug fix multi-area audit finding #4) — an unauthenticated,
-// no-pin request resolves via its default-area fallback, one
-// `SELECT * FROM areas` before the real query.
-const mockDefaultAreaLookup = () => pool.query.mockResolvedValueOnce([[DEFAULT_AREA]]);
+// Public catalog reads carry the app's pin (tests/helpers/testPin.js):
+// resolving it reads the areas list, then area 1's zones, before the
+// controller's own queries.
+const mockPinAreaLookup = () => mockPinInArea1(pool, DEFAULT_AREA);
 
 describe('Product Variants — read paths', () => {
   beforeEach(() => {
@@ -46,7 +46,7 @@ describe('Product Variants — read paths', () => {
   });
 
   it('getProducts embeds variants, hasVariants, has_variants, minPrice, min_price', async () => {
-    mockDefaultAreaLookup();
+    mockPinAreaLookup();
     pool.query.mockResolvedValueOnce([[
       { id: 1, name: 'Pizza', price: 349, is_combo: 0, available: 1, image_id: null, available_from_time: null, available_until_time: null },
       { id: 2, name: 'Burger', price: 99, is_combo: 0, available: 1, image_id: null, available_from_time: null, available_until_time: null },
@@ -57,7 +57,7 @@ describe('Product Variants — read paths', () => {
     ]]);
     pool.query.mockResolvedValue([[]]);
 
-    const res = await request(readApp).get('/api/products');
+    const res = await request(readApp).get('/api/products').query(TEST_PIN);
 
     expect(res.statusCode).toEqual(200);
     const products = res.body.products;
@@ -81,7 +81,7 @@ describe('Product Variants — read paths', () => {
   });
 
   it('getProductById embeds variants and variantPrompt', async () => {
-    mockDefaultAreaLookup();
+    mockPinAreaLookup();
     pool.query.mockResolvedValueOnce([[
       { id: 1, name: 'Pizza', price: 349, is_combo: 0, available: 1, image_id: null, category_name: 'Food', category_type: 'fast_food', available_from_time: null, available_until_time: null, variant_prompt: 'Choose size' },
     ]]);
@@ -91,7 +91,7 @@ describe('Product Variants — read paths', () => {
     ]]);
     pool.query.mockResolvedValue([[]]);
 
-    const res = await request(readApp).get('/api/products/1');
+    const res = await request(readApp).get('/api/products/1').query(TEST_PIN);
 
     expect(res.statusCode).toEqual(200);
     expect(res.body.data.variants).toHaveLength(2);

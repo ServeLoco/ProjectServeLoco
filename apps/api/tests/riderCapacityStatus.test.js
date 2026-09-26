@@ -146,16 +146,13 @@ describe('GET /api/rider-capacity', () => {
     expect(pool.query).toHaveBeenCalledTimes(2);
   });
 
-  it('no pin at all resolves through the default area, same as bootstrap', async () => {
-    pool.query
-      .mockResolvedValueOnce([[AREA_1]]) // listAreas() for getDefaultArea
-      .mockResolvedValueOnce(capacityRow({ riders: 1, orders: 0, capacity: 2 }));
-
+  it('no pin at all is no area — never the default area, same as bootstrap', async () => {
     const res = await request(app).get('/api/rider-capacity');
 
     expect(res.statusCode).toBe(200);
-    expect(res.body.areaId).toBe(1);
+    expect(res.body.areaId).toBeNull();
     expect(res.body.atCapacity).toBe(false);
+    expect(pool.query).not.toHaveBeenCalled();
   });
 
   // Polled every 45s by every customer sitting on checkout, against a

@@ -1,5 +1,5 @@
 const { verifyToken } = require('../utils/auth');
-const { getUserState } = require('../utils/userState');
+const { getUserState, liveAreaIdOf } = require('../utils/userState');
 const { getRevokedBefore, getLiveAdminRow } = require('../utils/adminAuthState');
 const { resolveAdminArea } = require('./areaMiddleware');
 
@@ -87,6 +87,9 @@ const requireCustomer = async (req, res, next) => {
     // A real number or null once loaded; `undefined` means "never looked up"
     // (the test-env branch above), which downstream treats as "go query it".
     lastAreaId: userState ? userState.lastAreaId : undefined,
+    // The area the phone was last seen in, if recent — resolveCustomerArea's
+    // only stand-in for a request with no pin (utils/userState.js).
+    liveAreaId: userState ? liveAreaIdOf(userState) : undefined,
   };
   next();
 };

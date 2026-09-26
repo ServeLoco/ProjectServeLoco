@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography, spacing, radius, shadows, borderWidth } from '../../../theme';
 import { PressableScale, AppIcon } from '../../../components';
 import { cartApi } from '../../../api/cartApi';
+import { useDeliveryLocationStore } from '../../../stores/useDeliveryLocationStore';
 
 /**
  * "Expires today" / "Expires in N days" hint for a coupon's ends_at.
@@ -121,7 +122,14 @@ export default function CouponSheet({
     setManualLoading(true);
     setManualError(null);
     try {
-      const result = await cartApi.validateCoupon({ code: trimmed, subtotal });
+      // The pin decides which area's coupons exist — without it the server
+      // can only use the area the phone was last seen in.
+      const coords = useDeliveryLocationStore.getState().coords;
+      const result = await cartApi.validateCoupon({
+        code: trimmed,
+        subtotal,
+        ...(coords?.lat != null && coords?.lng != null ? { latitude: coords.lat, longitude: coords.lng } : {}),
+      });
       if (result?.ok) {
         onApplyCoupon(result.coupon.code, result.coupon);
         onClose();

@@ -51,7 +51,7 @@ describe('TASK 8 — reject tokens for deleted users', () => {
 
     // The auth lookup must be the blocked-check query, keyed on the user id.
     const authCall = pool.query.mock.calls.find(
-      ([sql]) => typeof sql === 'string' && /SELECT blocked, last_area_id FROM users WHERE id = \?/i.test(sql)
+      ([sql]) => typeof sql === 'string' && /SELECT blocked, last_area_id, current_area_id, location_seen_at FROM users WHERE id = \?/i.test(sql)
     );
     expect(authCall).toBeTruthy();
     expect(authCall[1]).toEqual([99999]);

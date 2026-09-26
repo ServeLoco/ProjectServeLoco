@@ -16,6 +16,7 @@ jest.mock('../src/utils/autoSections', () => ({
  */
 
 const request = require('supertest');
+const { TEST_PIN, mockPinInArea1 } = require('./helpers/testPin');
 const express = require('express');
 const adminRoutes = require('../src/routes/adminRoutes');
 const dashboardRoutes = require('../src/routes/dashboardRoutes');
@@ -45,10 +46,10 @@ app.use('/api/dashboard', dashboardRoutes);
 const adminToken = jwt.sign({ id: 'admin', role: 'admin', adminRole: 'area_admin', areaId: 1 }, process.env.JWT_SECRET || 'secret');
 
 const DEFAULT_AREA = { id: 1, code: 'A1', name: 'Area 1', active: 1, is_default: 1 };
-// GET /api/dashboard carries resolveCustomerArea (TASK 12) — unauthenticated,
-// no-pin request resolves via its default-area fallback, one
-// `SELECT * FROM areas` before the real sections query.
-const mockDefaultAreaLookup = () => pool.query.mockResolvedValueOnce([[DEFAULT_AREA]]);
+// Public catalog reads carry the app's pin (tests/helpers/testPin.js):
+// resolving it reads the areas list, then area 1's zones, before the
+// controller's own queries.
+const mockPinAreaLookup = () => mockPinInArea1(pool, DEFAULT_AREA);
 
 describe('Admin dashboard section: show_hot_badge and section_icon', () => {
   beforeEach(() => {
@@ -124,7 +125,7 @@ describe('Admin dashboard section: show_hot_badge and section_icon', () => {
   it('echoes showHotBadge and sectionIcon in the public dashboard response', async () => {
     // The public /api/dashboard endpoint should surface the admin flags.
     // Mock the sections query to return a section with both flags set.
-    mockDefaultAreaLookup();
+    mockPinAreaLookup();
     pool.query.mockResolvedValueOnce([[{
       id: 1,
       title: 'Popular combos',
@@ -146,7 +147,7 @@ describe('Admin dashboard section: show_hot_badge and section_icon', () => {
     // combo_block section items query (empty)
     pool.query.mockResolvedValueOnce([[]]);
 
-    const res = await request(app).get('/api/dashboard?storeType=packed');
+    const res = await request(app).get('/api/dashboard?storeType=packed').query(TEST_PIN);
 
     expect(res.statusCode).toEqual(200);
     const sections = res.body?.data?.sections || [];
@@ -155,13 +156,13 @@ describe('Admin dashboard section: show_hot_badge and section_icon', () => {
       expect(sections[0]).toHaveProperty('sectionIcon', 'star');
     }
     // Also verify the SELECT used to load sections includes the new columns.
-    const sectionsSql = pool.query.mock.calls[1][0];
+    const sectionsSql = pool.query.mock.calls[2][0];
     expect(sectionsSql).toMatch(/show_hot_badge/);
     expect(sectionsSql).toMatch(/section_icon/);
   });
 
   it('defaults showHotBadge to false and sectionIcon to null when absent', async () => {
-    mockDefaultAreaLookup();
+    mockPinAreaLookup();
     pool.query.mockResolvedValueOnce([[{
       id: 1,
       title: 'Categories',
@@ -182,7 +183,7 @@ describe('Admin dashboard section: show_hot_badge and section_icon', () => {
     }]]);
     pool.query.mockResolvedValueOnce([[]]);
 
-    const res = await request(app).get('/api/dashboard?storeType=packed');
+    const res = await request(app).get('/api/dashboard?storeType=packed').query(TEST_PIN);
 
     expect(res.statusCode).toEqual(200);
     const sections = res.body?.data?.sections || [];

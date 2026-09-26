@@ -1,4 +1,5 @@
 const request = require('supertest');
+const { TEST_PIN, mockPinInArea1 } = require('./helpers/testPin');
 const express = require('express');
 const adminRoutes = require('../src/routes/adminRoutes');
 const productRoutes = require('../src/routes/productRoutes');
@@ -22,9 +23,10 @@ app.use('/api/products', productRoutes);
 const token = jwt.sign({ id: 'admin', role: 'admin', adminRole: 'area_admin', areaId: 1 }, process.env.JWT_SECRET || 'secret');
 
 const DEFAULT_AREA = { id: 1, code: 'A1', name: 'Area 1', active: 1, is_default: 1 };
-// Unauthenticated/no-pin public routes resolve via resolveCustomerArea's
-// default-area fallback — one `SELECT * FROM areas` before the real query.
-const mockDefaultAreaLookup = () => pool.query.mockResolvedValueOnce([[DEFAULT_AREA]]);
+// Public catalog reads carry the app's pin (tests/helpers/testPin.js):
+// resolving it reads the areas list, then area 1's zones, before the
+// controller's own queries.
+const mockPinAreaLookup = () => mockPinInArea1(pool, DEFAULT_AREA);
 
 describe('Product and Category Tests', () => {
   beforeEach(() => {
@@ -90,28 +92,28 @@ describe('Product and Category Tests', () => {
   });
 
   it('should fetch products', async () => {
-    mockDefaultAreaLookup();
+    mockPinAreaLookup();
     pool.query.mockResolvedValueOnce([[{ id: 1, name: 'Chips' }]]); // select products
     pool.query.mockResolvedValueOnce([[{ id: 1, name: 'Snacks' }]]); // select categories
 
-    const res = await request(app).get('/api/products');
+    const res = await request(app).get('/api/products').query(TEST_PIN);
 
     expect(res.statusCode).toEqual(200);
     expect(res.body.data.products).toHaveLength(1);
   });
 
   it('should not include combos in default product/category lists', async () => {
-    mockDefaultAreaLookup();
+    mockPinAreaLookup();
     pool.query.mockResolvedValueOnce([[{ id: 1, name: 'Chips', is_combo: 0 }]]);
     pool.query.mockResolvedValueOnce([[]]);
 
-    const res = await request(app).get('/api/products?categoryId=1');
+    const res = await request(app).get('/api/products?categoryId=1').query(TEST_PIN);
 
     expect(res.statusCode).toEqual(200);
     expect(res.body.products).toHaveLength(1);
-    expect(pool.query.mock.calls[1][0]).toContain('p.is_combo = 0');
-    expect(pool.query.mock.calls[1][0]).not.toContain('UNION');
-    expect(pool.query.mock.calls[1][0]).not.toContain('FROM combos');
+    expect(pool.query.mock.calls[2][0]).toContain('p.is_combo = 0');
+    expect(pool.query.mock.calls[2][0]).not.toContain('UNION');
+    expect(pool.query.mock.calls[2][0]).not.toContain('FROM combos');
   });
 
   it('should reject creating a combo with zero or negative item quantities', async () => {

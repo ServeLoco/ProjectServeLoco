@@ -114,16 +114,11 @@ describe('POST /api/cart/validate-coupon — zone is derived server-side', () =>
     );
   });
 
-  it('resolves no zone when the pin is outside every zone', async () => {
-    // A pin that matches no zone anywhere now falls back through
-    // resolveNoPinAreaId (bug fix — a matched-no-zone pin must not silently
-    // default to the wrong area's catalog; see areaScope.resolveAreaIdForPricing).
-    // Its getDefaultArea() call hits the 60s areas cache queueAreaResolution
-    // already warmed above (loadAllAreas), so only the user lookup makes a
-    // real query here — same real DB round trip count as before this fix,
-    // just a different function reaching it.
+  it('refuses a pin outside every zone — no area, so no coupon of any area applies', async () => {
+    // REGRESSION: this used to fall back to the customer's last-order area or
+    // the default area and validate THAT area's coupon for someone standing
+    // outside every zone.
     queueAreaResolution();
-    pool.query.mockResolvedValueOnce([[{ last_area_id: null }]]); // resolveNoPinAreaId: user lookup
 
     const far = offsetPoint(CENTER.lat, CENTER.lng, 0, 50);
     const res = await request(app)
@@ -132,19 +127,13 @@ describe('POST /api/cart/validate-coupon — zone is derived server-side', () =>
       .send({ code: 'SAVE10', subtotal: 500, latitude: far.lat, longitude: far.lng, delivery_zone_id: 7 });
 
     expect(res.statusCode).toEqual(200);
-    expect(validateCoupon).toHaveBeenCalledWith(
-      expect.objectContaining({ zoneId: null, areaId: 1 })
-    );
+    expect(res.body.ok).toBe(false);
+    expect(res.body.reason).toMatch(/service area/i);
+    expect(validateCoupon).not.toHaveBeenCalled();
   });
 
-  it('skips the zone lookup entirely when no coordinates are sent', async () => {
-    // No pin still resolves an area now (bug fix, multi-area audit finding
-    // #12 — a coordinate-less request used to leave areaId null, and
-    // coupons.js treats that as "run unscoped" across every area). This
-    // customer has no last_area_id yet, so it falls to the platform default.
-    pool.query
-      .mockResolvedValueOnce([[{ last_area_id: null }]]) // resolveNoPinAreaId: user lookup
-      .mockResolvedValueOnce([[{ id: 1, code: 'A1', is_default: 1, active: 1 }]]); // getDefaultArea's areas lookup
+  it('no coordinates: uses the area the phone was last seen in, with no zone', async () => {
+    pool.query.mockResolvedValueOnce([[{ blocked: 0, last_area_id: 2, current_area_id: 1, location_seen_at: new Date() }]]); // cached user row
 
     const res = await request(app)
       .post('/api/cart/validate-coupon')
@@ -155,8 +144,21 @@ describe('POST /api/cart/validate-coupon — zone is derived server-side', () =>
     expect(validateCoupon).toHaveBeenCalledWith(
       expect.objectContaining({ zoneId: null, areaId: 1 })
     );
-    // Still no settings/zone queries — only the fallback area resolution.
-    expect(pool.query).toHaveBeenCalledTimes(2);
+    // No settings/zone queries — only the user row.
+    expect(pool.query).toHaveBeenCalledTimes(1);
+  });
+
+  it('no coordinates and no recent sighting: refused — never the last-order or default area', async () => {
+    pool.query.mockResolvedValueOnce([[{ blocked: 0, last_area_id: 1, current_area_id: null, location_seen_at: null }]]);
+
+    const res = await request(app)
+      .post('/api/cart/validate-coupon')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ code: 'SAVE10', subtotal: 500 });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.ok).toBe(false);
+    expect(validateCoupon).not.toHaveBeenCalled();
   });
 
   it('rejects malformed coordinates instead of silently ignoring them', async () => {
@@ -206,10 +208,8 @@ describe('GET /api/cart/available-coupons — zone is derived server-side', () =
     );
   });
 
-  it('resolves no zone when the pin is outside every zone', async () => {
-    // Same fallback as the validate-coupon test above — see its comment.
+  it('lists nothing for a pin outside every zone', async () => {
     queueAreaResolution();
-    pool.query.mockResolvedValueOnce([[{ last_area_id: null }]]); // resolveNoPinAreaId: user lookup
 
     const far = offsetPoint(CENTER.lat, CENTER.lng, 0, 50);
     const res = await request(app)
@@ -218,17 +218,12 @@ describe('GET /api/cart/available-coupons — zone is derived server-side', () =
       .query({ subtotal: 500, latitude: far.lat, longitude: far.lng, delivery_zone_id: 7 });
 
     expect(res.statusCode).toEqual(200);
-    expect(findApplicableCoupons).toHaveBeenCalledWith(
-      expect.objectContaining({ zoneId: null, areaId: 1 })
-    );
+    expect(res.body.data).toEqual([]);
+    expect(findApplicableCoupons).not.toHaveBeenCalled();
   });
 
-  it('skips the zone lookup entirely when no coordinates are sent', async () => {
-    // No pin still resolves an area now (bug fix, multi-area audit finding
-    // #12 — see the identical case on validate-coupon above).
-    pool.query
-      .mockResolvedValueOnce([[{ last_area_id: null }]]) // resolveNoPinAreaId: user lookup
-      .mockResolvedValueOnce([[{ id: 1, code: 'A1', is_default: 1, active: 1 }]]); // getDefaultArea's areas lookup
+  it('no coordinates: lists the coupons of the area the phone was last seen in', async () => {
+    pool.query.mockResolvedValueOnce([[{ blocked: 0, last_area_id: 2, current_area_id: 1, location_seen_at: new Date() }]]);
 
     const res = await request(app)
       .get('/api/cart/available-coupons')
@@ -239,7 +234,20 @@ describe('GET /api/cart/available-coupons — zone is derived server-side', () =
     expect(findApplicableCoupons).toHaveBeenCalledWith(
       expect.objectContaining({ zoneId: null, areaId: 1 })
     );
-    expect(pool.query).toHaveBeenCalledTimes(2);
+    expect(pool.query).toHaveBeenCalledTimes(1);
+  });
+
+  it('no coordinates and no recent sighting: lists nothing', async () => {
+    pool.query.mockResolvedValueOnce([[{ blocked: 0, last_area_id: 1, current_area_id: null, location_seen_at: null }]]);
+
+    const res = await request(app)
+      .get('/api/cart/available-coupons')
+      .set('Authorization', `Bearer ${token}`)
+      .query({ subtotal: 500 });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.data).toEqual([]);
+    expect(findApplicableCoupons).not.toHaveBeenCalled();
   });
 
   it('rejects malformed coordinates instead of silently ignoring them', async () => {

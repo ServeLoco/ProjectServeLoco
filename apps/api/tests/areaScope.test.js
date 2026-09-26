@@ -433,43 +433,42 @@ describe('areaMiddleware.resolveCustomerArea', () => {
     expect(req.zoneId).toBeNull();
   });
 
-  it('no pin, but a logged-in user with a last_area_id, uses that', async () => {
-    pool.query.mockResolvedValueOnce([[{ last_area_id: 3 }]]);
+  it('no pin: a logged-in user gets the area their PHONE was last seen in, if recent', async () => {
+    pool.query.mockResolvedValueOnce([[{ blocked: 0, last_area_id: 1, current_area_id: 3, location_seen_at: new Date() }]]);
     const req = { body: {}, query: {}, user: { id: 42 } };
     const next = jest.fn();
     await resolveCustomerArea(req, {}, next);
     expect(req.areaId).toBe(3);
-    expect(pool.query).toHaveBeenCalledWith(expect.stringContaining('last_area_id'), [42]);
+    expect(req.zoneId).toBeNull();
+    expect(pool.query).toHaveBeenCalledWith(expect.stringContaining('current_area_id'), [42]);
   });
 
-  it('uses req.user.lastAreaId when requireCustomer already loaded it, with no query at all', async () => {
-    // The hot path: requireCustomer read {blocked, last_area_id} in one cached
-    // query and parked it on req.user, so this middleware costs zero round
+  it('uses req.user.liveAreaId when requireCustomer already loaded it, with no query at all', async () => {
+    // The hot path: requireCustomer read the user row in one cached query and
+    // parked the answer on req.user, so this middleware costs zero round
     // trips instead of re-reading the row it just read.
-    const req = { body: {}, query: {}, user: { id: 42, lastAreaId: 7 } };
+    const req = { body: {}, query: {}, user: { id: 42, lastAreaId: 1, liveAreaId: 7 } };
     const next = jest.fn();
     await resolveCustomerArea(req, {}, next);
     expect(req.areaId).toBe(7);
     expect(pool.query).not.toHaveBeenCalled();
   });
 
-  it('no pin and no usable last_area_id falls back to the default area', async () => {
-    pool.query
-      .mockResolvedValueOnce([[{ last_area_id: null }]]) // user row, no last_area_id yet
-      .mockResolvedValueOnce([[AREA_1, AREA_2_BBOXED]]); // listAreas for getDefaultArea
+  it('REGRESSION: no pin never falls back to the last-ORDER area or the default area', async () => {
+    pool.query.mockResolvedValueOnce([[{ blocked: 0, last_area_id: 1, current_area_id: null, location_seen_at: null }]]);
     const req = { body: {}, query: {}, user: { id: 42 } };
     const next = jest.fn();
     await resolveCustomerArea(req, {}, next);
-    expect(req.areaId).toBe(1);
+    expect(req.areaId).toBeNull();
+    expect(next).toHaveBeenCalledWith();
   });
 
-  it('no pin and no user at all falls back to the default area directly', async () => {
-    pool.query.mockResolvedValueOnce([[AREA_1, AREA_2_BBOXED]]);
+  it('no pin and no user at all is no area — without a single query', async () => {
     const req = { body: {}, query: {} };
     const next = jest.fn();
     await resolveCustomerArea(req, {}, next);
-    expect(req.areaId).toBe(1);
-    expect(pool.query).toHaveBeenCalledTimes(1); // no users query for an anonymous request
+    expect(req.areaId).toBeNull();
+    expect(pool.query).not.toHaveBeenCalled();
   });
 });
 

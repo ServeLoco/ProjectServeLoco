@@ -22,6 +22,7 @@ app.use('/api/dashboard', dashboardRoutes);
 
 const { clearAll: clearMicroCache } = require('../src/utils/microCache');
 const areaScope = require('../src/utils/areaScope');
+const { TEST_PIN, AREA_1_ZONE } = require('./helpers/testPin');
 
 const DEFAULT_AREA = { id: 1, code: 'A1', name: 'Area 1', active: 1, is_default: 1 };
 
@@ -42,7 +43,8 @@ beforeEach(() => {
 describe('GET /api/dashboard — automatic rows', () => {
   it('returns an auto row as a descriptor with no items, in the admin\'s display order', async () => {
     pool.query
-      .mockResolvedValueOnce([[DEFAULT_AREA]]) // resolveCustomerArea
+      .mockResolvedValueOnce([[DEFAULT_AREA]]) // resolveCustomerArea: the app's pin -> areas list
+      .mockResolvedValueOnce([[AREA_1_ZONE]]) // -> area 1's zones
       .mockResolvedValueOnce([[{ id: 4, name: 'Hot Bites', has_available: 0 }]]) // shops that qualify (nothing sellable)
       .mockResolvedValueOnce([[]]) // categories that qualify
       .mockResolvedValueOnce([[{ id: 70, auto_kind: 'shop', auto_source_id: 4, title: 'Hot Bites', deleted_at: null }]]) // existing auto rows
@@ -50,7 +52,7 @@ describe('GET /api/dashboard — automatic rows', () => {
         sectionRow({ id: 70, title: 'Hot Bites', slug: 'auto-shop-4', display_order: 0, auto_kind: 'shop', auto_source_id: 4, show_hot_badge: 1, section_icon: 'star' }),
       ]]); // sections
 
-    const res = await request(app).get('/api/dashboard?storeType=packed');
+    const res = await request(app).get('/api/dashboard?storeType=packed').query(TEST_PIN);
 
     expect(res.statusCode).toBe(200);
     const [row] = res.body.data.sections;
@@ -66,6 +68,7 @@ describe('GET /api/dashboard — automatic rows', () => {
   it('returns the sections in the admin\'s App Home order, with automatic rows exactly where the admin put them', async () => {
     pool.query
       .mockResolvedValueOnce([[DEFAULT_AREA]])
+      .mockResolvedValueOnce([[AREA_1_ZONE]])
       .mockResolvedValueOnce([[{ id: 4, name: 'Hot Bites', has_available: 1 }, { id: 9, name: 'Sweet Spot', has_available: 0 }]]) // shops
       .mockResolvedValueOnce([[]]) // categories
       .mockResolvedValueOnce([[
@@ -81,7 +84,7 @@ describe('GET /api/dashboard — automatic rows', () => {
       ]])
       .mockResolvedValue([[]]);
 
-    const res = await request(app).get('/api/dashboard?storeType=packed');
+    const res = await request(app).get('/api/dashboard?storeType=packed').query(TEST_PIN);
 
     expect(res.statusCode).toBe(200);
     // The (empty) offer banner is hidden as usual; the automatic rows keep
@@ -92,13 +95,14 @@ describe('GET /api/dashboard — automatic rows', () => {
   it('hides an auto row whose shop no longer sells anything in this mode', async () => {
     pool.query
       .mockResolvedValueOnce([[DEFAULT_AREA]])
+      .mockResolvedValueOnce([[AREA_1_ZONE]])
       .mockResolvedValueOnce([[]]) // no shop qualifies any more
       .mockResolvedValueOnce([[]]) // no category qualifies
       .mockResolvedValueOnce([[
         sectionRow({ id: 70, slug: 'auto-shop-4', auto_kind: 'shop', auto_source_id: 4 }),
       ]]);
 
-    const res = await request(app).get('/api/dashboard?storeType=packed');
+    const res = await request(app).get('/api/dashboard?storeType=packed').query(TEST_PIN);
 
     expect(res.statusCode).toBe(200);
     expect(res.body.data.sections).toEqual([]);

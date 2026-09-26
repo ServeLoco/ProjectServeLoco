@@ -7,23 +7,41 @@ const { calculateRainCharge } = require('../utils/rainCharge');
 const { validateCoupon, validateCouponById, pickBestAutoApply, findApplicableCoupons, getNextFreeDeliveryThreshold, getNearestUnlockableCoupon } = require('../utils/coupons');
 const logger = require('../utils/logger');
 
-// Bug fix (multi-area audit finding #12): validateCouponHandler and
-// getAvailableCoupons used to leave deliveryAreaId as null for a
-// coordinate-less request, and coupons.js treats areaId === null as "run
-// unscoped" — a customer with no pin on hand could list or redeem another
-// area's coupon code. Mirrors resolveCustomerArea's own no-pin fallback
-// chain (§4.2): the customer's last resolved area, then the platform
-// default — never platform-wide.
-const resolveNoPinAreaId = async (userId) => {
-  if (userId) {
-    // Same 30s-cached read requireCustomer already did for this request —
-    // not a third uncached cross-region round trip against the same row.
-    const { getUserState } = require('../utils/userState');
-    const state = await getUserState(userId);
-    if (state?.lastAreaId) return state.lastAreaId;
+// With no pin, the coupon endpoints use the area the customer's phone was
+// last seen in (its live pin, via the socket) — never the area of their last
+// order and never the default area, which listed and redeemed another area's
+// coupons for someone standing elsewhere. No known location: no coupons.
+const { getLiveAreaId } = require('../utils/userState');
+
+const NO_AREA_COUPON_REASON = 'Coupons apply once your delivery location is inside our service area.';
+
+// Outside every zone (or with no pin) there is no delivery area, but the bill
+// still describes the customer's own cart: its lines are priced in the area
+// they came from (the most common one, for a mixed cart), never re-priced or
+// dropped against some other area's catalog. The default area only stands in
+// for a cart with no known product at all, to have a settings row to read.
+const areaOfCartItems = async (items) => {
+  const productIds = [];
+  const comboIds = [];
+  for (const item of items) {
+    const id = Number(item.product_id || item.productId);
+    if (!isId(id)) continue;
+    const isCombo = item.type === 'combo' || item.isCombo || item.is_combo;
+    (isCombo ? comboIds : productIds).push(id);
+  }
+  if (productIds.length > 0 || comboIds.length > 0) {
+    const [rows] = await pool.query(
+      `SELECT area_id, COUNT(*) AS n FROM (
+         SELECT area_id FROM products WHERE id IN (?)
+         UNION ALL
+         SELECT area_id FROM combos WHERE id IN (?)
+       ) t GROUP BY area_id ORDER BY n DESC, area_id ASC LIMIT 1`,
+      [productIds.length > 0 ? productIds : [0], comboIds.length > 0 ? comboIds : [0]]
+    );
+    if (rows[0] && rows[0].area_id != null) return Number(rows[0].area_id);
   }
   const defaultArea = await getDefaultArea();
-  return defaultArea ? defaultArea.id : null;
+  return defaultArea ? defaultArea.id : 1;
 };
 
 const calculateCart = async (req, res) => {
@@ -72,15 +90,16 @@ const calculateCart = async (req, res) => {
   // lat/lng aliases slipped the area gate before.
   const resolvedPricingAreaId = req.adminAreaOverride
     || await resolveAreaIdForPricing(customerLat, customerLng);
-  // A valid pin that matches no zone in any area resolves to null (see
-  // resolveAreaIdForPricing) rather than defaulting — this preview still
-  // needs a concrete area id to scope its (purely informational) catalog/
-  // settings queries with, but must never report the cart as deliverable.
-  // pinMatchedNoZone forces deliveryWithinRange = false below regardless of
-  // what pricing mode the fallback area happens to use.
-  const pinMatchedNoZone = resolvedPricingAreaId === null;
-  const deliveryAreaId = pinMatchedNoZone
-    ? (await getDefaultArea())?.id || 1
+  // A pin that matches no zone in any area — or no pin at all while zones are
+  // in use — resolves to null (see resolveAreaIdForPricing) rather than
+  // defaulting. There is no delivery area, so no coupon, charge or offer of
+  // any area applies; the preview still prices the cart's own lines in their
+  // own area (areaOfCartItems) and must never report it deliverable.
+  // noDeliveryArea forces deliveryWithinRange = false below regardless of
+  // what pricing mode that area happens to use.
+  const noDeliveryArea = resolvedPricingAreaId === null;
+  const deliveryAreaId = noDeliveryArea
+    ? await areaOfCartItems(items)
     : resolvedPricingAreaId;
 
   const [settingRows] = await pool.query(
@@ -295,7 +314,7 @@ const calculateCart = async (req, res) => {
   // /codAllowed flags the customer app gates on all come from this object.
   // Setting only deliveryWithinRange further down (as this used to) left a
   // priced, apparently-fine bill in front of the customer.
-  if (pinMatchedNoZone) {
+  if (noDeliveryArea) {
     pricing = {
       ...pricing,
       outOfRange: true,
@@ -326,7 +345,7 @@ const calculateCart = async (req, res) => {
   // including for every coupon-engine call: free-delivery coupons keep
   // waiving the standard fee exactly as on a standard order. The fast fee
   // is never passed into the engine, so it can never be discounted.
-  const fastDeliveryEnabled = Boolean(settings.fast_delivery_enabled);
+  const fastDeliveryEnabled = !noDeliveryArea && Boolean(settings.fast_delivery_enabled);
   const fastDeliveryAvailable = fastDeliveryEnabled;
   const isFast = deliveryTypeInput === 'fast' && fastDeliveryAvailable;
   // deliveryCharge always stays the STANDARD fee (zone-aware via the
@@ -365,7 +384,7 @@ const calculateCart = async (req, res) => {
   // Overrides whatever the block above decided: a pin that matched no zone
   // anywhere is never deliverable, even in flat-pricing mode where
   // resolveDeliveryPricing has no geography check of its own to catch it.
-  if (pinMatchedNoZone) {
+  if (noDeliveryArea) {
     deliveryWithinRange = false;
     if (!requiresLocation) deliveryMessage = 'Delivery is not available at this location.';
   }
@@ -373,7 +392,7 @@ const calculateCart = async (req, res) => {
   let nightCharge = pricing.nightCharge > 0 ? toMoney(pricing.nightCharge) : 0;
 
   let rainCharge = 0;
-  if (settings.rain_charge_enabled) {
+  if (settings.rain_charge_enabled && !noDeliveryArea) {
     const raw = calculateRainCharge(settings);
     if (raw > 0) rainCharge = toMoney(raw);
   }
@@ -476,7 +495,12 @@ const calculateCart = async (req, res) => {
   let couponError = null;
   let availableCoupons = [];
 
-  if (couponCode) {
+  if (noDeliveryArea) {
+    // No delivery area: no area's coupon applies (they are all area-scoped),
+    // so none is validated, auto-applied or listed. A code the customer typed
+    // or tapped says why instead of silently vanishing.
+    if (couponCode || couponId) couponError = NO_AREA_COUPON_REASON;
+  } else if (couponCode) {
     // User entered a code — validate it. User's code always wins over auto-apply.
     const result = await validateCoupon({
       code: couponCode,
@@ -538,7 +562,7 @@ const calculateCart = async (req, res) => {
   // customer the auto-apply discount they already had — fall back to the
   // best auto-apply offer while still surfacing couponError, so the UI can
   // show "code invalid" alongside the still-applied auto discount.
-  if (!appliedCoupon && couponError && !noAutoApply) {
+  if (!appliedCoupon && couponError && !noAutoApply && !noDeliveryArea) {
     const best = await pickBestAutoApply({
       subtotal,
       deliveryCharge,
@@ -559,7 +583,7 @@ const calculateCart = async (req, res) => {
   // We do this even when a coupon is already applied so the user can see
   // alternatives and switch.
   try {
-    availableCoupons = await findApplicableCoupons({
+    if (!noDeliveryArea) availableCoupons = await findApplicableCoupons({
       subtotal,
       deliveryCharge,
       standardDeliveryCharge,
@@ -587,7 +611,7 @@ const calculateCart = async (req, res) => {
   // also_free_delivery counts too.
   const isFreeDeliveryApplied = Boolean(appliedCoupon && appliedCoupon.freeDeliveryWaiver > 0);
   let freeDeliveryProgress = null;
-  if (!isFreeDeliveryApplied) {
+  if (!isFreeDeliveryApplied && !noDeliveryArea) {
     try {
       freeDeliveryProgress = await getNextFreeDeliveryThreshold({ subtotal, storeType: cartStoreType, userId, zoneId, itemCount: totalItemCount, areaId: deliveryAreaId });
     } catch (err) {
@@ -603,7 +627,7 @@ const calculateCart = async (req, res) => {
   // coupons (already covered by freeDeliveryProgress above).
   let nearestOfferProgress = null;
   try {
-    nearestOfferProgress = await getNearestUnlockableCoupon({
+    if (!noDeliveryArea) nearestOfferProgress = await getNearestUnlockableCoupon({
       subtotal,
       storeType: cartStoreType,
       userId,
@@ -648,8 +672,8 @@ const calculateCart = async (req, res) => {
     // pin nudged a kilometre past the zone edge by wiping the whole cart and
     // announcing "Delivery area changed" (reproduced on-device). Outside every
     // zone there is no area and no catalog verdict to give: just a refusal.
-    areaId: pinMatchedNoZone ? null : deliveryAreaId,
-    area_id: pinMatchedNoZone ? null : deliveryAreaId,
+    areaId: noDeliveryArea ? null : deliveryAreaId,
+    area_id: noDeliveryArea ? null : deliveryAreaId,
     subtotal,
     deliveryCharge: standardDeliveryCharge,
     nightCharge,
@@ -666,8 +690,8 @@ const calculateCart = async (req, res) => {
     // so outside every zone it describes nothing real. The quote is already
     // refused via isValid/outOfRange; dropping the customer's items on top of
     // that is destroying a cart over geography.
-    unavailableItems: pinMatchedNoZone ? [] : unavailableItems,
-    unavailable_items: pinMatchedNoZone ? [] : unavailableItems,
+    unavailableItems: noDeliveryArea ? [] : unavailableItems,
+    unavailable_items: noDeliveryArea ? [] : unavailableItems,
     isValid: deliveryWithinRange,
     valid: deliveryWithinRange,
     message: !deliveryWithinRange ? deliveryMessage : '',
@@ -777,21 +801,15 @@ const validateCouponHandler = async (req, res) => {
   }
 
   // A pin resolves BOTH the zone (for the zone-restricted coupon check
-  // below) and the area. No pin still needs an area — resolveNoPinAreaId's
-  // fallback chain (bug fix, multi-area audit finding #12) — but has no
-  // pin to zone-match against, so zoneId stays null in that case exactly
-  // as before.
+  // below) and the area. No pin: the area the phone was last seen in, with
+  // no zone. No area either way means no coupon applies — and deliveryAreaId
+  // must never reach coupons.js as null, which it treats as "run unscoped".
   let deliveryAreaId = null;
   let zoneId = null;
   if (hasCoords) {
-    // resolveAreaIdForPricing returns null when the pin is valid but matches
-    // no zone in any area — fall back to the same no-pin area resolution
-    // used below rather than let deliveryAreaId stay null, which coupons.js
-    // treats as "run unscoped" (the exact leak this file's finding #12 fix
-    // was written to close, just reached via a different path).
     deliveryAreaId = await resolveAreaIdForPricing(customerLat, customerLng);
     if (deliveryAreaId === null) {
-      deliveryAreaId = await resolveNoPinAreaId(userId);
+      return res.status(200).json({ ok: false, reason: NO_AREA_COUPON_REASON });
     } else {
       const [settingRows] = await pool.query(
         'SELECT delivery_charge, night_charge, night_charge_start, night_charge_end, fast_delivery_enabled, fast_delivery_charge, standard_delivery_minutes, fast_delivery_minutes, shop_latitude, shop_longitude, radius_pricing_active FROM settings WHERE area_id = ? LIMIT 1',
@@ -810,7 +828,10 @@ const validateCouponHandler = async (req, res) => {
       }
     }
   } else {
-    deliveryAreaId = await resolveNoPinAreaId(userId);
+    deliveryAreaId = await getLiveAreaId(userId);
+    if (deliveryAreaId === null) {
+      return res.status(200).json({ ok: false, reason: NO_AREA_COUPON_REASON });
+    }
   }
 
   // Determine store type from items (same logic as calculateCart).
@@ -907,20 +928,14 @@ const getAvailableCoupons = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid GPS coordinates provided' });
   }
 
-  // A pin resolves BOTH the zone (for the zone-restricted coupon check
-  // below) and the area. No pin still needs an area — resolveNoPinAreaId's
-  // fallback chain (bug fix, multi-area audit finding #12) — but has no
-  // pin to zone-match against, so zoneId stays null in that case exactly
-  // as before.
+  // Same area rule as validateCouponHandler above: the pin's area, else the
+  // area the phone was last seen in; no area lists nothing.
   let deliveryAreaId = null;
   let zoneId = null;
   if (hasCoords) {
-    // Same null-means-"matched no zone" fallback as validateCouponHandler
-    // above — must not leave deliveryAreaId null (coupons.js runs unscoped
-    // for null).
     deliveryAreaId = await resolveAreaIdForPricing(customerLat, customerLng);
     if (deliveryAreaId === null) {
-      deliveryAreaId = await resolveNoPinAreaId(userId);
+      return res.status(200).json({ data: [] });
     } else {
       const [settingRows] = await pool.query(
         'SELECT delivery_charge, night_charge, night_charge_start, night_charge_end, fast_delivery_enabled, fast_delivery_charge, standard_delivery_minutes, fast_delivery_minutes, shop_latitude, shop_longitude, radius_pricing_active FROM settings WHERE area_id = ? LIMIT 1',
@@ -939,7 +954,8 @@ const getAvailableCoupons = async (req, res) => {
       }
     }
   } else {
-    deliveryAreaId = await resolveNoPinAreaId(userId);
+    deliveryAreaId = await getLiveAreaId(userId);
+    if (deliveryAreaId === null) return res.status(200).json({ data: [] });
   }
 
   let cartStoreType = store_type || storeType || null;
