@@ -252,7 +252,17 @@ describe('GET /api/dashboard and /api/dashboard/sections/:slug/items', () => {
 describe('Cart checkout guard regression pin', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    areaScope._resetCachesForTests();
   });
+
+  // Both carts below carry no pin. That only resolves to an area on an
+  // install with no zones anywhere (flat pricing) — resolveAreaIdForPricing
+  // reads the areas list, then each area's zones, before calculateCart's own
+  // queries start.
+  const mockFlatInstallArea = () => {
+    pool.query.mockResolvedValueOnce([[{ id: 1, active: 1, is_default: 1 }]]); // areas
+    pool.query.mockResolvedValueOnce([[]]); // area 1 zones — none
+  };
 
   it('still refuses cart items from closed shops when products are surfaced elsewhere', async () => {
     // Cart add with a valid user token and a closed-shop product. The
@@ -261,7 +271,9 @@ describe('Cart checkout guard regression pin', () => {
     const userToken = jwt.sign({ id: 'customer-1', role: 'customer' }, process.env.JWT_SECRET || 'secret');
 
     // requireCustomer skips its own DB check under NODE_ENV=test (see
-    // authMiddleware.js), so calculateCart's own queries start at call index 0.
+    // authMiddleware.js); calculateCart's own queries start after the two
+    // area-resolution reads.
+    mockFlatInstallArea();
     // 1) settings query
     pool.query.mockResolvedValueOnce([[{
       shop_open: 1, delivery_charge: 0, night_charge: 0,
@@ -284,7 +296,7 @@ describe('Cart checkout guard regression pin', () => {
 
     expect(res.statusCode).toEqual(400);
     expect(res.body.code).toBe('SHOP_CLOSED');
-    const productLookupSql = pool.query.mock.calls[1][0];
+    const productLookupSql = pool.query.mock.calls[3][0];
     expect(productLookupSql).toContain('s.is_open = 1');
   });
 
@@ -294,6 +306,7 @@ describe('Cart checkout guard regression pin', () => {
     // cart), not a shop-closed product. Must soft-drop, not hard 400.
     const userToken = jwt.sign({ id: 'customer-1', role: 'customer' }, process.env.JWT_SECRET || 'secret');
 
+    mockFlatInstallArea();
     pool.query.mockResolvedValueOnce([[{
       shop_open: 1, delivery_charge: 0, night_charge: 0,
       standard_delivery_minutes: 60, fast_delivery_minutes: 30,

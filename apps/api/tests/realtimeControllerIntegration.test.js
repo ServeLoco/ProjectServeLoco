@@ -87,11 +87,13 @@ describe('Controller -> realtime event integration', () => {
 
       // No latitude/longitude in validatedData (these tests call the
       // controller directly, bypassing the route validator that would
-      // normally coerce a missing pin to null) — resolveAreaForPoint
-      // short-circuits on the missing pin and resolveAreaIdForPricing goes
-      // straight to getDefaultArea(), which reads through the outer pool
-      // (never the transaction connection) for exactly one query.
+      // normally coerce a missing pin to null). With no pin,
+      // resolveAreaIdForPricing only defaults when no active area has any
+      // zone (a flat-pricing install): it reads the areas list, then that
+      // area's zones (none), through the outer pool — never the transaction
+      // connection. getDefaultArea reuses the cached areas list.
       pool.query.mockResolvedValueOnce([[{ id: 1, active: 1, is_default: 1 }]]);
+      pool.query.mockResolvedValueOnce([[]]);
 
       // SELECT user
       conn.query.mockResolvedValueOnce([[{ id: 1, name: 'Test', phone: '123', whatsapp_number: '123', blocked: 0, address: 'Addr' }]]);
@@ -129,8 +131,9 @@ describe('Controller -> realtime event integration', () => {
       const conn = mockConnection();
       pool.getConnection.mockResolvedValue(conn);
 
-      // See the comment in the previous test — same 1-query area fallback.
+      // See the comment in the previous test — same 2-query area fallback.
       pool.query.mockResolvedValueOnce([[{ id: 1, active: 1, is_default: 1 }]]);
+      pool.query.mockResolvedValueOnce([[]]);
 
       conn.query.mockResolvedValueOnce([[{ id: 1, name: 'Test', phone: '123', whatsapp_number: '123', blocked: 0, address: 'Addr' }]]);
       conn.query.mockResolvedValueOnce([[{ shop_open: 1, delivery_available: 1, night_charge: 0 }]]);

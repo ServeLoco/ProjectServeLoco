@@ -188,6 +188,51 @@ describe('a stale area bbox cannot make a real zone unreachable', () => {
   });
 });
 
+describe('resolveAreaIdForPricing — no pin, or outside every zone, is never the default area', () => {
+  // Answers by SQL rather than by call order: which areas get checked, and
+  // in what order, is the implementation's business.
+  const mockDb = ({ areas, zonesByArea = {} }) => {
+    pool.query.mockImplementation(async (sql, params = []) => {
+      if (/FROM areas/.test(sql)) return [areas];
+      if (/FROM delivery_zones/.test(sql)) return [zonesByArea[params[0]] || []];
+      return [{ affectedRows: 1 }];
+    });
+  };
+  // A brand new area: no zones drawn yet, so no bbox either — always a
+  // bbox candidate.
+  const NEW_EMPTY_AREA = { id: 3, code: 'A3', name: 'New', active: 1, is_default: 0, min_lat: null, max_lat: null, min_lng: null, max_lng: null };
+  const AREA_1_BOXED = { ...AREA_1, min_lat: 29.40, max_lat: 29.50, min_lng: 75.60, max_lng: 75.72 };
+
+  it('a pin inside a zone resolves to that zone\'s area', async () => {
+    mockDb({ areas: [AREA_1_BOXED, NEW_EMPTY_AREA], zonesByArea: { 1: [PARENT_ZONE] } });
+    expect(await areaScope.resolveAreaIdForPricing(POINT_IN_CHILD.lat, POINT_IN_CHILD.lng)).toBe(1);
+  });
+
+  it('REGRESSION: a new area with no zones yet does not turn a far-away pin into a default-area order', async () => {
+    mockDb({ areas: [AREA_1_BOXED, NEW_EMPTY_AREA], zonesByArea: { 1: [PARENT_ZONE] } });
+    expect(await areaScope.resolveAreaIdForPricing(POINT_OUTSIDE_EVERYTHING.lat, POINT_OUTSIDE_EVERYTHING.lng)).toBeNull();
+  });
+
+  it('no pin at all is null while any area has zones', async () => {
+    mockDb({ areas: [AREA_1_BOXED], zonesByArea: { 1: [PARENT_ZONE] } });
+    expect(await areaScope.resolveAreaIdForPricing(undefined, undefined)).toBeNull();
+    expect(await areaScope.resolveAreaIdForPricing('', '')).toBeNull();
+    expect(await areaScope.resolveAreaIdForPricing('abc', 'def')).toBeNull();
+  });
+
+  it('an install with no zones anywhere (flat pricing) still defaults, pin or no pin', async () => {
+    mockDb({ areas: [AREA_1, NEW_EMPTY_AREA] });
+    expect(await areaScope.resolveAreaIdForPricing(POINT_OUTSIDE_EVERYTHING.lat, POINT_OUTSIDE_EVERYTHING.lng)).toBe(1);
+    expect(await areaScope.resolveAreaIdForPricing(null, null)).toBe(1);
+  });
+
+  it('zones of an INACTIVE area do not count as geography in use', async () => {
+    const inactiveWithZones = { ...AREA_2_BBOXED, active: 0 };
+    mockDb({ areas: [AREA_1, inactiveWithZones], zonesByArea: { 2: [{ ...PARENT_ZONE, id: 20, area_id: 2 }] } });
+    expect(await areaScope.resolveAreaIdForPricing(undefined, undefined)).toBe(1);
+  });
+});
+
 describe('getAreaById / listAreas / getDefaultArea (60s cache)', () => {
   it('caches the areas list across repeated calls', async () => {
     pool.query.mockResolvedValueOnce([[AREA_1, AREA_2_BBOXED]]);

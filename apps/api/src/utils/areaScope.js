@@ -142,24 +142,35 @@ async function resolveAreaForPoint(lat, lng) {
 }
 
 /**
- * Best-effort area id for a pricing calculation (cart preview, order
- * creation). Falls back to the default area when the pin itself is
- * missing/invalid, or when delivery_zones simply aren't configured anywhere
- * — a purely-flat-pricing install (radius_pricing_active off, no zones ever
- * drawn) is a legitimate, common setup with no geography to check against;
- * defaulting there is the existing, correct behavior and must not change.
+ * Whether geography is in use at all: at least one active area has an
+ * active delivery zone. Each area's zones are 15s-cached, and callers only
+ * reach this on the already-refusing path (no pin, or a pin nothing matched).
+ */
+async function anyActiveAreaHasZones() {
+  const areas = await listAreas({ activeOnly: true });
+  for (const area of areas) {
+    const zones = await loadZonesForArea(area.id);
+    if (zones.length > 0) return true;
+  }
+  return false;
+}
+
+/**
+ * Area id for a pricing calculation (cart preview, order creation, coupon
+ * checks): the area whose zone contains the pin, or `null` — "we don't
+ * deliver here". A missing pin and a pin outside every zone are both null.
  *
- * A VALID pin that matches no zone in an area that HAS zones configured is
- * the one case that must NOT default: resolveDeliveryPricing's own "nothing
- * matched" fallback only fires in zone-pricing mode, and does nothing in
- * flat-pricing mode — flat mode has no geography check at all. Defaulting
- * for that specific case previously meant a customer standing in Area 2
- * whose pin matched none of Area 2's real zones could be silently priced,
- * cataloged and fulfilled against Area 1 instead — the cross-area
- * contamination §2.4 exists to prevent. Returns `null` only for that case;
- * callers that need a non-null area id for informational/catalog scoping
- * while still rejecting the order must fall back explicitly and force their
- * own out-of-range signal (see cartController.calculateCart).
+ * It used to fall back to the default area whenever the areas CHECKED had no
+ * zones. A newly created area has no zones until someone draws them, and an
+ * area with no bbox is always a candidate, so one empty area was enough to
+ * turn a pin anywhere in the country into a default-area order — accepted
+ * and fulfilled by that area's shops whenever it ran flat pricing (flat mode
+ * has no geography check of its own). Whether geography is in use is now
+ * asked of EVERY active area, never just the candidates.
+ *
+ * The one remaining default: an install with no zones anywhere (pure flat
+ * pricing, nothing drawn). There is no geography to check, and every pin —
+ * or none — belongs to the default area, exactly as before multi-area.
  */
 async function resolveAreaIdForPricing(lat, lng) {
   // Number(null) === 0 and Number.isFinite(0) is true — a genuinely missing
@@ -167,45 +178,17 @@ async function resolveAreaIdForPricing(lat, lng) {
   // same "Atlantic off Africa" trap guarded against elsewhere in this
   // codebase (see utils/riders.js's distanceToNearestPickupKm).
   const isBlank = (v) => v === undefined || v === null || v === '';
-  if (isBlank(lat) || isBlank(lng)) {
-    const defaultArea = await getDefaultArea();
-    return defaultArea ? defaultArea.id : 1;
-  }
   const numLat = Number(lat);
   const numLng = Number(lng);
-  if (!Number.isFinite(numLat) || !Number.isFinite(numLng)) {
-    const defaultArea = await getDefaultArea();
-    return defaultArea ? defaultArea.id : 1;
-  }
+  const hasPin = !isBlank(lat) && !isBlank(lng) && Number.isFinite(numLat) && Number.isFinite(numLng);
 
-  // Mirrors resolveAreaForPoint's own candidate/zone-match loop, but tracks
-  // whether ANY candidate area actually has zones defined — that's the
-  // signal for whether geography is even in use, which resolveAreaForPoint
-  // itself doesn't expose (it only reports match/no-match, not why).
-  //
-  // Zero CANDIDATES is a different case from candidates-with-no-zones, and
-  // must not be folded into the same fallback: an area with no bbox yet is
-  // ALWAYS a candidate (see bboxCandidateAreas), so candidates is only ever
-  // empty when every area already has a computed bbox (i.e. already has
-  // real zones somewhere) and this point falls outside all of them — a
-  // point structurally outside every area's territory, not a "zones aren't
-  // configured yet" install. That must return null like any other
-  // no-zone-matched case, not default (verified live: a pin 5° north of a
-  // real area with real zones was defaulting into that area's catalog).
-  const candidates = await bboxCandidateAreas(numLat, numLng);
-  if (candidates.length === 0) return null;
-  let anyZonesConfigured = false;
-  for (const area of candidates) {
-    const zones = await loadZonesForArea(area.id);
-    if (zones.length > 0) anyZonesConfigured = true;
-    const zone = matchZone(numLat, numLng, zones);
-    if (zone) return area.id;
+  if (hasPin) {
+    const resolved = await resolveAreaForPoint(numLat, numLng);
+    if (resolved) return resolved.areaId;
   }
-  if (!anyZonesConfigured) {
-    const defaultArea = await getDefaultArea();
-    return defaultArea ? defaultArea.id : 1;
-  }
-  return null;
+  if (await anyActiveAreaHasZones()) return null;
+  const defaultArea = await getDefaultArea();
+  return defaultArea ? defaultArea.id : 1;
 }
 
 // ---------------------------------------------------------------------

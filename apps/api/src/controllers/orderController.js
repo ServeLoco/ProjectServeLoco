@@ -244,12 +244,18 @@ const createOrder = async (req, res) => {
     const deliveryAreaId = req.adminAreaOverride
       || await resolveAreaIdForPricing(latitude, longitude);
     // resolveAreaIdForPricing returns null (rather than defaulting) when the
-    // pin is valid but matches no zone in any area — flat-pricing mode has no
-    // other geography check, so this must hard-reject here rather than let a
-    // wrongly-defaulted area's catalog/shops/riders fulfill the order.
+    // pin matches no zone in any area, or there is no pin at all while zones
+    // are in use — flat-pricing mode has no other geography check, so this
+    // must hard-reject here rather than let a wrongly-defaulted area's
+    // catalog/shops/riders fulfill the order. Same client code for both, so
+    // the app's existing out-of-range handling shows the message.
     if (deliveryAreaId === null) {
+      const hasPin = latitude !== undefined && latitude !== null && latitude !== ''
+        && longitude !== undefined && longitude !== null && longitude !== '';
       throw new OrderError(
-        'Delivery is not available at this location. Please choose a closer address.',
+        hasPin
+          ? 'Delivery is not available at this location. Please choose a closer address.'
+          : 'Please set your delivery location on the map to place this order.',
         'OUT_OF_DELIVERY_RANGE'
       );
     }
