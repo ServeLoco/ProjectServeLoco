@@ -113,7 +113,13 @@ const computeDailyStats = async (dateStr, db) => {
 
   const [sessions, events, areas] = await Promise.all([
     sessionsCol.find({ connectedAt: { $gte: dayStart, $lte: dayEnd } }).toArray(),
-    eventsCol.find({ createdAt: { $gte: dayStart, $lte: dayEnd } }).toArray(),
+    // The cart row's shown/added events (several per cart visit) feed only
+    // the suggestions build — skipping them keeps this day's load as small
+    // as it was before the row existed.
+    eventsCol.find({
+      createdAt: { $gte: dayStart, $lte: dayEnd },
+      type: { $nin: ['suggestion_impression', 'suggestion_add'] },
+    }).toArray(),
     listAreas({ activeOnly: true }),
   ]);
 

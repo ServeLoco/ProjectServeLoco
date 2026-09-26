@@ -404,6 +404,42 @@ describeWithMysql('cart suggestions against a real database', () => {
       }
     });
 
+    it('never shows a hidden category or a switched-off shop mode, even their best sellers', async () => {
+      const fresh = await createArea('H');
+      const category = (name, type, active = 1) => insert(
+        'INSERT INTO categories (name, slug, type, active, area_id) VALUES (?, ?, ?, ?, ?)',
+        [`${FIXTURE_TAG} H ${name}`, `${FIXTURE_TAG}-h-${name}`, type, active, fresh]
+      );
+      try {
+        await pool.query(
+          `INSERT INTO store_modes (area_id, slug, label, display_order, active, is_system)
+           VALUES (?, 'packed', 'Packed', 1, 1, 1), (?, 'sweets', 'Sweets', 2, 0, 0)`,
+          [fresh, fresh]
+        );
+        const grocery = await category('grocery', 'packed');
+        const hidden = await category('hidden', 'packed', 0);
+        const sweets = await category('sweets', 'sweets');
+
+        const bread = await createProduct(fresh, grocery, 'H Bread');
+        const butter = await createProduct(fresh, grocery, 'H Butter');
+        const hiddenJam = await createProduct(fresh, hidden, 'H Jam');
+        const laddoo = await createProduct(fresh, sweets, 'H Laddoo');
+        // The jam and the laddoo sell the most and go with bread every time.
+        await orders(8, [bread, hiddenJam, laddoo], { areaId: fresh });
+        await orders(3, [bread, butter], { areaId: fresh });
+        await buildAreaPairs(fresh);
+
+        const ids = idsOf(await suggest([bread], { areaId: fresh }));
+        expect(ids).toEqual([butter]);
+      } finally {
+        await pool.query('DELETE FROM orders WHERE area_id = ?', [fresh]);
+        await pool.query('DELETE FROM products WHERE area_id = ?', [fresh]);
+        await pool.query('DELETE FROM categories WHERE area_id = ?', [fresh]);
+        await pool.query('DELETE FROM store_modes WHERE area_id = ?', [fresh]);
+        await pool.query('DELETE FROM areas WHERE id = ?', [fresh]);
+      }
+    });
+
     it('survives garbage input', async () => {
       const cases = [
         'abc,-1,0,1.5',

@@ -68,6 +68,14 @@ describe('computeDailyStats', () => {
     expect(result.avgSessionSec).toBe(450); // (300 + 600) / 2
   });
 
+  it('does not load the cart row\'s suggestion events', async () => {
+    const db = makeDb([], []);
+    await computeDailyStats('2026-07-08', db);
+    expect(db._eventsCol.find).toHaveBeenCalledWith(expect.objectContaining({
+      type: { $nin: ['suggestion_impression', 'suggestion_add'] },
+    }));
+  });
+
   it('counts orders from order_placed events', async () => {
     const events = [
       { type: 'order_placed', orderId: 991, userId: 1, createdAt: new Date('2026-07-08T10:00:00Z') },

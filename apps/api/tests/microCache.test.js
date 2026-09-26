@@ -91,6 +91,21 @@ describe('microCache', () => {
     expect(get('k:1:0')).toBeUndefined();
     expect(get(`k:1:${MAX_ENTRIES}`)).toBe(MAX_ENTRIES);
   });
+
+  it('a flood of cart suggestion keys never evicts dashboard entries', () => {
+    set('dashboard:1:packed:closed=0', 'home', 60_000);
+    for (let i = 0; i < MAX_ENTRIES * 2; i += 1) {
+      set(`suggest:1:${i}`, i, 60_000);
+    }
+    expect(get('dashboard:1:packed:closed=0')).toBe('home');
+    // Suggestions keep only their own newest entries.
+    expect(get('suggest:1:0')).toBeUndefined();
+    expect(get(`suggest:1:${MAX_ENTRIES * 2 - 1}`)).toBe(MAX_ENTRIES * 2 - 1);
+
+    bust('suggest', 1);
+    expect(get(`suggest:1:${MAX_ENTRIES * 2 - 1}`)).toBeUndefined();
+    expect(get('dashboard:1:packed:closed=0')).toBe('home');
+  });
 });
 
 describe('microCache mutation bust (integration-style)', () => {

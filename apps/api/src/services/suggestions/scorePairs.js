@@ -20,6 +20,12 @@ const LIFT_CAP = 10;
 const SIMILAR_DISCOUNT = 0.8;
 // Name similarity below this is too loose to borrow matches from.
 const MIN_NAME_SIMILARITY = 0.2;
+// borrowFromSimilar compares every new product with every donor — ~0.2s at
+// 1.7k products, ~1.6s at 5k. It runs inside the API process, so it hands
+// the event loop back every this many products and customers' requests
+// never wait behind it.
+const YIELD_EVERY = 100;
+const yieldToEventLoop = () => new Promise((resolve) => setImmediate(resolve));
 
 /**
  * Score every (A → B) pair.
@@ -117,17 +123,19 @@ const nameSimilarity = (tokensA, tokensB, weights = null) => {
  *
  * @param {Array<{id:number, name:string, categoryId:number}>} products  area catalogue
  * @param {Map<number, Array<{pairedId:number, score:number, coCount:number}>>} learned
- * @returns {Map<number, Array<{pairedId:number, score:number, coCount:number}>>}
+ * @returns {Promise<Map<number, Array<{pairedId:number, score:number, coCount:number}>>>}
  *          borrowed matches for products that had none
  */
-const borrowFromSimilar = (products, learned) => {
+const borrowFromSimilar = async (products, learned) => {
   const borrowed = new Map();
   const named = products.map((p) => ({ ...p, tokens: tokenize(p.name) }));
   const donors = named.filter((p) => learned.has(p.id));
   if (donors.length === 0) return borrowed;
   const weights = wordWeights(named.map((p) => p.tokens));
 
-  for (const product of named) {
+  for (let index = 0; index < named.length; index += 1) {
+    if (index > 0 && index % YIELD_EVERY === 0) await yieldToEventLoop();
+    const product = named[index];
     if (learned.has(product.id)) continue;
     const { tokens } = product;
     let best = null;

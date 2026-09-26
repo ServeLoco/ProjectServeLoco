@@ -96,8 +96,8 @@ describe('borrowFromSimilar (new products)', () => {
     { id: 31, name: 'Tandoori Roti', categoryId: 5 },
   ];
 
-  it('gives a new product the matches of the closest-named product', () => {
-    const borrowed = borrowFromSimilar(catalogue, learned);
+  it('gives a new product the matches of the closest-named product', async () => {
+    const borrowed = await borrowFromSimilar(catalogue, learned);
     // Cheese Burger borrows Aloo Tikki Burger's matches, minus itself.
     expect(borrowed.get(11).map((m) => m.pairedId)).toEqual([20]);
     expect(borrowed.get(40).map((m) => m.pairedId)).toEqual([31]);
@@ -105,21 +105,31 @@ describe('borrowFromSimilar (new products)', () => {
     expect(borrowed.get(11)[0].coCount).toBe(0);
   });
 
-  it('borrows nothing when no name is close', () => {
-    expect(borrowFromSimilar(catalogue, learned).has(50)).toBe(false);
+  it('borrows nothing when no name is close', async () => {
+    expect((await borrowFromSimilar(catalogue, learned)).has(50)).toBe(false);
   });
 
-  it('is not fooled by a word every product shares', () => {
+  it('is not fooled by a word every product shares', async () => {
     const branded = catalogue.map((p) => ({ ...p, name: `VillKro ${p.name}` }));
-    const borrowed = borrowFromSimilar(branded, learned);
+    const borrowed = await borrowFromSimilar(branded, learned);
     expect(borrowed.has(50)).toBe(false); // "VillKro Chef Special" is still like nothing
     expect(borrowed.get(11).map((m) => m.pairedId)).toEqual([20]);
   });
 
-  it('never overwrites a product that has its own history', () => {
-    const borrowed = borrowFromSimilar(catalogue, learned);
+  it('never overwrites a product that has its own history', async () => {
+    const borrowed = await borrowFromSimilar(catalogue, learned);
     expect(borrowed.has(10)).toBe(false);
     expect(borrowed.has(30)).toBe(false);
+  });
+
+  it('lets other work run while it compares a big catalogue', async () => {
+    const big = Array.from({ length: 450 }, (_, i) => ({ id: 1000 + i, name: `Item ${i} Paneer`, categoryId: 2 }));
+    let ranBetween = false;
+    setImmediate(() => { ranBetween = true; });
+    const borrowed = await borrowFromSimilar([...catalogue, ...big], learned);
+    expect(ranBetween).toBe(true);
+    // Same answer as before for the small catalogue's products.
+    expect(borrowed.get(11).map((m) => m.pairedId)).toEqual([20]);
   });
 });
 

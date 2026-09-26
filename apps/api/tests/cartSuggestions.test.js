@@ -16,6 +16,7 @@ jest.mock('../src/middleware/areaMiddleware', () => ({
 
 const { pool } = require('../src/db/mysql');
 const microCache = require('../src/utils/microCache');
+const { invalidateStoreModeCache } = require('../src/utils/storeMode');
 const { istHour } = require('../src/utils/businessTime');
 const cartRoutes = require('../src/routes/cartRoutes');
 
@@ -62,20 +63,23 @@ const answer = (sql, params) => {
   if (sql.includes('c.type IN (?)')) {
     // Any sellable product not in the cart: most ordered first, then the
     // cart's own shop, then its mode.
-    const [cartIds, , shopIds, noShop, modes] = params;
+    const [cartIds, liveModes, , shopIds, noShop, modes] = params;
     const sales = (id) => (db.topSellers.find((t) => t.product_id === id) || {}).orders || 0;
     const same = (id) => (shopOf(id) == null ? Boolean(noShop) : shopIds.includes(shopOf(id)));
     return Object.keys(PRODUCTS).map(Number)
-      .filter((id) => !cartIds.includes(id) && !db.unavailable.includes(id))
+      .filter((id) => !cartIds.includes(id) && !db.unavailable.includes(id) && liveModes.includes(modeOf(id)))
       .sort((a, b) => sales(b) - sales(a)
         || Number(same(b)) - Number(same(a))
         || Number(modes.includes(modeOf(b))) - Number(modes.includes(modeOf(a)))
         || a - b)
       .map((id) => ({ id }));
   }
-  if (sql.includes('LEFT JOIN categories cat')) {
-    return params[0].filter((id) => PRODUCTS[id] && !db.unavailable.includes(id)).map(db.rowFor);
+  if (sql.includes('JOIN categories cat ON')) {
+    return params[0]
+      .filter((id) => PRODUCTS[id] && !db.unavailable.includes(id) && params[1].includes(modeOf(id)))
+      .map(db.rowFor);
   }
+  if (sql.includes('FROM store_modes')) return db.liveModes.map((slug) => ({ slug }));
   if (sql.includes('customer_id = ?')) return db.personal;
   if (sql.includes('FROM product_variants')) return [];
   return [];
@@ -89,6 +93,7 @@ const names = (res) => res.body.products.map((p) => p.name);
 
 beforeEach(() => {
   microCache.clearAll();
+  invalidateStoreModeCache(1);
   db = {
     pairs: [
       { product_id: 3, paired_product_id: 1, score: 0.9 },  // Burger → Coke
@@ -103,6 +108,7 @@ beforeEach(() => {
     topSellers: [{ product_id: 6, orders: 50 }],
     personal: [],
     unavailable: [],
+    liveModes: ['packed', 'fast_food'],
     rowFor: productRow,
   };
   pool.query.mockReset();
@@ -210,6 +216,13 @@ describe('GET /api/cart/suggestions', () => {
     } finally {
       delete PRODUCTS[2];
     }
+  });
+
+  it('never shows a switched-off shop mode, even its best seller', async () => {
+    db.liveModes = ['fast_food']; // the admin turned the packed mode off
+    const res = await get('productIds=3');
+    expect(names(res)).not.toContain('Milk');
+    expect(names(res).slice(0, 3)).toEqual(['Coke', 'Fries', 'Pepsi']);
   });
 
   it("boosts what this customer usually orders when it goes with the cart", async () => {

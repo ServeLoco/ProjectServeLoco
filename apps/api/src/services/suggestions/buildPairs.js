@@ -117,8 +117,10 @@ const loadCatalogue = async (areaId) => {
 };
 
 // Shown/added counts per product from the cart row (analytics_events, served
-// by the { areaId, type, createdAt } index). MongoDB being down only means
-// no feedback tonight — orders alone still build the pairs.
+// by the { areaId, type, createdAt } index). Each customer counts once per
+// product and type, so one account replaying events can't lift or sink a
+// product. MongoDB being down only means no feedback tonight — orders alone
+// still build the pairs.
 const loadFeedback = async (areaId) => {
   try {
     const since = new Date(Date.now() - FEEDBACK_DAYS * 24 * 60 * 60 * 1000);
@@ -131,7 +133,8 @@ const loadFeedback = async (areaId) => {
           productId: { $ne: null },
         },
       },
-      { $group: { _id: { productId: '$productId', type: '$type' }, count: { $sum: 1 } } },
+      { $group: { _id: { productId: '$productId', type: '$type', userId: '$userId' } } },
+      { $group: { _id: { productId: '$_id.productId', type: '$_id.type' }, count: { $sum: 1 } } },
     ]).toArray();
     const stats = new Map();
     for (const row of rows) {
@@ -208,7 +211,7 @@ const buildAreaPairs = async (areaId) => {
 
   const scored = scorePairs({ pairRows: productPairRows, itemWeights: productWeights, totalWeight });
   const learned = applyFeedback(scored, factors);
-  const borrowed = applyFeedback(borrowFromSimilar(catalogue, scored), factors);
+  const borrowed = applyFeedback(await borrowFromSimilar(catalogue, scored), factors);
   const categoryMatches = scorePairs({ pairRows: categoryPairRows, itemWeights: categoryWeights, totalWeight });
 
   const productRows = [

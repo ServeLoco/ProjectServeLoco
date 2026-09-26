@@ -16,6 +16,7 @@ const { pool } = require('../db/mysql');
 const microCache = require('../utils/microCache');
 const { requestAreaId } = require('../utils/areaScope');
 const { isWithinTimeWindow } = require('../utils/timeWindow');
+const { getActiveStoreModeSlugs } = require('../utils/storeMode');
 const { attachVariants } = require('./productController');
 const { resolveImageUrls, mapProductRows } = require('./dashboardController');
 const logger = require('../utils/logger');
@@ -50,7 +51,9 @@ const PERSONAL_RELATED_SHARE = 0.5;
 const PERSONAL_MAX_TIMES = 4;
 
 // Same "can be bought right now" rules as Home rows (dashboardController's
-// product_block): available, not deleted, shop open, group active.
+// product_block): available, not deleted, shop open, group active. Callers
+// also require a live category in one of the area's live shop modes — a
+// hidden category or a switched-off mode never reaches the row.
 const SELLABLE = `p.available = 1 AND p.deleted = 0 AND p.is_combo = 0 AND p.area_id = ?
   AND (p.shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = p.shop_id AND s.is_open = 1 AND s.active = 1))
   AND (p.group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = p.group_id AND g.active = 1 AND g.area_id = p.area_id))`;
@@ -96,19 +99,19 @@ const loadTopSellers = async (areaId) => {
  * modes. A cart line with no shop (the platform's own stock) counts products
  * with no shop as "the same shop".
  */
-const loadFill = async (areaId, cartIds, modes, shopIds, hasNoShopItem) => {
+const loadFill = async (areaId, cartIds, liveModes, modes, shopIds, hasNoShopItem) => {
   const [rows] = await pool.query(
     `SELECT p.id
      FROM products p
      JOIN categories c ON c.id = p.category_id AND c.active = 1 AND c.deleted = 0
      LEFT JOIN product_popularity pop ON pop.area_id = p.area_id AND pop.product_id = p.id
-     WHERE p.id NOT IN (?) AND ${SELLABLE}
+     WHERE p.id NOT IN (?) AND c.type IN (?) AND ${SELLABLE}
      ORDER BY COALESCE(pop.orders, 0) DESC,
               (p.shop_id IN (?) OR (? AND p.shop_id IS NULL)) DESC,
               (c.type IN (?)) DESC,
               p.id ASC
      LIMIT ${FILL_POOL}`,
-    [cartIds, areaId, shopIds.length > 0 ? shopIds : [0], hasNoShopItem ? 1 : 0, modes.length > 0 ? modes : ['']]
+    [cartIds, liveModes, areaId, shopIds.length > 0 ? shopIds : [0], hasNoShopItem ? 1 : 0, modes.length > 0 ? modes : ['']]
   );
   return rows.map((row) => Number(row.id));
 };
@@ -118,7 +121,7 @@ const loadFill = async (areaId, cartIds, modes, shopIds, hasNoShopItem) => {
  * fully shaped products for this set of cart items. Cached per area + cart.
  */
 const buildCandidates = async (areaId, cartIds) => {
-  const [[pairRows], [cartRows], topSellers] = await Promise.all([
+  const [[pairRows], [cartRows], topSellers, liveModes] = await Promise.all([
     pool.query(
       'SELECT paired_product_id, score FROM product_pairs WHERE area_id = ? AND product_id IN (?)',
       [areaId, cartIds]
@@ -131,6 +134,7 @@ const buildCandidates = async (areaId, cartIds) => {
       [areaId, cartIds]
     ),
     loadTopSellers(areaId),
+    getActiveStoreModeSlugs(areaId),
   ]);
 
   const votes = new Map();
@@ -148,7 +152,7 @@ const buildCandidates = async (areaId, cartIds) => {
         [areaId, cartCategoryIds]
       ).then(([rows]) => rows)
       : [],
-    loadFill(areaId, cartIds, modes, cartShopIds, hasNoShopItem),
+    loadFill(areaId, cartIds, liveModes, modes, cartShopIds, hasNoShopItem),
   ]);
   const categoryScores = new Map();
   for (const row of categoryRows) addVote(categoryScores, Number(row.paired_category_id), Number(row.score));
@@ -161,9 +165,9 @@ const buildCandidates = async (areaId, cartIds) => {
   const [rows] = await pool.query(
     `SELECT p.*, cat.name AS category_name, cat.type AS category_type, 1 AS shop_is_open
      FROM products p
-     LEFT JOIN categories cat ON cat.id = p.category_id
-     WHERE p.id IN (?) AND ${SELLABLE}`,
-    [candidateIds, areaId]
+     JOIN categories cat ON cat.id = p.category_id AND cat.active = 1 AND cat.deleted = 0
+     WHERE p.id IN (?) AND cat.type IN (?) AND ${SELLABLE}`,
+    [candidateIds, liveModes, areaId]
   );
 
   const modeSet = new Set(modes);
