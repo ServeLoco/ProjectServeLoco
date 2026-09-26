@@ -32,9 +32,11 @@ jobs:
           # apps/api/.env.production only exists on the production box; compose
           # refuses to parse the file without it.
           touch apps/api/.env.production
+          # Same for the OTA server's secrets file.
+          touch .env.ota
           IMAGE_TAG=ci docker compose -f docker-compose.prod.yml config >/dev/null
           IMAGE_TAG=ci docker compose -f docker-compose.prod.yml -f docker-compose.build.yml config >/dev/null
-          rm apps/api/.env.production
+          rm apps/api/.env.production .env.ota
 
       - name: nginx configs are valid
         run: |

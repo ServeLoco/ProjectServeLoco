@@ -223,6 +223,17 @@ jobs:
               exit 1
             fi
 
+            # The OTA server's secrets (.env.ota) are git-ignored and live only
+            # on this box. Compose refuses to start ANY service when an
+            # env_file is missing, so without this check the whole stack would
+            # fail to come up. An empty DB_URL would not fail the deploy, but
+            # xprem would crash-loop in its no-database mode. Stop now, while
+            # the old stack is still serving.
+            if [ ! -f .env.ota ] || ! grep -q '^DB_URL=.' .env.ota || grep -q 'PASTE_PASSWORD_HERE' .env.ota; then
+              echo "::error::.env.ota is missing on the server or its DB_URL is empty or still has the password placeholder (OTA update server) — nothing was deployed"
+              exit 1
+            fi
+
             # The job's own token, valid only while this run lasts — no
             # long-lived registry credential is stored on the box.
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin

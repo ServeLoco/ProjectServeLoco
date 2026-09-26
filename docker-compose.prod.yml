@@ -11,6 +11,7 @@
 #   proxy (nginx, port 80)  ->  landing:80 (serveloco.app, www.serveloco.app)
 #                           ->  api:3000    (api.serveloco.app)
 #                           ->  admin:80    (admin.serveloco.app)
+#                           ->  ota:3000    (ota.serveloco.app, OTA updates)
 #
 # HTTPS is provided by Cloudflare in front of port 80.
 
@@ -87,3 +88,45 @@ services:
       - api
       - admin
       - landing
+
+  # ── OTA update server (xprem) ─────────────────────────────────────────
+  # Serves the customer app's over-the-air JS updates in place of EAS Update
+  # (ota.serveloco.app). Builds and store submits stay on EAS. Only the app
+  # talks to it; the API and the real databases never do.
+  #
+  # Its metadata (apps, channels, update list, encrypted signing keys) lives
+  # in its own hosted Postgres (Supabase free tier, DB_URL in .env.ota) —
+  # not on this box, which has ~200 MB of free memory, and never in the
+  # app's MySQL/Mongo. The bundle files themselves live in the named volume
+  # below. `up -d --remove-orphans` and `image prune` never touch volumes;
+  # never run `down -v` or a volume prune here, or every published update
+  # is gone.
+  #
+  # Pinned: the eoas CLI in playstore.yml must be the same version, or the
+  # server refuses the publish.
+  ota:
+    image: ghcr.io/mercuretechnologies/xprem:v3.2.5
+    restart: always
+    # Git-ignored, created by hand on the box (DB_URL, secrets, dashboard
+    # admin). deploy.yml stops early if it is missing or has no DB_URL.
+    env_file:
+      - ./.env.ota
+    environment:
+      STORAGE_MODE: local
+      LOCAL_BUCKET_BASE_PATH: /updates
+      CACHE_MODE: local
+      USE_DASHBOARD: "true"
+      # Small pool: the free Supabase pooler caps client connections, and
+      # this server only answers update checks.
+      DB_MAX_CONNS: "5"
+      DB_MIN_CONNS: "1"
+    # Hard cap so the update server can never take memory from the API on
+    # this 1 GB box. xprem idles at ~30-50 MB; the headroom is for publishes.
+    mem_limit: 192m
+    volumes:
+      - ota-updates:/updates
+    expose:
+      - "3000"
+
+volumes:
+  ota-updates:
