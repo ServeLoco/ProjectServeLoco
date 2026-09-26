@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { NotificationsApi, NotificationTemplatesApi } from '../api';
+import { useAreaStore } from '../stores/useAreaStore';
 import './Notifications.css';
 
 const EMOJI_SUGGESTIONS = {
@@ -33,6 +34,8 @@ const EVENT_LABELS = {
 };
 
 export default function Notifications() {
+  // Templates are shared by every area: only a super admin changes them.
+  const { isSuperAdmin } = useAreaStore() || {};
   const [broadcasts, setBroadcasts] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -489,7 +492,9 @@ export default function Notifications() {
         <h2>⚙️ Auto-Send Notification Templates</h2>
         <p className="templates-subtitle">
           These messages are sent automatically when order or payment status changes.
-          Edit the text, toggle them on/off, or reset to the original default.
+          {isSuperAdmin
+            ? ' Every area sends the same text — edit it, toggle it on/off, or reset it to the original default.'
+            : ' Every area sends the same text, so only the super admin can change it.'}
         </p>
 
         {templatesLoading ? (
@@ -520,6 +525,7 @@ export default function Notifications() {
                       </div>
                     </div>
 
+                    {isSuperAdmin && (
                     <div className="template-actions">
                       <label className={`toggle-switch${isToggling ? ' toggle-busy' : ''}`} title={tmpl.enabled ? 'Disable this notification' : 'Enable this notification'}>
                         <input
@@ -550,6 +556,7 @@ export default function Notifications() {
                         {isResetting ? '⏳' : '↺ Default'}
                       </button>
                     </div>
+                    )}
                   </div>
 
                   {isEditing && (

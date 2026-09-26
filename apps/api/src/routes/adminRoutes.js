@@ -756,15 +756,19 @@ const couponDuplicateSchema = () => ({ errors: [], data: {} });
 // Routes
 router.post('/login', loginLimiter, validate(loginSchema), asyncHandler(login));
 router.get('/me', requireAdmin, me);
-router.post('/revoke-sessions', requireAdmin, asyncHandler(revokeSessions));
+// Logs out EVERY admin of every area (one shared kill switch) — super admin
+// only, or one area's admin could sign everyone else out.
+router.post('/revoke-sessions', requireAdmin, requireSuperAdmin, asyncHandler(revokeSessions));
 
-// Customers
+// Customers are global (one account nationwide): the full list, blocking
+// and trust are super-admin concerns. Area admins keep a name/phone lookup
+// (getAdminCustomers) for picking a customer on a coupon or a new order.
 router.get('/customers', requireAdmin, validate(paginationSchema), asyncHandler(getAdminCustomers));
 router.get('/customers/:id', requireAdmin, asyncHandler(getAdminCustomerById));
-router.put('/customers/:id/block', requireAdmin, validate(blockSchema), asyncHandler(setBlockStatus));
-router.patch('/customers/:id/block', requireAdmin, validate(blockSchema), asyncHandler(setBlockStatus));
-router.put('/customers/:id/trust', requireAdmin, validate(trustSchema), asyncHandler(setTrustStatus));
-router.patch('/customers/:id/trust', requireAdmin, validate(trustSchema), asyncHandler(setTrustStatus));
+router.put('/customers/:id/block', requireAdmin, requireSuperAdmin, validate(blockSchema), asyncHandler(setBlockStatus));
+router.patch('/customers/:id/block', requireAdmin, requireSuperAdmin, validate(blockSchema), asyncHandler(setBlockStatus));
+router.put('/customers/:id/trust', requireAdmin, requireSuperAdmin, validate(trustSchema), asyncHandler(setTrustStatus));
+router.patch('/customers/:id/trust', requireAdmin, requireSuperAdmin, validate(trustSchema), asyncHandler(setTrustStatus));
 
 router.get('/categories', requireAdmin, asyncHandler(getAdminCategories));
 router.post('/categories', requireAdmin, validate(categorySchema), asyncHandler(createCategory));
@@ -975,8 +979,10 @@ router.post('/notifications', requireAdmin, asyncHandler(createAdminNotification
 
 // Notification Templates
 router.get('/notification-templates', requireAdmin, asyncHandler(getNotificationTemplates));
-router.patch('/notification-templates/:id', requireAdmin, asyncHandler(updateNotificationTemplate));
-router.post('/notification-templates/:id/reset', requireAdmin, asyncHandler(resetNotificationTemplate));
+// Templates are shared by every area (notification_templates is global), so
+// only a super admin may change what every area's customers receive.
+router.patch('/notification-templates/:id', requireAdmin, requireSuperAdmin, asyncHandler(updateNotificationTemplate));
+router.post('/notification-templates/:id/reset', requireAdmin, requireSuperAdmin, asyncHandler(resetNotificationTemplate));
 
 // Analytics (admin) — sub-router from analyticsRoutes; already wraps requireAdmin.
 const { adminRouter: analyticsAdminRouter } = require('./analyticsRoutes');

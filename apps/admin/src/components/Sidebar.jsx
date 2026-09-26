@@ -30,7 +30,8 @@ const NAV_GROUPS = [
     label: 'Engagement',
     items: [
       { path: '/mobile-dashboard', label: 'App Home', icon: '📱' },
-      { path: '/customers', label: 'Customers', icon: '👥' },
+      // Customers are one account nationwide — a super admin page.
+      { path: '/customers', label: 'Customers', icon: '👥', superAdminOnly: true },
       { path: '/notifications', label: 'Notifications', icon: '🔔' },
     ],
   },
@@ -61,7 +62,9 @@ const SUPER_ADMIN_GROUP = {
 export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { isSuperAdmin } = useAreaStore() || {};
-  const navGroups = isSuperAdmin ? [...NAV_GROUPS, SUPER_ADMIN_GROUP] : NAV_GROUPS;
+  const navGroups = isSuperAdmin
+    ? [...NAV_GROUPS, SUPER_ADMIN_GROUP]
+    : NAV_GROUPS.map((group) => ({ ...group, items: group.items.filter((item) => !item.superAdminOnly) }));
 
   return (
     <>

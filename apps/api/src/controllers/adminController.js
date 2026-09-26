@@ -292,10 +292,23 @@ const revokeSessions = async (req, res) => {
   res.status(200).json({ message: 'All admin sessions revoked. Log in again to continue.' });
 };
 
+// An area admin's customer lookup: a name/phone search for picking a
+// customer on a coupon or a new order, a short page of it, never the list.
+const AREA_ADMIN_LOOKUP_MIN_CHARS = 2;
+const AREA_ADMIN_LOOKUP_LIMIT = 20;
+
 const getAdminCustomers = async (req, res) => {
   const { search, trusted, blocked } = req.query;
-  const pageNum = req.validatedData?.page || parseInt(req.query.page, 10) || 1;
-  const limitNum = req.validatedData?.limit || parseInt(req.query.limit, 10) || 20;
+  const isSuperAdmin = req.admin?.adminRole === 'super_admin';
+  if (!isSuperAdmin && String(search || '').trim().length < AREA_ADMIN_LOOKUP_MIN_CHARS) {
+    return res.status(403).json({
+      code: 'FORBIDDEN',
+      message: 'The customer list is managed by the super admin. Search by name or phone to find a customer.',
+    });
+  }
+  const pageNum = isSuperAdmin ? (req.validatedData?.page || parseInt(req.query.page, 10) || 1) : 1;
+  const requestedLimit = req.validatedData?.limit || parseInt(req.query.limit, 10) || 20;
+  const limitNum = isSuperAdmin ? requestedLimit : Math.min(requestedLimit, AREA_ADMIN_LOOKUP_LIMIT);
   const offset = (pageNum - 1) * limitNum;
 
   // The customer LIST stays global — customers are global (§2.2) and an

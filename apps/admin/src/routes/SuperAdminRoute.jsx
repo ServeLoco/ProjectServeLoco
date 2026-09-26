@@ -2,7 +2,7 @@ import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAreaStore } from '../stores/useAreaStore';
 
-// 26.8 — Areas/Admins/Library are super_admin only. Mounted inside
+// 26.8 — Areas/Admins/Library (and Customers — global accounts) are super_admin only. Mounted inside
 // ProtectedRoute + AdminLayout, so `user` is already known truthy here;
 // only the role check is this component's job.
 export default function SuperAdminRoute() {

@@ -87,3 +87,29 @@ describe('Home sections', () => {
     expect(res.body.message).toMatch(/Linked category/);
   });
 });
+
+// Things with ONE copy for every area: only a super admin may change them.
+describe('shared, all-area actions are super admin only', () => {
+  const superToken = jwt.sign({ id: 'super', role: 'admin', adminRole: 'super_admin', areaId: null }, process.env.JWT_SECRET || 'secret');
+
+  it('an area admin cannot log out every admin of every area', async () => {
+    const res = await request(app).post('/api/admin/revoke-sessions').set('Authorization', `Bearer ${token}`);
+    expect(res.statusCode).toBe(403);
+    expect(pool.query).not.toHaveBeenCalled();
+  });
+
+  it('an area admin cannot edit or reset the push templates every area sends', async () => {
+    const edit = await request(app).patch('/api/admin/notification-templates/1').set('Authorization', `Bearer ${token}`)
+      .send({ title: 'x', body: 'y' });
+    const reset = await request(app).post('/api/admin/notification-templates/1/reset').set('Authorization', `Bearer ${token}`);
+    expect(edit.statusCode).toBe(403);
+    expect(reset.statusCode).toBe(403);
+    expect(pool.query).not.toHaveBeenCalled();
+  });
+
+  it('CONTROL: a super admin can still revoke', async () => {
+    const res = await request(app).post('/api/admin/revoke-sessions').set('Authorization', `Bearer ${superToken}`);
+    expect(res.statusCode).toBe(200);
+  });
+});
+

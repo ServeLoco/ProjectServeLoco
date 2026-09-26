@@ -92,7 +92,6 @@ function App() {
                     <Route path="/offers" element={<Offers />} />
                     <Route path="/coupons" element={<Coupons />} />
                     <Route path="/mobile-dashboard" element={<MobileDashboard />} />
-                    <Route path="/customers" element={<Customers />} />
                     <Route path="/notifications" element={<Notifications />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/delivery-zones" element={<DeliveryZones />} />
@@ -104,6 +103,7 @@ function App() {
                     <Route path="/analytics/user/:id" element={<AnalyticsUserDetail />} />
                     <Route path="/heat-map" element={<HeatMap />} />
                     <Route element={<SuperAdminRoute />}>
+                      <Route path="/customers" element={<Customers />} />
                       <Route path="/areas" element={<Areas />} />
                       <Route path="/admins" element={<Admins />} />
                       <Route path="/library" element={<Library />} />

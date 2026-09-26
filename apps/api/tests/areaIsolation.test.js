@@ -613,19 +613,41 @@ describe('30.19 — customer order history is area-isolated for an area_admin (m
     expect(params).toEqual(['42']);
   });
 
-  it('GET /customers scopes order_count to the caller\'s area, not a platform-wide total', async () => {
+  it('GET /customers lookup scopes order_count to the caller\'s area, not a platform-wide total', async () => {
     pool.query
       .mockResolvedValueOnce([[{ total: 0 }]]) // count query
       .mockResolvedValueOnce([[]]); // rows
 
     const res = await request(adminApp)
-      .get('/api/admin/customers')
+      .get('/api/admin/customers?search=98765')
       .set('Authorization', `Bearer ${AREA_2_ADMIN_TOKEN}`);
 
     expect(res.statusCode).toEqual(200);
     const [sql, params] = pool.query.mock.calls[1];
     expect(sql).toMatch(/orders o WHERE o\.customer_id = u\.id AND o\.area_id = \?/);
     expect(params[0]).toEqual(2);
+  });
+
+  it('an area admin cannot browse the global customer list — only look a customer up', async () => {
+    const res = await request(adminApp)
+      .get('/api/admin/customers')
+      .set('Authorization', `Bearer ${AREA_2_ADMIN_TOKEN}`);
+
+    expect(res.statusCode).toEqual(403);
+    expect(pool.query).not.toHaveBeenCalled();
+  });
+
+  it('an area admin\'s lookup is one short page, whatever limit/page it asks for', async () => {
+    pool.query
+      .mockResolvedValueOnce([[{ total: 500 }]])
+      .mockResolvedValueOnce([[]]);
+
+    await request(adminApp)
+      .get('/api/admin/customers?search=Ra&limit=100&page=7')
+      .set('Authorization', `Bearer ${AREA_2_ADMIN_TOKEN}`);
+
+    const params = pool.query.mock.calls[1][1];
+    expect(params.slice(-2)).toEqual([20, 0]);
   });
 });
 

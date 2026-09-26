@@ -58,7 +58,9 @@ export default function CreateOrderModal({ onClose, onCreated }) {
   // Customer search (debounced)
   useEffect(() => {
     if (customerTimerRef.current) clearTimeout(customerTimerRef.current);
-    if (!customerQuery.trim()) { setCustomerResults([]); return; }
+    // 2+ characters: a single one matches half the customer base, and an
+    // area admin's lookup (customers are global) needs a real search term.
+    if (customerQuery.trim().length < 2) { setCustomerResults([]); return; }
     customerTimerRef.current = setTimeout(async () => {
       setCustomerSearching(true);
       try {

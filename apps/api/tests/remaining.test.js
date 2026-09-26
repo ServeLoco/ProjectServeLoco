@@ -39,6 +39,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/orders', orderRoutes);
 
 const adminToken = jwt.sign({ id: 'admin', role: 'admin', adminRole: 'area_admin', areaId: 1 }, process.env.JWT_SECRET || 'secret');
+const superAdminToken = jwt.sign({ id: 'super', role: 'admin', adminRole: 'super_admin', areaId: null }, process.env.JWT_SECRET || 'secret');
 const customerToken = jwt.sign({ id: 1, role: 'customer' }, process.env.JWT_SECRET || 'secret');
 
 describe('Order Cancellation and Admin Action Tests', () => {
@@ -89,16 +90,26 @@ describe('Order Cancellation and Admin Action Tests', () => {
     });
   });
 
-  it('should block a customer', async () => {
+  it('should block a customer (super admin — a block applies in every area)', async () => {
     pool.query.mockResolvedValueOnce([{}]); // update block
 
+    const res = await request(app)
+      .put('/api/admin/customers/1/block')
+      .set('Authorization', `Bearer ${superAdminToken}`)
+      .send({ blocked: true });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.message).toContain('blocked');
+  });
+
+  it('an area admin cannot block a customer — customers are global', async () => {
     const res = await request(app)
       .put('/api/admin/customers/1/block')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ blocked: true });
 
-    expect(res.statusCode).toEqual(200);
-    expect(res.body.message).toContain('blocked');
+    expect(res.statusCode).toEqual(403);
+    expect(pool.query).not.toHaveBeenCalled();
   });
 
   it('should aggregate admin stats', async () => {
