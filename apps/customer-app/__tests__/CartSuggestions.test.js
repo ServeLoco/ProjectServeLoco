@@ -115,6 +115,51 @@ describe('CartSuggestions', () => {
     expect(cardNames(tree)).toEqual(['Fries']);
   });
 
+  describe('a product with sizes', () => {
+    const PIZZA = {
+      id: 7, name: 'Pizza', price: '149.00', available: 1, categoryId: 30,
+      variants: [{ id: 71, label: 'Small', price: '149.00' }, { id: 72, label: 'Large', price: '249.00' }],
+    };
+    const openSheet = async () => {
+      cartApi.suggestions.mockResolvedValue({ products: [PIZZA, FRIES] });
+      const tree = await renderRow();
+      const addPizza = tree.root.findAll((n) => n.props.accessibilityLabel === 'Choose options for Pizza' && typeof n.props.onPress === 'function');
+      await act(async () => { addPizza[0].props.onPress(); });
+      const sheet = () => tree.root.find((n) => n.props.visible !== undefined && typeof n.props.onClose === 'function' && 'product' in n.props);
+      return { tree, sheet };
+    };
+
+    it('counts the add only once a size is picked', async () => {
+      const { sheet } = await openSheet();
+      expect(sheet().props.visible).toBe(true);
+      expect(trackEvent).not.toHaveBeenCalledWith('suggestion_add', expect.anything());
+
+      const pizza = sheet().props.product;
+      await act(async () => { useCartStore.getState().addItem(pizza, 1, pizza.variants[1]); });
+      await act(async () => { sheet().props.onClose(); });
+      await flush(1000);
+
+      expect(trackEvent).toHaveBeenCalledWith('suggestion_add', { productId: 7, price: 149 });
+      // Picked from the row, so the row stays as it was.
+      expect(cartApi.suggestions).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not count an add when the sheet is closed without a size', async () => {
+      const { sheet } = await openSheet();
+      await act(async () => { sheet().props.onClose(); });
+      await flush(1000);
+
+      expect(sheet().props.visible).toBe(false);
+      expect(trackEvent).not.toHaveBeenCalledWith('suggestion_add', expect.anything());
+      expect(useCartStore.getState().items).toEqual([BURGER]);
+
+      // Added later from elsewhere, it counts as a normal cart change.
+      await act(async () => { useCartStore.getState().addItem({ ...PIZZA, id: '7' }, 1, PIZZA.variants[0]); });
+      await flush(500);
+      expect(cartApi.suggestions).toHaveBeenLastCalledWith(expect.objectContaining({ productIds: ['3', '7'] }));
+    });
+  });
+
   it('draws nothing when there is nothing to suggest', async () => {
     cartApi.suggestions.mockResolvedValue({ products: [] });
     const tree = await renderRow();

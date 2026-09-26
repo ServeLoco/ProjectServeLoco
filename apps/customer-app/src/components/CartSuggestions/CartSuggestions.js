@@ -133,13 +133,17 @@ export default function CartSuggestions() {
     }
   }, [products]);
 
+  // Quantity when the size sheet opened — "added" is only counted if it grew.
+  const sheetStartQtyRef = useRef(0);
+
   const handleAdd = useCallback((product) => {
     const id = Number(product.id);
     addedFromRowRef.current.add(id);
-    trackEvent('suggestion_add', { productId: id, price: Number(product.price) || 0 });
     if ((product.variants?.length ?? 0) > 1) {
+      sheetStartQtyRef.current = quantityOf(useCartStore.getState().items, product.id);
       setVariantProduct(product);
     } else {
+      trackEvent('suggestion_add', { productId: id, price: Number(product.price) || 0 });
       addItem(product, 1, product.variants?.[0] ?? null);
     }
   }, [addItem]);
@@ -159,7 +163,20 @@ export default function CartSuggestions() {
     else updateQuantity(product.id, existing.quantity - 1, 'product', variantId);
   }, [removeItem, updateQuantity]);
 
-  const closeVariantSheet = useCallback(() => setVariantProduct(null), []);
+  // A size picked → count the add. Sheet closed without one → no "added"
+  // event, and the product is not treated as a row pick.
+  const closeVariantSheet = useCallback(() => {
+    if (variantProduct) {
+      const id = Number(variantProduct.id);
+      const quantity = quantityOf(useCartStore.getState().items, variantProduct.id);
+      if (quantity > sheetStartQtyRef.current) {
+        trackEvent('suggestion_add', { productId: id, price: Number(variantProduct.price) || 0 });
+      } else if (quantity === 0) {
+        addedFromRowRef.current.delete(id);
+      }
+    }
+    setVariantProduct(null);
+  }, [variantProduct]);
 
   if (products && products.length === 0) return null;
 
