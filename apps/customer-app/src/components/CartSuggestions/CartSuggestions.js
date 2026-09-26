@@ -75,13 +75,20 @@ export default function CartSuggestions() {
   const shownRef = useRef(new Set());
 
   const cartKey = useMemo(() => {
-    const ids = new Set();
+    const all = new Set();
     for (const line of items) {
       if (isComboLine(line) || line.product?.id == null) continue;
-      const id = Number(line.product.id);
-      if (!addedFromRowRef.current.has(id)) ids.add(id);
+      all.add(Number(line.product.id));
     }
-    return [...ids].sort((a, b) => a - b).join(',');
+    let ids = [...all].filter((id) => !addedFromRowRef.current.has(id));
+    if (ids.length === 0 && all.size > 0) {
+      // Everything the row was suggesting FOR is gone (say the burger was
+      // removed) and only row picks are left: they become what the row
+      // suggests for, instead of the row going blank.
+      addedFromRowRef.current.clear();
+      ids = [...all];
+    }
+    return ids.sort((a, b) => a - b).join(',');
   }, [items]);
 
   useEffect(() => {

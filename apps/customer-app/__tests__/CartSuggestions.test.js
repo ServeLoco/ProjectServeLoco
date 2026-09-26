@@ -96,6 +96,25 @@ describe('CartSuggestions', () => {
     expect(cartApi.suggestions).toHaveBeenLastCalledWith(expect.objectContaining({ productIds: ['3', '10'] }));
   });
 
+  it('suggests for the row picks once the item they went with is removed', async () => {
+    const tree = await renderRow();
+    const addCoke = tree.root.findAll((n) => n.props.accessibilityLabel === 'Add Coke to cart' && typeof n.props.onPress === 'function');
+    await act(async () => { addCoke[0].props.onPress(); });
+    await flush(1000);
+    expect(cartApi.suggestions).toHaveBeenCalledTimes(1);
+
+    // The burger goes; only the Coke picked from the row is left.
+    cartApi.suggestions.mockResolvedValue({ products: [FRIES] });
+    await act(async () => {
+      useCartStore.setState({ items: useCartStore.getState().items.filter((line) => String(line.product.id) !== '3') });
+    });
+    await flush(500);
+
+    expect(cartApi.suggestions).toHaveBeenLastCalledWith(expect.objectContaining({ productIds: ['1'] }));
+    expect(tree.toJSON()).not.toBeNull();
+    expect(cardNames(tree)).toEqual(['Fries']);
+  });
+
   it('draws nothing when there is nothing to suggest', async () => {
     cartApi.suggestions.mockResolvedValue({ products: [] });
     const tree = await renderRow();
