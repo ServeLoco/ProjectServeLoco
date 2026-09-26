@@ -138,6 +138,8 @@ describe('GET /api/admin/analytics/window-shoppers (admin)', () => {
 // --- Admin: per-user drill-down ------------------------------------------
 describe('GET /api/admin/analytics/user/:id (admin)', () => {
   it('returns user header, totals, sessions, and timeline', async () => {
+    // MySQL: the user is one of this area admin's customers
+    mockMysqlPool.query.mockResolvedValueOnce([[{ 1: 1 }]]);
     // MySQL: user info
     mockMysqlPool.query.mockResolvedValueOnce([
       [{ id: 123, name: 'Alice', phone: '9999000011', joinedAt: new Date('2026-01-01') }],
@@ -179,6 +181,27 @@ describe('GET /api/admin/analytics/user/:id (admin)', () => {
     expect(res.body.timeline).toHaveLength(2);
     expect(res.body.timeline[0]).toMatchObject({ type: 'order_placed', orderId: 991 });
     expect(res.body.timeline[1]).toMatchObject({ type: 'cart_add', productId: 88, productName: 'Amul Butter', qty: 2 });
+  });
+
+  it('an area admin cannot open another area\'s customer, and sees only their own area\'s activity', async () => {
+    mockMysqlPool.query.mockResolvedValueOnce([[]]); // not one of area 1's customers
+    const app = buildApp();
+    const hidden = await request(app)
+      .get('/api/admin/analytics/user/555')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(hidden.statusCode).toBe(404);
+
+    mockMysqlPool.query
+      .mockResolvedValueOnce([[{ 1: 1 }]])
+      .mockResolvedValueOnce([[{ id: 123, name: 'Alice', phone: '1', joinedAt: new Date() }]])
+      .mockResolvedValueOnce([[{ orderCount: 1 }]]);
+    mockMongoFns.countDocuments.mockResolvedValue(0);
+    mockMongoFns.find.mockReturnValue(makeCursor([]));
+    mockMongoFns.aggregate.mockReturnValue(makeCursor([]));
+    await request(app).get('/api/admin/analytics/user/123').set('Authorization', `Bearer ${adminToken}`);
+    const orderCall = mockMysqlPool.query.mock.calls.find(([sql]) => sql.includes('FROM orders WHERE customer_id'));
+    expect(orderCall[0]).toContain('AND area_id = ?');
+    expect(mockMongoFns.countDocuments).toHaveBeenCalledWith({ userId: 123, areaId: 1 });
   });
 
   it('returns 404 when the user does not exist in MySQL', async () => {

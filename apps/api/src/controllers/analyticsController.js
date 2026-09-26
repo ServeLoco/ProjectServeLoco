@@ -9,6 +9,7 @@ const { parseBoundary } = require('../utils/deliveryPricing');
 const { pool } = require('../db/mysql');
 const { insertEvents } = require('../services/analytics/eventStore');
 const { requestAreaId, listAreas } = require('../utils/areaScope');
+const { isAreaCustomer } = require('../utils/areaCustomers');
 
 const DEFAULT_DAYS = 30;
 const MAX_DAYS = 365;
@@ -226,6 +227,16 @@ const getUserDrillDown = async (req, res) => {
   if (!Number.isFinite(userId)) return res.status(400).json({ code: 'BAD_REQUEST', message: 'Invalid user id' });
   const days = clampDays(req.query.days);
   const { start } = dateRange(days);
+  // Viewed from one area, the drill-down shows what the customer did IN that
+  // area — orders, sessions, events — and an area admin may only open their
+  // own area's customers (same rule as GET /admin/customers/:id). 'All
+  // areas' (super admin) shows everything.
+  const areaId = requestAreaId(req);
+  const scoped = areaId !== null && areaId !== 'all';
+  if (req.admin?.adminRole !== 'super_admin' && !(await isAreaCustomer(userId, areaId))) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'User not found' });
+  }
+  const mongoArea = scoped ? { areaId } : {};
 
   let userRow = null;
   try {
@@ -236,7 +247,10 @@ const getUserDrillDown = async (req, res) => {
 
   let orders = 0;
   try {
-    const [or] = await pool.query('SELECT COUNT(*) as orderCount FROM orders WHERE customer_id = ?', [userId]);
+    const [or] = await pool.query(
+      `SELECT COUNT(*) as orderCount FROM orders WHERE customer_id = ?${scoped ? ' AND area_id = ?' : ''}`,
+      scoped ? [userId, areaId] : [userId]
+    );
     orders = or[0]?.orderCount || 0;
   } catch (_) { /* fire-and-forget */ }
 
@@ -244,8 +258,8 @@ const getUserDrillDown = async (req, res) => {
   try {
     const col = safeCollection('analytics_sessions');
     if (col) {
-      sessionCount = await col.countDocuments({ userId });
-      sessions = await col.find({ userId }).sort({ connectedAt: -1 }).limit(50).toArray();
+      sessionCount = await col.countDocuments({ userId, ...mongoArea });
+      sessions = await col.find({ userId, ...mongoArea }).sort({ connectedAt: -1 }).limit(50).toArray();
     }
   } catch (_) { /* fire-and-forget */ }
 
@@ -254,11 +268,11 @@ const getUserDrillDown = async (req, res) => {
     const col = safeCollection('analytics_events');
     if (col) {
       const ta = await col.aggregate([
-        { $match: { userId, createdAt: { $gte: start } } },
+        { $match: { userId, createdAt: { $gte: start }, ...mongoArea } },
         { $group: { _id: '$type', count: { $sum: 1 } } },
       ]).toArray();
       for (const t of ta) { if (t._id === 'cart_add') cartAdds = t.count; if (t._id === 'cart_remove') cartRemoves = t.count; }
-      timeline = await col.find({ userId }).sort({ at: -1, createdAt: -1 }).limit(200).toArray();
+      timeline = await col.find({ userId, ...mongoArea }).sort({ at: -1, createdAt: -1 }).limit(200).toArray();
     }
   } catch (_) { /* fire-and-forget */ }
 

@@ -585,6 +585,7 @@ describe('30.19 — customer order history is area-isolated for an area_admin (m
 
   it('GET /customers/:id scopes the order history to the caller\'s area', async () => {
     pool.query
+      .mockResolvedValueOnce([[{ 1: 1 }]]) // is one of area 2's customers
       .mockResolvedValueOnce([[{ id: 42, name: 'C', phone: '900', whatsapp_number: '900', address: 'x', short_address: 'x', trusted: 0, blocked: 0, created_at: new Date(), updated_at: new Date() }]])
       .mockResolvedValueOnce([[]]); // orders
 
@@ -593,9 +594,21 @@ describe('30.19 — customer order history is area-isolated for an area_admin (m
       .set('Authorization', `Bearer ${AREA_2_ADMIN_TOKEN}`);
 
     expect(res.statusCode).toEqual(200);
-    const [sql, params] = pool.query.mock.calls[1];
+    expect(pool.query.mock.calls[0][1]).toEqual(['42', 2, 2]);
+    const [sql, params] = pool.query.mock.calls[2];
     expect(sql).toMatch(/FROM orders WHERE customer_id = \? AND area_id = \?/);
     expect(params).toEqual(['42', 2]);
+  });
+
+  it('GET /customers/:id hides another area\'s customer from an area admin (ids are sequential)', async () => {
+    pool.query.mockResolvedValueOnce([[]]); // not one of area 2's customers
+
+    const res = await request(adminApp)
+      .get('/api/admin/customers/10')
+      .set('Authorization', `Bearer ${AREA_2_ADMIN_TOKEN}`);
+
+    expect(res.statusCode).toEqual(404);
+    expect(pool.query).toHaveBeenCalledTimes(1);
   });
 
   it('GET /customers/:id for a super_admin with no area picked keeps the full cross-area history (no regression)', async () => {

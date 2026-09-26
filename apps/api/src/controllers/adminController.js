@@ -19,6 +19,7 @@ const { emitToCustomer, emitToAdmins } = require('../realtime/socket');
 const orderAutoAccept = require('../realtime/orderAutoAccept');
 const adminInbox = require('../utils/adminNotifications');
 const { requestAreaId, getDefaultArea, listAreas, resolveAreaIdForPricing } = require('../utils/areaScope');
+const { AREA_CUSTOMER_SQL, isAreaCustomer } = require('../utils/areaCustomers');
 const { bustUserState } = require('../utils/userState');
 const { bustRevokedBefore } = require('../utils/adminAuthState');
 const bcrypt = require('bcrypt');
@@ -658,6 +659,12 @@ const getSalesReport = async (req, res) => {
 
 const getAdminCustomerById = async (req, res) => {
   const { id } = req.params;
+  // An area admin opens only their own area's customers: ids are sequential,
+  // so without this every customer's name, phone and address nationwide
+  // could be read one id at a time.
+  if (req.admin?.adminRole !== 'super_admin' && !(await isAreaCustomer(id, requestAreaId(req)))) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Customer not found' });
+  }
   const [userRows] = await pool.query('SELECT id, name, phone, whatsapp_number, address, short_address, trusted, blocked, created_at, updated_at FROM users WHERE id = ?', [id]);
 
   if (userRows.length === 0) {
@@ -760,9 +767,7 @@ const getCustomersReport = async (req, res) => {
   // customers: whose phone was last seen in the area, or who have ordered
   // there. 'All areas' counts every account. Used to count every account
   // platform-wide in every area's report.
-  const areaWhere = areaId === 'all'
-    ? ''
-    : 'WHERE (u.current_area_id = ? OR EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = u.id AND o.area_id = ?))';
+  const areaWhere = areaId === 'all' ? '' : `WHERE ${AREA_CUSTOMER_SQL}`;
   const [[metrics]] = await pool.query(`
     SELECT
       COUNT(*) as total_customers,
@@ -2302,9 +2307,7 @@ const createAdminNotification = async (req, res) => {
     // same number belongs to a customer of every area they use.
     if (req.admin?.adminRole !== 'super_admin' && areaId !== 'all' && users.length > 0) {
       const [inArea] = await pool.query(
-        `SELECT u.id FROM users u
-         WHERE u.id IN (?)
-           AND (u.current_area_id = ? OR EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = u.id AND o.area_id = ?))`,
+        `SELECT u.id FROM users u WHERE u.id IN (?) AND ${AREA_CUSTOMER_SQL}`,
         [users.map(u => u.id), areaId, areaId]
       );
       const allowed = new Set(inArea.map(r => Number(r.id)));
