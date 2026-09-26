@@ -8,6 +8,7 @@ const config = require('../config/env');
 const s3 = require('../config/s3');
 const { normalizeStoreType } = require('../utils/storeMode');
 const { requestAreaId, bustAreaCaches } = require('../utils/areaScope');
+const { promoteToLibrary } = require('../utils/productLibrary');
 const logger = require('../utils/logger');
 
 // Bulk import always targets exactly one area — rejects null (super_admin,
@@ -551,12 +552,16 @@ const commitBulkImport = async (req, res) => {
 
       if (row._action === 'create') {
         // H8: imports land in the admin's current area.
-        await connection.query(
+        const [insertResult] = await connection.query(
           `INSERT INTO products (area_id, name, price, category_id, unit, description, image_id, available, is_combo, featured, display_order, original_price, discount_label)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [areaId, row.name, row.price, row.category_id, row.unit, row.description, newImageId,
            row.available ? 1 : 0, 0, row.featured ? 1 : 0, row.display_order, row.original_price, row.discount_label]
         );
+        // Same rule as createProduct: every product an area creates joins the
+        // global library in the same transaction, so any other area can add
+        // it later at its own price.
+        await promoteToLibrary(connection, insertResult.insertId);
         created++;
       } else {
         // area_id in the WHERE: row._existingId was already resolved

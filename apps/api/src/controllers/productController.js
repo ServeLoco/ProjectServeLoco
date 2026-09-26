@@ -540,6 +540,19 @@ const getProductById = async (req, res) => {
   res.status(200).json({ data: product });
 };
 
+// A product's category must be one of ITS OWN area's live categories. An id
+// is just a number: without this, an area admin could file their product
+// under another area's category (the admin UI only lists its own, the API
+// took any id).
+const categoryInArea = async (categoryId, areaId) => {
+  if (categoryId === undefined || categoryId === null || categoryId === '') return true;
+  const [rows] = await pool.query(
+    'SELECT id FROM categories WHERE id = ? AND deleted = 0 AND area_id = ?',
+    [categoryId, areaId]
+  );
+  return rows.length > 0;
+};
+
 const createProduct = async (req, res) => {
   const areaId = requireOneArea(req, res);
   if (areaId === null) return;
@@ -553,6 +566,10 @@ const createProduct = async (req, res) => {
     if (existing.length > 0) {
       return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Display order ${finalDisplayOrder} is already used by ${existing[0].name} in this category.` });
     }
+  }
+
+  if (!(await categoryInArea(category_id, areaId))) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Unknown category_id for this area' });
   }
 
   if (shop_id !== undefined && shop_id !== null) {
@@ -634,6 +651,10 @@ const updateProduct = async (req, res) => {
     if (orderExisting.length > 0) {
       return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Display order ${finalDisplayOrder} is already used by ${orderExisting[0].name} in this category.` });
     }
+  }
+
+  if (!(await categoryInArea(category_id, areaId))) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Unknown category_id for this area' });
   }
 
   if (finalShopId !== undefined && finalShopId !== null) {

@@ -184,6 +184,7 @@ describe('Product Variants — admin validation', () => {
       release: jest.fn(),
     };
     pool.getConnection.mockResolvedValue(mockConn);
+    pool.query.mockResolvedValueOnce([[{ id: 1 }]]); // category is this area's
 
     const res = await request(adminApp)
       .post('/api/admin/products')
@@ -237,6 +238,7 @@ describe('Product Variants — admin upsert', () => {
       release: jest.fn(),
     };
     pool.getConnection.mockResolvedValue(mockConn);
+    pool.query.mockResolvedValueOnce([[{ id: 1 }]]); // category is this area's
 
     const res = await request(adminApp)
       .post('/api/admin/products')
@@ -266,6 +268,7 @@ describe('Product Variants — admin upsert', () => {
 
   it('updateProduct soft-deletes omitted variant ids and keeps existing ids', async () => {
     pool.query.mockResolvedValueOnce([[{ id: 1, image_id: null }]]); // SELECT existing
+    pool.query.mockResolvedValueOnce([[{ id: 1 }]]); // category is this area's
     pool.query.mockResolvedValueOnce([{ affectedRows: 0 }]); // DELETE combo_items
 
     // UPDATE products and variant sync now run on the same transaction connection.
@@ -315,6 +318,7 @@ describe('Product Variants — admin upsert', () => {
 
   it('updateProduct with variants: undefined leaves variants untouched', async () => {
     pool.query.mockResolvedValueOnce([[{ id: 1, image_id: null }]]); // SELECT existing
+    pool.query.mockResolvedValueOnce([[{ id: 1 }]]); // category is this area's
     pool.query.mockResolvedValueOnce([{ affectedRows: 0 }]); // DELETE combo_items
 
     // The product UPDATE itself is transactional, so a connection is always
@@ -340,6 +344,7 @@ describe('Product Variants — admin upsert', () => {
 
   it('updateProduct with variants: [] soft-deletes all variants', async () => {
     pool.query.mockResolvedValueOnce([[{ id: 1, image_id: null }]]);
+    pool.query.mockResolvedValueOnce([[{ id: 1 }]]); // category is this area's
     pool.query.mockResolvedValueOnce([{ affectedRows: 0 }]); // DELETE combo_items
 
     const mockConn = {

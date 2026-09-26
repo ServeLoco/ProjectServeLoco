@@ -81,7 +81,7 @@ const asNonNegativeInteger = (value, fallback = 0) => {
   return Number.isInteger(numeric) && numeric >= 0 ? numeric : null;
 };
 
-const validateSectionPayload = async ({ title, slug, section_type, store_type, display_order, max_visible_items, starts_at, ends_at }, { partial = false, areaId } = {}) => {
+const validateSectionPayload = async ({ title, slug, section_type, store_type, display_order, max_visible_items, starts_at, ends_at, linked_category_id, linked_offer_id }, { partial = false, areaId } = {}) => {
   if (!partial && (!slug || !section_type)) {
     return 'Slug and section type are required';
   }
@@ -112,6 +112,22 @@ const validateSectionPayload = async ({ title, slug, section_type, store_type, d
   }
   if (max_visible_items !== undefined && asPositiveInteger(max_visible_items, 6) === null) {
     return 'Max visible items must be a positive whole number';
+  }
+  // A section's "See all" link must point at THIS area's category or offer.
+  // Only looked up when one is actually sent.
+  if (linked_category_id) {
+    const [rows] = await pool.query(
+      'SELECT id FROM categories WHERE id = ? AND deleted = 0 AND area_id = ?',
+      [linked_category_id, areaId]
+    );
+    if (rows.length === 0) return 'Linked category does not exist in this area';
+  }
+  if (linked_offer_id) {
+    const [rows] = await pool.query(
+      'SELECT id FROM offers WHERE id = ? AND deleted = 0 AND area_id = ?',
+      [linked_offer_id, areaId]
+    );
+    if (rows.length === 0) return 'Linked offer does not exist in this area';
   }
   return validateVisibilityWindow(starts_at, ends_at);
 };

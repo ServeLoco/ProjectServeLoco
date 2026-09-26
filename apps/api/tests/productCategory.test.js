@@ -70,6 +70,7 @@ describe('Product and Category Tests', () => {
       release: jest.fn(),
     };
     pool.getConnection.mockResolvedValueOnce(mockConn);
+    pool.query.mockResolvedValueOnce([[{ id: 1 }]]); // category 1 is this area's
 
     const res = await request(app)
       .post('/api/admin/products')
@@ -86,9 +87,11 @@ describe('Product and Category Tests', () => {
     expect(res.statusCode).toEqual(201);
     expect(mockConn.query).toHaveBeenCalledTimes(5);
     expect(mockConn.commit).toHaveBeenCalledTimes(1);
-    // bustAreaCaches' bumpCatalogVersion runs a pool.query (not on the
-    // transaction connection) after commit.
-    expect(pool.query).toHaveBeenCalledTimes(1);
+    // The same-area category check before the transaction, and
+    // bustAreaCaches' bumpCatalogVersion after commit — both on pool.query,
+    // not on the transaction connection.
+    expect(pool.query).toHaveBeenCalledTimes(2);
+    expect(pool.query.mock.calls[0]).toEqual([expect.stringContaining('FROM categories'), [1, 1]]);
   });
 
   it('should fetch products', async () => {
