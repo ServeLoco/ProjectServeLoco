@@ -59,7 +59,7 @@ describe('Broadcast + inbox area scoping (TASK 16)', () => {
     areaScope._resetCachesForTests();
   });
 
-  it("area_admin's 'everyone' broadcast queries users by their own area's last_area_id", async () => {
+  it("area_admin's 'everyone' broadcast reaches customers whose phone is in their area (last order area only as a fallback)", async () => {
     pool.query
       .mockResolvedValueOnce([[{ id: 5 }, { id: 6 }]]) // users in area 1
       .mockResolvedValueOnce([{ insertId: 1, affectedRows: 1 }]) // notification_batches insert
@@ -73,13 +73,13 @@ describe('Broadcast + inbox area scoping (TASK 16)', () => {
 
     expect(res.statusCode).toBe(201);
     const [usersSql, usersParams] = pool.query.mock.calls[0];
-    expect(usersSql).toContain('last_area_id = ?');
-    expect(usersParams).toEqual([1]);
+    expect(usersSql).toContain('current_area_id = ? OR (current_area_id IS NULL AND last_area_id = ?)');
+    expect(usersParams).toEqual([1, 1]);
 
     const [batchSql, batchParams] = pool.query.mock.calls[1];
     expect(batchSql).toContain('INSERT INTO notification_batches');
     expect(batchParams[0]).toBe(1); // area_id column, first bound param
-    expect(res.body.data.audienceNote).toMatch(/Approximate/);
+    expect(res.body.data.audienceNote).toMatch(/last seen in this area/);
   });
 
   it("super_admin's 'everyone' broadcast with X-Area-Id: all skips the last_area_id filter", async () => {

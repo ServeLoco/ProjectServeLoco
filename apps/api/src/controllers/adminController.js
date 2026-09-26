@@ -2083,13 +2083,12 @@ const createAdminNotification = async (req, res) => {
   let targetUserIds = [];
   let resolvedPhones = [];
   let unmatchedPhones = [];
+  let outsideAreaPhones = [];
   let targetLabel = target;
-  // H6: customers are global and carry only last_area_id, a cache — this is
-  // approximate by nature (reaches whoever's last order was in this area,
-  // misses someone who has never ordered, includes someone who has since
-  // moved). audienceNote below surfaces that in the response for whichever
-  // admin UI reads it; not fixable without a precise per-user area signal
-  // this codebase doesn't have (§2.2).
+  // H6: customers are global. An area's audience is where each customer's
+  // phone IS (current_area_id, from its live pin), falling back to where
+  // they last ordered only when no location is known yet. audienceNote
+  // below says so for whichever admin UI reads it.
   let audienceNote = null;
 
   if (target === 'everyone') {
@@ -2099,10 +2098,13 @@ const createAdminNotification = async (req, res) => {
       targetLabel = 'everyone (all areas)';
       audienceNote = 'Sent to every non-blocked customer across every area.';
     } else {
-      const [users] = await pool.query('SELECT id FROM users WHERE blocked = 0 AND last_area_id = ?', [areaId]);
+      const [users] = await pool.query(
+        'SELECT id FROM users WHERE blocked = 0 AND (current_area_id = ? OR (current_area_id IS NULL AND last_area_id = ?))',
+        [areaId, areaId]
+      );
       targetUserIds = users.map(u => u.id);
       targetLabel = `everyone (area ${areaId})`;
-      audienceNote = 'Approximate: reaches customers whose most recent order was in this area. Misses anyone who has never ordered, and may include someone who has since moved.';
+      audienceNote = 'Reaches customers whose phone was last seen in this area, plus those with no known location whose last order was here.';
     }
   } else if (target === 'phones') {
     const sanitized = sanitizePhones(phones);
@@ -2158,7 +2160,7 @@ const createAdminNotification = async (req, res) => {
       }
     }
 
-    const users = [];
+    let users = [];
     const seenIds = new Set();
     for (const variant of variants) {
       // Try the full digit form first, then the last-10 form. Because users are
@@ -2172,10 +2174,27 @@ const createAdminNotification = async (req, res) => {
       }
     }
 
+    // An area admin reaches only their own area's customers: whose phone is
+    // in the area now, or who have ordered here. Customers are global — the
+    // same number belongs to a customer of every area they use.
+    if (req.admin?.adminRole !== 'super_admin' && areaId !== 'all' && users.length > 0) {
+      const [inArea] = await pool.query(
+        `SELECT u.id FROM users u
+         WHERE u.id IN (?)
+           AND (u.current_area_id = ? OR EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = u.id AND o.area_id = ?))`,
+        [users.map(u => u.id), areaId, areaId]
+      );
+      const allowed = new Set(inArea.map(r => Number(r.id)));
+      outsideAreaPhones = users.filter(u => !allowed.has(Number(u.id))).map(u => u.phone);
+      users = users.filter(u => allowed.has(Number(u.id)));
+    }
+
     if (users.length === 0) {
       return res.status(400).json({
         code: 'VALIDATION_ERROR',
-        message: 'No active customers matched any of the supplied phone numbers.',
+        message: outsideAreaPhones.length > 0
+          ? 'None of these numbers belong to customers of this area.'
+          : 'No active customers matched any of the supplied phone numbers.',
       });
     }
     targetUserIds = users.map(u => u.id);
@@ -2267,7 +2286,7 @@ const createAdminNotification = async (req, res) => {
       pushEligibleCount: result.pushEligibleCount ?? null,
       audienceNote,
       ...(target === 'phones'
-        ? { matchedPhones: resolvedPhones, unmatchedPhones }
+        ? { matchedPhones: resolvedPhones, unmatchedPhones, outsideAreaPhones }
         : {}),
     }
   });
