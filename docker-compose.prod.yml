@@ -120,9 +120,16 @@ services:
       # this server only answers update checks.
       DB_MAX_CONNS: "5"
       DB_MIN_CONNS: "1"
+      # No hourly usage ping (instance id, base URL, version) to the vendor.
+      DISABLE_TELEMETRY: "true"
     # Hard cap so the update server can never take memory from the API on
     # this 1 GB box. xprem idles at ~30-50 MB; the headroom is for publishes.
     mem_limit: 192m
+    # xprem runs as uid 100:101 but Docker creates the volume root-owned, so
+    # it was chowned once by hand on the box. If the volume is ever recreated,
+    # redo it or xprem crash-loops on "/updates/.migrationhistory: permission
+    # denied":
+    #   docker run --rm -v projectserveloco_ota-updates:/updates alpine:3 chown 100:101 /updates
     volumes:
       - ota-updates:/updates
     expose:

@@ -2,7 +2,7 @@
   "expo": {
     "name": "VillKro",
     "slug": "villkro",
-    "version": "1.9.5",
+    "version": "1.9.6",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "assetBundlePatterns": [
@@ -21,7 +21,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/icon/adaptive-icon-foreground.png",
+          "icon": "./assets/icon/notification-icon.png",
           "color": "#FF6B35"
         }
       ],
@@ -69,7 +69,7 @@
         "ITSAppUsesNonExemptEncryption": false
       },
       "bundleIdentifier": "com.yashsiwach.villkro",
-      "buildNumber": "13"
+      "buildNumber": "14"
     },
     "android": {
       "softwareKeyboardLayoutMode": "resize",
@@ -90,7 +90,7 @@
         "android.permission.RECORD_AUDIO"
       ],
       "package": "com.yashsiwach.villkro",
-      "versionCode": 42,
+      "versionCode": 43,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon/adaptive-icon-foreground.png",
         "backgroundImage": "./assets/icon/adaptive-icon-background.png",
@@ -103,9 +103,20 @@
       }
     },
     "owner": "yashsiwch",
-    "runtimeVersion": "1.9.5",
+    "runtimeVersion": "1.9.6",
     "updates": {
-      "url": "https://u.expo.dev/1df5a9bf-de34-48ea-96f4-68f598d7d318"
+      "url": "https://ota.serveloco.app/manifest",
+      "enabled": true,
+      "codeSigningCertificate": "./certs/certificate.pem",
+      "codeSigningMetadata": {
+        "keyid": "main",
+        "alg": "rsa-v1_5-sha256"
+      },
+      "requestHeaders": {
+        "expo-channel-name": "production",
+        "expo-app-id": "1df5a9bf-de34-48ea-96f4-68f598d7d318",
+        "xprem-branch": ""
+      }
     }
   }
 }

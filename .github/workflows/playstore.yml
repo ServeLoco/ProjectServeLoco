@@ -263,21 +263,36 @@ jobs:
       # whose native modules it does not have — and it arrives within seconds,
       # long before the Play rollout it belongs to. A major release ships its
       # JS inside the .aab; there is nothing here left to push.
-      - name: Publish EAS Update (production channel)
+      #
+      # OTA updates are served by our own xprem server (ota.serveloco.app), not
+      # EAS Update — EAS's free tier only reaches 1,000 users a month. Builds
+      # and store submits above stay on EAS. Apps from 1.9.6 on ask xprem
+      # (app.json updates.url); older binaries still ask EAS and get no new
+      # OTAs until they update from the store.
+      - name: Publish OTA update to xprem (production channel)
         if: needs.detect-bump.outputs.bump == 'minor'
         working-directory: ${{ env.APP_DIR }}
         env:
-          # Without this the minor (OTA) path stops with "An Expo user account is
-          # required" — the token was only set on the build/submit steps.
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          # App-scoped API token from the xprem dashboard (API tokens page).
+          # Without it eoas silently falls back to Expo auth and the server
+          # rejects the publish, so fail with a clear message instead.
+          EOO_TOKEN: ${{ secrets.EOO_TOKEN }}
+          RELEASE_CHANNEL: production
           EXPO_PUBLIC_API_BASE_URL: ${{ secrets.EXPO_PUBLIC_API_BASE_URL }}
           EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN: ${{ secrets.EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN }}
           BUMP_MESSAGE: ${{ needs.detect-bump.outputs.message }}
         run: |
           set -euo pipefail
+          if [ -z "$EOO_TOKEN" ]; then
+            echo "::error::EOO_TOKEN secret is empty — create an API token in the xprem dashboard (https://ota.serveloco.app/dashboard) and add it as a repo secret"
+            exit 1
+          fi
           MSG=$(printf '%s' "$BUMP_MESSAGE" | head -1)
           if [ -z "$MSG" ]; then MSG="auto-update from main"; fi
-          eas update --branch production --message "$MSG" --non-interactive
+          # Pinned to the server's version (docker-compose.prod.yml, service
+          # `ota`): a server on v3.2+ refuses a publish from another CLI version.
+          npx --yes eoas@3.2.5 publish --branch production --message "$MSG" \
+            --nonInteractive --disableRepositoryCheck
 
       - name: Clean up service account key
         if: always()
