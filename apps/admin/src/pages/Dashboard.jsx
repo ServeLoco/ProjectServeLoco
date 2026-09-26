@@ -8,7 +8,6 @@ import {
 import { Link } from 'react-router-dom';
 import { useAdminRefresh } from '../hooks/useAdminRefresh';
 import { GENERIC_ERROR } from '../utils/constants';
-import PickAreaNotice from '../components/PickAreaNotice';
 import { useAreaStore } from '../stores/useAreaStore';
 import './Dashboard.css';
 
@@ -78,8 +77,14 @@ const IconChartBar = () => (
   </svg>
 );
 
+// One area's switch on the "All areas" table — read-only there.
+function AreaSwitchState({ value, on, off }) {
+  if (value === null || value === undefined) return <span className="area-switch-state">—</span>;
+  return <span className={`area-switch-state ${value ? 'on' : 'off'}`}>{value ? on : off}</span>;
+}
+
 export default function Dashboard() {
-  const { areaId } = useAreaStore() || {};
+  const { areaId, setAreaId } = useAreaStore() || {};
   const isAllAreas = areaId === 'all';
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -107,18 +112,14 @@ export default function Dashboard() {
     refreshTimerRef.current = setTimeout(() => fetchDashboardData(false), delay);
   }, [fetchDashboardData]);
 
-  // 25.4 — the Dashboard mixes per-area KPIs with the same shop_open/
-  // delivery_available toggles the Settings page owns, so the API requires
-  // exactly one area (§2.10). Dashboard is also the DEFAULT landing route,
-  // so without this a super_admin switching to "All areas" lands straight on
-  // a dead-end "Failed to load dashboard / Try Again" that can never
-  // succeed. Skip the doomed fetch and render the inline notice instead.
+  // On "All areas" the API sums every area's KPIs and lists each area with
+  // its own delivery/shop/rain switches (they are per area, so they are
+  // changed after picking that area). It is the super admin's landing page.
   useEffect(() => {
-    if (isAllAreas) { setLoading(false); return; }
     fetchDashboardData();
-  }, [fetchDashboardData, isAllAreas]);
+  }, [fetchDashboardData]);
 
-  useAdminRefresh(() => { if (!isAllAreas) fetchDashboardData(); });
+  useAdminRefresh(() => fetchDashboardData());
 
   useEffect(() => {
     const unsubscribeOrders = subscribeAdminOrderEvents(() => queueDashboardRefresh());
@@ -169,10 +170,6 @@ export default function Dashboard() {
     }
   };
 
-  if (isAllAreas) {
-    return <div className="dashboard-container"><PickAreaNotice label="The Dashboard" /></div>;
-  }
-
   if (loading) {
     return (
       <div className="dashboard-container">
@@ -201,7 +198,8 @@ export default function Dashboard() {
 
   if (!metrics) return null;
 
-  const { sales = {}, latest_orders = [], product_alerts = [], top_products = [], shop_open, delivery_available, rain_charge_enabled } = metrics;
+  const { sales = {}, latest_orders = [], product_alerts = [], top_products = [], shop_open, delivery_available, rain_charge_enabled, areas = [] } = metrics;
+  const showAreas = isAllAreas && Array.isArray(metrics.areas);
 
   return (
     <div className="dashboard-container">
@@ -210,9 +208,11 @@ export default function Dashboard() {
           <h1 className="dashboard-title">Overview</h1>
           <p className="dashboard-subtitle">
             {new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            {showAreas && ' · All areas'}
           </p>
         </div>
 
+        {!showAreas && (
         <div className="shop-status-group">
           <div className="shop-status-card">
             <span className="status-label">Delivery Available</span>
@@ -253,6 +253,7 @@ export default function Dashboard() {
             </button>
           </div>
         </div>
+        )}
       </header>
 
       <section className="metrics-grid">
@@ -302,6 +303,50 @@ export default function Dashboard() {
         </div>
       </section>
 
+      {showAreas && (
+        <section className="dashboard-section-card">
+          <div className="section-header">
+            <h2 className="section-title">Areas</h2>
+            <span className="section-hint">Open an area to change its switches</span>
+          </div>
+          <div className="table-scroll-wrapper">
+            <table className="latest-orders-table dashboard-areas-table">
+              <thead>
+                <tr>
+                  <th>Area</th>
+                  <th>Today&apos;s orders</th>
+                  <th>Today&apos;s sales</th>
+                  <th>Pending</th>
+                  <th>Delivery</th>
+                  <th>Shop</th>
+                  <th>Rain charge</th>
+                  <th aria-label="Open" />
+                </tr>
+              </thead>
+              <tbody>
+                {areas.map((area) => (
+                  <tr key={area.areaId}>
+                    <td>
+                      <strong>{area.name}</strong> <span className="area-code-tag">{area.code}</span>
+                      {!area.active && <span className="area-code-tag area-code-tag--muted">inactive</span>}
+                    </td>
+                    <td>{area.todayOrders}</td>
+                    <td className="order-amount">₹{Number(area.todaySales || 0).toLocaleString('en-IN')}</td>
+                    <td>{area.pendingOrders}</td>
+                    <td><AreaSwitchState value={area.deliveryAvailable} on="Available" off="Off" /></td>
+                    <td><AreaSwitchState value={area.shopOpen} on="Open" off="Closed" /></td>
+                    <td><AreaSwitchState value={area.rainChargeEnabled} on="On" off="Off" /></td>
+                    <td>
+                      <button className="btn-secondary btn-sm" onClick={() => setAreaId?.(area.areaId)}>Open</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
       <section className="dashboard-section-card latest-orders-section">
         <div className="section-header">
           <h2 className="section-title">
@@ -316,6 +361,7 @@ export default function Dashboard() {
               <thead>
                 <tr>
                   <th>Order #</th>
+                  {showAreas && <th>Area</th>}
                   <th>Customer</th>
                   <th>Amount</th>
                   <th>Status</th>
@@ -325,6 +371,7 @@ export default function Dashboard() {
                 {latest_orders.map(order => (
                   <tr key={order.id}>
                     <td className="order-number">#{order.order_number}</td>
+                    {showAreas && <td><span className="area-code-tag">{order.area_code || '—'}</span></td>}
                     <td>{order.customer_name}</td>
                     <td className="order-amount">₹{Number(order.total).toLocaleString('en-IN')}</td>
                     <td>
@@ -364,6 +411,7 @@ export default function Dashboard() {
                       {prod.item_type === 'combo' && (
                         <span className="combo-tag">Combo</span>
                       )}
+                      {showAreas && prod.area_code && <span className="area-code-tag">{prod.area_code}</span>}
                     </span>
                     <span className="top-product-qty">{prod.total_quantity} sold</span>
                   </div>
@@ -393,7 +441,8 @@ export default function Dashboard() {
                 <div key={prod.id} className="alert-item">
                   <span className="alert-icon" aria-hidden="true"><IconAlertCircle /></span>
                   <span className="alert-text">
-                    <strong>{prod.name}</strong> is currently unavailable.
+                    <strong>{prod.name}</strong>
+                    {showAreas && prod.area_code && <> <span className="area-code-tag">{prod.area_code}</span></>} is currently unavailable.
                   </span>
                 </div>
               ))}

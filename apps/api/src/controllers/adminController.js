@@ -38,11 +38,9 @@ const queryRows = async (sql, params) => {
   return Array.isArray(result) ? result[0] || [] : [];
 };
 
-// Dashboard mixes order/sales KPIs (which could aggregate) with the same
-// shop_open/delivery_available/rain_charge_enabled booleans the Settings
-// page shows — those don't mean anything summed across areas, so unlike the
-// 6 report endpoints below (which DO accept 'all', per §2.10), the Dashboard
-// requires one concrete area, same as Settings/Delivery Zones/Store Modes.
+// Endpoints that act on ONE area's data (orders, settings, ...) reject both
+// a missing area and 'all'. The Dashboard handles 'all' itself
+// (getAllAreasDashboard) before reaching this.
 const requireOneArea = (req, res) => {
   const areaId = requestAreaId(req);
   if (areaId === null) {
@@ -410,7 +408,122 @@ const setTrustStatus = async (req, res) => {
   res.status(200).json({ message: `User ${trusted ? 'trusted' : 'untrusted'} successfully` });
 };
 
+// Order KPIs per area, one GROUP BY for every area at once. Same columns as
+// the single-area dashboard's metrics query.
+const DASHBOARD_METRICS_SQL = `
+      COUNT(CASE WHEN ${istIsToday('created_at')} THEN 1 END) as today_orders,
+      COALESCE(SUM(CASE WHEN ${istIsToday('created_at')} AND status != 'Cancelled' THEN total ELSE 0 END), 0) as today_sales,
+      COUNT(CASE WHEN status = 'Pending' THEN 1 END) as pending_orders,
+      COUNT(CASE WHEN status = 'Delivered' THEN 1 END) as delivered_orders,
+      COALESCE(SUM(CASE WHEN payment_method = 'Cash' AND status != 'Cancelled' THEN total ELSE 0 END), 0) as cash_total,
+      COALESCE(SUM(CASE WHEN payment_method = 'UPI' AND status != 'Cancelled' THEN total ELSE 0 END), 0) as upi_total,
+      COALESCE(SUM(CASE WHEN ${istIsToday('created_at')} AND payment_status = 'Pending' AND status != 'Cancelled' THEN total ELSE 0 END), 0) as pending_payment_total`;
+
+const DASHBOARD_ALERTS_LIMIT = 50;
+
+/**
+ * The super admin's "All areas" dashboard: the same order/sales KPIs summed
+ * over every area, one row per area (its KPIs plus its delivery / shop /
+ * rain switches — those are per area and are changed after picking the
+ * area), and the latest orders, top items and out-of-stock items of every
+ * area, each labelled with its area code. Fixed number of queries,
+ * whatever the number of areas.
+ */
+const getAllAreasDashboard = async (req, res) => {
+  const [metricRows, latestOrders, unavailableProducts, topProducts, settingRows, areas] = await Promise.all([
+    queryRows(`SELECT area_id, ${DASHBOARD_METRICS_SQL} FROM orders GROUP BY area_id`, []),
+    queryRows(`
+      SELECT * FROM orders
+      ORDER BY (status = 'Pending') DESC, created_at DESC
+      LIMIT 10
+    `, []),
+    queryRows(`
+      SELECT id, name, price, area_id FROM products
+      WHERE available = 0 AND deleted = 0
+      ORDER BY area_id ASC, name ASC
+      LIMIT ${DASHBOARD_ALERTS_LIMIT}
+    `, []),
+    queryRows(`
+      SELECT o.area_id, oi.product_id, oi.item_type, oi.product_name, SUM(oi.quantity) as total_quantity, SUM(oi.line_total) as total_sales
+      FROM order_items oi
+      JOIN orders o ON oi.order_id = o.id
+      WHERE o.status != 'Cancelled'
+      GROUP BY o.area_id, oi.product_id, oi.item_type, oi.product_name
+      ORDER BY total_sales DESC
+      LIMIT 5
+    `, []),
+    queryRows('SELECT area_id, shop_open, delivery_available, rain_charge_enabled FROM settings', []),
+    listAreas(),
+  ]);
+
+  const num = (v) => Number(v) || 0;
+  const metricsByArea = new Map(metricRows.map((row) => [Number(row.area_id), row]));
+  const settingsByArea = new Map(settingRows.map((row) => [Number(row.area_id), row]));
+  const totals = {};
+  for (const row of metricRows) {
+    for (const key of ['today_orders', 'today_sales', 'pending_orders', 'delivered_orders', 'cash_total', 'upi_total', 'pending_payment_total']) {
+      totals[key] = num(totals[key]) + num(row[key]);
+    }
+  }
+
+  const areaRows = areas
+    .filter((area) => area.active || metricsByArea.has(Number(area.id)))
+    .map((area) => {
+      const m = metricsByArea.get(Number(area.id)) || {};
+      const st = settingsByArea.get(Number(area.id));
+      const shopOpen = st ? Boolean(st.shop_open) : null;
+      const deliveryAvailable = st ? Boolean(st.delivery_available) : null;
+      const rainChargeEnabled = st ? Boolean(st.rain_charge_enabled) : null;
+      return {
+        areaId: area.id,
+        area_id: area.id,
+        code: area.code,
+        name: area.name,
+        active: Boolean(area.active),
+        todayOrders: num(m.today_orders),
+        today_orders: num(m.today_orders),
+        todaySales: num(m.today_sales),
+        today_sales: num(m.today_sales),
+        pendingOrders: num(m.pending_orders),
+        pending_orders: num(m.pending_orders),
+        shopOpen,
+        shop_open: shopOpen,
+        deliveryAvailable,
+        delivery_available: deliveryAvailable,
+        rainChargeEnabled,
+        rain_charge_enabled: rainChargeEnabled,
+      };
+    });
+
+  res.status(200).json({
+    data: {
+      allAreas: true,
+      all_areas: true,
+      sales: {
+        totalSales: num(totals.today_sales),
+        todaySales: num(totals.today_sales),
+        totalOrders: num(totals.today_orders),
+        todayOrders: num(totals.today_orders),
+        pendingOrders: num(totals.pending_orders),
+        deliveredOrders: num(totals.delivered_orders),
+        cashTotal: num(totals.cash_total),
+        upiTotal: num(totals.upi_total),
+        pendingPaymentTotal: num(totals.pending_payment_total),
+      },
+      // Per-area switches — see `areas`. null: no single value applies.
+      shop_open: null,
+      delivery_available: null,
+      rain_charge_enabled: null,
+      areas: areaRows,
+      latest_orders: await withAreaCodes(latestOrders),
+      product_alerts: await withAreaCodes(unavailableProducts),
+      top_products: await withAreaCodes(topProducts),
+    },
+  });
+};
+
 const getDashboard = async (req, res) => {
+  if (requestAreaId(req) === 'all') return getAllAreasDashboard(req, res);
   const areaId = requireOneArea(req, res);
   if (areaId === null) return;
 

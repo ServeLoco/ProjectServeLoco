@@ -933,3 +933,18 @@
     height: 36px;
   }
 }
+
+/* "All areas" dashboard */
+.section-hint { font-size: 0.78rem; color: var(--text-secondary); }
+.area-code-tag {
+  display: inline-block; margin-left: 0.35rem; padding: 0.05rem 0.45rem; border-radius: 6px;
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.02em;
+  background: var(--surface-soft); color: var(--text-secondary); border: 1px solid var(--border-color);
+  vertical-align: middle;
+}
+.area-code-tag--muted { opacity: 0.7; font-weight: 600; }
+.area-switch-state { font-size: 0.8rem; font-weight: 700; }
+.area-switch-state.on { color: #16a34a; }
+.area-switch-state.off { color: #dc2626; }
+.dashboard-areas-table .btn-sm { padding: 0.3rem 0.8rem; font-size: 0.78rem; }
+

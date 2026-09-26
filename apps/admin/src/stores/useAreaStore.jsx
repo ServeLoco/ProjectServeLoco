@@ -43,13 +43,14 @@ export const AreaProvider = ({ children }) => {
 
         // 25.6 — validate the persisted selection against the real list on
         // every boot. 'all' is always valid (it's not an area row); a
-        // numeric id must still exist. Anything invalid/missing falls back
-        // to the default area — never to 'all' and never left unset, since
-        // most admin endpoints 400 on a super_admin with no area picked yet.
+        // numeric id must still exist. A reload keeps the area the super
+        // admin was on; a fresh login (AuthProvider resets the persisted
+        // choice) or a no-longer-existing area opens on "All areas" — the
+        // super admin's overview — never silently on the default area, and
+        // never unset (most admin endpoints 400 with no area picked).
         const persisted = areaHeader.getPersisted();
         const persistedValid = persisted === 'all' || list.some((a) => String(a.id) === String(persisted));
-        const fallback = list.find((a) => a.isDefault || a.is_default) || list[0] || null;
-        const finalAreaId = persistedValid ? persisted : (fallback ? fallback.id : null);
+        const finalAreaId = persistedValid ? persisted : 'all';
 
         areaHeader.setAreaId(finalAreaId);
         setAreaIdState(finalAreaId != null ? String(finalAreaId) : null);
