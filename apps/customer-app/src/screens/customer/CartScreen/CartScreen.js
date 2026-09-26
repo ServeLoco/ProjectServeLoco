@@ -14,7 +14,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
   AppScreen,
   AppIcon,
-  ProductImage,
   EmptyState,
   ErrorState,
   LoadingSkeleton,
@@ -1224,14 +1223,10 @@ export default function CartScreen() {
                 const itemKey = getItemKey(item);
                 const itemAnim = getItemAnim(itemKey);
                 const qty = Number(item.quantity) || 0;
-                const unitPrice = Number(item.variant?.price ?? item.product.price ?? 0);
-                // Live unit price + line total (price × qty) so both update when
-                // either admin price sync or stepper qty changes.
-                const metaBits = [
-                  item.variant?.label,
-                  item.product.unit,
-                  unitPrice > 0 ? `₹${unitPrice.toFixed(0)} each` : null,
-                ].filter(Boolean);
+                // One short line per item — "2× Amul Milk (500ml)" — no photo or
+                // unit price, so the whole cart fits on screen; the bill below
+                // has the money.
+                const variantLabel = item.variant?.label ? ` (${item.variant.label})` : '';
                 const isLast = index === validItems.length - 1;
 
                 return (
@@ -1245,23 +1240,12 @@ export default function CartScreen() {
                     }}
                   >
                     <View style={styles.itemRow}>
-                      <ProductImage
-                        uri={item.product.imageUri || item.product.imageUrl}
-                        width={60}
-                        height={60}
-                        borderRadius={radius.md}
-                        style={styles.itemImage}
-                      />
-
                       <View style={styles.itemBody}>
                         <Text style={styles.itemName} numberOfLines={2}>
+                          <Text style={styles.itemQty}>{qty}×  </Text>
                           {item.product.name}
+                          {variantLabel ? <Text style={styles.itemVariant}>{variantLabel}</Text> : null}
                         </Text>
-                        {metaBits.length > 0 ? (
-                          <Text style={styles.itemMeta} numberOfLines={1}>
-                            {metaBits.join(' · ')}
-                          </Text>
-                        ) : null}
                         {!item.product.available ? (
                           <Text style={styles.itemUnavailable}>Currently unavailable</Text>
                         ) : null}
@@ -1478,18 +1462,12 @@ const styles = StyleSheet.create({
   itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 8,
     gap: 12,
   },
   itemDivider: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.borderStrong,
-  },
-  itemImage: {
-    width: 60,
-    height: 60,
-    borderRadius: radius.md,
-    backgroundColor: '#F4F5F7',
   },
   itemBody: {
     flex: 1,
@@ -1503,10 +1481,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 19,
   },
-  itemMeta: {
-    ...typography.caption,
+  itemQty: {
+    color: colors.primary,
+    fontWeight: '800',
+  },
+  itemVariant: {
     color: colors.textSecondary,
-    marginTop: 4,
+    fontWeight: '600',
   },
   itemUnavailable: {
     ...typography.captionMedium,
