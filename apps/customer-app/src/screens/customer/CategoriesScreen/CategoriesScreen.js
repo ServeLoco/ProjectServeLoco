@@ -27,7 +27,7 @@ import {
 } from '../../../components';
 import { colors, typography, spacing, radius, shadows, layout } from '../../../theme';
 import { useCartStore, useDeliveryLocationStore } from '../../../stores';
-import { useStoreModes, useCachedFetch, useHomeLocationPermission } from '../../../hooks';
+import { useStoreModes, useCachedFetch, useHomeLocationPermission, useRefetchOnFocus } from '../../../hooks';
 import { productsApi } from '../../../api';
 import { trackEvent } from '../../../api/analyticsClient';
 import { asArray, normalizeCategory } from '../../../utils';
@@ -109,7 +109,11 @@ export default function CategoriesScreen() {
     isRefreshing,
     error,
     refresh,
+    revalidate,
   } = useCachedFetch(categoriesCacheKey, fetchCategories, { enabled: !isLocationGated });
+  // Coming back to this tab reloads it quietly — categories switched on/off
+  // or renamed by the area's admin show up without a pull-to-refresh.
+  useRefetchOnFocus(revalidate, { enabled: !isLocationGated });
 
   const categories = categoriesData || [];
   const isError = Boolean(error) && categories.length === 0;

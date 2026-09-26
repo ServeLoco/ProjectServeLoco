@@ -7,7 +7,10 @@ import { getCached, setCached } from '../utils/apiCache';
  * @param {string|null|undefined} cacheKey
  * @param {() => Promise<any>} fetcherFn
  * @param {{ enabled?: boolean }} [options]
- * @returns {{ data: any, isLoading: boolean, isRefreshing: boolean, error: any, refresh: () => Promise<void> }}
+ * @returns {{ data: any, isLoading: boolean, isRefreshing: boolean, error: any,
+ *   refresh: () => Promise<void>, revalidate: () => Promise<void> }}
+ *   refresh shows the pull-to-refresh spinner; revalidate is quiet — the
+ *   cached data stays on screen while it reloads (e.g. on screen refocus).
  */
 export function useCachedFetch(cacheKey, fetcherFn, options = {}) {
   const { enabled = true } = options;
@@ -104,5 +107,10 @@ export function useCachedFetch(cacheKey, fetcherFn, options = {}) {
     await runFetch(cacheKey, { force: true, showRefreshing: true });
   }, [cacheKey, enabled, runFetch]);
 
-  return { data, isLoading, isRefreshing, error, refresh };
+  const revalidate = useCallback(async () => {
+    if (!cacheKey || !enabled) return;
+    await runFetch(cacheKey, { force: false });
+  }, [cacheKey, enabled, runFetch]);
+
+  return { data, isLoading, isRefreshing, error, refresh, revalidate };
 }

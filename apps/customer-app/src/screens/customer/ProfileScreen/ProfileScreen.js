@@ -27,6 +27,7 @@ import { colors, typography, spacing, radius, shadows } from '../../../theme';
 import { useAuthStore, useCartStore, useSettingsStore } from '../../../stores';
 import { authApi } from '../../../api';
 import { requestNotificationPermission } from '../../../hooks/useLocalNotifications';
+import { useRefetchOnFocus } from '../../../hooks/useRefetchOnFocus';
 
 // Policy pages are served by the API itself at /policies/* (see apps/api/src/app.js).
 // Both the customer app's Linking.openURL and any web/marketing link should use
@@ -237,6 +238,13 @@ export default function ProfileScreen() {
     });
     return () => subscription?.remove?.();
   }, [loadProfile, refreshNotifStatus]);
+
+  // Coming back to this tab reloads the profile and the notification
+  // permission quietly (loadProfile without `refresh` shows no spinner).
+  useRefetchOnFocus(() => {
+    loadProfile();
+    refreshNotifStatus();
+  });
 
   const handleHelpSupport = () => {
     if (supportPhone) {

@@ -8,6 +8,7 @@ import { colors } from '../../../theme';
 import { notificationsApi, subscribeNotificationEvents, subscribeRealtimeLifecycle } from '../../../api';
 import { useAuthStore } from '../../../stores';
 import { mapNotification } from '../../../utils';
+import { useRefetchOnFocus } from '../../../hooks/useRefetchOnFocus';
 
 // ── Per-type visual config ───────────────────────────────────────────────────
 const TYPE_CONFIG = {
@@ -79,10 +80,13 @@ export default function NotificationsScreen({ navigation }) {
     else setLoading(false);
   }, [isAuthenticated, reloadToken]);
 
-  const fetchNotifications = useCallback(async () => {
+  // silent: reload behind the list already on screen (screen refocus).
+  const fetchNotifications = useCallback(async ({ silent = false } = {}) => {
     try {
-      setLoading(true);
-      setIsError(false);
+      if (!silent) {
+        setLoading(true);
+        setIsError(false);
+      }
       const res = await notificationsApi.list({ limit: 50 });
       const items = res.data || [];
       setNotifications(items);
@@ -103,11 +107,14 @@ export default function NotificationsScreen({ navigation }) {
       }
     } catch (err) {
       console.warn('Failed to fetch notifications', err);
-      setIsError(true);
+      // A quiet reload that fails keeps the list already on screen.
+      if (!silent) setIsError(true);
     } finally {
       setLoading(false);
     }
   }, []);
+
+  useRefetchOnFocus(() => fetchNotifications({ silent: true }), { enabled: isAuthenticated });
 
   const queueRefresh = useCallback(() => {
     if (refreshTimer.current) clearTimeout(refreshTimer.current);

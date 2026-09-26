@@ -34,6 +34,7 @@ import { showToast } from '../../../components/Toast';
 import { normalizeImageUrl, normalizeOrder } from '../../../utils';
 import * as Notifications from 'expo-notifications';
 import { requestNotificationPermission, checkNotificationPermission, readAskedState } from '../../../hooks/useLocalNotifications';
+import { useRefetchOnFocus } from '../../../hooks/useRefetchOnFocus';
 import {
   getRealtimeOrderId,
   getRealtimeOrderKey,
@@ -239,8 +240,11 @@ export default function OrderDetailScreen() {
   const realtimeLoadTimer = useRef(null);
   const recentRealtimeEvents = useRef({});
 
-  const loadOrder = React.useCallback((refresh = false) => {
-    if (refresh) {
+  // silent: reload behind the order already on screen (screen refocus).
+  const loadOrder = React.useCallback((refresh = false, { silent = false } = {}) => {
+    if (silent) {
+      // no spinner of either kind
+    } else if (refresh) {
       setIsRefreshing(true);
     } else {
       setIsLoading(true);
@@ -250,7 +254,8 @@ export default function OrderDetailScreen() {
       .then(response => {
         setOrder(normalizeOrder(response?.order || response?.data || response));
       })
-      .catch(error => setLoadError(error.message || 'Failed to load order'))
+      // A quiet reload that fails keeps the order already on screen.
+      .catch(error => { if (!silent) setLoadError(error.message || 'Failed to load order'); })
       .finally(() => {
         setIsLoading(false);
         setIsRefreshing(false);
@@ -260,6 +265,10 @@ export default function OrderDetailScreen() {
   useEffect(() => {
     loadOrder();
   }, [loadOrder]);
+
+  // Back on this screen (from tracking, support, another app screen): show
+  // the order as it is now, not as it was when the screen first opened.
+  useRefetchOnFocus(() => loadOrder(false, { silent: true }));
 
   // Show the in-app notification nudge only when:
   //   1. OS has NOT granted permission, AND
