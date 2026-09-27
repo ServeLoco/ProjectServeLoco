@@ -432,6 +432,11 @@ export async function displayAlarmNotification(data) {
 
     const android = {
       channelId,
+      // Same white V drawable + tint as every other push (app.json
+      // expo-notifications plugin). Without it notifee falls back to the
+      // launcher icon, which Android flattens into a plain blob.
+      smallIcon: 'notification_icon',
+      color: '#FF6B35',
       // CALL only for the locked/dark case: ColorOS treats it as an incoming
       // call and lights the display, which is what has to happen for the offer
       // card to be seen at all. With the screen already on that same behavior

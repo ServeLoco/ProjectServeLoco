@@ -6,7 +6,8 @@ name: App Store (VillKro customer app)
 # and drives the EAS API. That is why it no longer asks for a self-hosted
 # machine: nothing in this file needs one.
 #
-# OTA updates are deliberately NOT published here. `eas update` is
+# OTA updates are deliberately NOT published here. The OTA publish
+# (`eoas publish` to our xprem server, ota.serveloco.app) is
 # platform-agnostic — playstore.yml already publishes to the `production`
 # branch on every push to main, and that update serves iOS and Android alike.
 # Publishing from both workflows would create duplicate updates for the same
