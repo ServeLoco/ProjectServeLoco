@@ -313,6 +313,29 @@ describe('UAT 14.8 — never two pending offers / no double accept', () => {
     expect(result.conflict).toBe('rider_has_pending_offer');
   });
 
+  it('createOffer returns its connection before sending the rider push', async () => {
+    const { emitToCustomer } = require('../src/realtime/socket');
+    const conn = makeConn([
+      [[{ id: 10, status: 'Accepted', rider_id: null, area_id: 1, order_number: 'O', total: 250 }]], // order FOR UPDATE
+      [[{ e: new Date(Date.now() + 300000) }]], // expires_at
+      [{ insertId: 55 }], // INSERT offer
+      [{ affectedRows: 1 }], // UPDATE orders -> offered
+    ]);
+    pool.getConnection.mockResolvedValue(conn);
+    pool.query.mockResolvedValue([[]]);
+
+    const result = await assignment.createOffer(10, { id: 3, userId: 7, user_id: 7 });
+
+    expect(result.offer).toMatchObject({ id: 55, order_id: 10, rider_id: 3, status: 'pending' });
+    expect(conn.commit).toHaveBeenCalledTimes(1);
+    expect(conn.release).toHaveBeenCalledTimes(1);
+    // The push (socket emit first, then Expo/FCM) goes out only after the
+    // connection is back in the pool.
+    expect(emitToCustomer).toHaveBeenCalledWith(7, 'rider.offer.created', expect.objectContaining({ offerId: 55 }));
+    expect(conn.release.mock.invocationCallOrder[0])
+      .toBeLessThan(emitToCustomer.mock.invocationCallOrder[0]);
+  });
+
   it('acceptOffer 409 when already not pending', async () => {
     const conn = makeConn([
       [[{ id: 1, order_id: 10, rider_id: 3, status: 'accepted', expires_at: new Date(Date.now() + 99999) }]],

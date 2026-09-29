@@ -3,11 +3,22 @@ const config = require('../config/env');
 const { getMysqlSslOptions } = require('./mysqlSsl');
 const logger = require('../utils/logger');
 
-// Pool size is env-tunable. Default 30 handles burst of concurrent requests
-// without forcing them to queue. Timeouts prevent zombie connections.
+// Pool size is env-tunable (MYSQL_POOL_SIZE). The database is ~1 ms away and
+// never ran more than 2 queries at once in 30 days of production traffic, so
+// 10 is plenty: a burst beyond it (the home dashboard building all its
+// sections at once) waits a few ms in the pool's queue instead of opening
+// more connections. mysql2 keeps every pool connection it opens, and
+// each one is a thread holding memory on a 1 GB RDS instance, so the limit
+// is also the most this process will ever hold (plans/rds-performance-audit.md,
+// issue 2).
+//
+// Deliberately no maxIdle/idleTimeout: mysql2's idle reaper is a timer that
+// keeps the event loop alive, so any script that loads this pool — db:migrate
+// does, through utils/productLibrary — would never exit, and the deploy waits
+// on db:migrate with the API stopped. tests/mysqlPoolConfig.test.js guards it.
 const poolSize = Number.parseInt(config.MYSQL_POOL_SIZE, 10) > 0
   ? Number.parseInt(config.MYSQL_POOL_SIZE, 10)
-  : 30;
+  : 10;
 
 const pool = mysql.createPool({
   host: config.MYSQL_HOST,

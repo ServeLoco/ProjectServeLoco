@@ -46,6 +46,8 @@ const config = {
   MYSQL_PASSWORD: process.env.MYSQL_PASSWORD,
   MYSQL_SSL: process.env.MYSQL_SSL,
   MYSQL_SSL_CA_PATH: process.env.MYSQL_SSL_CA_PATH,
+  // Max connections in the API's MySQL pool (db/mysql.js; default 10).
+  MYSQL_POOL_SIZE: process.env.MYSQL_POOL_SIZE,
   // How mysql2 must interpret DATETIME/TIMESTAMP columns to build a correct
   // JS Date (must equal the MySQL server's own session time_zone, NOT the
   // business display zone below). Re-confirmed 2026-09-15 against

@@ -331,6 +331,8 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
  */
 const createOfferAttempt = async (orderId, rider) => {
   const connection = await pool.getConnection();
+  let order;
+  let offer;
   try {
     await connection.beginTransaction();
 
@@ -338,7 +340,7 @@ const createOfferAttempt = async (orderId, rider) => {
       'SELECT * FROM orders WHERE id = ? FOR UPDATE',
       [orderId]
     );
-    const order = orderRows[0];
+    order = orderRows[0];
     if (!order || order.status === 'Cancelled' || order.status === 'Delivered' || order.rider_id) {
       await connection.rollback();
       return { offer: null, conflict: 'order_not_assignable' };
@@ -358,17 +360,13 @@ const createOfferAttempt = async (orderId, rider) => {
     );
 
     await connection.commit();
-    const offer = {
+    offer = {
       id: insertResult.insertId,
       order_id: orderId,
       rider_id: rider.id,
       status: 'pending',
       expires_at: expiresAt,
     };
-
-    await notifyRiderOffer(rider, order, offer);
-    log('offer created', { orderId, offerId: offer.id, riderId: rider.id });
-    return { offer };
   } catch (e) {
     await connection.rollback();
     if (e && e.code === 'ER_DUP_ENTRY') {
@@ -380,6 +378,12 @@ const createOfferAttempt = async (orderId, rider) => {
   } finally {
     connection.release();
   }
+
+  // The push is an external Expo/FCM round trip. Send it only once the
+  // connection is back in the pool, so a slow push never holds one.
+  await notifyRiderOffer(rider, order, offer);
+  log('offer created', { orderId, offerId: offer.id, riderId: rider.id });
+  return { offer };
 };
 
 /**

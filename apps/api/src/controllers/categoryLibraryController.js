@@ -117,7 +117,6 @@ const updateCategoryLibraryItem = async (req, res) => {
     const [existing] = await connection.query('SELECT id FROM category_library WHERE id = ? FOR UPDATE', [libraryCategoryId]);
     if (existing.length === 0) {
       await connection.rollback();
-      connection.release();
       return res.status(404).json({ code: 'NOT_FOUND', message: 'Library category not found' });
     }
     await connection.query(`UPDATE category_library SET ${sets.join(', ')} WHERE id = ?`, [...values, libraryCategoryId]);

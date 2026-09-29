@@ -130,7 +130,6 @@ const updateStoreModeLibraryItem = async (req, res) => {
     const [existing] = await connection.query('SELECT id FROM store_mode_library WHERE id = ? FOR UPDATE', [libraryStoreModeId]);
     if (existing.length === 0) {
       await connection.rollback();
-      connection.release();
       return res.status(404).json({ code: 'NOT_FOUND', message: 'Library store mode not found' });
     }
     await connection.query(`UPDATE store_mode_library SET ${sets.join(', ')} WHERE id = ?`, [...values, libraryStoreModeId]);
