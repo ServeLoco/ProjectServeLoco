@@ -11,6 +11,7 @@ const { startShopAlertSweeper, stopShopAlertSweeper } = require('./realtime/shop
 const { startShopScheduleSweeper, stopShopScheduleSweeper } = require('./realtime/shopScheduleSweeper');
 const { startRollupScheduler, stopRollupScheduler } = require('./services/analytics/rollup');
 const { startSuggestionScheduler, stopSuggestionScheduler } = require('./services/suggestions/buildPairs');
+const { startNotificationRetentionScheduler, stopNotificationRetentionScheduler } = require('./services/notificationRetention');
 
 const PORT = config.PORT;
 let server;
@@ -108,6 +109,8 @@ const startServer = async () => {
     startRollupScheduler();
     // Cart "Add more" suggestions — rebuilt nightly at 03:00 from delivered orders.
     startSuggestionScheduler();
+    // Delete customer notifications older than 5 days — nightly at 03:30.
+    startNotificationRetentionScheduler();
     // Auto-accept any orders that were Pending before this restart.
     orderAutoAccept.rehydratePendingOrders().catch(() => {});
     // Expire due rider offers and continue assignment chains after restarts.
@@ -143,6 +146,7 @@ const shutdown = async () => {
   stopShopScheduleSweeper();
   stopRollupScheduler();
   stopSuggestionScheduler();
+  stopNotificationRetentionScheduler();
   if (global.__purgeTimer) clearInterval(global.__purgeTimer);
   await closeRealtime();
 

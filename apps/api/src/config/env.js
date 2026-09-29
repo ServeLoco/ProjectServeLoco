@@ -165,6 +165,10 @@ const config = {
   // touched. Lower it to shorten that delay; every other hop in the chain is
   // sub-second.
   ORDER_AUTO_ACCEPT_MS: Number(process.env.ORDER_AUTO_ACCEPT_MS) || 120000,
+
+  // Customer notifications older than this many days are deleted for good,
+  // nightly (services/notificationRetention.js).
+  NOTIFICATION_RETENTION_DAYS: Number(process.env.NOTIFICATION_RETENTION_DAYS) || 5,
 };
 
 // Validation
