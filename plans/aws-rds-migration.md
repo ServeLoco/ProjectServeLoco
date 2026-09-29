@@ -22,7 +22,15 @@
 - Phase A (AWS built): ✅. RDS endpoint `villkro-prod-mysql.c54awk6yg0s0.ap-south-1.rds.amazonaws.com`.
 - Phase B (box connected, `villkro_app` created): ✅
 - Phase C practice run: ✅ all green, after the two fixes below.
-- **Next: pick the night for Phase D.**
+- **Phase D: ✅ DONE on 30 Sep 2026.**
+  - The API was stopped at 19:06 UTC and was back on RDS at 19:20 UTC (~14 min of downtime, including an `IMAGE_TAG` hiccup).
+  - D5 compare --live and D6 app checks were IDENTICAL before the switch.
+  - D10: the API is on RDS as `villkro_app`, with no app connections left on Azure.
+  - Final Azure dump: `copy_azure_20260929T190735Z.sql.gz`, kept on the box and on the laptop.
+  - Manual snapshot `villkro-after-move-20260930` taken.
+  - D11 test order: skipped by the user. The first real order after the move is checked on Day +1 instead.
+- **Lesson for any manual compose command on the box:** run `export IMAGE_TAG=$(cat .deploy-tag)` first, or compose tries to pull `:latest` from GHCR (unauthorized). Also use `up -d --force-recreate --no-deps api` plus an nginx reload, so the container picks up a changed env file.
+- **Still open:** the Phase E items (Day +1 checks, AllowAll rule, repo cleanup, retiring Azure in 7–14 days).
 
 ---
 
