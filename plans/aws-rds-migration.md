@@ -17,7 +17,12 @@
   tell you ✅ or what to fix. Commands on the box are pasted by you or run by me, and I ask
   before each one.
 
-**Status:** approved 2026-09-29. Phase 0 is done. The scripts are in `deploy/rds-migration/` (run order in its README), and the whole flow was tested on a laptop against two local MySQL 8.4.11 servers. Nothing has been done on Azure, AWS or the box yet.
+**Status:** approved 2026-09-29. Phase 0 is done. The scripts are in `deploy/rds-migration/` (run order in its README), and the whole flow was tested on a laptop against two local MySQL 8.4.11 servers. **Progress (30 Sep 2026, ~00:30 IST):**
+- Safety net S1–S4: ✅
+- Phase A (AWS built): ✅. RDS endpoint `villkro-prod-mysql.c54awk6yg0s0.ap-south-1.rds.amazonaws.com`.
+- Phase B (box connected, `villkro_app` created): ✅
+- Phase C practice run: ✅ all green, after the two fixes below.
+- **Next: pick the night for Phase D.**
 
 ---
 
@@ -55,6 +60,7 @@ We fix this with our own parameter group, before the database exists.
 | `binlog_format` | ROW | ROW | leave | — (the order flow's READ COMMITTED needs ROW) |
 | `innodb_ft_min_token_size` | 3 | 3 | leave | — (product search depends on it) |
 | `transaction_isolation` | REPEATABLE-READ | same | leave | — |
+| `gtid-mode` | OFF | OFF_PERMISSIVE | **OFF** | The deploy's `mysqldump` then asks for FLUSH TABLES, which the app user doesn't have, so **every deploy stops at its backup step**. Found in the practice run. |
 
 ### How the app connects (why it will work the same)
 
@@ -237,9 +243,10 @@ docker run --rm --memory 200m --env-file apps/api/.env.production --env-file ~/r
    - `event_scheduler` = `OFF`
    - `character_set_server` = `utf8mb4`
    - `collation_server` = `utf8mb4_0900_ai_ci`
+   - `gtid-mode` = `OFF` (added after the practice run; needs a reboot of the database)
 5. Click **Save changes**.
 
-✅ I read all 6 values back.
+✅ I read all 7 values back.
 
 ### A4. Create the database
 Open the **RDS console**, then **Databases**, then **Create database**, and fill in each section:
@@ -365,7 +372,7 @@ again.
 |---|---|---|
 | D1 | **Pre-checks, API up** (`./precheck.sh`). No active orders (`status NOT IN ('Delivered','Cancelled')` = 0). Disk and memory OK. RDS `available`. `MYSQL_SSL=true`, `MYSQL_SSL_CA_PATH` empty and `MYSQL_SESSION_TZ` Z/unset in `.env.production` (read without printing secrets). Note today's dashboard numbers. | Any active order → wait |
 | D1b | **Fresh backups:** Azure portal **Backup now** ("before-cutover"). I write down the exact UTC time. | The backup shows "Completed" |
-| D2 | **Stop the API:** `docker compose -f docker-compose.prod.yml stop api` | ⏱ **Downtime starts.** Landing and admin stay up. |
+| D2 | **Stop the API:** `docker compose -f docker-compose.prod.yml stop api` | ⏱ **Downtime starts** (~6–8 min measured). Landing and admin stay up. |
 | D3 | **Freeze check:** `./connections.sh azure` | Only our own session remains |
 | D4 | **Final copy:** `./copy.sh`, which saves `copy_azure_<time>.sql.gz` (**kept forever**) | Clean dump + restore, else **R1** |
 | D5 | **Prove identical:** `./compare.sh --live`. Azure is frozen now, so both sides must match exactly. | **Everything identical, or STOP → R1** |
@@ -464,6 +471,32 @@ OK**)
 | Day 2 or 3, 2–4 AM IST | Phase D | ~15 min |
 | Day +1 | Checks + AllowAll removed | none |
 | Day +7 to +14 | Retire Azure | none |
+
+## What the practice run found (29–30 Sep)
+
+1. **RDS `gtid-mode` default (OFF_PERMISSIVE) broke the deploy backup.**
+   - The deploy's `mysqldump` then needs FLUSH TABLES, which the app user doesn't have.
+   - Fixed: `gtid-mode=OFF` in `villkro-mysql84` plus a reboot. It now matches Azure, and `check.sh` watches it.
+2. **Live Azure production had been changed outside a deploy.**
+   - On 28 Sep 2026 at 15:23 UTC (20:53 IST), `migrate.js` from an old branch put back three settings columns:
+     - `below_threshold_delivery_charge`
+     - `free_delivery_above_minimum_active`
+     - `free_delivery_offer_active`
+   - The code that does this exists only in the old branches `chore/workflow-fix`, `migrate-images-to-mysql` and `otpfeature`. Most likely it was `npm run dev:proddb` from one of them.
+   - That half-finished state made the deployed `migrate.js` crash ("Unknown column minimum_order_amount"). It would have failed the **next deploy on Azure too**.
+   - It also showed that `migrate.js` hides its errors: `logger.error('Migration failed:', error)` drops the error object.
+   - No data was affected. The columns held only defaults, and every other config change in the window was normal admin activity.
+   - Fixed on 29 Sep: the user dropped the 3 columns. The Azure structure is again identical to the 26 Sep deploy backup.
+   - Follow-ups:
+     - Make `migrate.js` log the real error.
+     - Guard the one-time block against a half-finished state.
+     - Don't run `dev:proddb` before the move. After it, RDS is private, so this can't happen again.
+3. **Timings on real data:**
+   - Dumping Azure takes ~80 s (every query crosses to Hong Kong).
+   - Restoring into RDS takes ~22 s.
+   - `compare.sh --dump` takes ~8 s; `compare.sh --live` is ~2 min, because it dumps Azure again.
+   - `app-check.sh` takes ~10 s.
+   - **Expected API downtime on the night: ~6–8 minutes.**
 
 ## Why no data is lost
 

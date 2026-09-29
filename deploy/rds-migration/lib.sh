@@ -184,9 +184,10 @@ UNION ALL SELECT 'transaction_isolation', @@transaction_isolation
 UNION ALL SELECT 'innodb_ft_min_token_size', @@innodb_ft_min_token_size
 UNION ALL SELECT 'binlog_format', @@binlog_format
 UNION ALL SELECT 'event_scheduler', @@event_scheduler
+UNION ALL SELECT 'gtid_mode', @@gtid_mode
 UNION ALL SELECT 'max_connections', @@max_connections
 UNION ALL SELECT 'tables', (SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'BASE TABLE')"
-MUST_MATCH=" lower_case_table_names server_offset_from_utc sql_mode character_set_server collation_server database_collation require_secure_transport transaction_isolation innodb_ft_min_token_size binlog_format event_scheduler "
+MUST_MATCH=" lower_case_table_names server_offset_from_utc sql_mode character_set_server collation_server database_collation require_secure_transport transaction_isolation innodb_ft_min_token_size binlog_format event_scheduler gtid_mode "
 
 # Prints the settings side by side; returns 1 if any must-match one differs.
 settings_table() {
