@@ -166,7 +166,28 @@ const emitNotificationRow = async (userId, notification) => {
   return payload;
 };
 
+/**
+ * A broadcast's rows, one per recipient: the same two events emitNotificationRow
+ * sends a customer (notification.created, then their unread count), with every
+ * recipient's count from one grouped query instead of a COUNT each.
+ */
+const emitBroadcastNotifications = async (rows) => {
+  if (!rows || rows.length === 0) return;
+  for (const row of rows) {
+    emitToCustomer(Number(row.user_id), 'notification.created', normalizeNotification(row));
+  }
+  try {
+    const counts = await notificationService.getUnreadCounts(rows.map((row) => Number(row.user_id)));
+    for (const [userId, unreadCount] of counts) {
+      emitToCustomer(userId, 'notification.unread_count.updated', { unreadCount });
+    }
+  } catch (error) {
+    logger.error('Realtime unread count emit failed:', error.message);
+  }
+};
+
 module.exports = {
+  emitBroadcastNotifications,
   emitNotificationCreated,
   emitNotificationRow,
   emitUnreadCountUpdated,

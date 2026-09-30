@@ -2386,12 +2386,16 @@ const createAdminNotification = async (req, res) => {
     return res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Failed to create broadcast notification' });
   }
 
-  // Emit realtime events to all recipients so they get phone notifications.
-  // Was N+1 (one SELECT per user); now a single batch SELECT + parallel emit.
+  // Live popup + badge on every recipient's open app. Read back by this
+  // batch's own index (its rows are exactly the recipients') with only the
+  // columns the socket payload carries, then one emit pass whose unread counts
+  // come from a single grouped query — it used to re-read every full row and
+  // run a COUNT per customer, twice.
   try {
     const [notifications] = await pool.query(
-      'SELECT * FROM notifications WHERE user_id IN (?) AND batch_id = ? ORDER BY id DESC',
-      [targetUserIds, result.batchId]
+      `SELECT id, user_id, title, body, type, source_type, source_id, action_type, action_payload, created_at
+         FROM notifications WHERE batch_id = ? ORDER BY id DESC`,
+      [result.batchId]
     );
     // Group by user_id (ordered DESC so the first per user is the most recent)
     const latestByUser = new Map();
@@ -2400,18 +2404,7 @@ const createAdminNotification = async (req, res) => {
         latestByUser.set(Number(n.user_id), n);
       }
     }
-    await Promise.all(
-      targetUserIds.map(async (userId) => {
-        const notif = latestByUser.get(Number(userId));
-        if (notif) {
-          try {
-            realtimeEvents.emitNotificationRow(userId, notif);
-          } catch (error) {
-            logger.error(`Failed to emit notification to user ${userId}:`, error.message);
-          }
-        }
-      })
-    );
+    await realtimeEvents.emitBroadcastNotifications([...latestByUser.values()]);
   } catch (error) {
     logger.error('Failed to batch-load broadcast notifications:', error.message);
   }
