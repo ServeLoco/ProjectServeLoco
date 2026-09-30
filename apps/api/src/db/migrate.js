@@ -2450,6 +2450,13 @@ const migrate = async () => {
     await ensureUniqueIndex('admin_notifications', 'uniq_admin_inbox_area_event', 'area_id, type, related_id');
     logger.info('[migrate] per-area unique keys in place.');
 
+    // The admin bell lists the newest 20, ORDER BY created_at DESC, id DESC —
+    // for one area or, on "All areas", with no area filter. With no index in
+    // that order MySQL read and sorted every inbox row on each open; with
+    // these it reads just the rows it returns.
+    await ensureIndex('admin_notifications', 'idx_admin_notifications_area_created', 'area_id, created_at, id');
+    await ensureIndex('admin_notifications', 'idx_admin_notifications_created', 'created_at, id');
+
     // ---- TASK 11 — store_modes seeded per area, not just area 1 ---------
     // The original seed (above, table-creation time) only ever ran once
     // and only covers whichever area existed when the table was first
