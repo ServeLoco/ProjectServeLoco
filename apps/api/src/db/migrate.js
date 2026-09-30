@@ -2569,6 +2569,14 @@ const migrate = async () => {
     await ensureIndex('users', 'idx_users_current_area', 'current_area_id');
     logger.info('[migrate] users.current_area_id / current_zone_id ready.');
 
+    // Every app start re-registers the device and first clears the same token
+    // off any other account (authController.registerPushToken); a dead Expo
+    // token is cleared by value too (utils/expoPush.js). Without an index each
+    // of those UPDATEs reads — and under REPEATABLE READ locks — every users
+    // row. Small table, so the online ADD INDEX is instant.
+    await ensureIndex('users', 'idx_users_push_token', 'push_token');
+    await ensureIndex('users', 'idx_users_fcm_token', 'fcm_token');
+
     // Cart "Add more" suggestions (services/suggestions/buildPairs.js).
     // Derived data only — rebuilt per area every night from delivered orders,
     // so no FK to products (a pair row for a since-deleted product is
