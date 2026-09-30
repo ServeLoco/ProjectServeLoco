@@ -23,6 +23,9 @@ const {
   syncDeliveryAvailabilityFromRiders,
   countActiveRiders,
 } = require('../utils/riders');
+// Wakes riderOfferSweeper after a write that gives it work — always after the
+// commit, see realtime/sweepGates.js.
+const { riderDispatch: dispatchGate } = require('../realtime/sweepGates');
 
 const RIDER_OFFER_TIMEOUT_SEC = config.RIDER_OFFER_TIMEOUT_SEC || 300;
 const RIDER_SEARCH_WINDOW_SEC = config.RIDER_SEARCH_WINDOW_SEC || 600;
@@ -50,6 +53,8 @@ const markSearching = async (orderId, connection = pool) => {
      WHERE id = ? AND rider_id IS NULL AND status NOT IN ('Delivered', 'Cancelled')`,
     [orderId]
   );
+  // Every caller passes the pool (autocommit), so the row is committed here.
+  dispatchGate.wake();
 };
 
 /**
@@ -360,6 +365,7 @@ const createOfferAttempt = async (orderId, rider) => {
     );
 
     await connection.commit();
+    dispatchGate.wake();
     offer = {
       id: insertResult.insertId,
       order_id: orderId,
@@ -647,6 +653,7 @@ const startAssignment = async (orderId) => {
         [orderId]
       );
       await connection.commit();
+      dispatchGate.wake();
     } catch (e) {
       await connection.rollback();
       throw e;
@@ -987,6 +994,25 @@ const expireDueOffers = async () => {
 };
 
 /**
+ * Whether riderOfferSweeper's three passes could have anything to do: a
+ * pending offer (to expire or re-push) or an order still looking for a rider
+ * (to re-scan, or fail once its search window closes). The union of their
+ * conditions, so false means all three would find nothing. Time-free on
+ * purpose: this work only ever appears through a write (search started,
+ * offer made), and those wake the sweeper.
+ */
+const hasLiveDispatch = async () => {
+  const [rows] = await pool.query(
+    `SELECT EXISTS (SELECT 1 FROM rider_order_offers WHERE status = 'pending')
+         OR EXISTS (SELECT 1 FROM orders
+                    WHERE rider_assignment_status IN ('searching', 'offered')
+                      AND rider_id IS NULL
+                      AND status NOT IN ('Delivered', 'Cancelled')) AS live`
+  );
+  return Boolean(Number(rows[0]?.live));
+};
+
+/**
  * Recover / re-scan orders stuck in 'searching'/'offered' with no rider and
  * no pending offer:
  *  - crash between startAssignment commit and createOffer
@@ -1163,6 +1189,7 @@ const reassignRider = async (orderId, targetRider, areaId) => {
     );
 
     await connection.commit();
+    dispatchGate.wake();
   } catch (e) {
     await connection.rollback();
     logger.error('[rider-assign] reassignRider failed:', e.message);
@@ -1229,6 +1256,7 @@ module.exports = {
   cancelAssignmentByRider,
   continueAssignment,
   recoverStuckAssignments,
+  hasLiveDispatch,
   getExcludedRiderIdsForOrder,
   getOrderPickupPoints,
   revokeOffersForOrder,

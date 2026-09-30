@@ -105,6 +105,10 @@ const config = {
   // ring; staler than this counts as unknown position (last ring only).
   RIDER_LOCATION_MAX_AGE_SEC: Number(process.env.RIDER_LOCATION_MAX_AGE_SEC) || 600,
   RIDER_SWEEPER_MS: Number(process.env.RIDER_SWEEPER_MS) || 5000,
+  // While nothing is live, the shop-alert and rider sweepers skip the database
+  // and only re-check this often; the code that creates their work wakes them
+  // at once (realtime/sweepGates.js).
+  SWEEPER_IDLE_CHECK_MS: Number(process.env.SWEEPER_IDLE_CHECK_MS) || 60000,
   // Re-push pending delivery offers this often until accept/reject/expire.
   // 30s against the 150s offer timer is ~5 alarms per offer, not 10 — still
   // frequent enough that a rider can't miss it, less relentless than every 15s.

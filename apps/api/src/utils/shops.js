@@ -1,5 +1,6 @@
 const { pool } = require('../db/mysql');
 const logger = require('./logger');
+const { shopAlerts: shopAlertGate } = require('../realtime/sweepGates');
 
 const getCancelledPaymentStatus = (paymentMethod) => (
   paymentMethod === 'UPI' ? 'Refunded' : 'Failed'
@@ -74,6 +75,9 @@ const getShopPayableTotal = async (orderId, shopId) => {
 // order. Never throws (callers are inside order-status paths that must not
 // fail because a push failed).
 const notifyShopsForOrder = async (order) => {
+  // Every caller runs this right after the accept UPDATE has committed, so the
+  // shop-alert sweeper's next tick sees the order (realtime/sweepGates.js).
+  shopAlertGate.wake();
   try {
     // Both queries only need order.id, so they go out together rather than one
     // after the other — this is the accepted-order-to-ringing-phone path and

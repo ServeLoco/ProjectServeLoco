@@ -10,6 +10,11 @@
  * gap. Their admin.* socket emits (riderAssignment.js) key off each order's
  * own area_id into emitToAdmins' per-area room (TASK 23), same as every
  * other realtime emit in the codebase.
+ *
+ * With no pending offer and no order looking for a rider the passes are
+ * skipped entirely: the tick checks hasLiveDispatch first and sleeps behind
+ * sweepGates.riderDispatch until a search or offer wakes it (see
+ * realtime/sweepGates.js).
  */
 
 const config = require('../config/env');
@@ -18,7 +23,9 @@ const {
   expireDueOffers,
   recoverStuckAssignments,
   remindPendingOffers,
+  hasLiveDispatch,
 } = require('../services/riderAssignment');
+const { riderDispatch: gate } = require('./sweepGates');
 
 const RIDER_SWEEPER_MS = config.RIDER_SWEEPER_MS || 5000;
 
@@ -28,13 +35,18 @@ let running = false;
 let missingTableLogged = false;
 
 const tick = async () => {
-  if (running) return;
+  if (running || gate.isClosed()) return;
   running = true;
   try {
-    await expireDueOffers();
-    // Continuous Expo push while offer is pending (app open or closed).
-    await remindPendingOffers();
-    await recoverStuckAssignments();
+    const checkpoint = gate.checkpoint();
+    if (await hasLiveDispatch()) {
+      await expireDueOffers();
+      // Continuous Expo push while offer is pending (app open or closed).
+      await remindPendingOffers();
+      await recoverStuckAssignments();
+    } else {
+      gate.close(checkpoint);
+    }
     missingTableLogged = false;
   } catch (e) {
     // Avoid log spam every 5s when migrations have not been applied yet.
@@ -55,6 +67,7 @@ const tick = async () => {
 
 const startRiderOfferSweeper = () => {
   if (timer) return;
+  gate.wake(); // first tick checks for live work, whatever an earlier run left
   // Immediate rehydrate of anything already expired
   tick().catch(() => {});
   timer = setInterval(() => {
