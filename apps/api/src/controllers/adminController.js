@@ -422,6 +422,28 @@ const DASHBOARD_METRICS_SQL = `
 
 const DASHBOARD_ALERTS_LIMIT = 50;
 
+// The dashboard's latest orders: Pending first, then newest first. As one
+// ORDER BY (status = 'Pending') DESC, created_at DESC no index can serve it,
+// so MySQL sorted every order on each load. Each half below walks an index
+// for its own newest 10, and only those (at most 20) rows get the final sort
+// — the same 10 rows in the same order. id breaks created_at ties (seconds).
+const LATEST_ORDERS_LIMIT = 10;
+const latestOrdersQuery = (areaId = null) => {
+  const inArea = areaId === null ? '' : 'area_id = ? AND ';
+  const newest = (statusTest) => `(SELECT * FROM orders WHERE ${inArea}${statusTest}
+      ORDER BY created_at DESC, id DESC LIMIT ${LATEST_ORDERS_LIMIT})`;
+  const sql = `
+      SELECT * FROM (
+        ${newest("status = 'Pending'")}
+        UNION ALL
+        ${newest("status != 'Pending'")}
+      ) AS latest
+      ORDER BY (status = 'Pending') DESC, created_at DESC, id DESC
+      LIMIT ${LATEST_ORDERS_LIMIT}
+    `;
+  return [sql, areaId === null ? [] : [areaId, areaId]];
+};
+
 /**
  * The super admin's "All areas" dashboard: the same order/sales KPIs summed
  * over every area, one row per area (its KPIs plus its delivery / shop /
@@ -433,11 +455,7 @@ const DASHBOARD_ALERTS_LIMIT = 50;
 const getAllAreasDashboard = async (req, res) => {
   const [metricRows, latestOrders, unavailableProducts, topProducts, settingRows, areas] = await Promise.all([
     queryRows(`SELECT area_id, ${DASHBOARD_METRICS_SQL} FROM orders GROUP BY area_id`, []),
-    queryRows(`
-      SELECT * FROM orders
-      ORDER BY (status = 'Pending') DESC, created_at DESC
-      LIMIT 10
-    `, []),
+    queryRows(...latestOrdersQuery()),
     queryRows(`
       SELECT id, name, price, area_id FROM products
       WHERE available = 0 AND deleted = 0
@@ -541,12 +559,7 @@ const getDashboard = async (req, res) => {
     WHERE area_id = ?
   `, [areaId]);
 
-  const latestOrders = await queryRows(`
-    SELECT * FROM orders
-    WHERE area_id = ?
-    ORDER BY (status = 'Pending') DESC, created_at DESC
-    LIMIT 10
-  `, [areaId]);
+  const latestOrders = await queryRows(...latestOrdersQuery(areaId));
 
   const unavailableProducts = await queryRows(`
     SELECT id, name, price FROM products WHERE available = 0 AND area_id = ?
