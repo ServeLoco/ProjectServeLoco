@@ -59,6 +59,10 @@ describeWithMysql('clearing a push token by value', () => {
       [FIXTURE_TAG, FIXTURE_TAG, `${FIXTURE_TAG} Filler`]
     );
     await pool.query('UPDATE users SET push_token = ?, fcm_token = ? WHERE id = ?', [PUSH_TOKEN, FCM_TOKEN, previousOwner]);
+    // On a fresh CI database the indexes were built on an empty table, and
+    // InnoDB refreshes its row estimates in the background — EXPLAIN right
+    // after the inserts would plan for an empty table.
+    await pool.query('ANALYZE TABLE users');
   });
 
   afterAll(async () => {
