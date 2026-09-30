@@ -122,6 +122,10 @@ services:
       DB_MIN_CONNS: "1"
       # No hourly usage ping (instance id, base URL, version) to the vendor.
       DISABLE_TELEMETRY: "true"
+      # xprem is Go: this makes its garbage collector work harder as it
+      # nears 150 MiB instead of growing into the 192m hard cap below and
+      # being killed. The proxy's /assets cache is the main fix for that.
+      GOMEMLIMIT: "150MiB"
     # Hard cap so the update server can never take memory from the API on
     # this 1 GB box. xprem idles at ~30-50 MB; the headroom is for publishes.
     mem_limit: 192m
