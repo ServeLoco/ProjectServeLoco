@@ -242,6 +242,21 @@ describe('Category library admin endpoints (TASK 26)', () => {
     expect(conn.query).toHaveBeenCalledTimes(2); // existence check + UPDATE only, no propagation queries
   });
 
+  it('PATCH 404s an unknown id and returns its connection exactly once', async () => {
+    const conn = makeConn([[[]]]); // FOR UPDATE existence check finds nothing
+    pool.getConnection.mockResolvedValueOnce(conn);
+
+    const res = await request(app)
+      .patch('/api/admin/category-library/999')
+      .set('Authorization', `Bearer ${superToken}`)
+      .send({ name: 'Renamed' });
+
+    expect(res.statusCode).toEqual(404);
+    expect(conn.rollback).toHaveBeenCalledTimes(1);
+    // A second release makes mysql2 throw after the 404 was already sent.
+    expect(conn.release).toHaveBeenCalledTimes(1);
+  });
+
   it('archive 404s an unknown id', async () => {
     pool.query.mockResolvedValueOnce([{ affectedRows: 0 }]);
     const res = await request(app)
@@ -339,6 +354,20 @@ describe('Store-mode library admin endpoints (TASK 26)', () => {
   // everywhere. Unlike category_library.slug (still editable — categories
   // freely rewrite their own slug per-area), this one must never be
   // PATCHable after creation.
+  it('PATCH 404s an unknown id and returns its connection exactly once', async () => {
+    const conn = makeConn([[[]]]);
+    pool.getConnection.mockResolvedValueOnce(conn);
+
+    const res = await request(app)
+      .patch('/api/admin/store-mode-library/999')
+      .set('Authorization', `Bearer ${superToken}`)
+      .send({ label: 'Renamed' });
+
+    expect(res.statusCode).toEqual(404);
+    expect(conn.rollback).toHaveBeenCalledTimes(1);
+    expect(conn.release).toHaveBeenCalledTimes(1);
+  });
+
   it('PATCH rejects a slug change — slug is immutable after creation', async () => {
     const res = await request(app)
       .patch('/api/admin/store-mode-library/20')

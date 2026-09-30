@@ -46,6 +46,8 @@ const config = {
   MYSQL_PASSWORD: process.env.MYSQL_PASSWORD,
   MYSQL_SSL: process.env.MYSQL_SSL,
   MYSQL_SSL_CA_PATH: process.env.MYSQL_SSL_CA_PATH,
+  // Max connections in the API's MySQL pool (db/mysql.js; default 10).
+  MYSQL_POOL_SIZE: process.env.MYSQL_POOL_SIZE,
   // How mysql2 must interpret DATETIME/TIMESTAMP columns to build a correct
   // JS Date (must equal the MySQL server's own session time_zone, NOT the
   // business display zone below). Re-confirmed 2026-09-15 against
@@ -103,6 +105,10 @@ const config = {
   // ring; staler than this counts as unknown position (last ring only).
   RIDER_LOCATION_MAX_AGE_SEC: Number(process.env.RIDER_LOCATION_MAX_AGE_SEC) || 600,
   RIDER_SWEEPER_MS: Number(process.env.RIDER_SWEEPER_MS) || 5000,
+  // While nothing is live, the shop-alert and rider sweepers skip the database
+  // and only re-check this often; the code that creates their work wakes them
+  // at once (realtime/sweepGates.js).
+  SWEEPER_IDLE_CHECK_MS: Number(process.env.SWEEPER_IDLE_CHECK_MS) || 60000,
   // Re-push pending delivery offers this often until accept/reject/expire.
   // 30s against the 150s offer timer is ~5 alarms per offer, not 10 — still
   // frequent enough that a rider can't miss it, less relentless than every 15s.
@@ -165,6 +171,10 @@ const config = {
   // touched. Lower it to shorten that delay; every other hop in the chain is
   // sub-second.
   ORDER_AUTO_ACCEPT_MS: Number(process.env.ORDER_AUTO_ACCEPT_MS) || 120000,
+
+  // Customer notifications older than this many days are deleted for good,
+  // nightly (services/notificationRetention.js).
+  NOTIFICATION_RETENTION_DAYS: Number(process.env.NOTIFICATION_RETENTION_DAYS) || 5,
 };
 
 // Validation

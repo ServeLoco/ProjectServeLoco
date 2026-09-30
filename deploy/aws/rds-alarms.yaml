@@ -1,0 +1,173 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  Email alerts for the production MySQL (RDS villkro-prod-mysql) - low memory, swap,
+  connections, CPU, paid CPU credits, disk space, write latency, and RDS events
+  (restart, failure, low storage, maintenance). Create it once as the stack
+  villkro-db-alarms from the CloudFormation console; see plans/rds-performance-audit.md issue 4.
+
+Parameters:
+  AlertEmail:
+    Type: String
+    Description: Email that gets the alerts. AWS first sends a confirmation email - click the link in it.
+    AllowedPattern: '^[^@\s]+@[^@\s]+\.[^@\s]+$'
+    ConstraintDescription: must be an email address
+  DBInstanceId:
+    Type: String
+    Default: villkro-prod-mysql
+    Description: The RDS instance to watch
+
+Resources:
+  # The default topic policy already lets CloudWatch alarms and RDS events in
+  # this account publish to it, so no TopicPolicy is attached.
+  AlertTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: villkro-db-alerts
+      DisplayName: VillKro DB alert
+      Subscription:
+        - Protocol: email
+          Endpoint: !Ref AlertEmail
+
+  # Normal on 30 Sep 2026: 108-180 MB.
+  LowMemoryAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: villkro-db-low-memory
+      AlarmDescription: RDS free memory under 80 MB for 15 minutes. Normal is 110-180 MB.
+      Namespace: AWS/RDS
+      MetricName: FreeableMemory
+      Dimensions: [{ Name: DBInstanceIdentifier, Value: !Ref DBInstanceId }]
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 3
+      Threshold: 83886080
+      ComparisonOperator: LessThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertTopic]
+      OKActions: [!Ref AlertTopic]
+
+  # Normal on 30 Sep 2026: ~250-263 MB, flat.
+  HighSwapAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: villkro-db-high-swap
+      AlarmDescription: RDS swap over 500 MB for 15 minutes. Normal is about 260 MB.
+      Namespace: AWS/RDS
+      MetricName: SwapUsage
+      Dimensions: [{ Name: DBInstanceIdentifier, Value: !Ref DBInstanceId }]
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 3
+      Threshold: 524288000
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertTopic]
+      OKActions: [!Ref AlertTopic]
+
+  # max_connections is 60. The API pool is 10 (MYSQL_POOL_SIZE).
+  HighConnectionsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: villkro-db-high-connections
+      AlarmDescription: Over 45 MySQL connections for 10 minutes. The server allows 60.
+      Namespace: AWS/RDS
+      MetricName: DatabaseConnections
+      Dimensions: [{ Name: DBInstanceIdentifier, Value: !Ref DBInstanceId }]
+      Statistic: Maximum
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 45
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertTopic]
+      OKActions: [!Ref AlertTopic]
+
+  # Normal on 30 Sep 2026: ~3.5% average.
+  HighCpuAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: villkro-db-high-cpu
+      AlarmDescription: RDS CPU over 60% for 15 minutes. Normal is about 4%.
+      Namespace: AWS/RDS
+      MetricName: CPUUtilization
+      Dimensions: [{ Name: DBInstanceIdentifier, Value: !Ref DBInstanceId }]
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 3
+      Threshold: 60
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertTopic]
+      OKActions: [!Ref AlertTopic]
+
+  # The instance is burstable in Unlimited mode: bursting past the earned
+  # credits is billed extra instead of being throttled.
+  PaidCpuCreditsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: villkro-db-paid-cpu-credits
+      AlarmDescription: RDS used paid surplus CPU credits in the last hour (extra charge).
+      Namespace: AWS/RDS
+      MetricName: CPUSurplusCreditsCharged
+      Dimensions: [{ Name: DBInstanceIdentifier, Value: !Ref DBInstanceId }]
+      Statistic: Sum
+      Period: 3600
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertTopic]
+      OKActions: [!Ref AlertTopic]
+
+  # 20 GB disk, 18.5 GB free on 30 Sep 2026. Storage autoscaling (up to 50 GB)
+  # only starts near 10% free, so this warns first.
+  LowStorageAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: villkro-db-low-storage
+      AlarmDescription: RDS free disk under 4 GB.
+      Namespace: AWS/RDS
+      MetricName: FreeStorageSpace
+      Dimensions: [{ Name: DBInstanceIdentifier, Value: !Ref DBInstanceId }]
+      Statistic: Minimum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 4294967296
+      ComparisonOperator: LessThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertTopic]
+      OKActions: [!Ref AlertTopic]
+
+  # Normal on 30 Sep 2026: ~1 ms average, 5 ms at most.
+  SlowWritesAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: villkro-db-slow-writes
+      AlarmDescription: RDS disk write latency over 20 ms for 10 minutes. Normal is about 1 ms.
+      Namespace: AWS/RDS
+      MetricName: WriteLatency
+      Dimensions: [{ Name: DBInstanceIdentifier, Value: !Ref DBInstanceId }]
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 0.02
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertTopic]
+      OKActions: [!Ref AlertTopic]
+
+  # Metric alarms stay quiet when the database stops sending data, so RDS's own
+  # events cover it being down or restarted.
+  DbEvents:
+    Type: AWS::RDS::EventSubscription
+    Properties:
+      SubscriptionName: villkro-db-events
+      SnsTopicArn: !Ref AlertTopic
+      SourceType: db-instance
+      SourceIds: [!Ref DBInstanceId]
+      EventCategories: [availability, failure, low storage, maintenance]
+      Enabled: true
+
+Outputs:
+  AlertTopicArn:
+    Value: !Ref AlertTopic

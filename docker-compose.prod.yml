@@ -15,6 +15,16 @@
 #
 # HTTPS is provided by Cloudflare in front of port 80.
 
+# Container logs use Docker's json-file driver, which has no size limit by
+# default: they only ever grew (the proxy alone wrote ~7 MB a day). Keep each
+# container to 3 files of 10 MB; `docker logs` still reads all three. A change
+# here recreates every container on the next `up -d`.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   api:
     # IMAGE_TAG is the deployed commit SHA, exported by the deploy workflow.
@@ -35,6 +45,7 @@ services:
     environment:
       SENTRY_RELEASE: ${IMAGE_TAG:-latest}
     restart: always
+    logging: *logging
     expose:
       - "3000"
     # /health reports 200 only when both MySQL and Mongo answer. start_period
@@ -53,6 +64,7 @@ services:
   admin:
     image: ghcr.io/serveloco/projectserveloco-admin:${IMAGE_TAG:-latest}
     restart: always
+    logging: *logging
     expose:
       - "80"
     healthcheck:
@@ -65,6 +77,7 @@ services:
   landing:
     image: ghcr.io/serveloco/projectserveloco-landing:${IMAGE_TAG:-latest}
     restart: always
+    logging: *logging
     expose:
       - "80"
     healthcheck:
@@ -77,6 +90,7 @@ services:
   proxy:
     image: nginx:alpine
     restart: always
+    logging: *logging
     ports:
       - "80:80"
     volumes:
@@ -107,6 +121,7 @@ services:
   ota:
     image: ghcr.io/mercuretechnologies/xprem:v3.2.5
     restart: always
+    logging: *logging
     # Git-ignored, created by hand on the box (DB_URL, secrets, dashboard
     # admin). deploy.yml stops early if it is missing or has no DB_URL.
     env_file:
@@ -122,6 +137,10 @@ services:
       DB_MIN_CONNS: "1"
       # No hourly usage ping (instance id, base URL, version) to the vendor.
       DISABLE_TELEMETRY: "true"
+      # xprem is Go: this makes its garbage collector work harder as it
+      # nears 150 MiB instead of growing into the 192m hard cap below and
+      # being killed. The proxy's /assets cache is the main fix for that.
+      GOMEMLIMIT: "150MiB"
     # Hard cap so the update server can never take memory from the API on
     # this 1 GB box. xprem idles at ~30-50 MB; the headroom is for publishes.
     mem_limit: 192m

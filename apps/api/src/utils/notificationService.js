@@ -290,23 +290,9 @@ const createBroadcastNotification = async ({
     // data.type mirrors the order-flow push payload (createNotification).
     expoPush.sendPushToMany(pool, targetUserIds, { title, body, data: { type: type || 'info' } }).catch(() => {});
 
-    // Socket badge updates for every recipient (orderEvents only covered order
-    // paths). Fire-and-forget in small chunks — a large broadcast (thousands
-    // of users) must not hold the HTTP response open for thousands of
-    // concurrent unread-count queries.
-    (async () => {
-      try {
-        const { emitUnreadCountUpdated } = require('../realtime/orderEvents');
-        const EMIT_CHUNK_SIZE = 25;
-        for (let i = 0; i < targetUserIds.length; i += EMIT_CHUNK_SIZE) {
-          const chunk = targetUserIds.slice(i, i + EMIT_CHUNK_SIZE);
-          await Promise.all(chunk.map((uid) => emitUnreadCountUpdated(uid)));
-        }
-      } catch (err) {
-        logger.error('Broadcast unread_count emit failed:', err.message);
-      }
-    })();
-
+    // The live popup and badge for each recipient's open app are sent by the
+    // caller (adminController.createAdminNotification ->
+    // orderEvents.emitBroadcastNotifications), once per customer.
     return { batchId, count: targetUserIds.length, pushEligibleCount };
   } catch (error) {
     if (ownsConnection) {
@@ -327,6 +313,24 @@ const getUnreadCount = async (userId) => {
     [userId]
   );
   return rows[0].count;
+};
+
+// getUnreadCount for many customers at once (a broadcast's recipients): one
+// grouped query per 1,000 instead of one COUNT each. Customers with nothing
+// unread get 0, as getUnreadCount would return.
+const UNREAD_COUNTS_CHUNK = 1000;
+const getUnreadCounts = async (userIds) => {
+  const counts = new Map(userIds.map((id) => [Number(id), 0]));
+  for (let i = 0; i < userIds.length; i += UNREAD_COUNTS_CHUNK) {
+    const [rows] = await pool.query(
+      `SELECT user_id, COUNT(*) AS count FROM notifications
+       WHERE user_id IN (?) AND read_at IS NULL AND deleted_at IS NULL
+       GROUP BY user_id`,
+      [userIds.slice(i, i + UNREAD_COUNTS_CHUNK)]
+    );
+    for (const row of rows) counts.set(Number(row.user_id), row.count);
+  }
+  return counts;
 };
 
 const markAllRead = async (userId) => {
@@ -361,6 +365,7 @@ module.exports = {
   createNotificationBatch,
   createBroadcastNotification,
   getUnreadCount,
+  getUnreadCounts,
   markAllRead,
   softDeleteNotification,
   softDeleteAllNotifications

@@ -422,6 +422,28 @@ const DASHBOARD_METRICS_SQL = `
 
 const DASHBOARD_ALERTS_LIMIT = 50;
 
+// The dashboard's latest orders: Pending first, then newest first. As one
+// ORDER BY (status = 'Pending') DESC, created_at DESC no index can serve it,
+// so MySQL sorted every order on each load. Each half below walks an index
+// for its own newest 10, and only those (at most 20) rows get the final sort
+// — the same 10 rows in the same order. id breaks created_at ties (seconds).
+const LATEST_ORDERS_LIMIT = 10;
+const latestOrdersQuery = (areaId = null) => {
+  const inArea = areaId === null ? '' : 'area_id = ? AND ';
+  const newest = (statusTest) => `(SELECT * FROM orders WHERE ${inArea}${statusTest}
+      ORDER BY created_at DESC, id DESC LIMIT ${LATEST_ORDERS_LIMIT})`;
+  const sql = `
+      SELECT * FROM (
+        ${newest("status = 'Pending'")}
+        UNION ALL
+        ${newest("status != 'Pending'")}
+      ) AS latest
+      ORDER BY (status = 'Pending') DESC, created_at DESC, id DESC
+      LIMIT ${LATEST_ORDERS_LIMIT}
+    `;
+  return [sql, areaId === null ? [] : [areaId, areaId]];
+};
+
 /**
  * The super admin's "All areas" dashboard: the same order/sales KPIs summed
  * over every area, one row per area (its KPIs plus its delivery / shop /
@@ -433,11 +455,7 @@ const DASHBOARD_ALERTS_LIMIT = 50;
 const getAllAreasDashboard = async (req, res) => {
   const [metricRows, latestOrders, unavailableProducts, topProducts, settingRows, areas] = await Promise.all([
     queryRows(`SELECT area_id, ${DASHBOARD_METRICS_SQL} FROM orders GROUP BY area_id`, []),
-    queryRows(`
-      SELECT * FROM orders
-      ORDER BY (status = 'Pending') DESC, created_at DESC
-      LIMIT 10
-    `, []),
+    queryRows(...latestOrdersQuery()),
     queryRows(`
       SELECT id, name, price, area_id FROM products
       WHERE available = 0 AND deleted = 0
@@ -541,12 +559,7 @@ const getDashboard = async (req, res) => {
     WHERE area_id = ?
   `, [areaId]);
 
-  const latestOrders = await queryRows(`
-    SELECT * FROM orders
-    WHERE area_id = ?
-    ORDER BY (status = 'Pending') DESC, created_at DESC
-    LIMIT 10
-  `, [areaId]);
+  const latestOrders = await queryRows(...latestOrdersQuery(areaId));
 
   const unavailableProducts = await queryRows(`
     SELECT id, name, price FROM products WHERE available = 0 AND area_id = ?
@@ -2373,12 +2386,16 @@ const createAdminNotification = async (req, res) => {
     return res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Failed to create broadcast notification' });
   }
 
-  // Emit realtime events to all recipients so they get phone notifications.
-  // Was N+1 (one SELECT per user); now a single batch SELECT + parallel emit.
+  // Live popup + badge on every recipient's open app. Read back by this
+  // batch's own index (its rows are exactly the recipients') with only the
+  // columns the socket payload carries, then one emit pass whose unread counts
+  // come from a single grouped query — it used to re-read every full row and
+  // run a COUNT per customer, twice.
   try {
     const [notifications] = await pool.query(
-      'SELECT * FROM notifications WHERE user_id IN (?) AND batch_id = ? ORDER BY id DESC',
-      [targetUserIds, result.batchId]
+      `SELECT id, user_id, title, body, type, source_type, source_id, action_type, action_payload, created_at
+         FROM notifications WHERE batch_id = ? ORDER BY id DESC`,
+      [result.batchId]
     );
     // Group by user_id (ordered DESC so the first per user is the most recent)
     const latestByUser = new Map();
@@ -2387,18 +2404,7 @@ const createAdminNotification = async (req, res) => {
         latestByUser.set(Number(n.user_id), n);
       }
     }
-    await Promise.all(
-      targetUserIds.map(async (userId) => {
-        const notif = latestByUser.get(Number(userId));
-        if (notif) {
-          try {
-            realtimeEvents.emitNotificationRow(userId, notif);
-          } catch (error) {
-            logger.error(`Failed to emit notification to user ${userId}:`, error.message);
-          }
-        }
-      })
-    );
+    await realtimeEvents.emitBroadcastNotifications([...latestByUser.values()]);
   } catch (error) {
     logger.error('Failed to batch-load broadcast notifications:', error.message);
   }

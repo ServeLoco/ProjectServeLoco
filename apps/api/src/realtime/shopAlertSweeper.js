@@ -18,12 +18,17 @@
  * DB is source of truth (orders.accepted_at, order_items.shop_last_notified_at)
  * — no in-memory timer state, so this is safe across restarts and multiple
  * API instances, same rationale as riderOfferSweeper.
+ *
+ * With no shop waiting on any order the passes are skipped entirely: the tick
+ * checks hasLiveShopAlerts first and sleeps behind sweepGates.shopAlerts until
+ * an accept or resend wakes it (see realtime/sweepGates.js).
  */
 
 const { pool } = require('../db/mysql');
 const config = require('../config/env');
 const { remindShopOrderOwner } = require('../utils/shops');
 const logger = require('../utils/logger');
+const { shopAlerts: gate } = require('./sweepGates');
 
 const SHOP_ALERT_SWEEP_MS = config.SHOP_ALERT_SWEEP_MS || 2000;
 const SHOP_ALERT_REMIND_MS = config.SHOP_ALERT_REMIND_MS || 25000;
@@ -200,12 +205,40 @@ const timeoutRejectStaleShopOrders = async () => {
   }
 };
 
+/**
+ * Whether either pass could have anything to do: a shop that has neither
+ * confirmed nor rejected its items on an Accepted/Preparing order — reminded
+ * inside the response window, auto-rejected after it. The union of both
+ * passes' conditions, so false means both would find nothing. Deliberately
+ * time-free: work only appears through a write (an accept, a resend), never
+ * by the clock alone, so a sleeping sweeper can't miss a due reminder.
+ */
+const hasLiveShopAlerts = async () => {
+  const [rows] = await pool.query(
+    `SELECT 1
+     FROM orders o
+     JOIN order_items oi ON oi.order_id = o.id
+     JOIN shops s ON s.id = oi.shop_id
+     WHERE o.status IN ('Accepted', 'Preparing')
+       AND o.accepted_at IS NOT NULL
+       AND oi.shop_confirmed_at IS NULL
+       AND oi.shop_rejected_at IS NULL
+     LIMIT 1`
+  );
+  return rows.length > 0;
+};
+
 const tick = async () => {
-  if (running) return;
+  if (running || gate.isClosed()) return;
   running = true;
   try {
-    await remindPendingShopOrders();
-    await timeoutRejectStaleShopOrders();
+    const checkpoint = gate.checkpoint();
+    if (await hasLiveShopAlerts()) {
+      await remindPendingShopOrders();
+      await timeoutRejectStaleShopOrders();
+    } else {
+      gate.close(checkpoint);
+    }
     missingColumnLogged = false;
   } catch (e) {
     const missing = e && (e.code === 'ER_BAD_FIELD_ERROR' || e.code === 'ER_NO_SUCH_TABLE'
@@ -225,6 +258,7 @@ const tick = async () => {
 
 const startShopAlertSweeper = () => {
   if (timer) return;
+  gate.wake(); // first tick checks for live work, whatever an earlier run left
   timer = setInterval(() => {
     tick().catch(() => {});
   }, SHOP_ALERT_SWEEP_MS);
@@ -243,6 +277,7 @@ module.exports = {
   startShopAlertSweeper,
   stopShopAlertSweeper,
   tick,
+  hasLiveShopAlerts,
   remindPendingShopOrders,
   timeoutRejectStaleShopOrders,
   SHOP_ALERT_SWEEP_MS,

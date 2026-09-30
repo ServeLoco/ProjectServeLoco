@@ -12,6 +12,7 @@ const { emitToAdmins, emitToCustomer } = require('../realtime/socket');
 const notificationService = require('../utils/notificationService');
 const realtimeEvents = require('../realtime/orderEvents');
 const logger = require('../utils/logger');
+const { shopAlerts: shopAlertGate } = require('../realtime/sweepGates');
 
 const ACTIVE_ORDER_STATUSES = ['Accepted', 'Preparing'];
 
@@ -278,6 +279,8 @@ async function resendShopOrder(shopId, orderId, { shopName } = {}) {
     'UPDATE order_items SET shop_rejected_at = NULL WHERE order_id = ? AND shop_id = ? AND shop_rejected_at IS NOT NULL',
     [orderId, shopId]
   );
+  // The shop is waiting again, which is the shop-alert sweeper's work.
+  shopAlertGate.wake();
 
   emitToAdmins(countRows[0].area_id, 'admin.order.updated', {
     orderId: Number(orderId),
