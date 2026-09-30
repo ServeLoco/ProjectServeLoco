@@ -20,6 +20,10 @@ jest.mock('../src/api', () => ({
 
 const { adminApi } = require('../src/api');
 
+// The first render loads the whole screen cold; on a busy machine that took
+// past jest's 5 s default once, though it runs in ~0.2 s when warm.
+jest.setTimeout(20000);
+
 const CUSTOMERS = {
   data: [
     { id: 1, name: 'Yash', phone: '9999999999', order_count: 5, trusted: true, blocked: false, created_at: '2026-01-01T00:00:00Z' },
