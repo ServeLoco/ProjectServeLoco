@@ -159,7 +159,6 @@ const migrate = async () => {
         blocked BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        INDEX idx_phone (phone),
         INDEX idx_firebase_uid (firebase_uid)
       );
     `);
@@ -1660,7 +1659,6 @@ const migrate = async () => {
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
         FOREIGN KEY (batch_id) REFERENCES notification_batches(id) ON DELETE SET NULL,
         INDEX idx_notifications_user_created (user_id, created_at),
-        INDEX idx_notifications_user_read (user_id, read_at),
         INDEX idx_notifications_source (source_type, source_id),
         INDEX idx_notifications_batch (batch_id),
         INDEX idx_notifications_deleted (deleted_at),
@@ -1739,8 +1737,7 @@ const migrate = async () => {
         body TEXT NOT NULL,
         enabled TINYINT(1) DEFAULT 1,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        INDEX idx_event_key (event_key)
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       );
     `);
 
@@ -2038,8 +2035,7 @@ const migrate = async () => {
         alt_text VARCHAR(500),
         legacy_mongo_id VARCHAR(24) NULL UNIQUE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        INDEX idx_legacy_mongo_id (legacy_mongo_id)
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       );
     `);
     // Optional 320px WebP thumbnail URL (nullable for legacy images until backfill).
@@ -2456,6 +2452,17 @@ const migrate = async () => {
     // these it reads just the rows it returns.
     await ensureIndex('admin_notifications', 'idx_admin_notifications_area_created', 'area_id, created_at, id');
     await ensureIndex('admin_notifications', 'idx_admin_notifications_created', 'created_at, id');
+
+    // Duplicates of another index on the same leading columns — a UNIQUE on
+    // the same column, or (user_read) the first two columns of
+    // idx_notifications_user_unread. No query needs them, and every insert
+    // kept them up to date; on notifications that is ~1,000 rows per
+    // broadcast. The CREATE TABLEs above no longer make them; this drops them
+    // where they already exist.
+    await dropIndexIfExists('users', 'idx_phone');
+    await dropIndexIfExists('images', 'idx_legacy_mongo_id');
+    await dropIndexIfExists('notification_templates', 'idx_event_key');
+    await dropIndexIfExists('notifications', 'idx_notifications_user_read');
 
     // ---- TASK 11 — store_modes seeded per area, not just area 1 ---------
     // The original seed (above, table-creation time) only ever ran once
