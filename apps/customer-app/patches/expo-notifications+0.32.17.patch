@@ -1,3 +1,20 @@
+diff --git a/node_modules/expo-notifications/android/src/main/java/expo/modules/notifications/notifications/handling/NotificationsHandler.kt b/node_modules/expo-notifications/android/src/main/java/expo/modules/notifications/notifications/handling/NotificationsHandler.kt
+index 182dff5..63bc8d1 100644
+--- a/node_modules/expo-notifications/android/src/main/java/expo/modules/notifications/notifications/handling/NotificationsHandler.kt
++++ b/node_modules/expo-notifications/android/src/main/java/expo/modules/notifications/notifications/handling/NotificationsHandler.kt
+@@ -61,7 +61,11 @@ open class NotificationsHandler : Module(), NotificationListener {
+     OnDestroy {
+       notificationManager.removeListener(this@NotificationsHandler)
+ 
+-      tasksMap.values.forEach(SingleNotificationHandlerTask::stop)
++      // VillKro patch: stop() ends in onTaskFinished(), which removes the task
++      // from tasksMap while this loop is still walking it, and that threw
++      // ConcurrentModificationException whenever the app reloaded (an OTA
++      // being applied) with a notification still being handled. Walk a copy.
++      tasksMap.values.toList().forEach(SingleNotificationHandlerTask::stop)
+ 
+       // We don't have to use `quitSafely` here, cause all tasks were stopped
+       notificationsHandlerThread.quit()
 diff --git a/node_modules/expo-notifications/android/src/main/java/expo/modules/notifications/service/NotificationForwarderActivity.kt b/node_modules/expo-notifications/android/src/main/java/expo/modules/notifications/service/NotificationForwarderActivity.kt
 index cefcccf..d2c1987 100644
 --- a/node_modules/expo-notifications/android/src/main/java/expo/modules/notifications/service/NotificationForwarderActivity.kt
