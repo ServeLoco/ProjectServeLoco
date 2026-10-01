@@ -2,7 +2,7 @@
   "expo": {
     "name": "VillKro",
     "slug": "villkro",
-    "version": "1.9.6",
+    "version": "1.9.8",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "assetBundlePatterns": [
@@ -104,7 +104,7 @@
       }
     },
     "owner": "yashsiwch",
-    "runtimeVersion": "1.9.6",
+    "runtimeVersion": "1.9.8",
     "updates": {
       "url": "https://ota.serveloco.app/manifest",
       "enabled": true,
