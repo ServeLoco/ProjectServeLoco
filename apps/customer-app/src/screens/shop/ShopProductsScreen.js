@@ -4,7 +4,7 @@ import {
   TouchableOpacity, View, Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
+import BlurView from '../../components/BlurView';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { colors, spacing, typography, radius, shadows, glass, glassRadius, glassShadow } from '../../theme';

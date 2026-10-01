@@ -1,7 +1,7 @@
 import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Keyboard, Platform, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BlurView } from 'expo-blur';
+import BlurView from '../BlurView';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing, radius, layout } from '../../theme';
 import { useCartStore } from '../../stores';

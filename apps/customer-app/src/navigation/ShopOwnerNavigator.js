@@ -2,7 +2,7 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BlurView } from 'expo-blur';
+import BlurView from '../components/BlurView';
 import { glass, glassRadius, spacing } from '../theme';
 import TabBarPillButton from '../components/navigation/TabBarPillButton';
 import { ShopDashboardScreen, ShopOrdersScreen, ShopProductsScreen } from '../screens/shop';

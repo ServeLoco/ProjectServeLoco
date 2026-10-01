@@ -4,7 +4,7 @@ import { addEventListener as addNetInfoListener } from '@react-native-community/
 import RetryingImage from '../../../components/ProductImage/RetryingImage';
 import { normalizeProductCached, orderHomeUnits } from './homeSectionOrder';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
+import BlurView from '../../../components/BlurView';
 import {
   View,
   Text,
