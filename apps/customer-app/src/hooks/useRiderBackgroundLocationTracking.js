@@ -2,7 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { AppState, Platform } from 'react-native';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { RIDER_BACKGROUND_LOCATION_TASK } from '../tasks/riderBackgroundLocationTask';
+import {
+  RIDER_BACKGROUND_LOCATION_TASK,
+  stopRiderBackgroundLocation,
+} from '../tasks/riderBackgroundLocationTask';
 import { IDLE_PING_INTERVAL_MS, IDLE_PING_ACCURACY } from '../utils/riderTracking';
 
 const DISCLOSURE_SHOWN_KEY = 'serveloco-rider-bg-location-disclosure-shown';
@@ -164,15 +167,14 @@ export function useRiderBackgroundLocationTracking(isOnline, hasActiveAssignment
       runningRef.current = true;
     }
 
+    // Not gated on runningRef: that only knows what THIS mount started. A
+    // registration left by an earlier, killed session survives into this one,
+    // and a rider who opens the app offline or mid-job must not keep it —
+    // Android would go on waking the closed app for it, and every one of those
+    // wake-ups crashes in expo-task-manager before our task can run.
     async function stop() {
-      if (!runningRef.current) return;
       runningRef.current = false;
-      const already = await Location.hasStartedLocationUpdatesAsync(
-        RIDER_BACKGROUND_LOCATION_TASK
-      ).catch(() => false);
-      if (already) {
-        await Location.stopLocationUpdatesAsync(RIDER_BACKGROUND_LOCATION_TASK).catch(() => {});
-      }
+      await stopRiderBackgroundLocation();
     }
 
     if (isOnline && !hasActiveAssignment) {

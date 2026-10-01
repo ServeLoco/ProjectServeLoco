@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import CustomerNavigator from './CustomerNavigator';
 import ShopOwnerNavigator from './ShopOwnerNavigator';
@@ -10,6 +10,7 @@ import { OfflineBanner } from '../components';
 import { trackScreen, initAnalytics, stopAnalytics } from '../api/analyticsClient';
 import { logScreen } from '../utils/crashReporting';
 import { useAuthStore } from '../stores';
+import { stopRiderBackgroundLocation } from '../tasks/riderBackgroundLocationTask';
 import { colors, spacing, typography } from '../theme';
 
 /**
@@ -116,6 +117,9 @@ export default function RootNavigator() {
   const rider = useAuthStore((s) => s.rider);
   const admin = useAuthStore((s) => s.admin);
   const adminToken = useAuthStore((s) => s.adminToken);
+  const hasHydrated = useAuthStore((s) => s.hasHydrated);
+  // Same precedence as the role shells below: admin, then shop, then rider.
+  const isRiderShell = Boolean(isAuthenticated && rider && !admin && !shop);
   const showOffline = !isReachable;
   const message = isDeviceOffline
     ? 'You appear to be offline.'
@@ -126,6 +130,18 @@ export default function RootNavigator() {
     initAnalytics();
     return () => stopAnalytics();
   }, []);
+
+  // Rider location updates are registered with Android and outlive sign-out,
+  // losing the rider role, and the app being killed. Only the rider dashboard
+  // ever stops them, so a phone that is no longer in rider mode kept the
+  // registration forever — and each update Android delivered to the closed app
+  // crashed it in expo-task-manager (Play Console's top crash). Clear it on
+  // every launch outside rider mode. Waits for the stored session to load, so
+  // a real rider is never mistaken for a signed-out user on a cold start.
+  useEffect(() => {
+    if (Platform.OS !== 'android' || !hasHydrated || isRiderShell) return;
+    stopRiderBackgroundLocation();
+  }, [hasHydrated, isRiderShell]);
 
   return (
     <>

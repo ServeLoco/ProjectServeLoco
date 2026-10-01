@@ -251,4 +251,48 @@ describe('useRiderBackgroundLocationTracking', () => {
       expect(Location.startLocationUpdatesAsync).toHaveBeenCalled();
     });
   });
+
+  /**
+   * The registration lives in Android, not in this mount. One left by a killed
+   * session used to survive because stop() bailed out unless this mount had
+   * started it — and every update Android then delivered to the closed app
+   * crashed it in expo-task-manager.
+   */
+  describe('clears a registration left by an earlier session', () => {
+    it('stops it when the rider opens the app offline', async () => {
+      Location.hasStartedLocationUpdatesAsync.mockResolvedValue(true);
+
+      renderHook(false, false);
+      await flush();
+
+      expect(Location.stopLocationUpdatesAsync).toHaveBeenCalledWith('rider-background-location');
+      expect(Location.startLocationUpdatesAsync).not.toHaveBeenCalled();
+    });
+
+    it('stops it when the rider opens the app in the middle of a job', async () => {
+      Location.hasStartedLocationUpdatesAsync.mockResolvedValue(true);
+
+      renderHook(true, true);
+      await flush();
+
+      expect(Location.stopLocationUpdatesAsync).toHaveBeenCalledWith('rider-background-location');
+    });
+
+    it('does nothing when there is no registration to clear', async () => {
+      renderHook(false, false);
+      await flush();
+
+      expect(Location.stopLocationUpdatesAsync).not.toHaveBeenCalled();
+    });
+
+    it('keeps it when the rider opens the app online and free', async () => {
+      Location.hasStartedLocationUpdatesAsync.mockResolvedValue(true);
+      Location.getBackgroundPermissionsAsync.mockResolvedValue({ status: 'granted', granted: true });
+
+      renderHook(true, false);
+      await flush();
+
+      expect(Location.stopLocationUpdatesAsync).not.toHaveBeenCalled();
+    });
+  });
 });
