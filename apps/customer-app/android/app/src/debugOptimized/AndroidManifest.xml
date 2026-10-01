@@ -3,5 +3,12 @@
 
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
 
-    <application android:usesCleartextTraffic="true" tools:targetApi="28" tools:ignore="GoogleAppIndexingWarning" tools:replace="android:usesCleartextTraffic" />
+    <application android:usesCleartextTraffic="true" tools:targetApi="28" tools:ignore="GoogleAppIndexingWarning" tools:replace="android:usesCleartextTraffic">
+        <!-- OTA code signing is for release builds. A dev build loads from Metro,
+             which cannot sign its manifest (the private key lives only on the OTA
+             server), so with these the dev app failed with "Failed to download
+             remote update" (Metro: "Must specify private-key-path"). -->
+        <meta-data android:name="expo.modules.updates.CODE_SIGNING_CERTIFICATE" tools:node="remove"/>
+        <meta-data android:name="expo.modules.updates.CODE_SIGNING_METADATA" tools:node="remove"/>
+    </application>
 </manifest>
