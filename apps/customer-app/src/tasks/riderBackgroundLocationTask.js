@@ -51,6 +51,32 @@ let lastPostAtMs = 0;
 const STOP_AFTER_CONSECUTIVE_MISSES = 3;
 let consecutiveMisses = 0;
 
+/**
+ * Remove this phone's rider location registration, if there is one.
+ *
+ * Asks Android rather than trusting any in-memory flag: the registration
+ * outlives the JS session that made it, so a fresh launch has no record of a
+ * registration left behind by a killed one.
+ *
+ * Also called from the foreground (RootNavigator, and the rider hook's stop)
+ * because the self-stop below cannot be relied on in release builds: there
+ * the task never actually runs once the app is closed — expo-task-manager
+ * crashes before any JS loads — so a leftover registration has to be cleared
+ * the next time the app is opened.
+ *
+ * @returns {Promise<boolean>} true if a registration was found and stopped.
+ */
+export async function stopRiderBackgroundLocation() {
+  try {
+    const started = await Location.hasStartedLocationUpdatesAsync(RIDER_BACKGROUND_LOCATION_TASK);
+    if (started) await Location.stopLocationUpdatesAsync(RIDER_BACKGROUND_LOCATION_TASK);
+    return started;
+  } catch (_) {
+    // Nothing else to try — if this throws the registration is already gone.
+    return false;
+  }
+}
+
 async function stopSelfAfterRepeatedMisses(reason) {
   consecutiveMisses += 1;
   if (consecutiveMisses < STOP_AFTER_CONSECUTIVE_MISSES) {
@@ -59,13 +85,8 @@ async function stopSelfAfterRepeatedMisses(reason) {
     );
     return;
   }
-  try {
-    const started = await Location.hasStartedLocationUpdatesAsync(RIDER_BACKGROUND_LOCATION_TASK);
-    if (started) await Location.stopLocationUpdatesAsync(RIDER_BACKGROUND_LOCATION_TASK);
-    console.warn('[riderBackgroundLocationTask] unregistered:', reason);
-  } catch (_) {
-    // Nothing else to try — if this throws the registration is already gone.
-  }
+  await stopRiderBackgroundLocation();
+  console.warn('[riderBackgroundLocationTask] unregistered:', reason);
 }
 
 TaskManager.defineTask(RIDER_BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
