@@ -1,33 +1,26 @@
 diff --git a/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/Screen.kt b/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/Screen.kt
-index 2b7dcff..64ff5dd 100644
+index 2b7dcff..881c280 100644
 --- a/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/Screen.kt
 +++ b/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/Screen.kt
-@@ -470,6 +470,10 @@ class Screen(
-         }
-         isBeingRemoved = false
-         endTransitionRecursive(this)
-+        // VillKro patch: the removal was called off and the screen stays, so
-+        // give pull-to-refresh its own drawing order back (spinner on top).
-+        refreshLayoutsWithOrderOff.forEach { setChildrenDrawingOrderEnabled(it, true) }
-+        refreshLayoutsWithOrderOff.clear()
-     }
- 
-     private fun endTransitionRecursive(parent: ViewGroup) {
-@@ -486,22 +490,39 @@ class Screen(
+@@ -486,22 +486,34 @@ class Screen(
          }
      }
  
-+    // VillKro patch: see startTransitionRecursive.
-+    private val refreshLayoutsWithOrderOff = mutableListOf<SwipeRefreshLayout>()
-+
-+    private fun setChildrenDrawingOrderEnabled(layout: ViewGroup, enabled: Boolean) {
++    // VillKro patch: SwipeRefreshLayout draws its spinner last using a child
++    // index it saves when measured. Once a closing screen's views start being
++    // removed that index points past the last child, and drawing throws
++    // "getChildDrawingOrder() returned invalid index". The library's fix (an
++    // empty View to bump the count) still crashed when a measure pass saved a
++    // new index in between. Turn the custom order off instead. This only runs
++    // for a screen that is being removed for good (ScreenStackViewManager.
++    // removeViewAt), so the order is never turned back on.
++    private fun disableChildrenDrawingOrder(layout: ViewGroup) {
 +        try {
 +            // Protected on ViewGroup; plain reflection on a public SDK method.
 +            ViewGroup::class.java
 +                .getDeclaredMethod("setChildrenDrawingOrderEnabled", Boolean::class.javaPrimitiveType)
 +                .apply { isAccessible = true }
-+                .invoke(layout, enabled)
-+            layout.invalidate()
++                .invoke(layout, false)
 +        } catch (_: Exception) {
 +            // Leave the order as it was; worst case is the old behaviour.
 +        }
@@ -35,6 +28,8 @@ index 2b7dcff..64ff5dd 100644
 +
      private fun startTransitionRecursive(parent: ViewGroup?) {
          parent?.let {
++            if (it is SwipeRefreshLayout) disableChildrenDrawingOrder(it)
++
              for (i in 0 until it.childCount) {
                  val child = it.getChildAt(i)
  
@@ -48,17 +43,7 @@ index 2b7dcff..64ff5dd 100644
 -                    it.addView(View(context), i)
 -                } else {
 -                    child?.let { view -> it.startViewTransition(view) }
-+                // VillKro patch: SwipeRefreshLayout draws its spinner last using
-+                // a child index it saves when measured. Once the screen starts
-+                // being taken apart that index can point past the last child,
-+                // and drawing throws "getChildDrawingOrder() returned invalid
-+                // index". The library's fix (adding an empty View to bump the
-+                // count) still crashed, so instead turn the custom order off
-+                // for as long as the screen is being removed.
-+                if (parent is SwipeRefreshLayout && parent !in refreshLayoutsWithOrderOff) {
-+                    setChildrenDrawingOrderEnabled(parent, false)
-+                    refreshLayoutsWithOrderOff.add(parent)
-                 }
+-                }
 +                child?.let { view -> it.startViewTransition(view) }
  
                  if (child is ScreenStackHeaderConfig) {
