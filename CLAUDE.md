@@ -62,7 +62,7 @@ npm test         # jest
 
 GitHub Actions per app: `ci.yml` (API tests + lint), `ci-admin.yml`, `ci-customer-app.yml`, plus `deploy.yml` and `playstore.yml`.
 
-`ci.yml` runs the API suite with `RUN_DB_TESTS=1` against its MySQL service container, which enables `apps/api/tests/integration/*` — the concurrency tests for the coupon `FOR UPDATE` lock, the compare-and-set 409s and the `idx_orders_idempotency` unique index. Those are database guarantees, so they need a real server; every other test file mocks `src/db/mysql`. They skip without the flag so `npm test` still needs no database locally. See `apps/api/tests/helpers/realMysql.js`. Deployment steps are documented in `plans/deploymentfinallast.md`.
+`ci.yml` runs the API suite with `RUN_DB_TESTS=1` against its MySQL service container, which enables `apps/api/tests/integration/*` — the concurrency tests for the coupon `FOR UPDATE` lock, the compare-and-set 409s and the `idx_orders_idempotency` unique index. Those are database guarantees, so they need a real server; every other test file mocks `src/db/mysql`. They skip without the flag so `npm test` still needs no database locally. `jest.config.js` puts them in their own project with `tests/helpers/serialRunner.js`, so they run one file at a time while unit files stay parallel — in parallel their range deletes locked each other's rows and deadlocked. See `apps/api/tests/helpers/realMysql.js`. Deployment steps are documented in `plans/deploymentfinallast.md`.
 
 ## Subagent routing (`.claude/agents/`)
 

@@ -13,6 +13,8 @@
 // real row and gap locks on `orders` and `coupons`. Split across files they
 // intermittently blocked each other's fixture inserts — a flaky suite that
 // looked like a product bug. One file makes the locking strictly sequential.
+// (The integration files now also run one at a time — see
+// tests/helpers/serialRunner.js — after other files' cleanups deadlocked here.)
 //
 // See tests/helpers/realMysql.js for the RUN_DB_TESTS gate.
 

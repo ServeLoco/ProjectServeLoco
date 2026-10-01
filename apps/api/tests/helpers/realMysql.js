@@ -47,11 +47,13 @@ const assertMysqlReady = async () => {
 // in their local test database.
 //
 // The tag is generated per module instance — meaning per test FILE, since jest
-// gives each file its own module registry — because jest runs files in
-// parallel workers against one database. A shared tag would have each file's
-// cleanup deleting the fixtures a sibling file was still using. The cost is
-// that a hard crash mid-run leaves its rows behind; CI starts from a fresh
-// container, and locally they are inert rows in a test database.
+// gives each file its own module registry — so one file's cleanup never
+// deletes another file's fixtures. Files no longer overlap — jest.config.js
+// runs them one at a time (tests/helpers/serialRunner.js), because these LIKE
+// deletes lock past their own rows and deadlocked a sibling file — but the tag
+// keeps a file to its own rows regardless. The cost is that a hard crash
+// mid-run leaves its rows behind; CI starts from a fresh container, and
+// locally they are inert rows in a test database.
 const FIXTURE_TAG = `ITC${Math.random().toString(36).slice(2, 8)}`.toUpperCase();
 
 let seq = 0;
