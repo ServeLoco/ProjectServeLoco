@@ -1,3 +1,4 @@
+import { AppState } from 'react-native';
 import * as TaskManager from 'expo-task-manager';
 import * as Location from 'expo-location';
 import { riderApi } from '../api/riderApi';
@@ -102,6 +103,12 @@ TaskManager.defineTask(RIDER_BACKGROUND_LOCATION_TASK, async ({ data, error }) =
     const coords = point?.coords;
     if (!coords) return;
 
+    // The service keeps running while the app is on screen (Android will not
+    // let it be started again from the background), but there the rider
+    // dashboard's own idle ping is already sending the same position. Only
+    // the closed or backgrounded app needs this one.
+    if (AppState.currentState === 'active') return;
+
     const now = Date.now();
     if (now - lastPostAtMs < MIN_POST_INTERVAL_MS) return;
     // Claimed before the await so a burst of iOS fixes delivered back-to-back
@@ -129,9 +136,31 @@ TaskManager.defineTask(RIDER_BACKGROUND_LOCATION_TASK, async ({ data, error }) =
       return;
     }
 
+    let res;
+    try {
+      res = await riderApi.updateLocation(coords.latitude, coords.longitude);
+    } catch (err) {
+      // 403 is the server saying this account is no longer an active rider
+      // (an admin deactivating a rider also takes them offline). Anything
+      // else — no network, a 5xx — is a dropped ping; the next fix retries.
+      if (err?.status === 403) await stopSelfAfterRepeatedMisses('not an active rider');
+      return;
+    }
+
+    // The rider was taken offline somewhere the closed app could not hear
+    // about — the admin panel, or another phone. An offline rider is offered
+    // no orders, so there is no reason to keep tracking them. Strictly false:
+    // an older server answers without the field. Not a single answer, either:
+    // a fix that lands just before "go online" reaches the server would read
+    // offline for a rider who has just come online.
+    const online = res?.isOnline ?? res?.is_online;
+    if (online === false) {
+      await stopSelfAfterRepeatedMisses('rider is offline');
+      return;
+    }
+
     // A good fix clears the strike count — misses only matter consecutively.
     consecutiveMisses = 0;
-    await riderApi.updateLocation(coords.latitude, coords.longitude);
   } catch (_) {
     // Best-effort — the next fix on the following interval retries.
   }

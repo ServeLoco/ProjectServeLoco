@@ -365,7 +365,10 @@ const updateLocation = async (req, res) => {
     }
   }
 
-  res.status(200).json({ ok: true });
+  // The phone's background location task reads this: a closed app never hears
+  // that an admin took the rider offline, so it stops tracking on our word.
+  const isOnline = Boolean(req.rider.is_online);
+  res.status(200).json({ ok: true, isOnline, is_online: isOnline });
 };
 
 // GET /api/rider/offers/active — primary offer + full pending queue

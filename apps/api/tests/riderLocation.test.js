@@ -86,7 +86,7 @@ describe('POST /api/rider/me/location', () => {
       .send({ lat: 29.5152, lng: 75.4548 });
 
     expect(res.statusCode).toEqual(200);
-    expect(res.body).toEqual({ ok: true });
+    expect(res.body).toEqual({ ok: true, isOnline: true, is_online: true });
 
     const updateCall = pool.query.mock.calls.find((c) =>
       String(c[0]).includes('SET last_lat')
@@ -146,5 +146,22 @@ describe('POST /api/rider/me/location', () => {
     expect(res.body.ok).toBe(true);
     expect(pool.query.mock.calls.some((c) => String(c[0]).includes('SET last_lat'))).toBe(true);
     expect(emitToCustomer).not.toHaveBeenCalled();
+  });
+
+  // A closed app never hears that an admin took the rider offline; this answer
+  // is how its background location task learns to stop.
+  it('tells an offline rider they are offline, in both casings', async () => {
+    pool.query
+      .mockResolvedValueOnce([[{ ...RIDER_ROW, is_online: 0 }]])
+      .mockResolvedValueOnce([{ affectedRows: 1 }])
+      .mockResolvedValueOnce([[]]);
+
+    const res = await request(app)
+      .post('/api/rider/me/location')
+      .set('Authorization', `Bearer ${customerToken(7)}`)
+      .send({ lat: 29.5, lng: 75.4 });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body).toEqual({ ok: true, isOnline: false, is_online: false });
   });
 });

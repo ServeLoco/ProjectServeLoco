@@ -8,6 +8,7 @@
  * callback off the mock and invoke it directly with a synthetic
  * {data, error} payload, same shape TaskManager passes at runtime.
  */
+import { AppState } from 'react-native';
 import * as TaskManager from 'expo-task-manager';
 import { riderApi } from '../src/api/riderApi';
 import * as Location from 'expo-location';
@@ -54,6 +55,7 @@ describe('riderBackgroundLocationTask', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     nowMs += IDLE_PING_INTERVAL_MS * 10; // clear any throttle from a prior test
+    AppState.currentState = 'background'; // the app is closed or off screen
     ensureBackgroundCustomerToken.mockResolvedValue('a-token');
     ensureShopOrRiderSession.mockResolvedValue({ shop: null, rider: { id: 1 } });
     Location.hasStartedLocationUpdatesAsync.mockResolvedValue(true);
@@ -300,6 +302,118 @@ describe('riderBackgroundLocationTask', () => {
 
       expect(Location.stopLocationUpdatesAsync).not.toHaveBeenCalled();
       expect(riderApi.updateLocation).toHaveBeenCalledWith(12, 77);
+    });
+  });
+
+  /**
+   * Location is only needed from the closed app of a rider who is online. On
+   * screen, the dashboard's idle ping already sends it; offline, nobody needs
+   * it at all.
+   */
+  describe('only for an online rider whose app is closed', () => {
+    async function deliverFix(lat = 12, lng = 77) {
+      nowMs += IDLE_PING_INTERVAL_MS * 2;
+      await task(fix(lat, lng));
+    }
+    const forbidden = () => Object.assign(new Error('Not a rider'), { status: 403, code: 'FORBIDDEN' });
+
+    // Start every test from a zero strike count (module state in the task).
+    beforeEach(async () => {
+      riderApi.updateLocation.mockResolvedValue({ ok: true, isOnline: true, is_online: true });
+      await deliverFix();
+      jest.clearAllMocks();
+      Location.hasStartedLocationUpdatesAsync.mockResolvedValue(true);
+      Location.stopLocationUpdatesAsync.mockResolvedValue(undefined);
+    });
+    afterEach(() => {
+      riderApi.updateLocation.mockReset();
+      riderApi.updateLocation.mockResolvedValue({});
+    });
+
+    it('sends nothing while the app is on screen', async () => {
+      AppState.currentState = 'active';
+
+      await deliverFix();
+
+      expect(riderApi.updateLocation).not.toHaveBeenCalled();
+      expect(Location.stopLocationUpdatesAsync).not.toHaveBeenCalled();
+    });
+
+    it('a fix skipped on screen does not hold back the next one off screen', async () => {
+      nowMs += IDLE_PING_INTERVAL_MS * 2; // past the setup's own fix
+      AppState.currentState = 'active';
+      await task(fix(1, 1));
+      AppState.currentState = 'background';
+      await task(fix(2, 2));
+
+      expect(riderApi.updateLocation).toHaveBeenCalledTimes(1);
+      expect(riderApi.updateLocation).toHaveBeenCalledWith(2, 2);
+    });
+
+    it('stops tracking after the server says offline three times in a row', async () => {
+      riderApi.updateLocation.mockResolvedValue({ ok: true, isOnline: false, is_online: false });
+
+      await deliverFix();
+      await deliverFix();
+      expect(Location.stopLocationUpdatesAsync).not.toHaveBeenCalled();
+
+      await deliverFix();
+      expect(Location.stopLocationUpdatesAsync).toHaveBeenCalledWith('rider-background-location');
+    });
+
+    it('reads the snake_case field too', async () => {
+      riderApi.updateLocation.mockResolvedValue({ ok: true, is_online: false });
+
+      await deliverFix();
+      await deliverFix();
+      await deliverFix();
+
+      expect(Location.stopLocationUpdatesAsync).toHaveBeenCalledWith('rider-background-location');
+    });
+
+    // A fix can reach the server just before the rider's own "go online" does.
+    it('one offline answer followed by an online one keeps tracking', async () => {
+      riderApi.updateLocation.mockResolvedValueOnce({ ok: true, isOnline: false, is_online: false });
+      await deliverFix();
+
+      riderApi.updateLocation.mockResolvedValue({ ok: true, isOnline: false, is_online: false });
+      riderApi.updateLocation.mockResolvedValueOnce({ ok: true, isOnline: true, is_online: true });
+      await deliverFix();
+      await deliverFix();
+      await deliverFix();
+
+      expect(Location.stopLocationUpdatesAsync).not.toHaveBeenCalled();
+    });
+
+    it('keeps tracking against an older server that does not say', async () => {
+      riderApi.updateLocation.mockResolvedValue({ ok: true });
+
+      await deliverFix();
+      await deliverFix();
+      await deliverFix();
+
+      expect(Location.stopLocationUpdatesAsync).not.toHaveBeenCalled();
+    });
+
+    it('stops tracking after three 403s — the account is no longer an active rider', async () => {
+      riderApi.updateLocation.mockRejectedValue(forbidden());
+
+      await deliverFix();
+      await deliverFix();
+      await deliverFix();
+
+      expect(Location.stopLocationUpdatesAsync).toHaveBeenCalledWith('rider-background-location');
+    });
+
+    it('a network or server error is not a reason to stop', async () => {
+      riderApi.updateLocation.mockRejectedValue(Object.assign(new Error('Bad gateway'), { status: 502 }));
+
+      await deliverFix();
+      await deliverFix();
+      await deliverFix();
+      await deliverFix();
+
+      expect(Location.stopLocationUpdatesAsync).not.toHaveBeenCalled();
     });
   });
 
