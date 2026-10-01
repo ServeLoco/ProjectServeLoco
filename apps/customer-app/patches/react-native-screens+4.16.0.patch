@@ -1,0 +1,65 @@
+diff --git a/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/Screen.kt b/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/Screen.kt
+index 2b7dcff..64ff5dd 100644
+--- a/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/Screen.kt
++++ b/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/Screen.kt
+@@ -470,6 +470,10 @@ class Screen(
+         }
+         isBeingRemoved = false
+         endTransitionRecursive(this)
++        // VillKro patch: the removal was called off and the screen stays, so
++        // give pull-to-refresh its own drawing order back (spinner on top).
++        refreshLayoutsWithOrderOff.forEach { setChildrenDrawingOrderEnabled(it, true) }
++        refreshLayoutsWithOrderOff.clear()
+     }
+ 
+     private fun endTransitionRecursive(parent: ViewGroup) {
+@@ -486,22 +490,39 @@ class Screen(
+         }
+     }
+ 
++    // VillKro patch: see startTransitionRecursive.
++    private val refreshLayoutsWithOrderOff = mutableListOf<SwipeRefreshLayout>()
++
++    private fun setChildrenDrawingOrderEnabled(layout: ViewGroup, enabled: Boolean) {
++        try {
++            // Protected on ViewGroup; plain reflection on a public SDK method.
++            ViewGroup::class.java
++                .getDeclaredMethod("setChildrenDrawingOrderEnabled", Boolean::class.javaPrimitiveType)
++                .apply { isAccessible = true }
++                .invoke(layout, enabled)
++            layout.invalidate()
++        } catch (_: Exception) {
++            // Leave the order as it was; worst case is the old behaviour.
++        }
++    }
++
+     private fun startTransitionRecursive(parent: ViewGroup?) {
+         parent?.let {
+             for (i in 0 until it.childCount) {
+                 val child = it.getChildAt(i)
+ 
+-                if (parent is SwipeRefreshLayout && child is ImageView) {
+-                    // SwipeRefreshLayout class which has CircleImageView as a child,
+-                    // does not handle `startViewTransition` properly.
+-                    // It has a custom `getChildDrawingOrder` method which returns
+-                    // wrong index if we called `startViewTransition` on the views on new arch.
+-                    // We add a simple View to bump the number of children to make it work.
+-                    // TODO: find a better way to handle this scenario
+-                    it.addView(View(context), i)
+-                } else {
+-                    child?.let { view -> it.startViewTransition(view) }
++                // VillKro patch: SwipeRefreshLayout draws its spinner last using
++                // a child index it saves when measured. Once the screen starts
++                // being taken apart that index can point past the last child,
++                // and drawing throws "getChildDrawingOrder() returned invalid
++                // index". The library's fix (adding an empty View to bump the
++                // count) still crashed, so instead turn the custom order off
++                // for as long as the screen is being removed.
++                if (parent is SwipeRefreshLayout && parent !in refreshLayoutsWithOrderOff) {
++                    setChildrenDrawingOrderEnabled(parent, false)
++                    refreshLayoutsWithOrderOff.add(parent)
+                 }
++                child?.let { view -> it.startViewTransition(view) }
+ 
+                 if (child is ScreenStackHeaderConfig) {
+                     // we want to start transition on children of the toolbar too,
