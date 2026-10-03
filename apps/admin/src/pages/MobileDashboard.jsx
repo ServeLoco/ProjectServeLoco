@@ -952,7 +952,7 @@ export default function MobileDashboard() {
                           <div className="item-details">
                             <div className="item-title-name">
                               <span className="item-name-text">{name}</span>
-                              <span className="item-shop-tag">{getShopLabel(details)}</span>
+                              {item.item_type !== 'offer_card' && <span className="item-shop-tag">{getShopLabel(details)}</span>}
                             </div>
                             <div className="item-subtitle-meta">
                               {item.item_type} • ID: {item.item_id}

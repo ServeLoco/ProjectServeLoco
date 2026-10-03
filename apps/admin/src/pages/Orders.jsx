@@ -1372,11 +1372,21 @@ export default function Orders() {
                     <strong>
                       {(selectedOrder.couponCode || selectedOrder.coupon_code)
                         ? `${selectedOrder.couponCode || selectedOrder.coupon_code}${(selectedOrder.couponTitle || selectedOrder.coupon_title) ? ` — ${selectedOrder.couponTitle || selectedOrder.coupon_title}` : ''}`
-                        : 'None'}
+                        // Auto-applied offers often have no code — show their title.
+                        : (selectedOrder.couponTitle || selectedOrder.coupon_title || 'None')}
                     </strong>
                   </div>
+                  {Number(selectedOrder.dealDiscountAmount ?? selectedOrder.deal_discount_amount) > 0 && (
+                    <div className="detail-row">
+                      <span>Deal price{(selectedOrder.dealTitle || selectedOrder.deal_title) ? ` — ${selectedOrder.dealTitle || selectedOrder.deal_title}` : ''}:</span>
+                      <strong>- ₹{formatMoney(selectedOrder.dealDiscountAmount ?? selectedOrder.deal_discount_amount)}</strong>
+                    </div>
+                  )}
                   {Number(selectedOrder.discountAmount ?? selectedOrder.discount_amount) > 0 && (
-                    <div className="detail-row"><span>Discount:</span> <strong>- ₹{formatMoney(selectedOrder.discountAmount ?? selectedOrder.discount_amount)}</strong></div>
+                    <div className="detail-row">
+                      <span>{Number(selectedOrder.dealDiscountAmount ?? selectedOrder.deal_discount_amount) > 0 ? 'Total discount (coupon + deal):' : 'Discount:'}</span>
+                      <strong>- ₹{formatMoney(selectedOrder.discountAmount ?? selectedOrder.discount_amount)}</strong>
+                    </div>
                   )}
                   {Number(selectedOrder.freeDeliveryWaiverAmount ?? selectedOrder.free_delivery_waiver_amount) > 0 && (
                     <div className="detail-row"><span>Free delivery waiver:</span> <strong style={{ color: '#15803d' }}>−₹{formatMoney(selectedOrder.freeDeliveryWaiverAmount ?? selectedOrder.free_delivery_waiver_amount)}</strong></div>

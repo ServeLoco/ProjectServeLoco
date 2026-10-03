@@ -180,8 +180,8 @@ function DealPreview({ form }) {
       </div>
       <div className="coupon-preview-example">
         {minOrder > 0
-          ? `The \u20B9${minOrder} counts only the OTHER items in the cart. Once reached, up to ${maxItems} deal item${maxItems === 1 ? '' : 's'} sell at their deal price (biggest saving first). Other coupons still apply on top. VillKro pays the difference; shops get their normal price.`
-          : `Up to ${maxItems} deal item${maxItems === 1 ? '' : 's'} sell at their deal price on every order. Other coupons still apply on top.`}
+          ? `The \u20B9${minOrder} counts only the OTHER items in the cart. Once reached, up to ${maxItems} deal item${maxItems === 1 ? ' sells' : 's sell'} at the deal price (biggest saving first). Other coupons still apply on top. VillKro pays the difference; shops get their normal price.`
+          : `Up to ${maxItems} deal item${maxItems === 1 ? ' sells' : 's sell'} at the deal price on every order. Other coupons still apply on top.`}
       </div>
     </div>
   );
