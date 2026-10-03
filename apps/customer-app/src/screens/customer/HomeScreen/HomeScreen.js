@@ -98,6 +98,15 @@ const TOP_BAR_FADE_LOCATIONS = TOP_BAR_FADE_ALPHAS.map((_, i) => i / (TOP_BAR_FA
 // unavailable ones still leaves a full row.
 // Left/right space between the screen edge and the Home content.
 const PAGE_GUTTER = 10;
+
+// Product rows are short (the admin caps how many cards they show), so every
+// card is drawn up front and stays attached: a swipe then only moves pixels,
+// with no cards being built or re-attached mid-swipe, which made rows stutter.
+// (Cards in `initialNumToRender` are never unmounted by the list.)
+const productRowListProps = (count) => ({
+  initialNumToRender: Math.max(count, 1),
+  removeClippedSubviews: false,
+});
 // Home draws its sections a few at a time: this many at first, then one more
 // each time the customer scrolls within a screen of the end of what is drawn.
 const SECTIONS_INITIAL = 2;
@@ -380,9 +389,7 @@ const AutoProductBlock = React.memo(function AutoProductBlock({
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.productScrollContent}
           keyboardShouldPersistTaps="handled"
-          initialNumToRender={4}
-          maxToRenderPerBatch={4}
-          windowSize={5}
+          {...productRowListProps(items.length)}
           renderItem={({ item }) => (
             <HomeProductCard
               item={item}
@@ -1798,9 +1805,7 @@ export default function HomeScreen() {
               contentContainerStyle={styles.productScrollContent}
               style={styles.productScroll}
               keyboardShouldPersistTaps="handled"
-              initialNumToRender={4}
-              maxToRenderPerBatch={4}
-              windowSize={5}
+              {...productRowListProps(visibleItems.length)}
               renderItem={({ item, index: idx }) => {
                 const isItemCombo = isComboBlock || item.isCombo || item.is_combo;
                 return (
