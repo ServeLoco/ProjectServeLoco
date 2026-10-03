@@ -10,6 +10,7 @@ const { calculateRainCharge } = require('../utils/rainCharge');
 const { resolveDeliveryPricing, loadActiveZones, loadActiveExclusionZones } = require('../utils/deliveryPricing');
 const { resolveAreaIdForPricing, getAreaById } = require('../utils/areaScope');
 const { validateCoupon, validateCouponById, pickBestAutoApply } = require('../utils/coupons');
+const { cartItemCount, cartStoreType } = require('../utils/cartCouponContext');
 const { ACTIVE_ORDER_STATUSES } = require('../utils/riders');
 const { bustUserState } = require('../utils/userState');
 const config = require('../config/env');
@@ -330,6 +331,8 @@ const createOrder = async (req, res) => {
 
     let subtotal = 0;
     const orderItems = [];
+    // One entry per line, for cartStoreType below.
+    const lineStoreTypes = [];
 
     const productEntries = [];
     const comboEntries = [];
@@ -348,9 +351,11 @@ const createOrder = async (req, res) => {
       // area_id = ? so a stale/forged cart line referencing another area's
       // product id can't be checked out here — same OrderError below as
       // "does not exist" (§2.4: a customer in area 1 must never see area
-      // 2's products, including via a crafted product id).
+      // 2's products, including via a crafted product id). store_type is
+      // the category's type, for the coupon engine's applies_to check — read
+      // here rather than in a query of its own.
       const [prodRows] = await connection.query(
-        'SELECT id, name, price, shop_price, shop_id FROM products WHERE id IN (?) AND available = 1 AND deleted = 0 AND area_id = ? AND (shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = products.shop_id AND s.is_open = 1 AND s.active = 1)) AND (group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = products.group_id AND g.active = 1 AND g.area_id = products.area_id))',
+        'SELECT id, name, price, shop_price, shop_id, (SELECT c.type FROM categories c WHERE c.id = products.category_id) AS store_type FROM products WHERE id IN (?) AND available = 1 AND deleted = 0 AND area_id = ? AND (shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = products.shop_id AND s.is_open = 1 AND s.active = 1)) AND (group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = products.group_id AND g.active = 1 AND g.area_id = products.area_id))',
         [productIds, deliveryAreaId]
       );
       for (const row of prodRows) productById.set(Number(row.id), row);
@@ -359,7 +364,7 @@ const createOrder = async (req, res) => {
     if (comboEntries.length > 0) {
       const comboIds = comboEntries.map(e => e.productId);
       const [comboRows] = await connection.query(
-        'SELECT id, name, price FROM combos WHERE id IN (?) AND available = 1 AND deleted = 0 AND area_id = ?',
+        'SELECT id, name, price, store_type FROM combos WHERE id IN (?) AND available = 1 AND deleted = 0 AND area_id = ?',
         [comboIds, deliveryAreaId]
       );
       for (const row of comboRows) comboById.set(Number(row.id), row);
@@ -391,6 +396,7 @@ const createOrder = async (req, res) => {
       const product = isCombo ? comboById.get(Number(productId)) : productById.get(Number(productId));
 
       if (!product) throw new OrderError(`${isCombo ? 'Combo' : 'Product'} ID ${productId} is unavailable or does not exist`);
+      lineStoreTypes.push(product.store_type);
 
       const quantity = Number(item.quantity);
       const rawVariantId = item.variant_id || item.variantId || null;
@@ -443,6 +449,12 @@ const createOrder = async (req, res) => {
     }
 
     subtotal = roundMoney(subtotal);
+    // The same two cart facts calculateCart hands the coupon engine, so a
+    // min_item_count or applies_to coupon is judged at checkout exactly as in
+    // the cart preview. Every line here is priced (an unavailable one threw
+    // above), matching the cart's post-drop lines.
+    const itemCount = cartItemCount(orderItems);
+    const storeType = cartStoreType(lineStoreTypes);
 
     // Radius-zone pricing (server-authoritative — never trusts the preview the
     // client saw). Read + pure compute inside the existing transaction; the
@@ -533,8 +545,8 @@ const createOrder = async (req, res) => {
 
     if (couponCode || couponId) {
       const result = couponCode
-        ? await validateCoupon({ code: couponCode, subtotal, deliveryCharge, standardDeliveryCharge, userId, zoneId, connection, areaId: deliveryAreaId })
-        : await validateCouponById({ couponId, subtotal, deliveryCharge, standardDeliveryCharge, userId, zoneId, connection, areaId: deliveryAreaId });
+        ? await validateCoupon({ code: couponCode, subtotal, deliveryCharge, standardDeliveryCharge, storeType, itemCount, userId, zoneId, connection, areaId: deliveryAreaId })
+        : await validateCouponById({ couponId, subtotal, deliveryCharge, standardDeliveryCharge, storeType, itemCount, userId, zoneId, connection, areaId: deliveryAreaId });
       let failReason = result.ok ? null : (result.reason || 'Coupon is not valid');
       if (!failReason) {
         await connection.query('SELECT id FROM coupons WHERE id = ? FOR UPDATE', [result.coupon.id]);
@@ -553,7 +565,7 @@ const createOrder = async (req, res) => {
         appliedCoupon = result.coupon;
       }
     } else if (!noAutoApply) {
-      let best = await pickBestAutoApply({ subtotal, deliveryCharge, standardDeliveryCharge, userId, zoneId, connection, areaId: deliveryAreaId });
+      let best = await pickBestAutoApply({ subtotal, deliveryCharge, standardDeliveryCharge, storeType, itemCount, userId, zoneId, connection, areaId: deliveryAreaId });
       if (best) {
         await connection.query('SELECT id FROM coupons WHERE id = ? FOR UPDATE', [best.coupon.id]);
         const failReason = await recheckUsageUnderLock(connection, best.coupon, userId);

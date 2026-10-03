@@ -5,6 +5,7 @@ const { resolveAreaIdForPricing, getDefaultArea } = require('../utils/areaScope'
 const { roundMoney, toMoney } = require('../utils/money');
 const { calculateRainCharge } = require('../utils/rainCharge');
 const { validateCoupon, validateCouponById, pickBestAutoApply, findApplicableCoupons, getNextFreeDeliveryThreshold, getNearestUnlockableCoupon } = require('../utils/coupons');
+const { cartItemCount, cartStoreType: resolveCartStoreType } = require('../utils/cartCouponContext');
 const logger = require('../utils/logger');
 
 // With no pin, the coupon endpoints use the area the customer's phone was
@@ -278,7 +279,7 @@ const calculateCart = async (req, res) => {
   }
 
   // Free-delivery / coupon thresholds use remaining (available) lines only.
-  const totalItemCount = processedItems.reduce((sum, i) => sum + i.quantity, 0);
+  const totalItemCount = cartItemCount(processedItems);
 
   let deliveryDistanceKm = null;
   let deliveryWithinRange = true;
@@ -434,7 +435,7 @@ const calculateCart = async (req, res) => {
   try {
     const productIdsForStoreType = processedItems.filter(i => i.type !== 'combo').map(i => i.id);
     const comboIdsForStoreType = processedItems.filter(i => i.type === 'combo').map(i => i.id);
-    const storeTypes = new Set();
+    const storeTypes = [];
 
     if (productIdsForStoreType.length > 0) {
       const [rows] = await pool.query(
@@ -443,22 +444,18 @@ const calculateCart = async (req, res) => {
          WHERE p.id IN (?)`,
         [productIdsForStoreType]
       );
-      rows.forEach(r => { if (r.type) storeTypes.add(r.type); });
+      rows.forEach(r => storeTypes.push(r.type));
     }
     if (comboIdsForStoreType.length > 0) {
       const [rows] = await pool.query(
         'SELECT DISTINCT store_type FROM combos WHERE id IN (?)',
         [comboIdsForStoreType]
       );
-      rows.forEach(r => { if (r.store_type) storeTypes.add(r.store_type); });
+      rows.forEach(r => storeTypes.push(r.store_type));
     }
 
-    if (storeTypes.size === 1) {
-      cartStoreType = [...storeTypes][0];
-    } else if (storeTypes.size > 1) {
-      // Mixed cart — only 'all' coupons apply.
-      cartStoreType = 'mixed';
-    }
+    // Mixed cart — only 'all' coupons apply.
+    cartStoreType = resolveCartStoreType(storeTypes);
   } catch (_) {
     // Non-fatal: if store-type detection fails, just skip store-type filtering.
   }
@@ -844,7 +841,7 @@ const validateCouponHandler = async (req, res) => {
 
     const productIdsForStoreType = normalizedItems.filter(i => !i.isCombo).map(i => i.productId);
     const comboIdsForStoreType = normalizedItems.filter(i => i.isCombo).map(i => i.productId);
-    const storeTypes = new Set();
+    const storeTypes = [];
 
     // Without a pin there's no area to scope this lookup to (see above) —
     // stays a global lookup, same as before TASK 13, in that case only.
@@ -856,7 +853,7 @@ const validateCouponHandler = async (req, res) => {
          WHERE p.id IN (?)${areaClause}`,
         deliveryAreaId !== null ? [productIdsForStoreType, deliveryAreaId] : [productIdsForStoreType]
       );
-      rows.forEach(r => { if (r.type) storeTypes.add(r.type); });
+      rows.forEach(r => storeTypes.push(r.type));
     }
     if (comboIdsForStoreType.length > 0) {
       const areaClause = deliveryAreaId !== null ? ' AND area_id = ?' : '';
@@ -864,14 +861,10 @@ const validateCouponHandler = async (req, res) => {
         `SELECT DISTINCT store_type FROM combos WHERE id IN (?)${areaClause}`,
         deliveryAreaId !== null ? [comboIdsForStoreType, deliveryAreaId] : [comboIdsForStoreType]
       );
-      rows.forEach(r => { if (r.store_type) storeTypes.add(r.store_type); });
+      rows.forEach(r => storeTypes.push(r.store_type));
     }
 
-    if (storeTypes.size === 1) {
-      cartStoreType = [...storeTypes][0];
-    } else if (storeTypes.size > 1) {
-      cartStoreType = 'mixed';
-    }
+    cartStoreType = resolveCartStoreType(storeTypes);
   } catch (_) {
     // Non-fatal.
   }
