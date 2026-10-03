@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -6,11 +6,16 @@ import { LinearGradient } from 'expo-linear-gradient';
  * The ADD button of a product offer card: an outlined pill in the card's
  * button colour, which turns into a filled "− qty +" once the product is in
  * the cart. The count pops a little on every change. `small` is the size
- * used on the Home card.
+ * used on the Home card. `glow` (an animated 0 → 1) sends a ring in the
+ * button colour out from ADD once as it runs, like a ripple.
  */
-function OfferAddButton({ quantity, color, label = 'ADD', disabled = false, onAdd, onDecrement, name, reducedMotion, small = false }) {
+function OfferAddButton({ quantity, color, label = 'ADD', disabled = false, onAdd, onDecrement, name, reducedMotion, small = false, glow = null }) {
   const pop = useRef(new Animated.Value(1)).current;
   const last = useRef(quantity);
+  const ring = useMemo(() => glow && {
+    opacity: glow.interpolate({ inputRange: [0, 0.1, 0.75, 1], outputRange: [0, 1, 1, 0] }),
+    transform: [{ scaleX: glow.interpolate({ inputRange: [0, 1], outputRange: [1, 1.18] }) }, { scaleY: glow.interpolate({ inputRange: [0, 1], outputRange: [1, 1.4] }) }],
+  }, [glow]);
 
   useEffect(() => {
     if (last.current === quantity) return;
@@ -30,17 +35,22 @@ function OfferAddButton({ quantity, color, label = 'ADD', disabled = false, onAd
 
   if (quantity <= 0) {
     return (
-      <Pressable
-        onPress={onAdd}
-        hitSlop={6}
-        accessibilityRole="button"
-        accessibilityLabel={`Add ${name || 'item'} to cart`}
-        style={({ pressed }) => [styles.pressable, pressed && styles.pressed]}
-      >
-        <LinearGradient colors={['#FFFFFF', `${color}1F`]} style={[styles.pill, small && styles.pillSmall, { borderColor: color }]}>
-          <Text style={[styles.addText, small && styles.addTextSmall, { color }]}>{label}</Text>
-        </LinearGradient>
-      </Pressable>
+      <View>
+        {ring ? (
+          <Animated.View pointerEvents="none" style={[styles.ring, small && styles.ringSmall, { borderColor: color }, ring]} />
+        ) : null}
+        <Pressable
+          onPress={onAdd}
+          hitSlop={6}
+          accessibilityRole="button"
+          accessibilityLabel={`Add ${name || 'item'} to cart`}
+          style={({ pressed }) => [styles.pressable, pressed && styles.pressed]}
+        >
+          <LinearGradient colors={['#FFFFFF', `${color}1F`]} style={[styles.pill, small && styles.pillSmall, { borderColor: color }]}>
+            <Text style={[styles.addText, small && styles.addTextSmall, { color }]}>{label}</Text>
+          </LinearGradient>
+        </Pressable>
+      </View>
     );
   }
 
@@ -72,6 +82,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   pillSmall: { width: 60, height: 28, borderRadius: 9 },
+  ring: { ...StyleSheet.absoluteFillObject, borderRadius: 10, borderWidth: 2 },
+  ringSmall: { borderRadius: 9 },
   addText: { fontSize: 14, fontWeight: '800', letterSpacing: 0.3 },
   addTextSmall: { fontSize: 12.5 },
   stepper: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 2 },

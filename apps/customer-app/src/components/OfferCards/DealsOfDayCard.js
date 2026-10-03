@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useRef, useState } from 'react';
+import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Animated, Easing } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import ProductImage from '../ProductImage';
@@ -10,6 +10,11 @@ import { useReducedMotion } from '../../utils';
 const SHINE_WIDTH = 64;
 // The header picture is wide art, 3 : 1 (the admin is asked for 900 × 300).
 const BANNER_RATIO = 3;
+// Price wave on the Home card: after a pause the prices bounce one after
+// another, top to bottom, and each row's ADD glows with its price.
+const WAVE_PAUSE_MS = 2600;
+const BOUNCE_MS = 460; // one row's bounce
+const WAVE_STEP = 0.55; // a row starts this far (in bounces) after the row above
 
 // Same defaults as the API (offerCardController DEFAULT_STYLES.deals_of_day),
 // so a card still draws if a key is missing.
@@ -114,9 +119,16 @@ export function DayCardHeader({ card, look, width, big = false, reducedMotion })
   );
 }
 
-function DayRow({ item, look, quantity, onAdd, onDecrement, reducedMotion }) {
+function DayRow({ item, look, quantity, onAdd, onDecrement, reducedMotion, wave }) {
   const unavailable = isOfferItemUnavailable(item);
   const label = item.offerVariantLabel || item.unit || '';
+  // Up, back down, one small hop: [0 → 1] is this row's turn in the wave.
+  const bounce = useMemo(() => wave && {
+    transform: [
+      { translateY: wave.interpolate({ inputRange: [0, 0.3, 0.6, 0.8, 1], outputRange: [0, -5, 0, -1.5, 0] }) },
+      { scale: wave.interpolate({ inputRange: [0, 0.3, 0.6, 0.8, 1], outputRange: [1, 1.16, 1, 1.04, 1] }) },
+    ],
+  }, [wave]);
   return (
     <View style={[styles.row, unavailable && styles.rowUnavailable]}>
       <ProductImage uri={item.thumbUrl || item.imageUrl} width={40} height={40} borderRadius={9} resizeMode="contain" style={styles.rowImage} />
@@ -134,10 +146,11 @@ function DayRow({ item, look, quantity, onAdd, onDecrement, reducedMotion }) {
         onDecrement={() => onDecrement(item)}
         reducedMotion={reducedMotion}
         small
+        glow={unavailable ? null : wave}
       />
       <View style={styles.priceCol}>
         {item.offerMrp ? <Text style={styles.strike}>₹{formatPrice(item.offerMrp)}</Text> : null}
-        <Text style={styles.price}>₹{formatPrice(item.offerPrice)}</Text>
+        <Animated.Text style={[styles.price, !unavailable && bounce]}>₹{formatPrice(item.offerPrice)}</Animated.Text>
       </View>
     </View>
   );
@@ -165,7 +178,38 @@ function DealsOfDayCard({ card, width, onViewAll }) {
   }, [entry, reducedMotion]);
 
   const products = (card?.products || []).slice(0, Number(look.rowsPerTab) || DEFAULT_DAY_STYLE.rowsPerTab);
-  if (products.length === 0) return null;
+  const count = products.length;
+
+  // The price wave: one value runs 0 → end, and each row takes its own
+  // slice of it, a little after the row above.
+  const wave = useRef(new Animated.Value(0)).current;
+  const rowWaves = useMemo(
+    () => Array.from({ length: count }, (_, i) => wave.interpolate({
+      inputRange: [i * WAVE_STEP, i * WAVE_STEP + 1],
+      outputRange: [0, 1],
+      extrapolate: 'clamp',
+    })),
+    [wave, count],
+  );
+
+  useEffect(() => {
+    if (reducedMotion || count === 0) return undefined;
+    const end = (count - 1) * WAVE_STEP + 1;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.delay(WAVE_PAUSE_MS),
+        Animated.timing(wave, { toValue: end, duration: end * BOUNCE_MS, easing: Easing.linear, useNativeDriver: true }),
+        Animated.timing(wave, { toValue: 0, duration: 0, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => {
+      loop.stop();
+      wave.setValue(0);
+    };
+  }, [wave, count, reducedMotion]);
+
+  if (count === 0) return null;
 
   return (
     <Animated.View
@@ -188,7 +232,7 @@ function DealsOfDayCard({ card, width, onViewAll }) {
         <View style={styles.divider} />
 
         <View style={styles.list}>
-          {products.map((item) => (
+          {products.map((item, i) => (
             <DayRow
               key={`${item.id}:${item.offerVariantId || ''}`}
               item={item}
@@ -197,6 +241,7 @@ function DealsOfDayCard({ card, width, onViewAll }) {
               onAdd={add}
               onDecrement={decrement}
               reducedMotion={reducedMotion}
+              wave={reducedMotion ? null : rowWaves[i]}
             />
           ))}
         </View>
