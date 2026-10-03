@@ -12,13 +12,19 @@ const AUTO_MOVE_MS = 2000;
 export const offerCardWidthFor = (count, contentWidth) => (count === 1 ? contentWidth : Math.floor(contentWidth * 0.75));
 
 /**
- * Where the row is scrolled to with each card in front. The last cards
- * cannot reach the left edge, so they share the end of the row; those
- * repeats are dropped when `unique` is set.
+ * Where the row is scrolled to with each card in front: the first card at
+ * the start, the last at the end, and every card between them in the middle
+ * of the screen. Cards that cannot get there share the start or the end;
+ * those repeats are dropped when `unique` is set.
  */
 export const offerRailStops = ({ count, cardWidth, railWidth, gutter, unique = false }) => {
   const maxScroll = Math.max(0, gutter * 2 + count * (cardWidth + OFFER_CARD_GAP) - OFFER_CARD_GAP - railWidth);
-  const stops = Array.from({ length: count }, (_, i) => Math.min(i * (cardWidth + OFFER_CARD_GAP), maxScroll));
+  const centred = (i) => gutter + i * (cardWidth + OFFER_CARD_GAP) + cardWidth / 2 - railWidth / 2;
+  const stops = Array.from({ length: count }, (_, i) => {
+    if (i === 0) return 0;
+    if (i === count - 1) return maxScroll;
+    return Math.round(Math.min(Math.max(centred(i), 0), maxScroll));
+  });
   return unique ? stops.filter((x, i) => i === 0 || x > stops[i - 1]) : stops;
 };
 
