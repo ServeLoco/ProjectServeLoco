@@ -7,9 +7,9 @@ import { useReducedMotion } from '../../../utils';
 // The light, bright area the Common sections sit on, matched to the top
 // bar's look (top to bottom), fading into the white page under the sections.
 const AREA_COLORS = {
-  day: ['#CDE9FA', '#E3F2FC', '#FFFFFF'], // light sky, under the sky blue bar
-  night: ['#DDDAFC', '#ECEAFE', '#FFFFFF'], // soft moonlight lavender
-  rain: ['#DCE3EC', '#EBEFF4', '#FFFFFF'], // light grey-blue
+  day: ['#B3DCF5', '#D3EBF9', '#FFFFFF'], // sky, under the sky blue bar
+  night: ['#C7C1F5', '#DEDAFA', '#FFFFFF'], // moonlight lavender
+  rain: ['#C6D1DF', '#DDE4ED', '#FFFFFF'], // grey-blue
 };
 // The clouds drifting in front of the bar's edge.
 const CLOUD_COLORS = {
@@ -44,44 +44,60 @@ const STARS = [
   { x: 0.92, y: 29, size: 8 },
 ];
 
-// The soft shine band that slides across the light area now and then.
-const SWEEP_WIDTH = 110;
-const SWEEP_MS = 2400;
-const SWEEP_PAUSE_MS = 3200;
-const SWEEP_COLORS = ['rgba(255, 255, 255, 0)', 'rgba(255, 255, 255, 0.7)', 'rgba(255, 255, 255, 0)'];
+// Confetti falling gently through the area: x (fraction of the width),
+// shape, size, time to fall, first start, turns while falling, colour.
+const CONFETTI_COLORS = ['#FF6B9A', '#F2B84B', '#3CC88A', '#5AA9F0', '#8E83E8', '#FF8A4C'];
+const CONFETTI = [
+  { x: 0.04, shape: 'strip', size: 9, fall: 8200, delay: 0, turns: 1.5, color: 0 },
+  { x: 0.11, shape: 'dot', size: 6, fall: 9600, delay: 5200, turns: 0, color: 3 },
+  { x: 0.19, shape: 'square', size: 7, fall: 7400, delay: 2400, turns: -1.2, color: 1 },
+  { x: 0.27, shape: 'strip', size: 10, fall: 10200, delay: 7000, turns: 1, color: 4 },
+  { x: 0.35, shape: 'dot', size: 5, fall: 8800, delay: 1200, turns: 0, color: 2 },
+  { x: 0.43, shape: 'strip', size: 8, fall: 7800, delay: 4300, turns: -1.6, color: 5 },
+  { x: 0.5, shape: 'square', size: 6, fall: 9900, delay: 6200, turns: 1.3, color: 0 },
+  { x: 0.58, shape: 'strip', size: 9, fall: 8500, delay: 600, turns: 1.1, color: 3 },
+  { x: 0.66, shape: 'dot', size: 6, fall: 7600, delay: 3400, turns: 0, color: 1 },
+  { x: 0.73, shape: 'strip', size: 10, fall: 9300, delay: 8000, turns: -1.4, color: 2 },
+  { x: 0.8, shape: 'square', size: 7, fall: 8000, delay: 1800, turns: 1.2, color: 4 },
+  { x: 0.87, shape: 'strip', size: 8, fall: 10500, delay: 4900, turns: -1, color: 5 },
+  { x: 0.93, shape: 'dot', size: 5, fall: 8700, delay: 2900, turns: 0, color: 0 },
+  { x: 0.98, shape: 'strip', size: 9, fall: 7900, delay: 6600, turns: 1.5, color: 3 },
+];
 
-// A slanted band of light that slides left to right across the area
-// (from `top`, `height` tall), then waits and slides again.
-function LightSweep({ width, top, height }) {
+// One piece of confetti: falls from `from` to `to` (px from the backdrop's
+// top), turning and swaying, fading in under the clouds and out at the bottom.
+function ConfettiPiece({ left, shape, size, from, to, fall, delay, turns, color }) {
   const progress = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(progress, { toValue: 1, duration: SWEEP_MS, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-        Animated.delay(SWEEP_PAUSE_MS),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [progress]);
-  const bandHeight = height + 80; // taller than the area, so the slant still covers it
+    const run = Animated.sequence([
+      Animated.delay(delay),
+      Animated.loop(Animated.timing(progress, { toValue: 1, duration: fall, easing: Easing.linear, useNativeDriver: true })),
+    ]);
+    run.start();
+    return () => run.stop();
+  }, [progress, fall, delay]);
+  const width = shape === 'strip' ? Math.round(size * 0.45) : size;
   return (
-    <View style={[styles.abs, styles.clip, { top, width, height }]}>
-      <Animated.View
-        style={{
-          position: 'absolute',
-          top: -40,
-          width: SWEEP_WIDTH,
-          height: bandHeight,
+    <Animated.View
+      style={[
+        styles.confetti,
+        {
+          left,
+          width,
+          height: size,
+          borderRadius: shape === 'dot' ? size / 2 : 1.5,
+          backgroundColor: color,
+          opacity: progress.interpolate({ inputRange: [0, 0.08, 0.8, 1], outputRange: [0, 0.95, 0.95, 0] }),
           transform: [
-            { translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [-SWEEP_WIDTH * 1.5, width + SWEEP_WIDTH * 0.5] }) },
-            { rotate: '18deg' },
+            { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [from, to] }) },
+            { translateX: progress.interpolate({ inputRange: [0, 0.25, 0.5, 0.75, 1], outputRange: [0, 7, 0, -7, 0] }) },
+            { rotate: progress.interpolate({ inputRange: [0, 1], outputRange: ['0deg', `${turns * 360}deg`] }) },
+            // The flutter: the piece seems to flip over as it falls.
+            { scaleX: progress.interpolate({ inputRange: [0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1], outputRange: [1, 0.25, 1, 0.25, 1, 0.25, 1, 0.25, 1] }) },
           ],
-        }}
-      >
-        <LinearGradient colors={SWEEP_COLORS} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={StyleSheet.absoluteFill} />
-      </Animated.View>
-    </View>
+        },
+      ]}
+    />
   );
 }
 
@@ -135,8 +151,8 @@ function TwinkleStar({ left, top, size, color, delay, still }) {
  * Background of the Home "Common" area. It covers the scroll content from
  * the very top (behind the top bar) down to the end of the Common sections:
  * the bar colour behind the bar, a cloud edge where the bar ends, then a
- * light area that a soft light sweeps across now and then, fading into
- * the page.
+ * light area with confetti gently falling through it, fading into the
+ * page.
  * Purely decorative.
  *
  * look: 'day' | 'night' | 'rain' (the top bar's look).
@@ -182,8 +198,23 @@ export default function CommonBackdrop({ width, height, barColor, barShadow, bar
         end={{ x: 0, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
-      {/* A soft light sweeps across, behind the clouds and the cards. */}
-      {reducedMotion || total - solid < 60 ? null : <LightSweep width={width} top={solid} height={total - solid} />}
+      {/* Confetti falls gently from behind the clouds, behind the cards. */}
+      {reducedMotion || total - solid < 60
+        ? null
+        : CONFETTI.map((c, i) => (
+          <ConfettiPiece
+            key={i}
+            left={c.x * width - c.size / 2}
+            shape={c.shape}
+            size={c.size}
+            from={solid - 8}
+            to={total - c.size - 6}
+            fall={c.fall}
+            delay={c.delay}
+            turns={c.turns}
+            color={CONFETTI_COLORS[c.color]}
+          />
+        ))}
       <View style={[styles.bar, { height: solid, backgroundColor: barColor }]} />
 
       {/* The bank of puffy bumps hanging from the bar, with a soft shadow. */}
@@ -242,4 +273,5 @@ const styles = StyleSheet.create({
   bar: { position: 'absolute', top: 0, left: 0, right: 0 },
   abs: { position: 'absolute', left: 0 },
   clip: { overflow: 'hidden' },
+  confetti: { position: 'absolute', top: 0 },
 });
