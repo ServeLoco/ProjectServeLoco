@@ -100,7 +100,7 @@ const TOP_BAR_FADE_LOCATIONS = TOP_BAR_FADE_ALPHAS.map((_, i) => i / (TOP_BAR_FA
 // Left/right space between the screen edge and the Home content.
 const PAGE_GUTTER = 10;
 // How far the Common sections (offer cards first) sit up into the fade under
-// the top bar, so the first one starts closer to the bar's bottom edge.
+// the top bar, so the first one starts closer to the bar's cloud edge.
 const COMMON_PULL_UP = spacing.md;
 
 // Product rows are short (the admin caps how many cards they show), so every
@@ -2085,7 +2085,7 @@ export default function HomeScreen() {
           pointerEvents="none"
           onLayout={(e) => setTopFadeHeight(Math.round(e.nativeEvent.layout.height))}
         >
-          {/* With Common sections the bar's own straight edge is the edge, so the
+          {/* With Common sections the cloud edge under the bar is the edge, so the
               fade only comes in once the page scrolls under the bar. */}
           <Animated.View style={[StyleSheet.absoluteFill, { opacity: topFadeOpacity }]}>
             <LinearGradient
@@ -2225,6 +2225,7 @@ export default function HomeScreen() {
                   width={windowWidth}
                   height={commonAreaHeight + fadeOverlap - COMMON_PULL_UP}
                   barColor={barColor}
+                  barShadow={isLightBar ? '#5B7A99' : '#1F2329'}
                   barBottom={fadeOverlap - topFadeHeight}
                   look={isRainy ? 'rain' : isDaytime ? 'day' : 'night'}
                   tint={commonOfferTint}

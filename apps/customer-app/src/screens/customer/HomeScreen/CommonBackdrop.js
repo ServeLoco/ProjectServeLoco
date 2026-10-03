@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Circle, Rect } from 'react-native-svg';
 import { useReducedMotion } from '../../../utils';
 
 // The light, bright area the Common sections sit on, matched to the top
@@ -30,6 +31,11 @@ function tintColors(hex) {
 }
 export const COMMON_FADE_PX = 34;
 
+// Where the bar meets the light area it ends in a bank of puffy clouds.
+const BANK_OVERLAP = 20; // how far the bank's drawing reaches up into the bar
+const BANK_HEIGHT = BANK_OVERLAP + 16;
+const BANK_STEP = 22;
+
 // Confetti falling gently through the area: x (fraction of the width),
 // shape, size, time to fall, first start, turns while falling, colour.
 const CONFETTI_COLORS = ['#FF6B9A', '#F2B84B', '#3CC88A', '#5AA9F0', '#8E83E8', '#FF8A4C'];
@@ -51,7 +57,7 @@ const CONFETTI = [
 ];
 
 // One piece of confetti: falls from `from` to `to` (px from the backdrop's
-// top), turning and swaying, fading in under the bar and out at the bottom.
+// top), turning and swaying, fading in under the clouds and out at the bottom.
 function ConfettiPiece({ left, shape, size, from, to, fall, delay, turns, color }) {
   const progress = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -90,8 +96,9 @@ function ConfettiPiece({ left, shape, size, from, to, fall, delay, turns, color 
 /**
  * Background of the Home "Common" area. It covers the scroll content from
  * the very top (behind the top bar) down to the end of the Common sections:
- * the bar colour behind the bar, ending in a straight edge, then a light
- * area with confetti gently falling through it, fading into the page.
+ * the bar colour behind the bar, a cloud edge where the bar ends, then a
+ * light area with confetti gently falling through it, fading into the
+ * page.
  * Purely decorative.
  *
  * look: 'day' | 'night' | 'rain' (the top bar's look).
@@ -101,7 +108,7 @@ function ConfettiPiece({ left, shape, size, from, to, fall, delay, turns, color 
  *   takes a light shade of the card in view, cross-fading as the row scrolls
  *   (tintScrollX is that row's scroll).
  */
-function CommonBackdrop({ width, height, barColor, barBottom, look = 'day', tint = null, tintScrollX = null }) {
+function CommonBackdrop({ width, height, barColor, barShadow, barBottom, look = 'day', tint = null, tintScrollX = null }) {
   const reducedMotion = useReducedMotion();
   const lookColors = AREA_COLORS[look] || AREA_COLORS.day;
 
@@ -122,6 +129,16 @@ function CommonBackdrop({ width, height, barColor, barBottom, look = 'day', tint
       };
     });
   }, [tint, tintScrollX, lookColors]);
+
+  // Bumps along the bar's bottom edge: radii cycle so the bank looks natural.
+  const bumps = useMemo(() => {
+    const list = [];
+    for (let i = 0, x = -8; x < width + BANK_STEP; i += 1, x += BANK_STEP) {
+      const r = [12, 15, 11, 14, 13][i % 5];
+      list.push({ cx: x, cy: BANK_OVERLAP - r * 0.25, r });
+    }
+    return list;
+  }, [width]);
 
   const total = Math.max(height, 1);
   const solid = Math.max(0, barBottom);
@@ -149,7 +166,7 @@ function CommonBackdrop({ width, height, barColor, barBottom, look = 'day', tint
           style={StyleSheet.absoluteFill}
         />
       )}
-      {/* Confetti falls gently from under the bar, behind the cards. */}
+      {/* Confetti falls gently from behind the clouds, behind the cards. */}
       {reducedMotion || total - solid < 60
         ? null
         : CONFETTI.map((c, i) => (
@@ -167,6 +184,18 @@ function CommonBackdrop({ width, height, barColor, barBottom, look = 'day', tint
           />
         ))}
       <View style={[styles.bar, { height: solid, backgroundColor: barColor }]} />
+
+      {/* The bank of puffy bumps hanging from the bar, with a soft shadow. */}
+      <Svg width={width} height={BANK_HEIGHT} style={[styles.abs, { top: solid - BANK_OVERLAP }]}>
+        {bumps.map((b, i) => (
+          <Circle key={`s${i}`} cx={b.cx} cy={b.cy + 2} r={b.r} fill={barShadow} opacity={0.14} />
+        ))}
+        <Rect x={0} y={0} width={width} height={BANK_OVERLAP} fill={barColor} />
+        {bumps.map((b, i) => (
+          <Circle key={`b${i}`} cx={b.cx} cy={b.cy} r={b.r} fill={barColor} />
+        ))}
+      </Svg>
+
     </View>
   );
 }
@@ -176,5 +205,6 @@ export default React.memo(CommonBackdrop);
 const styles = StyleSheet.create({
   fill: { position: 'absolute', top: 0, left: 0, right: 0 },
   bar: { position: 'absolute', top: 0, left: 0, right: 0 },
+  abs: { position: 'absolute', left: 0 },
   confetti: { position: 'absolute', top: 0 },
 });
