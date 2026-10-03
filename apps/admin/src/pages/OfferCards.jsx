@@ -58,7 +58,7 @@ const groupByPrice = (items) => {
 };
 
 /** An HTML stand-in for how the app draws a deal_tabs card. */
-export function DealTabsCardPreview({ card, tiers }) {
+export function DealTabsCardPreview({ card, tiers, minOrder = 0 }) {
   const style = { ...DEFAULT_STYLE, ...(card.style || {}) };
   const [active, setActive] = useState(0);
   const tier = tiers[Math.min(active, Math.max(0, tiers.length - 1))];
@@ -70,10 +70,18 @@ export function DealTabsCardPreview({ card, tiers }) {
       <div className="oc-preview-head">
         <div className="oc-preview-head-text">
           <div className="oc-preview-title" style={{ color: style.titleColor }}>{card.title || 'Card title'}</div>
-          {card.subtitle && <div className="oc-preview-subtitle" style={{ color: style.subtitleColor }}>{card.subtitle}</div>}
+          {/* Like the app: with a minimum order the "Shop for ₹X more" line
+              takes the subtitle's place, so it is not said twice. */}
+          {card.subtitle && !(minOrder > 0) && <div className="oc-preview-subtitle" style={{ color: style.subtitleColor }}>{card.subtitle}</div>}
         </div>
         {imageUrl && <img src={imageUrl} alt="" className="oc-preview-art" onError={handleImageError} />}
       </div>
+      {minOrder > 0 && (
+        <div className="oc-preview-progress">
+          <div className="oc-preview-track" style={{ background: `${style.accentColor}22` }} />
+          <div className="oc-preview-progress-text" style={{ color: style.accentColor }}>Shop for ₹{minOrder} more to claim</div>
+        </div>
+      )}
       {tiers.length === 0 ? (
         <div className="oc-preview-empty">Pick a deal with items to see its tabs.</div>
       ) : (
@@ -115,6 +123,8 @@ export function DealTabsCardPreview({ card, tiers }) {
 }
 
 // Loads a deal's items once per deal id for previews.
+const minOrderOf = (deals, dealId) => Number(deals.find((d) => String(d.id) === String(dealId))?.min_order_amount) || 0;
+
 function useDealTiers(dealId) {
   const [tiers, setTiers] = useState([]);
   useEffect(() => {
@@ -128,11 +138,11 @@ function useDealTiers(dealId) {
   return tiers;
 }
 
-function CardTile({ card, modes, onEdit, onToggle }) {
+function CardTile({ card, modes, minOrder, onEdit, onToggle }) {
   const tiers = useDealTiers(card.deal_coupon_id);
   return (
     <div className="oc-tile">
-      <DealTabsCardPreview card={card} tiers={tiers} />
+      <DealTabsCardPreview card={card} tiers={tiers} minOrder={minOrder} />
       <div className="oc-tile-meta">
         <div><b>{card.title}</b></div>
         <div className="oc-muted">
@@ -212,7 +222,7 @@ export default function OfferCards() {
       ) : (
         <section className="oc-grid">
           {cards.map((card) => (
-            <CardTile key={card.id} card={card} modes={modes} onEdit={setEditing} onToggle={toggle} />
+            <CardTile key={card.id} card={card} modes={modes} minOrder={minOrderOf(deals, card.deal_coupon_id)} onEdit={setEditing} onToggle={toggle} />
           ))}
         </section>
       )}
@@ -342,6 +352,7 @@ function OfferCardDrawer({ card, deals, modes, onClose, onSaved }) {
               </div>
               <div className="form-group">
                 <label className="form-label">Subtitle</label>
+                <p className="image-dimension-hint">Shown on the Deal page. On the Home card it shows only when the deal has no minimum order — otherwise the &ldquo;Shop for ₹X more&rdquo; line takes its place.</p>
                 <input maxLength={255} className="form-input" value={form.subtitle} onChange={(e) => set('subtitle', e.target.value)} placeholder="e.g. Get any 1 item when you shop for ₹299" />
               </div>
 
@@ -423,7 +434,7 @@ function OfferCardDrawer({ card, deals, modes, onClose, onSaved }) {
 
             <div className="oc-drawer-preview">
               <div className="oc-muted" style={{ marginBottom: '0.5rem' }}>Preview (tap a tab)</div>
-              <DealTabsCardPreview card={previewCard} tiers={tiers} />
+              <DealTabsCardPreview card={previewCard} tiers={tiers} minOrder={minOrderOf(deals, form.deal_coupon_id)} />
             </div>
           </div>
 

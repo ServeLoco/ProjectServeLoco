@@ -39,6 +39,9 @@
 .oc-preview-head-text { flex: 1; min-width: 0; }
 .oc-preview-title { font-size: 18px; font-weight: 800; line-height: 1.2; }
 .oc-preview-subtitle { font-size: 12px; margin-top: 4px; }
+.oc-preview-progress { padding: 0 14px 4px; margin-top: -4px; }
+.oc-preview-track { height: 5px; border-radius: 3px; }
+.oc-preview-progress-text { font-size: 12px; font-weight: 700; margin-top: 4px; }
 .oc-preview-art { width: 64px; height: 64px; object-fit: contain; }
 .oc-preview-empty { padding: 1.5rem 1rem; font-size: 0.85rem; color: #555; background: rgba(255, 255, 255, 0.7); }
 .oc-preview-tabs { display: flex; padding: 6px 6px 0; gap: 4px; border-radius: 14px 14px 0 0; }
