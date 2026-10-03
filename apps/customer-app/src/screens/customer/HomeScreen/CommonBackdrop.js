@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Circle, Rect } from 'react-native-svg';
 import { useReducedMotion } from '../../../utils';
 
 // The light, bright area the Common sections sit on, matched to the top
@@ -10,12 +9,6 @@ const AREA_COLORS = {
   day: ['#C0E3F8', '#DBEFFB', '#FFFFFF'], // sky, under the sky blue bar
   night: ['#D2CDF8', '#E5E2FC', '#FFFFFF'], // moonlight lavender
   rain: ['#D1DAE6', '#E4EAF1', '#FFFFFF'], // grey-blue
-};
-// The clouds drifting in front of the bar's edge.
-const CLOUD_COLORS = {
-  day: '#FFFFFF',
-  night: '#686D78',
-  rain: '#F3F5F8',
 };
 // How much of an offer card's colour goes into the area (the rest is white):
 // at the top, in the middle, and none at the bottom.
@@ -36,22 +29,6 @@ function tintColors(hex) {
   return rgb ? [mixWithWhite(rgb, TINT_TOP), mixWithWhite(rgb, TINT_MIDDLE), '#FFFFFF'] : null;
 }
 export const COMMON_FADE_PX = 34;
-
-// Where the bar meets the light area it ends in a bank of puffy clouds, with
-// lighter clouds drifting slowly in front.
-const BANK_OVERLAP = 20; // how far the bank's drawing reaches up into the bar
-const BANK_HEIGHT = BANK_OVERLAP + 16;
-const BANK_STEP = 22;
-const CLOUD_ROW_TOP = -3; // drifting clouds, from the bar's bottom (overlapping the bumps)
-const CLOUD_ROW_HEIGHT = 22;
-const DRIFT_MS = 48000;
-// Drifting clouds across one screen width: left (fraction), width, height.
-const CLOUDS = [
-  { at: 0.02, w: 54, h: 18 },
-  { at: 0.27, w: 40, h: 14 },
-  { at: 0.5, w: 62, h: 20 },
-  { at: 0.78, w: 46, h: 16 },
-];
 
 // Confetti falling gently through the area: x (fraction of the width),
 // shape, size, time to fall, first start, turns while falling, colour.
@@ -74,7 +51,7 @@ const CONFETTI = [
 ];
 
 // One piece of confetti: falls from `from` to `to` (px from the backdrop's
-// top), turning and swaying, fading in under the clouds and out at the bottom.
+// top), turning and swaying, fading in under the bar and out at the bottom.
 function ConfettiPiece({ left, shape, size, from, to, fall, delay, turns, color }) {
   const progress = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -110,24 +87,11 @@ function ConfettiPiece({ left, shape, size, from, to, fall, delay, turns, color 
   );
 }
 
-// A puffy cloud with a flat bottom, as SVG shapes at (x, y), w × h.
-function CloudShape({ x, y, w, h, fill }) {
-  return (
-    <>
-      <Circle cx={x + w * 0.28} cy={y + h * 0.62} r={h * 0.36} fill={fill} />
-      <Circle cx={x + w * 0.52} cy={y + h * 0.45} r={h * 0.45} fill={fill} />
-      <Circle cx={x + w * 0.74} cy={y + h * 0.62} r={h * 0.34} fill={fill} />
-      <Rect x={x + w * 0.2} y={y + h * 0.6} width={w * 0.62} height={h * 0.4} rx={h * 0.2} fill={fill} />
-    </>
-  );
-}
-
 /**
  * Background of the Home "Common" area. It covers the scroll content from
  * the very top (behind the top bar) down to the end of the Common sections:
- * the bar colour behind the bar, a cloud edge where the bar ends, then a
- * light area with confetti gently falling through it, fading into the
- * page.
+ * the bar colour behind the bar, ending in a straight edge, then a light
+ * area with confetti gently falling through it, fading into the page.
  * Purely decorative.
  *
  * look: 'day' | 'night' | 'rain' (the top bar's look).
@@ -137,9 +101,8 @@ function CloudShape({ x, y, w, h, fill }) {
  *   takes a light shade of the card in view, cross-fading as the row scrolls
  *   (tintScrollX is that row's scroll).
  */
-function CommonBackdrop({ width, height, barColor, barShadow, barBottom, look = 'day', tint = null, tintScrollX = null }) {
+function CommonBackdrop({ width, height, barColor, barBottom, look = 'day', tint = null, tintScrollX = null }) {
   const reducedMotion = useReducedMotion();
-  const drift = useRef(new Animated.Value(0)).current;
   const lookColors = AREA_COLORS[look] || AREA_COLORS.day;
 
   // One full-area layer per card; each fades in over the one before it as
@@ -160,32 +123,10 @@ function CommonBackdrop({ width, height, barColor, barShadow, barBottom, look = 
     });
   }, [tint, tintScrollX, lookColors]);
 
-  // The front clouds drift slowly left, forever (two copies side by side,
-  // moved by one screen width, so the loop has no jump).
-  useEffect(() => {
-    if (reducedMotion || !width) return undefined;
-    const loop = Animated.loop(
-      Animated.timing(drift, { toValue: 1, duration: DRIFT_MS, easing: Easing.linear, useNativeDriver: true })
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [drift, width, reducedMotion]);
-
-  // Bumps along the bar's bottom edge: radii cycle so the bank looks natural.
-  const bumps = useMemo(() => {
-    const list = [];
-    for (let i = 0, x = -8; x < width + BANK_STEP; i += 1, x += BANK_STEP) {
-      const r = [12, 15, 11, 14, 13][i % 5];
-      list.push({ cx: x, cy: BANK_OVERLAP - r * 0.25, r });
-    }
-    return list;
-  }, [width]);
-
   const total = Math.max(height, 1);
   const solid = Math.max(0, barBottom);
   const fadeStart = total > COMMON_FADE_PX ? (total - COMMON_FADE_PX) / total : 0.8;
   const areaTop = Math.min(solid / total, fadeStart);
-  const cloudFill = CLOUD_COLORS[look] || CLOUD_COLORS.day;
 
   return (
     <View pointerEvents="none" style={[styles.fill, { height: total }]}>
@@ -208,7 +149,7 @@ function CommonBackdrop({ width, height, barColor, barShadow, barBottom, look = 
           style={StyleSheet.absoluteFill}
         />
       )}
-      {/* Confetti falls gently from behind the clouds, behind the cards. */}
+      {/* Confetti falls gently from under the bar, behind the cards. */}
       {reducedMotion || total - solid < 60
         ? null
         : CONFETTI.map((c, i) => (
@@ -226,41 +167,6 @@ function CommonBackdrop({ width, height, barColor, barShadow, barBottom, look = 
           />
         ))}
       <View style={[styles.bar, { height: solid, backgroundColor: barColor }]} />
-
-      {/* The bank of puffy bumps hanging from the bar, with a soft shadow. */}
-      <Svg width={width} height={BANK_HEIGHT} style={[styles.abs, { top: solid - BANK_OVERLAP }]}>
-        {bumps.map((b, i) => (
-          <Circle key={`s${i}`} cx={b.cx} cy={b.cy + 2} r={b.r} fill={barShadow} opacity={0.14} />
-        ))}
-        <Rect x={0} y={0} width={width} height={BANK_OVERLAP} fill={barColor} />
-        {bumps.map((b, i) => (
-          <Circle key={`b${i}`} cx={b.cx} cy={b.cy} r={b.r} fill={barColor} />
-        ))}
-      </Svg>
-
-      {/* Lighter clouds drifting in front of the bank. */}
-      <View style={[styles.abs, styles.clip, { top: solid + CLOUD_ROW_TOP - 10, width, height: CLOUD_ROW_HEIGHT + 10 }]}>
-        <Animated.View
-          style={{
-            width: width * 2,
-            transform: [{ translateX: drift.interpolate({ inputRange: [0, 1], outputRange: [0, -width] }) }],
-          }}
-        >
-          <Svg width={width * 2} height={CLOUD_ROW_HEIGHT + 10}>
-            {[0, 1].map((copy) => CLOUDS.map((c, i) => (
-              <CloudShape
-                key={`${copy}-${i}`}
-                x={copy * width + c.at * width}
-                y={10 + CLOUD_ROW_HEIGHT - c.h}
-                w={c.w}
-                h={c.h}
-                fill={cloudFill}
-              />
-            )))}
-          </Svg>
-        </Animated.View>
-      </View>
-
     </View>
   );
 }
@@ -270,7 +176,5 @@ export default React.memo(CommonBackdrop);
 const styles = StyleSheet.create({
   fill: { position: 'absolute', top: 0, left: 0, right: 0 },
   bar: { position: 'absolute', top: 0, left: 0, right: 0 },
-  abs: { position: 'absolute', left: 0 },
-  clip: { overflow: 'hidden' },
   confetti: { position: 'absolute', top: 0 },
 });
