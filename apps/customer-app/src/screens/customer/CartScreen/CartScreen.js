@@ -471,7 +471,7 @@ export default function CartScreen() {
   const futureOffers = useMemo(() => {
     if (!appliedCoupon) return [];
     const appliedId = appliedCoupon.id;
-    const appliedSavings = Number(appliedCoupon.discount || bill?.discount || 0);
+    const appliedSavings = Number(appliedCoupon.discount || bill?.couponDiscount || 0);
     const subtotal = Number(bill?.subtotal || 0);
     const list = bill?.availableCoupons || [];
 
@@ -497,7 +497,7 @@ export default function CartScreen() {
         if (minDiff !== 0) return minDiff;
         return Number(b.discount || 0) - Number(a.discount || 0);
       });
-  }, [appliedCoupon, bill?.availableCoupons, bill?.discount, bill?.subtotal]);
+  }, [appliedCoupon, bill?.availableCoupons, bill?.couponDiscount, bill?.subtotal]);
 
   const formatUnlockHint = (coupon) => {
     const parts = [];
@@ -1063,8 +1063,9 @@ export default function CartScreen() {
     }
 
     // couponState === 'applied'
-    const savings = bill?.discount > 0
-      ? `Save ₹${bill.discount}`
+    // The coupon's own saving — bill.discount also carries the deal price.
+    const savings = bill?.couponDiscount > 0
+      ? `Save ₹${bill.couponDiscount}`
       : formatOfferBadge(appliedCoupon);
 
     return (

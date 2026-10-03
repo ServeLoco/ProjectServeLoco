@@ -180,6 +180,9 @@ export default function DealScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load({ silent: true }); }} />}
         >
           {header}
+          {/* The sticky header wrapper replaces its direct child's style, so
+              the tab row needs a plain View around it to keep its layout. */}
+          <View>
           <View style={[styles.tabs, { backgroundColor: look.tabColor }]}>
             {tiers.map((t, index) => {
               const active = index === activeIndex;
@@ -198,6 +201,7 @@ export default function DealScreen() {
                 </Pressable>
               );
             })}
+          </View>
           </View>
           <View style={styles.grid}>
             {(tier?.items || []).map((item) => (
