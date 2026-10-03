@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react'
 import { Image as ExpoImage } from 'expo-image';
 import { addEventListener as addNetInfoListener } from '@react-native-community/netinfo';
 import RetryingImage from '../../../components/ProductImage/RetryingImage';
-import { normalizeProductCached, orderHomeUnits } from './homeSectionOrder';
+import { normalizeProductCached, orderHomeUnits, isCommonSection } from './homeSectionOrder';
 import { LinearGradient } from 'expo-linear-gradient';
 import BlurView from '../../../components/BlurView';
 import {
@@ -740,10 +740,10 @@ export default function HomeScreen() {
   }, [isLoading]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [dashboardSections, setDashboardSections] = useState([]);
-  // Offer Cards rows are global (the API sends them in every shop mode).
-  // They live apart from the mode's sections and sit under the mode switch,
-  // so switching modes never clears or redraws them.
-  const [globalOfferSections, setGlobalOfferSections] = useState([]);
+  // "Common" sections (admin App Home → Common tab) come with every mode's
+  // dashboard. They are kept apart and drawn above the shop modes, so
+  // switching modes never clears or redraws them.
+  const [commonSections, setCommonSections] = useState([]);
   // How many of the sections are drawn so far (see SECTIONS_INITIAL).
   const [renderedSectionCount, setRenderedSectionCount] = useState(SECTIONS_INITIAL);
   // Bumped when Home hears of a catalog/shop change; the blocks refetch on it.
@@ -766,6 +766,7 @@ export default function HomeScreen() {
   // the page never reshuffles as rows load. It follows live changes: a section
   // moves the moment its last item goes out of stock, and back when one returns.
   const orderedUnits = useMemo(() => orderHomeUnits(dashboardSections), [dashboardSections]);
+  const commonUnits = useMemo(() => orderHomeUnits(commonSections, { common: true }), [commonSections]);
   const totalDrawUnits = orderedUnits.length;
   sectionTotalRef.current = totalDrawUnits;
   const scrollMetricsRef = useRef({ offset: 0, viewport: 0, content: 0 });
@@ -857,9 +858,9 @@ export default function HomeScreen() {
   const applySections = React.useCallback((slug, sectionsData) => {
     const previous = sectionsCacheRef.current[slug];
     sectionsCacheRef.current[slug] = sectionsData;
-    const offerSections = sectionsData.filter((section) => section.sectionType === 'offer_cards');
-    setGlobalOfferSections(current => (
-      JSON.stringify(current) === JSON.stringify(offerSections) ? current : offerSections
+    const common = sectionsData.filter(isCommonSection);
+    setCommonSections(current => (
+      JSON.stringify(current) === JSON.stringify(common) ? current : common
     ));
     setDashboardSections(current => {
       if (previous && current === previous && JSON.stringify(previous) === JSON.stringify(sectionsData)) {
@@ -1338,14 +1339,12 @@ export default function HomeScreen() {
 
   useEffect(() => {
     // Only the sections that are drawn; the rest are warmed as they come up.
-    prefetchSectionImages([
-      ...globalOfferSections,
-      ...orderedUnits
-        .slice(0, renderedSectionCount + 1)
+    prefetchSectionImages(
+      [...commonUnits, ...orderedUnits.slice(0, renderedSectionCount + 1)]
         .filter((unit) => unit.kind === 'section')
-        .map((unit) => unit.section),
-    ]);
-  }, [globalOfferSections, orderedUnits, renderedSectionCount, prefetchSectionImages]);
+        .map((unit) => unit.section)
+    );
+  }, [commonUnits, orderedUnits, renderedSectionCount, prefetchSectionImages]);
 
   // After each section is drawn, look again (once layout has settled): the
   // screen may still not be filled, and a section that draws nothing would
@@ -1538,45 +1537,305 @@ export default function HomeScreen() {
   // (peek effect — multiple cards visible at once).
   const categoryCardWidth = Math.floor(contentWidth * CATEGORY_CARD_RATIO);
 
-  // An Offer Cards row (global, drawn under the mode switch).
-  const renderOfferCardsSection = (section) => {
-    const cards = (section.items || []).filter((card) => card.design === 'deal_tabs' && card.deal?.tiers?.length);
-    if (cards.length === 0) return null;
-    // One card fills most of the width; with more, the next one peeks.
-    const offerCardWidth = cards.length === 1 ? contentWidth : Math.floor(contentWidth * 0.8);
-    return (
-      <View key={section.id} style={styles.section}>
-        {section.title ? (
-          <View style={styles.sectionHeader}>
-            <View style={styles.titleRow}>
-              <View style={styles.headerIndicator} />
-              <Text style={styles.sectionTitlePremium}>{section.title}</Text>
-            </View>
-          </View>
-        ) : null}
-        <FlatList
-          horizontal
-          data={cards}
-          keyExtractor={(card) => String(card.id)}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.offerCardsRail}
-          ItemSeparatorComponent={OfferCardGap}
-          renderItem={({ item: card }) => (
-            <DealTabsCard
-              card={card}
-              width={offerCardWidth}
-              onViewAll={() => navigation.navigate('Deal', { couponId: card.dealId, card })}
-            />
-          )}
-        />
-      </View>
-    );
-  };
-
   const comboGap = spacing.sm;
   const comboGridWidth = windowWidth - (spacing.md * 2);
   void comboGridWidth; // kept for future layout calculations
   void comboGap;
+
+  // Draws a list of Home units (sections and automatic rows). Used for the
+  // Common sections above the shop modes and for the mode's own sections.
+  const renderHomeUnits = (units) => {
+    // Every automatic row above the current one has shown its content?
+    let rowsAboveRevealed = true;
+    return units.map(unit => {
+      if (unit.kind === 'auto') {
+        const { auto } = unit;
+        const canReveal = rowsAboveRevealed;
+        if (!loadedAutoIds[auto.id]) rowsAboveRevealed = false;
+        return (
+          <AutoProductBlock
+            key={`${currentApiStoreType}:${auto.id}`}
+            auto={auto}
+            storeType={currentApiStoreType}
+            lat={deliveryCoords?.lat}
+            lng={deliveryCoords?.lng}
+            refreshSignal={autoBlocksRefresh}
+            cardWidth={Math.floor((windowWidth - (PAGE_GUTTER * 2)) * 0.4)}
+            onAdd={handleAddToCart}
+            onIncrement={handleIncrement}
+            onDecrement={handleDecrement}
+            onSeeAll={handleAutoSeeAll}
+            canReveal={canReveal}
+            onLoaded={handleAutoLoaded}
+          />
+        );
+      }
+      const { section } = unit;
+      // A section below a row that has not shown its content yet waits
+      // behind a skeleton, so the page fills in strictly top to bottom.
+      if (!rowsAboveRevealed) {
+        const waitingSizes = homeSkeletonSizes(windowWidth);
+        return (
+          <View key={section.id} style={styles.section}>
+            <SkeletonSectionTitle />
+            <SkeletonRail count={3} width={waitingSizes.productWidth} height={waitingSizes.productHeight} />
+          </View>
+        );
+      }
+      if (section.sectionType === 'offer_banner') {
+        return (
+          <OfferBannerCarousel
+            key={section.id}
+            offers={section.items}
+            bannerWidth={windowWidth - (PAGE_GUTTER * 2)}
+            onOfferPress={(offer) => navigation.navigate('ProductList', {
+              offerId: offer.id,
+              offerTitle: offer.title,
+              storeType: currentApiStoreType,
+            })}
+          />
+        );
+      }
+
+      if (section.sectionType === 'category_grid') {
+        const normalizedItems = section.items.map(normalizeCategory);
+        // Honour the admin-configured `max_visible_items` from the
+        // dashboard section. The API already caps `section.items` at
+        // that value, but re-applying the cap here defends against any
+        // future payload that exceeds it and lets the rail reflect the
+        // admin's intent even when the API limit grows.
+        // Fallback: show whatever the API sent (no client-side truncation).
+        const maxVisible = Number(section.maxVisibleItems) || normalizedItems.length;
+        const visibleItems = normalizedItems.slice(0, maxVisible);
+        // "See all" pill is shown at the end of the rail when the
+        // admin has more categories than are displayed here.
+        // Primary signal: API's `hasMore`. Fallback: totalItems > items.
+        // Safety net: more than 2 categories in total.
+        const totalCount = Number(section.totalItems) || normalizedItems.length;
+        const hasMore =
+          section.hasMore === true ||
+          totalCount > normalizedItems.length ||
+          normalizedItems.length > 2;
+        return (
+          <View key={section.id} style={styles.section}>
+            {!!section.title && (
+              <View style={styles.sectionHeader}>
+                <View style={styles.titleRow}>
+                  <View style={styles.headerIndicator} />
+                  {(section.sectionIcon === 'box' || (!section.sectionIcon && section.sectionType === 'category_grid')) && (
+                    <HomeIcon name="box" size={14} color={colors.primary} style={styles.sectionTypeIcon} />
+                  )}
+                  {section.sectionIcon && section.sectionIcon !== 'box' && (
+                    <HomeIcon name={section.sectionIcon} size={14} color={colors.primary} style={styles.sectionTypeIcon} />
+                  )}
+                  <Text style={styles.sectionTitlePremium}>{section.title}</Text>
+                  {section.showHotBadge === true && (
+                    <Animated.View style={[styles.hotBadge, { transform: [{ scale: hotBadgePulse }] }]}>
+                      <LinearGradient
+                        colors={['#FF6B6B', '#FF8E53']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.hotBadgeGradient}
+                      >
+                        <HomeIcon name="star" size={10} color="#FFFFFF" fill="#FFFFFF" style={styles.hotBadgeIcon} />
+                        <Text style={styles.hotBadgeText}>HOT</Text>
+                      </LinearGradient>
+                    </Animated.View>
+                  )}
+                </View>
+              </View>
+            )}
+            <Animated.FlatList
+              data={visibleItems}
+              keyExtractor={(item) => String(item.id)}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categoryScrollContent}
+              keyboardShouldPersistTaps="handled"
+              style={styles.categoryScroll}
+              renderItem={({ item: cat, index: idx }) => (
+                <Animated.View
+                  style={{
+                    width: categoryCardWidth,
+                    marginRight: idx === visibleItems.length - 1 ? categoryGap : categoryGap,
+                    opacity: staggerCatAnims[idx] || 1,
+                    transform: [{
+                      translateY: (staggerCatAnims[idx] || new Animated.Value(1)).interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [20, 0]
+                      })
+                    }]
+                  }}
+                >
+                  <CategoryCard
+                    variant="hero"
+                    name={cat.name}
+                    count={cat.count}
+                    imageUri={cat.imageUri}
+                    style={{ width: categoryCardWidth }}
+                    onPress={() => handleCategoryPress(cat)}
+                  />
+                </Animated.View>
+              )}
+              ListFooterComponent={
+                hasMore ? (
+                  <View style={styles.seeAllInRow}>
+                    <SeeAllButton
+                      label="See all"
+                      onPress={() => navigation.navigate('Categories', { storeType: currentApiStoreType })}
+                      accessibilityLabel="See all categories"
+                    />
+                  </View>
+                ) : null
+              }
+            />
+          </View>
+        );
+      }
+
+      if (section.sectionType === 'product_block' || section.sectionType === 'combo_block') {
+        const isComboBlock = section.sectionType === 'combo_block';
+        const normalizedItems = section.items.map(normalizeProductCached);
+        // Unavailable items (shop closed or turned off) sink to the end of
+        // the row — stable sort keeps the admin's arranged relative order
+        // within each group. Recomputed every render, so the moment a live
+        // availability/shop-status patch flips an item's flag, the row
+        // reorders in the same tick the card greys out (or comes back to
+        // the front the instant it's available again).
+        const sortedItems = [...normalizedItems].sort((a, b) => {
+          const aOut = !a.available || a.shopIsOpen === false || a.shop_is_open === false;
+          const bOut = !b.available || b.shopIsOpen === false || b.shop_is_open === false;
+          return aOut === bOut ? 0 : aOut ? 1 : -1;
+        });
+        const visibleItems = isComboBlock ? sortedItems.slice(0, 2) : sortedItems;
+        // Show the "See all" button when EITHER:
+        //   (a) admin enabled the explicit "show_see_all" flag, OR
+        //   (b) the section has more items than are shown on the dashboard
+        //       (API's `hasMore` is true when totalItems > items.length).
+        // This respects the admin's intent even if max_visible_items
+        // happens to match the total item count.
+        const showSeeAll = section.showSeeAll === true;
+        const hasMore = section.hasMore === true;
+        const shouldShowSeeAll = showSeeAll || hasMore;
+        // Horizontal-scroll cards: ~40% of content width so the next card
+        // peeks (same peek effect as the categories rail).
+        const productCardWidth = Math.floor(contentWidth * 0.4);
+        return (
+          <View key={section.id} style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.titleRow}>
+                <View style={styles.headerIndicator} />
+                {section.sectionIcon === 'box' && (
+                  <HomeIcon name="box" size={14} color={colors.primary} style={styles.sectionTypeIcon} />
+                )}
+                {(section.sectionIcon === 'shoppingBag' || (!section.sectionIcon && section.sectionType === 'product_block')) && (
+                  <HomeIcon name="shoppingBag" size={14} color={colors.primary} style={styles.sectionTypeIcon} />
+                )}
+                {(section.sectionIcon === 'star' || (!section.sectionIcon && isComboBlock)) && (
+                  <HomeIcon name="star" size={14} color={colors.primary} fill={colors.primary} style={styles.sectionTypeIcon} />
+                )}
+                {section.sectionIcon && section.sectionIcon !== 'box' && section.sectionIcon !== 'shoppingBag' && section.sectionIcon !== 'star' && (
+                  <HomeIcon name={section.sectionIcon} size={14} color={colors.primary} style={styles.sectionTypeIcon} />
+                )}
+                <Text style={styles.sectionTitlePremium}>{section.title}</Text>
+                {section.showHotBadge === true && (
+                  <Animated.View style={[styles.hotBadge, { transform: [{ scale: hotBadgePulse }] }]}>
+                    <LinearGradient
+                      colors={['#FF6B6B', '#FF8E53']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.hotBadgeGradient}
+                    >
+                      <HomeIcon name="star" size={10} color="#FFFFFF" fill="#FFFFFF" style={styles.hotBadgeIcon} />
+                      <Text style={styles.hotBadgeText}>HOT</Text>
+                    </LinearGradient>
+                  </Animated.View>
+                )}
+              </View>
+            </View>
+
+            <Animated.FlatList
+              data={visibleItems}
+              keyExtractor={(item) => String(item.id)}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.productScrollContent}
+              style={styles.productScroll}
+              keyboardShouldPersistTaps="handled"
+              initialNumToRender={4}
+              maxToRenderPerBatch={4}
+              windowSize={5}
+              renderItem={({ item, index: idx }) => {
+                const isItemCombo = isComboBlock || item.isCombo || item.is_combo;
+                return (
+                  <HomeProductCard
+                    item={item}
+                    isItemCombo={isItemCombo}
+                    width={productCardWidth}
+                    anim={staggerComboAnims[idx]}
+                    onAdd={handleAddToCart}
+                    onIncrement={handleIncrement}
+                    onDecrement={handleDecrement}
+                  />
+                );
+              }}
+              ListFooterComponent={
+                shouldShowSeeAll ? (
+                  <View style={styles.seeAllInRowProduct}>
+                    <SeeAllButton
+                      label="See all"
+                      onPress={() => navigation.navigate('ProductList', {
+                        sectionSlug: section.slug,
+                        sectionTitle: section.title,
+                        storeType: currentApiStoreType,
+                      })}
+                      accessibilityLabel={`See all ${section.title}`}
+                    />
+                  </View>
+                ) : null
+              }
+            />
+          </View>
+        );
+      }
+
+      if (section.sectionType === 'offer_cards') {
+        const cards = (section.items || []).filter((card) => card.design === 'deal_tabs' && card.deal?.tiers?.length);
+        if (cards.length === 0) return null;
+        // One card fills most of the width; with more, the next one peeks.
+        const offerCardWidth = cards.length === 1 ? contentWidth : Math.floor(contentWidth * 0.8);
+        return (
+          <View key={section.id} style={styles.section}>
+            {section.title ? (
+              <View style={styles.sectionHeader}>
+                <View style={styles.titleRow}>
+                  <View style={styles.headerIndicator} />
+                  <Text style={styles.sectionTitlePremium}>{section.title}</Text>
+                </View>
+              </View>
+            ) : null}
+            <FlatList
+              horizontal
+              data={cards}
+              keyExtractor={(card) => String(card.id)}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.offerCardsRail}
+              ItemSeparatorComponent={OfferCardGap}
+              renderItem={({ item: card }) => (
+                <DealTabsCard
+                  card={card}
+                  width={offerCardWidth}
+                  onViewAll={() => navigation.navigate('Deal', { couponId: card.dealId, card })}
+                />
+              )}
+            />
+          </View>
+        );
+      }
+
+      return null;
+    });
+  };
 
   return (
     <AppScreen
@@ -1842,6 +2101,9 @@ export default function HomeScreen() {
             />
           }
         >
+          {/* Common sections: every mode, between the top bar and the shop modes */}
+          {commonUnits.length > 0 ? <View style={styles.commonSections}>{renderHomeUnits(commonUnits)}</View> : null}
+
           {/* Store Type Toggle */}
           <View style={styles.toggleContainer}>
             <SegmentedControl
@@ -1854,9 +2116,6 @@ export default function HomeScreen() {
             />
           </View>
 
-          {/* Offer cards: global, the same in every shop mode */}
-          {globalOfferSections.map(renderOfferCardsSection)}
-
           {/* Dynamic Sections */}
           <Animated.View style={{ opacity: sectionsFade }}>
           {isSectionsLoading ? (
@@ -1867,264 +2126,7 @@ export default function HomeScreen() {
               <HomeSectionsSkeleton windowWidth={windowWidth} />
             </View>
           ) : null}
-          {(() => {
-            // Every automatic row above the current one has shown its content?
-            let rowsAboveRevealed = true;
-            return orderedUnits.slice(0, renderedSectionCount).map(unit => {
-            if (unit.kind === 'auto') {
-              const { auto } = unit;
-              const canReveal = rowsAboveRevealed;
-              if (!loadedAutoIds[auto.id]) rowsAboveRevealed = false;
-              return (
-                <AutoProductBlock
-                  key={`${currentApiStoreType}:${auto.id}`}
-                  auto={auto}
-                  storeType={currentApiStoreType}
-                  lat={deliveryCoords?.lat}
-                  lng={deliveryCoords?.lng}
-                  refreshSignal={autoBlocksRefresh}
-                  cardWidth={Math.floor((windowWidth - (PAGE_GUTTER * 2)) * 0.4)}
-                  onAdd={handleAddToCart}
-                  onIncrement={handleIncrement}
-                  onDecrement={handleDecrement}
-                  onSeeAll={handleAutoSeeAll}
-                  canReveal={canReveal}
-                  onLoaded={handleAutoLoaded}
-                />
-              );
-            }
-            const { section } = unit;
-            // A section below a row that has not shown its content yet waits
-            // behind a skeleton, so the page fills in strictly top to bottom.
-            if (!rowsAboveRevealed) {
-              const waitingSizes = homeSkeletonSizes(windowWidth);
-              return (
-                <View key={section.id} style={styles.section}>
-                  <SkeletonSectionTitle />
-                  <SkeletonRail count={3} width={waitingSizes.productWidth} height={waitingSizes.productHeight} />
-                </View>
-              );
-            }
-            if (section.sectionType === 'offer_banner') {
-              return (
-                <OfferBannerCarousel
-                  key={section.id}
-                  offers={section.items}
-                  bannerWidth={windowWidth - (PAGE_GUTTER * 2)}
-                  onOfferPress={(offer) => navigation.navigate('ProductList', {
-                    offerId: offer.id,
-                    offerTitle: offer.title,
-                    storeType: currentApiStoreType,
-                  })}
-                />
-              );
-            }
-
-            if (section.sectionType === 'category_grid') {
-              const normalizedItems = section.items.map(normalizeCategory);
-              // Honour the admin-configured `max_visible_items` from the
-              // dashboard section. The API already caps `section.items` at
-              // that value, but re-applying the cap here defends against any
-              // future payload that exceeds it and lets the rail reflect the
-              // admin's intent even when the API limit grows.
-              // Fallback: show whatever the API sent (no client-side truncation).
-              const maxVisible = Number(section.maxVisibleItems) || normalizedItems.length;
-              const visibleItems = normalizedItems.slice(0, maxVisible);
-              // "See all" pill is shown at the end of the rail when the
-              // admin has more categories than are displayed here.
-              // Primary signal: API's `hasMore`. Fallback: totalItems > items.
-              // Safety net: more than 2 categories in total.
-              const totalCount = Number(section.totalItems) || normalizedItems.length;
-              const hasMore =
-                section.hasMore === true ||
-                totalCount > normalizedItems.length ||
-                normalizedItems.length > 2;
-              return (
-                <View key={section.id} style={styles.section}>
-                  {!!section.title && (
-                    <View style={styles.sectionHeader}>
-                      <View style={styles.titleRow}>
-                        <View style={styles.headerIndicator} />
-                        {(section.sectionIcon === 'box' || (!section.sectionIcon && section.sectionType === 'category_grid')) && (
-                          <HomeIcon name="box" size={14} color={colors.primary} style={styles.sectionTypeIcon} />
-                        )}
-                        {section.sectionIcon && section.sectionIcon !== 'box' && (
-                          <HomeIcon name={section.sectionIcon} size={14} color={colors.primary} style={styles.sectionTypeIcon} />
-                        )}
-                        <Text style={styles.sectionTitlePremium}>{section.title}</Text>
-                        {section.showHotBadge === true && (
-                          <Animated.View style={[styles.hotBadge, { transform: [{ scale: hotBadgePulse }] }]}>
-                            <LinearGradient
-                              colors={['#FF6B6B', '#FF8E53']}
-                              start={{ x: 0, y: 0 }}
-                              end={{ x: 1, y: 1 }}
-                              style={styles.hotBadgeGradient}
-                            >
-                              <HomeIcon name="star" size={10} color="#FFFFFF" fill="#FFFFFF" style={styles.hotBadgeIcon} />
-                              <Text style={styles.hotBadgeText}>HOT</Text>
-                            </LinearGradient>
-                          </Animated.View>
-                        )}
-                      </View>
-                    </View>
-                  )}
-                  <Animated.FlatList
-                    data={visibleItems}
-                    keyExtractor={(item) => String(item.id)}
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.categoryScrollContent}
-                    keyboardShouldPersistTaps="handled"
-                    style={styles.categoryScroll}
-                    renderItem={({ item: cat, index: idx }) => (
-                      <Animated.View
-                        style={{
-                          width: categoryCardWidth,
-                          marginRight: idx === visibleItems.length - 1 ? categoryGap : categoryGap,
-                          opacity: staggerCatAnims[idx] || 1,
-                          transform: [{
-                            translateY: (staggerCatAnims[idx] || new Animated.Value(1)).interpolate({
-                              inputRange: [0, 1],
-                              outputRange: [20, 0]
-                            })
-                          }]
-                        }}
-                      >
-                        <CategoryCard
-                          variant="hero"
-                          name={cat.name}
-                          count={cat.count}
-                          imageUri={cat.imageUri}
-                          style={{ width: categoryCardWidth }}
-                          onPress={() => handleCategoryPress(cat)}
-                        />
-                      </Animated.View>
-                    )}
-                    ListFooterComponent={
-                      hasMore ? (
-                        <View style={styles.seeAllInRow}>
-                          <SeeAllButton
-                            label="See all"
-                            onPress={() => navigation.navigate('Categories', { storeType: currentApiStoreType })}
-                            accessibilityLabel="See all categories"
-                          />
-                        </View>
-                      ) : null
-                    }
-                  />
-                </View>
-              );
-            }
-
-            if (section.sectionType === 'product_block' || section.sectionType === 'combo_block') {
-              const isComboBlock = section.sectionType === 'combo_block';
-              const normalizedItems = section.items.map(normalizeProductCached);
-              // Unavailable items (shop closed or turned off) sink to the end of
-              // the row — stable sort keeps the admin's arranged relative order
-              // within each group. Recomputed every render, so the moment a live
-              // availability/shop-status patch flips an item's flag, the row
-              // reorders in the same tick the card greys out (or comes back to
-              // the front the instant it's available again).
-              const sortedItems = [...normalizedItems].sort((a, b) => {
-                const aOut = !a.available || a.shopIsOpen === false || a.shop_is_open === false;
-                const bOut = !b.available || b.shopIsOpen === false || b.shop_is_open === false;
-                return aOut === bOut ? 0 : aOut ? 1 : -1;
-              });
-              const visibleItems = isComboBlock ? sortedItems.slice(0, 2) : sortedItems;
-              // Show the "See all" button when EITHER:
-              //   (a) admin enabled the explicit "show_see_all" flag, OR
-              //   (b) the section has more items than are shown on the dashboard
-              //       (API's `hasMore` is true when totalItems > items.length).
-              // This respects the admin's intent even if max_visible_items
-              // happens to match the total item count.
-              const showSeeAll = section.showSeeAll === true;
-              const hasMore = section.hasMore === true;
-              const shouldShowSeeAll = showSeeAll || hasMore;
-              // Horizontal-scroll cards: ~40% of content width so the next card
-              // peeks (same peek effect as the categories rail).
-              const productCardWidth = Math.floor(contentWidth * 0.4);
-              return (
-                <View key={section.id} style={styles.section}>
-                  <View style={styles.sectionHeader}>
-                    <View style={styles.titleRow}>
-                      <View style={styles.headerIndicator} />
-                      {section.sectionIcon === 'box' && (
-                        <HomeIcon name="box" size={14} color={colors.primary} style={styles.sectionTypeIcon} />
-                      )}
-                      {(section.sectionIcon === 'shoppingBag' || (!section.sectionIcon && section.sectionType === 'product_block')) && (
-                        <HomeIcon name="shoppingBag" size={14} color={colors.primary} style={styles.sectionTypeIcon} />
-                      )}
-                      {(section.sectionIcon === 'star' || (!section.sectionIcon && isComboBlock)) && (
-                        <HomeIcon name="star" size={14} color={colors.primary} fill={colors.primary} style={styles.sectionTypeIcon} />
-                      )}
-                      {section.sectionIcon && section.sectionIcon !== 'box' && section.sectionIcon !== 'shoppingBag' && section.sectionIcon !== 'star' && (
-                        <HomeIcon name={section.sectionIcon} size={14} color={colors.primary} style={styles.sectionTypeIcon} />
-                      )}
-                      <Text style={styles.sectionTitlePremium}>{section.title}</Text>
-                      {section.showHotBadge === true && (
-                        <Animated.View style={[styles.hotBadge, { transform: [{ scale: hotBadgePulse }] }]}>
-                          <LinearGradient
-                            colors={['#FF6B6B', '#FF8E53']}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            style={styles.hotBadgeGradient}
-                          >
-                            <HomeIcon name="star" size={10} color="#FFFFFF" fill="#FFFFFF" style={styles.hotBadgeIcon} />
-                            <Text style={styles.hotBadgeText}>HOT</Text>
-                          </LinearGradient>
-                        </Animated.View>
-                      )}
-                    </View>
-                  </View>
-
-                  <Animated.FlatList
-                    data={visibleItems}
-                    keyExtractor={(item) => String(item.id)}
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.productScrollContent}
-                    style={styles.productScroll}
-                    keyboardShouldPersistTaps="handled"
-                    initialNumToRender={4}
-                    maxToRenderPerBatch={4}
-                    windowSize={5}
-                    renderItem={({ item, index: idx }) => {
-                      const isItemCombo = isComboBlock || item.isCombo || item.is_combo;
-                      return (
-                        <HomeProductCard
-                          item={item}
-                          isItemCombo={isItemCombo}
-                          width={productCardWidth}
-                          anim={staggerComboAnims[idx]}
-                          onAdd={handleAddToCart}
-                          onIncrement={handleIncrement}
-                          onDecrement={handleDecrement}
-                        />
-                      );
-                    }}
-                    ListFooterComponent={
-                      shouldShowSeeAll ? (
-                        <View style={styles.seeAllInRowProduct}>
-                          <SeeAllButton
-                            label="See all"
-                            onPress={() => navigation.navigate('ProductList', {
-                              sectionSlug: section.slug,
-                              sectionTitle: section.title,
-                              storeType: currentApiStoreType,
-                            })}
-                            accessibilityLabel={`See all ${section.title}`}
-                          />
-                        </View>
-                      ) : null
-                    }
-                  />
-                </View>
-              );
-            }
-
-            return null;
-            });
-          })()}
+          {renderHomeUnits(orderedUnits.slice(0, renderedSectionCount))}
           {renderedSectionCount < totalDrawUnits ? (
             <View style={styles.section}>
               <SkeletonSectionTitle />
@@ -3913,6 +3915,9 @@ const styles = StyleSheet.create({
   },
   productScroll: {
     // FlatList in horizontal mode
+  },
+  commonSections: {
+    marginBottom: spacing.sm,
   },
   offerCardsRail: {
     paddingHorizontal: PAGE_GUTTER,

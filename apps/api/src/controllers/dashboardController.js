@@ -32,6 +32,10 @@ const requireOneArea = (req, res) => {
 
 const SECTION_TYPES = ['offer_banner', 'category_grid', 'product_block', 'combo_block', 'offer_cards'];
 const TITLE_OPTIONAL_SECTION_TYPES = ['category_grid', 'offer_cards'];
+// store_type of the "Common" sections: shown in every shop mode, above the
+// mode switch on Home, with their items not limited to one mode.
+// Reserved, so no store mode can take this slug.
+const COMMON_STORE_TYPE = 'common';
 const SECTION_ITEM_TYPES = {
   offer_banner: 'offer',
   category_grid: 'category',
@@ -100,7 +104,7 @@ const validateSectionPayload = async ({ title, slug, section_type, store_type, d
   if (section_type !== undefined && !SECTION_TYPES.includes(section_type)) {
     return 'Invalid dashboard section type';
   }
-  if (store_type !== undefined && store_type !== 'all' && !isSystemModeSlug(store_type)) {
+  if (store_type !== undefined && store_type !== 'all' && store_type !== COMMON_STORE_TYPE && !isSystemModeSlug(store_type)) {
     // areaId threaded from the caller (requireOneArea) — every other
     // getActiveStoreModeSlugs call site in this file already does this;
     // this one defaulted to STORE_MODE_AREA_ID_STOPGAP (area 1) and
@@ -518,11 +522,10 @@ const getDashboard = async (req, res) => {
     `;
     const params = [areaId];
 
-    // Offer Cards rows are global: they show in every shop mode (the app
-    // draws them under the mode switch), whatever mode they were saved in.
+    // The mode's own sections plus the Common ones (every mode).
     if (expectedStoreType && expectedStoreType !== 'all') {
-      query += " AND (store_type = ? OR section_type = 'offer_cards')";
-      params.push(expectedStoreType);
+      query += ' AND (store_type = ? OR store_type = ?)';
+      params.push(expectedStoreType, COMMON_STORE_TYPE);
     }
 
     query += ' ORDER BY display_order ASC, id ASC';
@@ -533,6 +536,8 @@ const getDashboard = async (req, res) => {
     // Build each section's items in parallel (Promise.all preserves input order).
     const buildSection = async (section) => {
       let items = [];
+      // A Common section's items are not limited to the mode being viewed.
+      const modeType = section.store_type === COMMON_STORE_TYPE ? 'all' : expectedStoreType;
 
       // An automatic shop/category row: no items here — the app loads the
       // row's first items itself when it is scrolled to. Not hidden when
@@ -565,8 +570,8 @@ const getDashboard = async (req, res) => {
       }
 
       if (section.section_type === 'offer_banner') {
-        const offerStoreFilter = (expectedStoreType && expectedStoreType !== 'all') ? 'AND o.store_type = ?' : '';
-        const itemParams = (expectedStoreType && expectedStoreType !== 'all') ? [section.id, areaId, expectedStoreType] : [section.id, areaId];
+        const offerStoreFilter = (modeType && modeType !== 'all') ? 'AND o.store_type = ?' : '';
+        const itemParams = (modeType && modeType !== 'all') ? [section.id, areaId, modeType] : [section.id, areaId];
         const [rows] = await pool.query(
           `SELECT dsi.id as section_item_id, dsi.display_order, o.*
            FROM dashboard_section_items dsi
@@ -597,8 +602,8 @@ const getDashboard = async (req, res) => {
         await resolveImageUrls(rows);
 
         let filteredRows = rows;
-        if (expectedStoreType && expectedStoreType !== 'all') {
-          filteredRows = rows.filter(r => r.type === expectedStoreType);
+        if (modeType && modeType !== 'all') {
+          filteredRows = rows.filter(r => r.type === modeType);
         }
 
         items = mapCategoryRows(filteredRows);
@@ -623,14 +628,14 @@ const getDashboard = async (req, res) => {
         await Promise.all([resolveImageUrls(rows), attachComboItems(rows), attachVariants(rows)]);
 
         let filteredRows = rows;
-        if (expectedStoreType && expectedStoreType !== 'all') {
-          filteredRows = rows.filter(r => r.category_type === expectedStoreType);
+        if (modeType && modeType !== 'all') {
+          filteredRows = rows.filter(r => r.category_type === modeType);
         }
 
         items = mapProductRows(filteredRows);
       } else if (section.section_type === 'combo_block') {
-        const comboStoreFilter = (expectedStoreType && expectedStoreType !== 'all') ? 'AND p.store_type = ?' : '';
-        const itemParams = (expectedStoreType && expectedStoreType !== 'all') ? [section.id, areaId, expectedStoreType] : [section.id, areaId];
+        const comboStoreFilter = (modeType && modeType !== 'all') ? 'AND p.store_type = ?' : '';
+        const itemParams = (modeType && modeType !== 'all') ? [section.id, areaId, modeType] : [section.id, areaId];
         const [rows] = await pool.query(
           `SELECT dsi.id as section_item_id, dsi.display_order, p.*, 1 as is_combo, p.store_type as category_type
            FROM dashboard_section_items dsi
@@ -651,7 +656,7 @@ const getDashboard = async (req, res) => {
         items = await offerCards().loadSectionOfferCards({
           sectionId: section.id,
           areaId,
-          storeType: 'all', // global row: every card, whatever its mode
+          storeType: modeType,
           includeClosedShops,
         });
       }
@@ -738,8 +743,8 @@ const getSectionItems = async (req, res) => {
     `;
     const sectionParams = [slug, areaId];
     if (expectedStoreType && expectedStoreType !== 'all') {
-      sectionQuery += " AND (store_type = ? OR section_type = 'offer_cards')";
-      sectionParams.push(expectedStoreType);
+      sectionQuery += ' AND (store_type = ? OR store_type = ?)';
+      sectionParams.push(expectedStoreType, COMMON_STORE_TYPE);
     }
     sectionQuery += ' ORDER BY id DESC LIMIT 1';
 
@@ -751,10 +756,11 @@ const getSectionItems = async (req, res) => {
 
     const section = sections[0];
     let items = [];
+    const modeType = section.store_type === COMMON_STORE_TYPE ? 'all' : expectedStoreType;
 
     if (section.section_type === 'offer_banner') {
-      const offerStoreFilter = (expectedStoreType && expectedStoreType !== 'all') ? 'AND o.store_type = ?' : '';
-      const params = (expectedStoreType && expectedStoreType !== 'all') ? [section.id, areaId, expectedStoreType, limitNumber, offset] : [section.id, areaId, limitNumber, offset];
+      const offerStoreFilter = (modeType && modeType !== 'all') ? 'AND o.store_type = ?' : '';
+      const params = (modeType && modeType !== 'all') ? [section.id, areaId, modeType, limitNumber, offset] : [section.id, areaId, limitNumber, offset];
       const [rows] = await pool.query(
         `SELECT dsi.id as section_item_id, dsi.display_order, o.*
          FROM dashboard_section_items dsi
@@ -786,14 +792,14 @@ const getSectionItems = async (req, res) => {
       await resolveImageUrls(rows);
 
       let filteredRows = rows;
-      if (expectedStoreType && expectedStoreType !== 'all') {
-        filteredRows = rows.filter(r => r.type === expectedStoreType);
+      if (modeType && modeType !== 'all') {
+        filteredRows = rows.filter(r => r.type === modeType);
       }
 
       items = mapCategoryRows(filteredRows);
     } else if (section.section_type === 'product_block') {
-      const productStoreFilter = (expectedStoreType && expectedStoreType !== 'all') ? 'AND cat.type = ?' : '';
-      const params = (expectedStoreType && expectedStoreType !== 'all') ? [section.id, areaId, expectedStoreType, limitNumber, offset] : [section.id, areaId, limitNumber, offset];
+      const productStoreFilter = (modeType && modeType !== 'all') ? 'AND cat.type = ?' : '';
+      const params = (modeType && modeType !== 'all') ? [section.id, areaId, modeType, limitNumber, offset] : [section.id, areaId, limitNumber, offset];
       const [rows] = await pool.query(
         `SELECT dsi.id as section_item_id, dsi.display_order, p.*, cat.name as category_name, cat.type as category_type, ${shopIsOpenSelect}
          FROM dashboard_section_items dsi
@@ -841,8 +847,8 @@ const getSectionItems = async (req, res) => {
         shop_is_open: r.shop_is_open === undefined ? 1 : r.shop_is_open,
       }));
     } else if (section.section_type === 'combo_block') {
-      const comboStoreFilter = (expectedStoreType && expectedStoreType !== 'all') ? 'AND p.store_type = ?' : '';
-      const params = (expectedStoreType && expectedStoreType !== 'all') ? [section.id, areaId, expectedStoreType, limitNumber, offset] : [section.id, areaId, limitNumber, offset];
+      const comboStoreFilter = (modeType && modeType !== 'all') ? 'AND p.store_type = ?' : '';
+      const params = (modeType && modeType !== 'all') ? [section.id, areaId, modeType, limitNumber, offset] : [section.id, areaId, limitNumber, offset];
       const [rows] = await pool.query(
         `SELECT dsi.id as section_item_id, dsi.display_order, p.*, 1 as is_combo, p.store_type as category_type
          FROM dashboard_section_items dsi
@@ -883,7 +889,7 @@ const getSectionItems = async (req, res) => {
       items = await offerCards().loadSectionOfferCards({
         sectionId: section.id,
         areaId,
-        storeType: 'all', // global row: every card, whatever its mode
+        storeType: modeType,
         includeClosedShops,
         limit: limitNumber,
         offset,
@@ -918,21 +924,24 @@ const getAdminSections = async (req, res) => {
 
   const { store_type } = req.query;
   try {
-    if (store_type && store_type !== 'all') {
+    const isModeList = Boolean(store_type) && store_type !== 'all' && store_type !== COMMON_STORE_TYPE;
+    if (isModeList) {
       await ensureModeSpecificOfferBannerSections(areaId);
     }
 
     // Make sure the rows Home creates by itself (per shop, per category) exist,
     // so this list matches the app. They are ordinary rows from here on.
-    const { valid: validAutoKeys } = (store_type && store_type !== 'all')
+    const { valid: validAutoKeys } = isModeList
       ? await syncAutoSections(areaId, store_type)
       : { valid: new Set() };
 
     let query = 'SELECT id, title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, auto_kind, auto_source_id, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at FROM dashboard_sections WHERE deleted_at IS NULL AND area_id = ?';
     const params = [areaId];
-    if (store_type) {
-      // Offer Cards rows are global, so they are listed under every mode.
-      query += ' AND (store_type = ? OR section_type = "offer_cards" OR (store_type = "all" AND section_type != "offer_banner"))';
+    if (store_type === COMMON_STORE_TYPE) {
+      query += ' AND store_type = ?';
+      params.push(COMMON_STORE_TYPE);
+    } else if (store_type) {
+      query += ' AND (store_type = ? OR (store_type = "all" AND section_type != "offer_banner"))';
       params.push(store_type);
     }
     query += ' ORDER BY display_order ASC, id ASC';
@@ -1286,7 +1295,7 @@ const addAdminSectionItem = async (req, res) => {
       return res.status(400).json({ code: 'VALIDATION_ERROR', message: itemInfo.error });
     }
 
-    if (section.store_type !== 'all' && itemInfo.storeType && itemInfo.storeType !== section.store_type) {
+    if (section.store_type !== 'all' && section.store_type !== COMMON_STORE_TYPE && itemInfo.storeType && itemInfo.storeType !== section.store_type) {
       return res.status(400).json({
         code: 'VALIDATION_ERROR',
         message: `This item belongs to "${itemInfo.storeType}" and cannot be added to a "${section.store_type}" section.`

@@ -76,6 +76,7 @@ describeWithMysql('offer cards + deal admin (real MySQL)', () => {
 
   afterAll(async () => {
     if (ids.section) await pool.query('DELETE FROM dashboard_sections WHERE id = ?', [ids.section]);
+    if (ids.commonSection) await pool.query('DELETE FROM dashboard_sections WHERE id = ?', [ids.commonSection]);
     if (ids.card) await pool.query('DELETE FROM offer_cards WHERE id = ?', [ids.card]);
     if (ids.deal) await pool.query('DELETE FROM coupons WHERE id = ?', [ids.deal]);
     await pool.query('DELETE FROM product_variants WHERE product_id IN (?)', [[ids.potato, ids.chips, ids.onion]]);
@@ -201,12 +202,30 @@ describeWithMysql('offer cards + deal admin (real MySQL)', () => {
     expect(card.deal.tiers[2].items[0]).toMatchObject({ dealVariantId: ids.onion1kg, dealVariantLabel: '1 kg', regularPrice: 40, dealPrice: 29 });
   });
 
-  it('the offer cards row is global: it shows in the other shop modes too', async () => {
-    const res = await request(app).get('/api/dashboard?storeType=fast_food');
-    expect(res.statusCode).toBe(200);
-    const section = res.body.data.sections.find((s) => s.id === ids.section);
-    expect(section).toBeDefined();
-    expect(section.items.map((c) => c.id)).toEqual([ids.card]);
+  it('a mode section stays in its mode; a Common section shows in every mode', async () => {
+    let res = await request(app).get('/api/dashboard?storeType=fast_food');
+    expect(res.body.data.sections.find((s) => s.id === ids.section)).toBeUndefined();
+
+    res = await admin('post', '/dashboard-sections').send({
+      title: '', slug: `${slug}-common`, section_type: 'offer_cards', store_type: 'common', display_order: 0,
+    });
+    expect(res.statusCode).toBe(201);
+    ids.commonSection = res.body.id;
+    res = await admin('post', `/dashboard-sections/${ids.commonSection}/items`).send({ item_type: 'offer_card', item_id: ids.card });
+    expect(res.statusCode).toBe(201);
+
+    for (const mode of ['packed', 'fast_food']) {
+      res = await request(app).get(`/api/dashboard?storeType=${mode}`);
+      const section = res.body.data.sections.find((s) => s.id === ids.commonSection);
+      expect(section).toMatchObject({ storeType: 'common', sectionType: 'offer_cards' });
+      expect(section.items.map((c) => c.id)).toEqual([ids.card]);
+    }
+
+    // Listed under its own Common tab in admin, not under a mode.
+    res = await admin('get', '/dashboard-sections?store_type=common');
+    expect(res.body.data.map((s) => s.id)).toEqual([ids.commonSection]);
+    res = await admin('get', '/dashboard-sections?store_type=fast_food');
+    expect(res.body.data.some((s) => s.id === ids.commonSection)).toBe(false);
   });
 
   it('the Deal page lists every product with the card look', async () => {

@@ -1,7 +1,8 @@
 const { pool } = require('../db/mysql');
 const { requestAreaId, bustAreaCaches } = require('../utils/areaScope');
 
-const RESERVED_SLUGS = new Set(['all']);
+// 'common' is the App Home "Common" sections (shown in every mode).
+const RESERVED_SLUGS = new Set(['all', 'common']);
 const SLUG_PATTERN = /^[a-z][a-z0-9_]{1,30}$/;
 
 // `??` treats an explicit `null` as absent and falls through to the alias —

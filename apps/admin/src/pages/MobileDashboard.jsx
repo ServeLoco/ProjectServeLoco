@@ -12,9 +12,9 @@ import { useStoreModes, modeLabel } from '../hooks/useStoreModes';
 
 // Section types whose cards carry their own names, so the title above is optional.
 const TITLE_OPTIONAL_TYPES = ['category_grid', 'offer_cards'];
-// Shown in every shop mode, under the mode switch in the app.
-const GLOBAL_SECTION_TYPES = ['offer_cards'];
-const GLOBAL_SECTION_NOTE = 'Offer Cards show in every shop mode, right under the mode switch on Home.';
+// The "Common" tab: sections shown in every shop mode, at the top of Home
+// between the top bar and the shop modes. Their items are not tied to a mode.
+const COMMON_STORE_TYPE = 'common';
 
 const DEFAULT_MAX_VISIBLE_BY_SECTION = {
   offer_banner: 5,
@@ -32,6 +32,9 @@ export default function MobileDashboard() {
   const [sections, setSections] = useState([]);
   const [selectedSection, setSelectedSection] = useState(null);
   const [storeType, setStoreType] = useState('packed');
+  const isCommonTab = storeType === COMMON_STORE_TYPE;
+  // Items offered for a section: the tab's mode only, or every mode on Common.
+  const itemMode = isCommonTab ? undefined : storeType;
   
   // Loading states
   const [loadingSections, setLoadingSections] = useState(false);
@@ -169,22 +172,22 @@ export default function MobileDashboard() {
       setLoadingCandidates(true);
       setCandidates([]);
       if (sectionType === 'offer_banner') {
-        const res = await OffersApi.list({ store_type: storeType });
+        const res = await OffersApi.list({ store_type: itemMode });
         setCandidates(readList(res, 'offers'));
       } else if (sectionType === 'category_grid') {
-        const res = await CategoriesApi.list({ type: storeType });
+        const res = await CategoriesApi.list({ type: itemMode });
         setCandidates(readList(res, 'categories'));
       } else if (sectionType === 'product_block') {
         // Load only non-combos
-        const res = await ProductsApi.list({ limit: 100, is_combo: '0', available: '1', type: storeType });
+        const res = await ProductsApi.list({ limit: 100, is_combo: '0', available: '1', type: itemMode });
         setCandidates(readList(res, 'products'));
       } else if (sectionType === 'combo_block') {
         // Load only combos
-        const res = await CombosApi.list({ limit: 100, available: '1', store_type: storeType });
+        const res = await CombosApi.list({ limit: 100, available: '1', store_type: itemMode });
         setCandidates(readList(res, ['products', 'combos']));
       } else if (sectionType === 'offer_cards') {
-        // Cards made on the Offer Cards page; the row is global, so all of them.
-        const res = await OfferCardsApi.list();
+        // Cards made on the Offer Cards page, for this mode or for every mode.
+        const res = await OfferCardsApi.list({ store_type: itemMode });
         setCandidates(readList(res));
       }
     } catch (err) {
@@ -263,7 +266,6 @@ export default function MobileDashboard() {
 
       const payload = {
         ...newSectionForm,
-        store_type: GLOBAL_SECTION_TYPES.includes(newSectionForm.section_type) ? 'all' : newSectionForm.store_type,
         active: Number(newSectionForm.active),
         display_order: Number(newSectionForm.display_order),
         max_visible_items: Number(newSectionForm.max_visible_items),
@@ -321,7 +323,6 @@ export default function MobileDashboard() {
 
       const payload = {
         ...editForm,
-        store_type: GLOBAL_SECTION_TYPES.includes(selectedSection.section_type) ? 'all' : editForm.store_type,
         active: Number(editForm.active),
         display_order: Number(editForm.display_order),
         max_visible_items: Number(editForm.max_visible_items),
@@ -636,6 +637,18 @@ export default function MobileDashboard() {
         </header>
 
         <div style={{ display: 'flex', gap: '0.5rem', padding: '0 1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+        <button
+          className={`btn-secondary ${isCommonTab ? 'active' : ''}`}
+          style={isCommonTab ? { background: 'var(--primary-color)', color: 'white', borderColor: 'var(--primary-color)' } : {}}
+          title="Shown in every mode, at the top of Home between the top bar and the shop modes"
+          onClick={() => {
+            setStoreType(COMMON_STORE_TYPE);
+            setSelectedSection(null);
+            setEditForm(null);
+          }}
+        >
+          Common (top of Home)
+        </button>
         {modes.map(m => (
           <button
             key={m.slug}
@@ -650,6 +663,11 @@ export default function MobileDashboard() {
             {m.label} Layout
           </button>
         ))}
+        {isCommonTab && (
+          <div className="form-hint" style={{ width: '100%' }}>
+            These sections show in every shop mode, at the top of Home between the top bar and the shop modes.
+          </div>
+        )}
       </div>
 
         <div className="sections-list-container">
@@ -684,7 +702,7 @@ export default function MobileDashboard() {
                     <span className="badge badge-type">
                       {sec.auto_kind ? `${sec.auto_kind} row` : sec.section_type.replace('_', ' ')}
                     </span>
-                    <span className="badge badge-store">{GLOBAL_SECTION_TYPES.includes(sec.section_type) ? 'all modes' : sec.store_type}</span>
+                    <span className="badge badge-store">{sec.store_type === COMMON_STORE_TYPE ? 'Common' : sec.store_type}</span>
                     <span className={`badge ${sec.active ? 'badge-status-active' : 'badge-status-hidden'}`}>
                       {sec.active ? 'Active' : 'Hidden'}
                     </span>
@@ -761,9 +779,6 @@ export default function MobileDashboard() {
                 <div className="form-grid-2">
                   <div className="form-group">
                     <label className="form-label">Store Visibility</label>
-                    {GLOBAL_SECTION_TYPES.includes(selectedSection.section_type) ? (
-                      <div className="form-hint">{GLOBAL_SECTION_NOTE}</div>
-                    ) : (
                     <select 
                       name="store_type" 
                       className="form-select" 
@@ -772,9 +787,9 @@ export default function MobileDashboard() {
                       disabled={Boolean(selectedSection.auto_kind)}
                     >
                       <option value="all">All Stores (legacy)</option>
+                      <option value={COMMON_STORE_TYPE}>Common (every mode, top of Home)</option>
                       {modes.map(m => <option key={m.slug} value={m.slug}>{m.label} Only</option>)}
                     </select>
-                    )}
                   </div>
                   <div className="form-group">
                     <label className="form-label">
@@ -1118,18 +1133,15 @@ export default function MobileDashboard() {
 
                 <div className="form-group">
                   <label className="form-label">Store Visibility</label>
-                  {GLOBAL_SECTION_TYPES.includes(newSectionForm.section_type) ? (
-                    <div className="form-hint">{GLOBAL_SECTION_NOTE}</div>
-                  ) : (
                   <select 
                     name="store_type" 
                     className="form-select" 
                     value={newSectionForm.store_type} 
                     onChange={handleModalFormChange}
                   >
+                    <option value={COMMON_STORE_TYPE}>Common (every mode, top of Home)</option>
                     {modes.map(m => <option key={m.slug} value={m.slug}>{m.label} Only</option>)}
                   </select>
-                  )}
                 </div>
 
                 <div className="form-group">
@@ -1293,7 +1305,7 @@ export default function MobileDashboard() {
                     <select className="form-select" value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
                       <option value="">All Categories</option>
                       {allCategories
-                        .filter(c => !c.type || c.type === storeType)
+                        .filter(c => !c.type || !itemMode || c.type === itemMode)
                         .map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
                   </>

@@ -3,6 +3,7 @@ import { OfferCardsApi, CouponsApi, ImagesApi } from '../api';
 import { readList } from '../utils/apiResponse';
 import { getUploadedImage, normalizeImageUrl, FALLBACK_IMAGE, handleImageError } from '../utils/imageUrl';
 import { getImageUploadError } from '../utils/fileValidation';
+import { useStoreModes, modeLabel } from '../hooks/useStoreModes';
 import PickAreaNotice from '../components/PickAreaNotice';
 import { useAreaStore } from '../stores/useAreaStore';
 import { GENERIC_ERROR } from '../utils/constants';
@@ -127,7 +128,7 @@ function useDealTiers(dealId) {
   return tiers;
 }
 
-function CardTile({ card, onEdit, onToggle }) {
+function CardTile({ card, modes, onEdit, onToggle }) {
   const tiers = useDealTiers(card.deal_coupon_id);
   return (
     <div className="oc-tile">
@@ -135,7 +136,7 @@ function CardTile({ card, onEdit, onToggle }) {
       <div className="oc-tile-meta">
         <div><b>{card.title}</b></div>
         <div className="oc-muted">
-          Deal: {card.dealTitle || <span className="oc-danger">none — pick one</span>}
+          Deal: {card.dealTitle || <span className="oc-danger">none — pick one</span>} • {card.store_type === 'all' ? 'All modes' : modeLabel(modes, card.store_type)}
         </div>
         <div className="oc-tile-actions">
           <span className={`offer-status ${card.active ? 'active' : 'inactive'}`}>{card.active ? 'Active' : 'Inactive'}</span>
@@ -150,6 +151,7 @@ function CardTile({ card, onEdit, onToggle }) {
 export default function OfferCards() {
   const { areaId } = useAreaStore() || {};
   const isAllAreas = areaId === 'all';
+  const { modes } = useStoreModes();
   const [cards, setCards] = useState([]);
   const [deals, setDeals] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -210,7 +212,7 @@ export default function OfferCards() {
       ) : (
         <section className="oc-grid">
           {cards.map((card) => (
-            <CardTile key={card.id} card={card} onEdit={setEditing} onToggle={toggle} />
+            <CardTile key={card.id} card={card} modes={modes} onEdit={setEditing} onToggle={toggle} />
           ))}
         </section>
       )}
@@ -219,6 +221,7 @@ export default function OfferCards() {
         <OfferCardDrawer
           card={editing}
           deals={deals}
+          modes={modes}
           onClose={() => setEditing(undefined)}
           onSaved={() => { setEditing(undefined); load(); }}
         />
@@ -229,12 +232,13 @@ export default function OfferCards() {
 
 const toLocalInput = (value) => (value ? String(value).replace(' ', 'T').slice(0, 16) : '');
 
-function OfferCardDrawer({ card, deals, onClose, onSaved }) {
+function OfferCardDrawer({ card, deals, modes, onClose, onSaved }) {
   const isEdit = Boolean(card);
   const [form, setForm] = useState(() => ({
     title: card?.title || '',
     subtitle: card?.subtitle || '',
     deal_coupon_id: card?.deal_coupon_id ? String(card.deal_coupon_id) : (deals[0] ? String(deals[0].id) : ''),
+    store_type: card?.store_type || 'all',
     image_id: card?.image_id || '',
     image_url: card?.imageUrl || card?.image_url || '',
     active: card ? Boolean(card.active) : true,
@@ -281,7 +285,7 @@ function OfferCardDrawer({ card, deals, onClose, onSaved }) {
       title: form.title,
       subtitle: form.subtitle,
       deal_coupon_id: form.deal_coupon_id ? Number(form.deal_coupon_id) : null,
-      store_type: 'all', // the Offer Cards row is global
+      store_type: form.store_type,
       image_id: form.image_id || null,
       active: form.active,
       starts_at: form.starts_at || null,
@@ -339,6 +343,14 @@ function OfferCardDrawer({ card, deals, onClose, onSaved }) {
               <div className="form-group">
                 <label className="form-label">Subtitle</label>
                 <input maxLength={255} className="form-input" value={form.subtitle} onChange={(e) => set('subtitle', e.target.value)} placeholder="e.g. Get any 1 item when you shop for ₹299" />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Show in mode</label>
+                <select className="form-select" value={form.store_type} onChange={(e) => set('store_type', e.target.value)}>
+                  <option value="all">All modes</option>
+                  {modes.map((m) => <option key={m.slug} value={m.slug}>{m.label}</option>)}
+                </select>
               </div>
 
               <div className="form-group">
