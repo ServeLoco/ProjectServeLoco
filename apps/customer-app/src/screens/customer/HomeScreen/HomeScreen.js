@@ -43,7 +43,7 @@ import {
   LocationPermissionCard,
 } from '../../../components';
 import { showToast } from '../../../components/Toast';
-import DealTabsCard, { cardStyleOf } from '../../../components/OfferCards/DealTabsCard';
+import { offerCardDesignOf, drawableOfferCards, offerCardColorOf } from '../../../components/OfferCards/offerCardDesigns';
 import { colors, typography, fontSizes, lineHeights, spacing, radius, layout } from '../../../theme';
 import HomeIcon from './HomeIcon';
 import useAreaLine from './useAreaLine';
@@ -99,10 +99,8 @@ const TOP_BAR_FADE_LOCATIONS = TOP_BAR_FADE_ALPHAS.map((_, i) => i / (TOP_BAR_FA
 const PAGE_GUTTER = 10;
 const OFFER_CARD_GAP = 10;
 
-// The cards an offer cards section draws (only the designs Home knows).
-const drawableOfferCards = (section) =>
-  (section.items || []).filter((card) => card.design === 'deal_tabs' && card.deal?.tiers?.length);
-// One card fills most of the width; with more, the next one peeks.
+// Every offer card type has the same width: one card fills most of the
+// width; with more, the next one peeks.
 const offerCardWidthFor = (count, contentWidth) => (count === 1 ? contentWidth : Math.floor(contentWidth * 0.8));
 // Home draws its sections a few at a time: this many at first, then one more
 // each time the customer scrolls within a screen of the end of what is drawn.
@@ -1565,7 +1563,7 @@ export default function HomeScreen() {
     const maxScroll = Math.max(0, PAGE_GUTTER * 2 + cards.length * (cardWidth + OFFER_CARD_GAP) - OFFER_CARD_GAP - windowWidth);
     return {
       sectionId: unit.section.id,
-      colors: cards.map((card) => cardStyleOf(card).tabColor),
+      colors: cards.map(offerCardColorOf),
       stops: cards.map((_, i) => Math.min(i * (cardWidth + OFFER_CARD_GAP), maxScroll)),
     };
   }, [commonUnits, contentWidth, windowWidth]);
@@ -1869,13 +1867,20 @@ export default function HomeScreen() {
               scrollEventThrottle={tintsArea ? 16 : undefined}
               contentContainerStyle={styles.offerCardsRail}
               ItemSeparatorComponent={OfferCardGap}
-              renderItem={({ item: card }) => (
-                <DealTabsCard
-                  card={card}
-                  width={offerCardWidth}
-                  onViewAll={() => navigation.navigate('Deal', { couponId: card.dealId, card })}
-                />
-              )}
+              renderItem={({ item: card }) => {
+                const design = offerCardDesignOf(card);
+                const CardView = design.Component;
+                return (
+                  <CardView
+                    card={card}
+                    width={offerCardWidth}
+                    onViewAll={() => {
+                      const target = design.viewAll?.(card);
+                      if (target) navigation.navigate(target.name, target.params);
+                    }}
+                  />
+                );
+              }}
             />
           </View>
         );
