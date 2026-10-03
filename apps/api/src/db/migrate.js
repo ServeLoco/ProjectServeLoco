@@ -2719,6 +2719,29 @@ const migrate = async () => {
       );
     `);
 
+    // The products a "Deals of the day" card (design 'deals_of_day') shows,
+    // in the admin's order. They sell at their own price and MRP — the card
+    // only picks and orders them. variant_key folds NULL into 0 so the
+    // unique key really holds for products without options.
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS offer_card_products (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        area_id INT NOT NULL,
+        offer_card_id INT NOT NULL,
+        product_id INT NOT NULL,
+        variant_id INT NULL,
+        variant_key INT AS (COALESCE(variant_id, 0)) STORED,
+        display_order INT NOT NULL DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_offer_card_product (offer_card_id, product_id, variant_key),
+        INDEX idx_offer_card_products_area_card (area_id, offer_card_id),
+        CONSTRAINT fk_offer_card_products_area FOREIGN KEY (area_id) REFERENCES areas(id) ON DELETE RESTRICT,
+        CONSTRAINT fk_offer_card_products_card FOREIGN KEY (offer_card_id) REFERENCES offer_cards(id) ON DELETE CASCADE,
+        CONSTRAINT fk_offer_card_products_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+      );
+    `);
+
     // Order snapshots of the deal. orders.discount_amount carries coupon +
     // deal together (so every report and the frozen-total maths stay right);
     // deal_discount_amount is the deal's share of it. order_items keep the

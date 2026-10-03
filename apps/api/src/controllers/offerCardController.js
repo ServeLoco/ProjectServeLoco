@@ -1,13 +1,17 @@
 /**
- * Home "offer cards" (dashboard section type 'offer_cards') and the deal
- * catalog behind them.
+ * Home "offer cards" (dashboard section type 'offer_cards') and what they
+ * show.
  *
- * An offer card is an admin-built card in a horizontal Home row. `design`
- * picks how the app draws it; only 'deal_tabs' exists so far (the ₹9 / ₹29 /
- * ₹49 card: a tab per deal price, a few products per tab, "View all"). Every
- * colour and label lives in style_json, so cards are restyled without a
- * release. A deal_tabs card shows a deal price coupon (discount_type
- * 'deal_price'); its tabs are that deal's distinct deal prices.
+ * An offer card is an admin-built card in a horizontal Home row. `design` is
+ * its template — how the app draws it:
+ *  - 'deal_tabs' (template 1): the ₹9 / ₹29 / ₹49 card. It shows a deal
+ *    price coupon (discount_type 'deal_price'); its tabs are that deal's
+ *    distinct deal prices, a few products per tab, "View all".
+ *  - 'deals_of_day' (template 2): a header (picture or styled title), a list
+ *    of products the admin picks (offer_card_products) at their own price
+ *    with the MRP struck through, ADD, "See all".
+ * Every colour and label lives in style_json, so cards are restyled without
+ * a release; each template has its own default look.
  *
  * The pricing itself never happens here — utils/coupons.js applyBestDeal
  * decides what a cart pays. This file only lists what a deal sells.
@@ -21,14 +25,17 @@ const { isWithinDateWindow, isWithinActiveDays, isWithinActiveTime } = require('
 const { toMoney } = require('../utils/money');
 const { attachVariants } = require('./productController');
 const { resolveImageUrls, mapProductRows } = require('./dashboardController');
+const { reorderDisplayOrder } = require('../utils/reorder');
 
 const DEAL_PAGE_TTL_MS = 120_000;
 
-const OFFER_CARD_DESIGNS = ['deal_tabs'];
+const OFFER_CARD_DESIGNS = ['deal_tabs', 'deals_of_day'];
+// A "Deals of the day" card lists at most this many products.
+const MAX_CARD_PRODUCTS = 50;
 
-// Defaults match the Instamart-style purple card; the admin overrides any of
-// them per card. The app merges these under the stored style too, so a card
-// saved before a key existed still renders.
+// Each template's default look; the admin overrides any of it per card. The
+// app merges the same defaults under the stored style, so a card saved
+// before a key existed still renders. Template 1: the purple deal card.
 const DEFAULT_STYLE = {
   bgColor: '#EDE7FF',
   bgColorEnd: '#FFFFFF',
@@ -42,6 +49,26 @@ const DEFAULT_STYLE = {
   buttonText: 'Select',
   footerText: 'View items at all prices',
   rowsPerTab: 3,
+};
+const DEFAULT_STYLES = {
+  deal_tabs: DEFAULT_STYLE,
+  // Template 2: the warm yellow "Deals of the day" card. accentColor is its
+  // main colour (styled title shine, "See all"); rowsPerTab is the number of
+  // products on the card.
+  deals_of_day: {
+    bgColor: '#FFF6D8',
+    bgColorEnd: '#FFE7A3',
+    accentColor: '#E8590C',
+    titleColor: '#D9480F',
+    subtitleColor: '#8A5A12',
+    tabColor: '#F2B705',
+    tabActiveColor: '#FFFFFF',
+    tabTextColor: '#FFFFFF',
+    buttonColor: '#2F6BFF',
+    buttonText: 'ADD',
+    footerText: 'See all',
+    rowsPerTab: 4,
+  },
 };
 const STYLE_COLOR_KEYS = [
   'bgColor', 'bgColorEnd', 'accentColor', 'titleColor', 'subtitleColor',
@@ -103,7 +130,7 @@ const sanitizeStyle = (input) => {
   return { style };
 };
 
-const resolvedStyle = (stored) => ({ ...DEFAULT_STYLE, ...parseStyle(stored) });
+const resolvedStyle = (stored, design) => ({ ...(DEFAULT_STYLES[design] || DEFAULT_STYLE), ...parseStyle(stored) });
 
 const isDealLive = (coupon, now = new Date()) => Boolean(coupon)
   && coupon.discount_type === 'deal_price'
@@ -217,7 +244,7 @@ const loadDealCatalog = async ({ areaId, couponIds, perTier = null, includeClose
   return result;
 };
 
-const mapCardRow = (row, deal) => ({
+const mapCardRow = (row, { deal = null, products = null } = {}) => ({
   id: row.id,
   sectionItemId: row.section_item_id,
   design: row.design,
@@ -228,11 +255,83 @@ const mapCardRow = (row, deal) => ({
   thumbUrl: row.thumbUrl || null,
   storeType: row.store_type,
   store_type: row.store_type,
-  style: resolvedStyle(row.style_json),
+  style: resolvedStyle(row.style_json, row.design),
   dealId: row.deal_coupon_id,
   deal_id: row.deal_coupon_id,
   deal,
+  ...(products ? { products } : {}),
 });
+
+/**
+ * The products of "Deals of the day" cards, in the admin's order, each at
+ * its own price — a picked option sells at the option's price and MRP.
+ * One query for every card asked about (§3.9); `perCard` caps each card's
+ * list (ROW_NUMBER in SQL), null returns them all, for the card's page.
+ *
+ * @returns {Promise<Map<number, object[]>>} cardId -> products (only cards
+ *   with at least one product to show).
+ */
+const loadCardProducts = async ({ areaId, cardIds, perCard = null, includeClosedShops = false }) => {
+  const ids = [...new Set((cardIds || []).map(Number).filter((id) => Number.isInteger(id) && id > 0))];
+  const result = new Map();
+  if (ids.length === 0) return result;
+
+  const shopOpenWhere = includeClosedShops
+    ? '(p.shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = p.shop_id AND s.active = 1))'
+    : '(p.shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = p.shop_id AND s.is_open = 1 AND s.active = 1))';
+  const availableWhere = includeClosedShops ? '1=1' : 'p.available = 1 AND (pv.id IS NULL OR pv.available = 1)';
+
+  const [rows] = await pool.query(
+    `SELECT * FROM (
+       SELECT ocp.offer_card_id, ocp.variant_id AS offer_variant_id,
+              pv.label AS offer_variant_label, pv.price AS offer_variant_price,
+              pv.original_price AS offer_variant_original_price, pv.available AS offer_variant_available,
+              p.*, cat.name AS category_name, cat.type AS category_type,
+              IF(p.shop_id IS NULL OR (sh.is_open = 1 AND sh.active = 1), 1, 0) AS shop_is_open,
+              ROW_NUMBER() OVER (PARTITION BY ocp.offer_card_id ORDER BY ocp.display_order, ocp.id) AS card_rank
+       FROM offer_card_products ocp
+       JOIN products p ON p.id = ocp.product_id
+       LEFT JOIN product_variants pv ON pv.id = ocp.variant_id AND pv.product_id = ocp.product_id AND pv.deleted = 0
+       LEFT JOIN categories cat ON cat.id = p.category_id
+       LEFT JOIN shops sh ON sh.id = p.shop_id
+       WHERE ocp.area_id = ? AND ocp.offer_card_id IN (?)
+         AND p.deleted = 0 AND p.is_combo = 0 AND p.area_id = ?
+         AND (ocp.variant_id IS NULL OR pv.id IS NOT NULL)
+         AND ${availableWhere} AND ${shopOpenWhere}
+         AND (p.group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = p.group_id AND g.active = 1 AND g.area_id = p.area_id))
+     ) ranked
+     WHERE ? IS NULL OR card_rank <= ?
+     ORDER BY offer_card_id, card_rank`,
+    [areaId, ids, areaId, perCard, perCard]
+  );
+
+  await Promise.all([resolveImageUrls(rows), attachVariants(rows)]);
+
+  const products = mapProductRows(rows);
+  rows.forEach((row, index) => {
+    const picked = Boolean(row.offer_variant_id);
+    const offerPrice = toMoney(picked ? row.offer_variant_price : row.price);
+    const mrp = toMoney(picked ? row.offer_variant_original_price : row.original_price);
+    const offerMrp = mrp > offerPrice ? mrp : null; // only a real saving is struck through
+    const variantOk = !picked || Boolean(row.offer_variant_available);
+    const item = {
+      ...products[index],
+      available: products[index].available && variantOk ? products[index].available : 0,
+      offerVariantId: row.offer_variant_id || null,
+      offer_variant_id: row.offer_variant_id || null,
+      offerVariantLabel: row.offer_variant_label || null,
+      offer_variant_label: row.offer_variant_label || null,
+      offerPrice,
+      offer_price: offerPrice,
+      offerMrp,
+      offer_mrp: offerMrp,
+    };
+    const list = result.get(row.offer_card_id) || [];
+    list.push(item);
+    result.set(row.offer_card_id, list);
+  });
+  return result;
+};
 
 /**
  * The cards of one Home 'offer_cards' section, ready for the app. A card
@@ -257,10 +356,23 @@ const loadSectionOfferCards = async ({ sectionId, areaId, storeType, includeClos
   );
   if (rows.length === 0) return [];
 
-  // Per-card rowsPerTab can differ; one catalog query at the largest of them.
-  const perTier = Math.max(...rows.map((r) => resolvedStyle(r.style_json).rowsPerTab || DEFAULT_STYLE.rowsPerTab));
-  const [catalog] = await Promise.all([
-    loadDealCatalog({ areaId, couponIds: rows.map((r) => r.deal_coupon_id), perTier, includeClosedShops }),
+  // Per-card row counts can differ; one query per template, at the largest.
+  const rowsOf = (row) => resolvedStyle(row.style_json, row.design).rowsPerTab;
+  const dealRows = rows.filter((r) => r.design === 'deal_tabs');
+  const productRows = rows.filter((r) => r.design === 'deals_of_day');
+  const [catalog, cardProducts] = await Promise.all([
+    loadDealCatalog({
+      areaId,
+      couponIds: dealRows.map((r) => r.deal_coupon_id),
+      perTier: dealRows.length ? Math.max(...dealRows.map(rowsOf)) : null,
+      includeClosedShops,
+    }),
+    loadCardProducts({
+      areaId,
+      cardIds: productRows.map((r) => r.id),
+      perCard: productRows.length ? Math.max(...productRows.map(rowsOf)) : null,
+      includeClosedShops,
+    }),
     resolveImageUrls(rows),
   ]);
 
@@ -269,9 +381,13 @@ const loadSectionOfferCards = async ({ sectionId, areaId, storeType, includeClos
       if (row.design === 'deal_tabs') {
         const deal = catalog.get(row.deal_coupon_id);
         if (!deal) return null;
-        const rowsPerTab = resolvedStyle(row.style_json).rowsPerTab;
-        const trimmed = { ...deal, tiers: deal.tiers.map((t) => ({ ...t, items: t.items.slice(0, rowsPerTab) })) };
-        return mapCardRow(row, trimmed);
+        const trimmed = { ...deal, tiers: deal.tiers.map((t) => ({ ...t, items: t.items.slice(0, rowsOf(row)) })) };
+        return mapCardRow(row, { deal: trimmed });
+      }
+      if (row.design === 'deals_of_day') {
+        const products = cardProducts.get(row.id);
+        if (!products) return null;
+        return mapCardRow(row, { products: products.slice(0, rowsOf(row)) });
       }
       return null; // a design this API does not know yet
     })
@@ -310,9 +426,46 @@ const getDealPage = async (req, res) => {
     [couponId, areaId]
   );
   await resolveImageUrls(cardRows);
-  const card = cardRows[0] ? mapCardRow(cardRows[0], null) : null;
+  const card = cardRows[0] ? mapCardRow(cardRows[0]) : null;
 
   const body = { data: { deal, card } };
+  microCache.set(cacheKey, body, DEAL_PAGE_TTL_MS);
+  res.status(200).json(body);
+};
+
+// ─────────────────────────────────────────────────────────────────────────
+// Public: GET /api/dashboard/offer-cards/:cardId — a product card's "See
+// all" page (template 2): the card and every product it lists.
+// ─────────────────────────────────────────────────────────────────────────
+
+const getOfferCardPage = async (req, res) => {
+  const areaId = requestAreaId(req);
+  const cardId = Number(req.params.cardId);
+  const notFound = () => res.status(404).json({ code: 'NOT_FOUND', message: 'This offer is not available' });
+  if (areaId === null || areaId === 'all' || !Number.isInteger(cardId) || cardId <= 0) return notFound();
+  const includeClosedShops = ['1', 'true'].includes(
+    String(req.query.includeClosedShops ?? req.query.include_closed_shops ?? '').toLowerCase()
+  );
+  const cacheKey = `dashboard:${areaId}:offer-card:${cardId}:closed=${includeClosedShops ? 1 : 0}`;
+  const cached = microCache.get(cacheKey);
+  if (cached) return res.status(200).json(cached);
+
+  const [cardRows] = await pool.query(
+    `SELECT * FROM offer_cards
+     WHERE id = ? AND area_id = ? AND design = 'deals_of_day' AND active = 1 AND deleted_at IS NULL
+       AND (starts_at IS NULL OR starts_at <= NOW())
+       AND (ends_at IS NULL OR ends_at >= NOW())`,
+    [cardId, areaId]
+  );
+  if (cardRows.length === 0) return notFound();
+  const [cardProducts] = await Promise.all([
+    loadCardProducts({ areaId, cardIds: [cardId], includeClosedShops }),
+    resolveImageUrls(cardRows),
+  ]);
+  const products = cardProducts.get(cardId);
+  if (!products) return notFound();
+
+  const body = { data: { card: mapCardRow(cardRows[0]), products } };
   microCache.set(cacheKey, body, DEAL_PAGE_TTL_MS);
   res.status(200).json(body);
 };
@@ -392,7 +545,7 @@ const readCardInput = async (body, areaId, { partial }) => {
 
 const mapAdminCard = (row) => ({
   ...row,
-  style: resolvedStyle(row.style_json),
+  style: resolvedStyle(row.style_json, row.design),
   style_json: undefined,
   imageUrl: row.imageUrl || null,
   image_url: row.imageUrl || null,
@@ -440,6 +593,7 @@ const createOfferCard = async (req, res) => {
   if (values.design === 'deal_tabs' && !values.deal_coupon_id) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'A deal card needs a deal price offer' });
   }
+  if (values.design !== 'deal_tabs') values.deal_coupon_id = null; // only template 1 shows a deal
   const columns = Object.keys(values);
   const [result] = await pool.query(
     `INSERT INTO offer_cards (area_id, ${columns.join(', ')}) VALUES (?, ${columns.map(() => '?').join(', ')})`,
@@ -460,7 +614,12 @@ const updateOfferCard = async (req, res) => {
 
   const { values, error } = await readCardInput(req.body || {}, areaId, { partial: true });
   if (error) return res.status(400).json({ code: 'VALIDATION_ERROR', message: error });
-  const finalDesign = values.design || existing[0].design;
+  // A card keeps its template: its products / deal and look belong to it.
+  if (values.design && values.design !== existing[0].design) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: "A card's template cannot be changed — make a new card instead" });
+  }
+  const finalDesign = existing[0].design;
+  if (finalDesign !== 'deal_tabs' && values.deal_coupon_id !== undefined) values.deal_coupon_id = null;
   const finalDeal = values.deal_coupon_id !== undefined ? values.deal_coupon_id : existing[0].deal_coupon_id;
   if (finalDesign === 'deal_tabs' && !finalDeal) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'A deal card needs a deal price offer' });
@@ -493,13 +652,156 @@ const deleteOfferCard = async (req, res) => {
   res.status(200).json({ message: 'Offer card deleted' });
 };
 
+// ─────────────────────────────────────────────────────────────────────────
+// Admin: /api/admin/offer-cards/:id/products — the products of a "Deals of
+// the day" card (template 2).
+// ─────────────────────────────────────────────────────────────────────────
+
+// Resolves the area and a template 2 card, or answers the request itself.
+const loadProductCard = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return null;
+  const [rows] = await pool.query(
+    'SELECT id, design FROM offer_cards WHERE id = ? AND area_id = ? AND deleted_at IS NULL',
+    [req.params.id, areaId]
+  );
+  if (rows.length === 0) {
+    res.status(404).json({ code: 'NOT_FOUND', message: 'Offer card not found' });
+    return null;
+  }
+  if (rows[0].design !== 'deals_of_day') {
+    res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Only "Deals of the day" cards have their own products' });
+    return null;
+  }
+  return { areaId, cardId: rows[0].id };
+};
+
+const getCardProducts = async (req, res) => {
+  const ctx = await loadProductCard(req, res);
+  if (!ctx) return;
+  const [rows] = await pool.query(
+    `SELECT ocp.id, ocp.product_id, ocp.variant_id, ocp.display_order,
+            p.name AS product_name, p.unit, p.image_id, p.price AS product_price, p.original_price AS product_original_price,
+            p.available AS product_available, p.deleted AS product_deleted,
+            pv.label AS variant_label, pv.price AS variant_price, pv.original_price AS variant_original_price,
+            pv.available AS variant_available
+     FROM offer_card_products ocp
+     JOIN products p ON p.id = ocp.product_id
+     LEFT JOIN product_variants pv ON pv.id = ocp.variant_id
+     WHERE ocp.offer_card_id = ? AND ocp.area_id = ?
+     ORDER BY ocp.display_order ASC, ocp.id ASC`,
+    [ctx.cardId, ctx.areaId]
+  );
+  await resolveImageUrls(rows);
+  res.status(200).json({
+    data: rows.map((r) => {
+      const picked = Boolean(r.variant_id);
+      const price = toMoney(picked ? r.variant_price : r.product_price);
+      const mrp = toMoney(picked ? r.variant_original_price : r.product_original_price);
+      return {
+        id: r.id,
+        productId: r.product_id, product_id: r.product_id,
+        variantId: r.variant_id, variant_id: r.variant_id,
+        variantLabel: r.variant_label || null, variant_label: r.variant_label || null,
+        name: r.product_name,
+        unit: r.unit,
+        imageUrl: r.imageUrl || null, image_url: r.imageUrl || null,
+        price,
+        mrp: mrp > price ? mrp : null,
+        displayOrder: r.display_order, display_order: r.display_order,
+        // Shown as a warning in the admin: the app quietly hides these.
+        productUnavailable: !r.product_available || Boolean(r.product_deleted) || (picked && !r.variant_available),
+      };
+    }),
+  });
+};
+
+const addCardProduct = async (req, res) => {
+  const ctx = await loadProductCard(req, res);
+  if (!ctx) return;
+  const b = req.body || {};
+  const productId = Number(b.product_id);
+  const variantId = b.variant_id ? Number(b.variant_id) : null;
+  if (!Number.isInteger(productId) || productId <= 0) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'product_id is required' });
+  }
+  const [products] = await pool.query(
+    'SELECT id, is_combo FROM products WHERE id = ? AND deleted = 0 AND area_id = ?',
+    [productId, ctx.areaId]
+  );
+  if (products.length === 0) return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Product does not exist in this area' });
+  if (products[0].is_combo) return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Combos cannot be added to this card' });
+  const [variants] = await pool.query('SELECT id FROM product_variants WHERE product_id = ? AND deleted = 0', [productId]);
+  let pickedVariant = null;
+  if (variants.length > 0) {
+    // ADD puts this exact option in the cart, so the card has to name it.
+    pickedVariant = variants.find((v) => Number(v.id) === variantId)?.id ?? null;
+    if (!pickedVariant) return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'This product has options — pick the one to show' });
+  } else if (variantId) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'This product has no options' });
+  }
+
+  const [countRows] = await pool.query(
+    'SELECT COUNT(*) AS total, COALESCE(MAX(display_order), -1) + 1 AS next FROM offer_card_products WHERE offer_card_id = ? AND area_id = ?',
+    [ctx.cardId, ctx.areaId]
+  );
+  if (Number(countRows[0]?.total) >= MAX_CARD_PRODUCTS) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: `A card can list at most ${MAX_CARD_PRODUCTS} products` });
+  }
+  // Adding the same product (and option) again keeps the one row.
+  const [result] = await pool.query(
+    `INSERT INTO offer_card_products (area_id, offer_card_id, product_id, variant_id, display_order)
+     VALUES (?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id)`,
+    [ctx.areaId, ctx.cardId, productId, pickedVariant, Number(countRows[0]?.next) || 0]
+  );
+  bustAreaCaches(ctx.areaId);
+  res.status(201).json({ message: 'Product added to the card', id: result.insertId });
+};
+
+const deleteCardProduct = async (req, res) => {
+  const ctx = await loadProductCard(req, res);
+  if (!ctx) return;
+  const [result] = await pool.query(
+    'DELETE FROM offer_card_products WHERE id = ? AND offer_card_id = ? AND area_id = ?',
+    [req.params.itemId, ctx.cardId, ctx.areaId]
+  );
+  if (result.affectedRows === 0) return res.status(404).json({ code: 'NOT_FOUND', message: 'Card product not found' });
+  bustAreaCaches(ctx.areaId);
+  res.status(200).json({ message: 'Product removed from the card' });
+};
+
+const reorderCardProducts = async (req, res) => {
+  const ctx = await loadProductCard(req, res);
+  if (!ctx) return;
+  const ids = req.body?.itemIds;
+  if (!Array.isArray(ids) || ids.length === 0 || ids.some((id) => !Number.isInteger(Number(id)) || Number(id) <= 0)) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'itemIds must be a list of card product ids' });
+  }
+  await reorderDisplayOrder(pool, {
+    table: 'offer_card_products',
+    ids: ids.map(Number),
+    where: ' AND offer_card_id = ? AND area_id = ?',
+    whereParams: [ctx.cardId, ctx.areaId],
+  });
+  bustAreaCaches(ctx.areaId);
+  res.status(200).json({ message: 'Card products reordered' });
+};
+
 module.exports = {
   OFFER_CARD_DESIGNS,
   DEFAULT_STYLE,
+  DEFAULT_STYLES,
   sanitizeStyle,
   loadDealCatalog,
   loadSectionOfferCards,
+  loadCardProducts,
   getDealPage,
+  getOfferCardPage,
+  getCardProducts,
+  addCardProduct,
+  deleteCardProduct,
+  reorderCardProducts,
   getAdminOfferCards,
   getAdminOfferCardById,
   createOfferCard,

@@ -61,6 +61,10 @@ const {
   createOfferCard,
   updateOfferCard,
   deleteOfferCard,
+  getCardProducts,
+  addCardProduct,
+  deleteCardProduct,
+  reorderCardProducts,
 } = require('../controllers/offerCardController');
 const {
   getAdminSections,
@@ -993,6 +997,11 @@ router.post('/offer-cards', requireAdmin, asyncHandler(createOfferCard));
 router.get('/offer-cards/:id', requireAdmin, asyncHandler(getAdminOfferCardById));
 router.patch('/offer-cards/:id', requireAdmin, asyncHandler(updateOfferCard));
 router.delete('/offer-cards/:id', requireAdmin, asyncHandler(deleteOfferCard));
+// The products of a "Deals of the day" card (template 2).
+router.get('/offer-cards/:id/products', requireAdmin, asyncHandler(getCardProducts));
+router.post('/offer-cards/:id/products', requireAdmin, asyncHandler(addCardProduct));
+router.patch('/offer-cards/:id/products/reorder', requireAdmin, asyncHandler(reorderCardProducts));
+router.delete('/offer-cards/:id/products/:itemId', requireAdmin, asyncHandler(deleteCardProduct));
 
 // Notifications
 router.get('/notifications', requireAdmin, asyncHandler(getAdminNotifications));

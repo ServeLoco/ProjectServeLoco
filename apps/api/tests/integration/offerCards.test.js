@@ -68,16 +68,19 @@ describeWithMysql('offer cards + deal admin (real MySQL)', () => {
       [ids.onion]
     );
     ids.onion1kg = v1.insertId;
-    await pool.query(
+    const [v2] = await pool.query(
       "INSERT INTO product_variants (product_id, label, price, available, is_default, display_order) VALUES (?, '2 kg', 75, 1, 0, 1)",
       [ids.onion]
     );
+    ids.onion2kg = v2.insertId;
   });
 
   afterAll(async () => {
     if (ids.section) await pool.query('DELETE FROM dashboard_sections WHERE id = ?', [ids.section]);
     if (ids.commonSection) await pool.query('DELETE FROM dashboard_sections WHERE id = ?', [ids.commonSection]);
+    if (ids.daySection) await pool.query('DELETE FROM dashboard_sections WHERE id = ?', [ids.daySection]);
     if (ids.card) await pool.query('DELETE FROM offer_cards WHERE id = ?', [ids.card]);
+    if (ids.dayCard) await pool.query('DELETE FROM offer_cards WHERE id = ?', [ids.dayCard]);
     if (ids.deal) await pool.query('DELETE FROM coupons WHERE id = ?', [ids.deal]);
     await pool.query('DELETE FROM product_variants WHERE product_id IN (?)', [[ids.potato, ids.chips, ids.onion]]);
     await pool.query('DELETE FROM products WHERE id IN (?)', [[ids.potato, ids.chips, ids.onion]]);
@@ -236,6 +239,77 @@ describeWithMysql('offer cards + deal admin (real MySQL)', () => {
 
     const missing = await request(app).get('/api/dashboard/deals/999999999');
     expect(missing.statusCode).toBe(404);
+  });
+
+  it('a "Deals of the day" card (template 2) lists its picked products at their own price', async () => {
+    // MRPs, set before anything below busts the dashboard cache.
+    await pool.query('UPDATE products SET original_price = 45 WHERE id = ?', [ids.potato]);
+    await pool.query('UPDATE product_variants SET original_price = 90 WHERE id = ?', [ids.onion2kg]);
+
+    let res = await admin('post', '/offer-cards').send({
+      design: 'deals_of_day', title: 'Deals of the day', deal_coupon_id: ids.deal, style: { rowsPerTab: 1 },
+    });
+    expect(res.statusCode).toBe(201);
+    ids.dayCard = res.body.id;
+    res = await admin('get', `/offer-cards/${ids.dayCard}`);
+    // No deal on template 2, and its own default look.
+    expect(res.body.data).toMatchObject({ design: 'deals_of_day', deal_coupon_id: null });
+    expect(res.body.data.style).toMatchObject({ buttonText: 'ADD', footerText: 'See all', rowsPerTab: 1 });
+
+    // The template stays; deal cards have no product list.
+    res = await admin('patch', `/offer-cards/${ids.dayCard}`).send({ design: 'deal_tabs' });
+    expect(res.statusCode).toBe(400);
+    res = await admin('get', `/offer-cards/${ids.card}/products`);
+    expect(res.statusCode).toBe(400);
+
+    res = await admin('post', `/offer-cards/${ids.dayCard}/products`).send({ product_id: ids.potato });
+    expect(res.statusCode).toBe(201);
+    const potatoRow = res.body.id;
+    res = await admin('post', `/offer-cards/${ids.dayCard}/products`).send({ product_id: ids.potato });
+    expect(res.body.id).toBe(potatoRow); // same product again: still one row
+    res = await admin('post', `/offer-cards/${ids.dayCard}/products`).send({ product_id: ids.onion });
+    expect(res.statusCode).toBe(400); // has options: must name one
+    res = await admin('post', `/offer-cards/${ids.dayCard}/products`).send({ product_id: ids.onion, variant_id: ids.onion2kg });
+    expect(res.statusCode).toBe(201);
+    const onionRow = res.body.id;
+    res = await admin('patch', `/offer-cards/${ids.dayCard}/products/reorder`).send({ itemIds: [onionRow, potatoRow] });
+    expect(res.statusCode).toBe(200);
+
+    res = await admin('get', `/offer-cards/${ids.dayCard}/products`);
+    expect(res.body.data.map((r) => [r.productId, r.variantLabel, r.price, r.mrp])).toEqual([
+      [ids.onion, '2 kg', 75, 90],
+      [ids.potato, null, 30, 45],
+    ]);
+
+    res = await admin('post', '/dashboard-sections').send({
+      title: '', slug: `${slug}-day`, section_type: 'offer_cards', store_type: 'packed', display_order: 0,
+    });
+    ids.daySection = res.body.id;
+    res = await admin('post', `/dashboard-sections/${ids.daySection}/items`).send({ item_type: 'offer_card', item_id: ids.dayCard });
+    expect(res.statusCode).toBe(201);
+
+    // Home shows rowsPerTab (1) of them...
+    res = await request(app).get('/api/dashboard?storeType=packed');
+    const [card] = res.body.data.sections.find((s) => s.id === ids.daySection).items;
+    expect(card).toMatchObject({ id: ids.dayCard, design: 'deals_of_day', deal: null });
+    expect(card.products.map((p) => p.id)).toEqual([ids.onion]);
+    expect(card.products[0]).toMatchObject({ offerVariantId: ids.onion2kg, offerVariantLabel: '2 kg', offerPrice: 75, offerMrp: 90 });
+
+    // ...and its See all page every one.
+    res = await request(app).get(`/api/dashboard/offer-cards/${ids.dayCard}`);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.data.card).toMatchObject({ id: ids.dayCard, title: 'Deals of the day' });
+    expect(res.body.data.products.map((p) => [p.id, p.offerPrice, p.offerMrp])).toEqual([
+      [ids.onion, 75, 90],
+      [ids.potato, 30, 45],
+    ]);
+    res = await request(app).get(`/api/dashboard/offer-cards/${ids.card}`);
+    expect(res.statusCode).toBe(404); // a deal card has the Deal page instead
+
+    res = await admin('delete', `/offer-cards/${ids.dayCard}/products/${onionRow}`);
+    expect(res.statusCode).toBe(200);
+    res = await admin('get', `/offer-cards/${ids.dayCard}/products`);
+    expect(res.body.data.map((r) => r.id)).toEqual([potatoRow]);
   });
 
   it('a switched-off deal hides its card; deleting the card empties the row', async () => {
