@@ -327,6 +327,16 @@ function normalizeCartCalculation(payload = {}) {
         return raw == null ? null : Number(raw);
       })(),
       dealQty: numberOrZero(pickFirst(item.dealQty, item.deal_qty, 0)),
+      // Units picked from a deal that are not billed: the deal is still
+      // locked ('locked', unlockAmount = ₹ still missing), another deal took
+      // the order ('one_deal'), or the deal is off ('unavailable').
+      heldQty: numberOrZero(pickFirst(item.heldQty, item.held_qty, 0)),
+      heldReason: pickFirst(item.heldReason, item.held_reason) ?? null,
+      heldDealPrice: (() => {
+        const raw = pickFirst(item.heldDealPrice, item.held_deal_price, null);
+        return raw == null ? null : Number(raw);
+      })(),
+      unlockAmount: numberOrZero(pickFirst(item.unlockAmount, item.unlock_amount, 0)),
     })),
     // `discount` / `itemDiscount` include the deal saving; these split it.
     // couponDiscount falls back to the whole discount on servers without deals.

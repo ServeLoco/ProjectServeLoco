@@ -312,7 +312,8 @@ const calculateCart = async (req, res) => {
   }
 
   // Free-delivery / coupon thresholds use remaining (available) lines only.
-  const totalItemCount = processedItems.reduce((sum, i) => sum + i.quantity, 0);
+  // Held deal units come off it below.
+  let totalItemCount = processedItems.reduce((sum, i) => sum + i.quantity, 0);
 
   let deliveryDistanceKm = null;
   let deliveryWithinRange = true;
@@ -500,13 +501,13 @@ const calculateCart = async (req, res) => {
   // ───────────────────────────────────────────────────────────────────
   // Deal price (₹9 / ₹29 ... items). Runs BEFORE the coupon and stacks with
   // it: the coupon below sees the subtotal after the deal saving. Lines keep
-  // their normal unitPrice/lineTotal; the deal adds dealPrice/dealQty to the
-  // units it covers and its saving to the discount.
+  // their normal unitPrice; the deal adds dealPrice/dealQty to the units it
+  // covers and its saving to the discount.
   // ───────────────────────────────────────────────────────────────────
-  let deal = null;
+  let dealResult = { deal: null, held: [] };
   if (!noDeliveryArea) {
     try {
-      deal = await applyBestDeal({
+      dealResult = await applyBestDeal({
         lines: processedItems.map((i) => ({
           productId: i.id, variantId: i.variantId, type: i.type, unitPrice: i.unitPrice, quantity: i.quantity, dealCouponId: i.dealCouponId,
         })),
@@ -521,12 +522,21 @@ const calculateCart = async (req, res) => {
       logger.error('[cart] applyBestDeal failed:', err.message);
     }
   }
+  const { deal, held: heldUnits } = dealResult;
   const dealDiscount = deal && deal.unlocked ? roundMoney(deal.dealDiscount) : 0;
   processedItems.forEach((item) => {
     item.dealPrice = null;
     item.deal_price = null;
     item.dealQty = 0;
     item.deal_qty = 0;
+    item.heldQty = 0;
+    item.held_qty = 0;
+    item.heldReason = null;
+    item.held_reason = null;
+    item.heldDealPrice = null;
+    item.held_deal_price = null;
+    item.unlockAmount = 0;
+    item.unlock_amount = 0;
   });
   if (deal && deal.unlocked) {
     deal.lines.forEach(({ index, dealPrice, dealQty }) => {
@@ -537,6 +547,28 @@ const calculateCart = async (req, res) => {
       item.deal_qty = dealQty;
     });
   }
+  // Units picked from a deal that cannot sell at the deal price right now
+  // (still locked, another deal took this order, or the deal ended) are
+  // HELD: the cart shows them as locked, but they are not billed — they
+  // leave the line total, the subtotal and the item count — and createOrder
+  // leaves them out of the order. A customer is never charged the full price
+  // for an item picked at a deal price.
+  heldUnits.forEach(({ index, qty, reason, dealPrice, amountRemaining }) => {
+    const item = processedItems[index];
+    const units = Math.min(qty, item.quantity - item.heldQty);
+    if (units <= 0) return;
+    item.heldQty += units;
+    item.held_qty = item.heldQty;
+    item.heldReason = reason;
+    item.held_reason = reason;
+    item.heldDealPrice = dealPrice;
+    item.held_deal_price = dealPrice;
+    item.unlockAmount = amountRemaining;
+    item.unlock_amount = amountRemaining;
+    item.lineTotal = roundMoney(item.unitPrice * (item.quantity - item.heldQty));
+    subtotal = roundMoney(subtotal - item.unitPrice * units);
+    totalItemCount -= units;
+  });
   const couponSubtotal = roundMoney(subtotal - dealDiscount);
 
   // Builds the appliedCoupon payload from a checkEligibility/pickBestAutoApply

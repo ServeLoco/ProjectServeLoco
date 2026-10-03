@@ -47,7 +47,7 @@ jest.mock('../src/utils/money', () => ({
 jest.mock('../src/utils/coupons', () => ({
   validateCoupon: jest.fn().mockResolvedValue({ ok: false, reason: 'No coupon' }),
   pickBestAutoApply: jest.fn().mockResolvedValue(null),
-  applyBestDeal: jest.fn().mockResolvedValue(null),
+  applyBestDeal: jest.fn().mockResolvedValue({ deal: null, held: [] }),
   findApplicableCoupons: jest.fn().mockResolvedValue([]),
   getNextFreeDeliveryThreshold: jest.fn().mockResolvedValue(null),
   computeDiscount: jest.fn().mockReturnValue(0),

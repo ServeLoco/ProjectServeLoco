@@ -2,9 +2,11 @@
  * Deal price coupons (discount_type = 'deal_price'): the pure unit picker and
  * applyBestDeal's selection, with the pool mocked.
  *
- * Owner rules being pinned here (2026-10-03):
+ * Owner rules being pinned here (2026-10-03; held units 2026-10-04):
  *  - only the OTHER items count toward the deal's minimum,
  *  - at most deal_max_items units, biggest saving first,
+ *  - all or nothing: below the minimum the deal's units are held — not
+ *    billed — instead of charged at the full price,
  *  - only lines picked from the deal (Select on its card / Deal page, sent as
  *    dealCouponId) can get the deal price,
  *  - a deal stacks with one normal coupon (so it is invisible to the coupon
@@ -49,7 +51,34 @@ describe('pickDealUnits', () => {
     expect(result.unlocked).toBe(false);
     expect(result.dealDiscount).toBe(0);
     expect(result.lines).toEqual([]);
+    expect(result.held).toEqual([{ index: 1, dealPrice: 9, qty: 1 }]);
     expect(result.amountRemaining).toBe(19);
+  });
+
+  it('sells every deal unit or none of them', () => {
+    const lines = [line(1, 280), deal(2, 30), deal(3, 30)];
+    const args = { couponId: 50, lines, dealPrices: prices([[2, null, 9], [3, null, 9]]), subtotal: 340, maxItems: 2 };
+
+    const open = pickDealUnits({ ...args, minOrder: 250 });
+    expect(open.unlocked).toBe(true);
+    expect(open.dealDiscount).toBe(42);
+    expect(open.lines).toEqual([{ index: 1, dealPrice: 9, dealQty: 1 }, { index: 2, dealPrice: 9, dealQty: 1 }]);
+    expect(open.held).toEqual([]);
+
+    // One deal unit never counts toward another's minimum.
+    const locked = pickDealUnits({ ...args, minOrder: 299 });
+    expect(locked.unlocked).toBe(false);
+    expect(locked.held).toEqual([{ index: 1, dealPrice: 9, qty: 1 }, { index: 2, dealPrice: 9, qty: 1 }]);
+    expect(locked.amountRemaining).toBe(19);
+  });
+
+  it('checks the minimum against othersTotal when given', () => {
+    const lines = [line(1, 300), deal(2, 30)];
+    const result = pickDealUnits({
+      couponId: 50, lines, dealPrices: prices([[2, null, 9]]), subtotal: 330, othersTotal: 260, minOrder: 299, maxItems: 1,
+    });
+    expect(result.unlocked).toBe(false);
+    expect(result.amountRemaining).toBe(39);
   });
 
   it('caps the units at deal_max_items across the whole cart', () => {
@@ -81,9 +110,9 @@ describe('pickDealUnits', () => {
     expect(result.dealDiscount).toBe(70);
   });
 
-  it('falls back to a smaller saving when the bigger one would break the minimum', () => {
-    // Taking product 3 (99) out leaves 230 + 30 = 260 < 299; taking product 2
-    // (30) out leaves 230 + 99 = 329 ≥ 299.
+  it('a pick beyond the cap is an ordinary item; the deal unit is the biggest saving', () => {
+    // Product 3 (99, saves 70) is the deal unit; product 2 sells at its normal
+    // 30 and counts toward the minimum: 230 + 30 = 260 < 299.
     const lines = [line(1, 230), deal(2, 30), deal(3, 99)];
     const result = pickDealUnits({
       couponId: 50,
@@ -93,8 +122,9 @@ describe('pickDealUnits', () => {
       minOrder: 299,
       maxItems: 1,
     });
-    expect(result.lines).toEqual([{ index: 1, dealPrice: 9, dealQty: 1 }]);
-    expect(result.dealDiscount).toBe(21);
+    expect(result.unlocked).toBe(false);
+    expect(result.held).toEqual([{ index: 2, dealPrice: 29, qty: 1 }]);
+    expect(result.amountRemaining).toBe(39);
   });
 
   it('matches the exact variant only', () => {
@@ -176,7 +206,7 @@ describe('applyBestDeal', () => {
 
   it('returns null without an area (deals are per area)', async () => {
     const result = await applyBestDeal({ lines: [line(1, 300)], subtotal: 300, areaId: null });
-    expect(result).toBeNull();
+    expect(result).toEqual({ deal: null, held: [] });
     expect(pool.query).not.toHaveBeenCalled();
   });
 
@@ -187,8 +217,9 @@ describe('applyBestDeal', () => {
 
     const result = await applyBestDeal({ lines: [line(1, 300), deal(2, 30)], subtotal: 330, areaId: 4 });
 
-    expect(result).toMatchObject({ couponId: 50, dealDiscount: 21, unlocked: true, minOrder: 299, maxItems: 1 });
-    expect(result.lines).toEqual([{ index: 1, dealPrice: 9, dealQty: 1 }]);
+    expect(result.deal).toMatchObject({ couponId: 50, dealDiscount: 21, unlocked: true, minOrder: 299, maxItems: 1 });
+    expect(result.deal.lines).toEqual([{ index: 1, dealPrice: 9, dealQty: 1 }]);
+    expect(result.held).toEqual([]);
     expect(pool.query.mock.calls[0][0]).toContain("discount_type = 'deal_price'");
     expect(pool.query.mock.calls[0][1][0]).toBe(4);
     expect(pool.query.mock.calls[1][0]).toContain('FROM coupon_deal_items');
@@ -196,38 +227,56 @@ describe('applyBestDeal', () => {
     expect(pool.query.mock.calls[1][1]).toEqual([4, [50], [2]]);
   });
 
-  it('returns a locked deal with the amount still missing', async () => {
+  it('returns a locked deal with the amount still missing, and holds its item', async () => {
     pool.query
       .mockResolvedValueOnce([[dealCoupon()]])
       .mockResolvedValueOnce([[{ coupon_id: 50, product_id: 2, variant_id: null, deal_price: 9 }]]);
 
     const result = await applyBestDeal({ lines: [line(1, 40), deal(2, 30)], subtotal: 70, areaId: 4 });
 
-    expect(result).toMatchObject({ couponId: 50, dealDiscount: 0, unlocked: false, amountRemaining: 259 });
+    expect(result.deal).toMatchObject({ couponId: 50, dealDiscount: 0, unlocked: false, amountRemaining: 259 });
+    expect(result.held).toEqual([{ index: 1, qty: 1, reason: 'locked', couponId: 50, dealPrice: 9, amountRemaining: 259 }]);
   });
 
   it('returns null without a query when no line was picked from a deal', async () => {
     const result = await applyBestDeal({ lines: [line(1, 300), line(2, 30)], subtotal: 330, areaId: 4 });
-    expect(result).toBeNull();
+    expect(result).toEqual({ deal: null, held: [] });
     expect(pool.query).not.toHaveBeenCalled();
   });
 
-  it('returns null when the picked product is no longer in the deal', async () => {
+  it('sells the product at its normal price when it is no longer in the deal', async () => {
     pool.query
       .mockResolvedValueOnce([[dealCoupon()]])
       .mockResolvedValueOnce([[]]);
     const result = await applyBestDeal({ lines: [line(1, 300), deal(2, 30)], subtotal: 330, areaId: 4 });
-    expect(result).toBeNull();
+    expect(result).toEqual({ deal: null, held: [] });
   });
 
-  it('skips a deal the customer has used up', async () => {
+  it('holds the item of a deal the customer has used up', async () => {
     pool.query
       .mockResolvedValueOnce([[dealCoupon({ per_user_usage_limit: 1 })]])
       .mockResolvedValueOnce([[{ coupon_id: 50, product_id: 2, variant_id: null, deal_price: 9 }]])
       .mockResolvedValueOnce([[{ count: 1 }]]); // getUserRedemptionCount
 
     const result = await applyBestDeal({ lines: [line(1, 300), deal(2, 30)], subtotal: 330, areaId: 4, userId: 9 });
-    expect(result).toBeNull();
+    expect(result.deal).toBeNull();
+    expect(result.held).toEqual([{ index: 1, qty: 1, reason: 'unavailable', couponId: 50, dealPrice: 9, amountRemaining: 0 }]);
+  });
+
+  it('holds the item of a deal that was switched off or ended', async () => {
+    pool.query
+      .mockResolvedValueOnce([[dealCoupon({ active: 0 }), dealCoupon({ id: 51, ends_at: '2020-01-01 00:00:00' })]])
+      .mockResolvedValueOnce([[
+        { coupon_id: 50, product_id: 2, variant_id: null, deal_price: 9 },
+        { coupon_id: 51, product_id: 3, variant_id: null, deal_price: 9 },
+      ]]);
+
+    const lines = [line(1, 300), deal(2, 30), deal(3, 30, 1, { dealCouponId: 51 })];
+    const result = await applyBestDeal({ lines, subtotal: 360, areaId: 4 });
+    expect(result.deal).toBeNull();
+    expect(result.held.map((h) => [h.index, h.reason])).toEqual([[1, 'unavailable'], [2, 'unavailable']]);
+    // Ended deals are looked up too, so their units can be held.
+    expect(pool.query.mock.calls[0][0]).not.toContain('active = 1');
   });
 
   it('picks the deal that saves the most', async () => {
@@ -240,7 +289,24 @@ describe('applyBestDeal', () => {
 
     const lines = [line(1, 300), deal(2, 30), deal(3, 40, 1, { dealCouponId: 51 })];
     const result = await applyBestDeal({ lines, subtotal: 370, areaId: 4 });
-    expect(result).toMatchObject({ couponId: 51, dealDiscount: 39 });
+    expect(result.deal).toMatchObject({ couponId: 51, dealDiscount: 39 });
+    // One deal per order: the other deal's item is held, not charged in full.
+    expect(result.held).toEqual([{ index: 1, qty: 1, reason: 'one_deal', couponId: 50, dealPrice: 9, amountRemaining: 0 }]);
+  });
+
+  it('checks each deal against the items picked from no deal', async () => {
+    pool.query
+      .mockResolvedValueOnce([[dealCoupon({ id: 50 }), dealCoupon({ id: 51 })]])
+      .mockResolvedValueOnce([[
+        { coupon_id: 50, product_id: 2, variant_id: null, deal_price: 9 },
+        { coupon_id: 51, product_id: 3, variant_id: null, deal_price: 1 },
+      ]]);
+
+    // 280 + 30 + 40 = 350, but the items picked from no deal are only 280.
+    const lines = [line(1, 280), deal(2, 30), deal(3, 40, 1, { dealCouponId: 51 })];
+    const result = await applyBestDeal({ lines, subtotal: 350, areaId: 4 });
+    expect(result.deal).toMatchObject({ unlocked: false, amountRemaining: 19 });
+    expect(result.held.map((h) => [h.index, h.reason, h.amountRemaining])).toEqual([[1, 'locked', 19], [2, 'locked', 19]]);
   });
 });
 

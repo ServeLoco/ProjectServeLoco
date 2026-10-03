@@ -1009,30 +1009,19 @@ const dealLineKey = (productId, variantId) => `${Number(productId)}:${variantId 
 const dealCouponIdOf = (item) => idOrNull(item?.deal_coupon_id ?? item?.dealCouponId);
 
 /**
- * Pure: decides which cart units sell at a deal's price.
+ * Pure: the units of a cart picked from one deal — units of the lines marked
+ * with this deal (line.dealCouponId === couponId), at most maxItems across
+ * the whole cart, the biggest saving first. Further units of those lines are
+ * ordinary units at the normal price (the same product added again from a
+ * normal list).
  *
- * Rules (owner decisions, 2026-10-03):
- *  - Only the OTHER items count toward the deal's minimum: a unit is sold at
- *    the deal price only while (subtotal − normal price of every unit picked)
- *    stays ≥ minOrder.
- *  - At most maxItems units across the whole cart; the biggest saving first.
- *  - Combos never take part, and a deal price that is not below the line's
- *    current price is ignored (the product got cheaper than the deal).
- *  - Only lines picked from this deal (line.dealCouponId === couponId) take
- *    part. The same product added from a normal list keeps its normal price
- *    and counts as one of the other items.
+ * Combos never take part, and a line whose current price is not above its
+ * deal price is an ordinary line too (the product got cheaper than the deal).
  *
- * @param {Object} params
- * @param {Array<{productId, variantId, type, unitPrice, quantity, dealCouponId}>} params.lines
- * @param {number} params.couponId - the deal being priced
- * @param {Map<string, number>} params.dealPrices - dealLineKey -> deal price
- * @returns {{ dealDiscount, unlocked, amountRemaining, lines: Array<{index, dealPrice, dealQty}>, candidateCount, bestCandidate }}
+ * @returns {Array<{index, dealPrice, unitPrice, saving}>} one entry per unit
  */
-const pickDealUnits = ({ lines, couponId, dealPrices, subtotal, minOrder, maxItems }) => {
-  const sub = toMoney(subtotal);
-  const min = toMoney(minOrder);
+const dealUnitsOf = ({ lines, couponId, dealPrices, maxItems }) => {
   const limit = Math.max(1, Number(maxItems) || 1);
-
   const candidates = [];
   lines.forEach((line, index) => {
     if (line.type && line.type !== 'product') return;
@@ -1047,65 +1036,86 @@ const pickDealUnits = ({ lines, couponId, dealPrices, subtotal, minOrder, maxIte
       candidates.push({ index, dealPrice: toMoney(dealPrice), unitPrice, saving });
     }
   });
-  // Biggest saving first; on a tie the cheaper unit, so the other items keep
-  // as much of the subtotal as possible.
+  // Biggest saving first; on a tie the cheaper unit, then cart order.
   candidates.sort((a, b) => (b.saving - a.saving) || (a.unitPrice - b.unitPrice) || (a.index - b.index));
+  return candidates.slice(0, limit);
+};
 
-  const picked = [];
-  let excluded = 0;
-  for (const c of candidates) {
-    if (picked.length >= limit) break;
-    if (roundMoney(sub - excluded - c.unitPrice) >= min) {
-      picked.push(c);
-      excluded = roundMoney(excluded + c.unitPrice);
-    }
-  }
-
+// One entry per cart line for a list of deal units.
+const unitsByLine = (units) => {
   const byLine = new Map();
-  let dealDiscount = 0;
-  for (const c of picked) {
-    const entry = byLine.get(c.index) || { index: c.index, dealPrice: c.dealPrice, dealQty: 0 };
-    entry.dealQty += 1;
-    byLine.set(c.index, entry);
-    dealDiscount = roundMoney(dealDiscount + c.saving);
+  for (const u of units) {
+    const entry = byLine.get(u.index) || { index: u.index, dealPrice: u.dealPrice, qty: 0 };
+    entry.qty += 1;
+    byLine.set(u.index, entry);
   }
+  return [...byLine.values()];
+};
 
-  // What is still missing: with no deal unit picked, the other items are the
-  // whole cart minus the best candidate (if one is in the cart at all).
-  const best = candidates[0] || null;
-  const othersNow = picked.length > 0
-    ? roundMoney(sub - excluded)
-    : roundMoney(sub - (best ? best.unitPrice : 0));
-  const amountRemaining = picked.length > 0 ? 0 : Math.max(0, roundMoney(min - othersNow));
+/**
+ * Pure: prices one deal on a cart.
+ *
+ * Rules (owner decisions, 2026-10-03; held units 2026-10-04):
+ *  - The deal's units are dealUnitsOf: picked from this deal, at most
+ *    maxItems, the biggest saving first.
+ *  - Only the OTHER items count toward the deal's minimum. `othersTotal` is
+ *    what the cart pays for everything that is not a deal unit (of any deal
+ *    in the cart); without it, the subtotal minus this deal's units.
+ *  - All or nothing: once othersTotal ≥ minOrder every deal unit sells at
+ *    the deal price. Below it the deal is locked and its units are HELD —
+ *    not billed and not ordered — so a customer is never charged the full
+ *    price for an item they picked at the deal price.
+ *
+ * @param {Object} params
+ * @param {Array<{productId, variantId, type, unitPrice, quantity, dealCouponId}>} params.lines
+ * @param {number} params.couponId - the deal being priced
+ * @param {Map<string, number>} params.dealPrices - dealLineKey -> deal price
+ * @returns {{ dealDiscount, unlocked, amountRemaining, lines: Array<{index, dealPrice, dealQty}>, held: Array<{index, dealPrice, qty}>, candidateCount, bestCandidate }}
+ */
+const pickDealUnits = ({ lines, couponId, dealPrices, subtotal, othersTotal = null, minOrder, maxItems }) => {
+  const min = toMoney(minOrder);
+  const units = dealUnitsOf({ lines, couponId, dealPrices, maxItems });
+  const others = othersTotal !== null && othersTotal !== undefined
+    ? toMoney(othersTotal)
+    : units.reduce((sum, u) => roundMoney(sum - u.unitPrice), toMoney(subtotal));
+  const unlocked = units.length > 0 && others >= min;
+  const grouped = unitsByLine(units);
 
   return {
-    dealDiscount,
-    unlocked: picked.length > 0,
-    amountRemaining,
-    lines: [...byLine.values()],
-    candidateCount: candidates.length,
-    bestCandidate: best,
+    dealDiscount: unlocked ? units.reduce((sum, u) => roundMoney(sum + u.saving), 0) : 0,
+    unlocked,
+    // What the other items still lack. With no deal item in the cart, the
+    // whole cart counts as other items.
+    amountRemaining: unlocked ? 0 : Math.max(0, roundMoney(min - others)),
+    lines: unlocked ? grouped.map(({ index, dealPrice, qty }) => ({ index, dealPrice, dealQty: qty })) : [],
+    held: unlocked ? [] : grouped,
+    candidateCount: units.length,
+    bestCandidate: units[0] || null,
   };
 };
 
 /**
- * Finds the deal that saves the most on this cart. Deals stack with one
- * normal coupon; the caller runs the coupon engine on (subtotal − deal
- * saving) afterwards.
+ * Prices the deals of a cart. Deals stack with one normal coupon; the caller
+ * runs the coupon engine on (subtotal − deal saving) afterwards.
  *
- * Every rule of checkEligibility applies (date/day/time window, store type,
- * zone, audience, first-order, usage limits) except the money gates: the
- * deal's minimum is checked against the other items by pickDealUnits, and
+ * One deal applies per order: the one that saves the most. Every unit picked
+ * from a deal that does not sell at its deal price is HELD — left out of the
+ * bill and the order — with a reason:
+ *  - 'locked': the other items have not reached the deal's minimum yet
+ *    (amountRemaining says how much is missing);
+ *  - 'one_deal': another deal in the cart applies to this order;
+ *  - 'unavailable': the deal ended, was switched off, or this customer
+ *    cannot use it (checkEligibility: date/day/time window, store type, zone,
+ *    audience, first-order, usage limits).
+ * The deal's minimum is checked against the other items by pickDealUnits;
  * min_item_count / max_order_amount do not apply to deals.
- *
- * Returns null when no line in the cart was picked from a live deal. When a
- * deal's products are in the cart but its minimum is not met yet, returns it
- * with unlocked: false, dealDiscount: 0 and amountRemaining, for the
- * "Add ₹X more to get it at ₹9" hint.
  *
  * @param {Object} params
  * @param {Array<{productId, variantId, type, unitPrice, quantity, dealCouponId}>} params.lines
- * @returns {Promise<null | { coupon, couponId, title, dealDiscount, unlocked, amountRemaining, minOrder, maxItems, lines }>}
+ * @returns {Promise<{ deal: null | { coupon, couponId, title, dealDiscount, unlocked, amountRemaining, minOrder, maxItems, lines, bestCandidate }, held: Array<{ index, qty, reason, couponId, dealPrice, amountRemaining }> }>}
+ *   `deal` is the deal being applied or, while none can be, the one closest
+ *   to unlocking (unlocked: false, dealDiscount: 0) for the "Add ₹X more"
+ *   hint; null when no line was picked from a live deal.
  */
 const applyBestDeal = async ({
   lines,
@@ -1118,24 +1128,25 @@ const applyBestDeal = async ({
   areaId = null,
   skipUsageChecks = false,
 }) => {
+  const none = { deal: null, held: [] };
   // Deals are created per area; with no area there is nothing to look up.
-  if (areaId === null || areaId === undefined || !Array.isArray(lines) || lines.length === 0) return null;
+  if (areaId === null || areaId === undefined || !Array.isArray(lines) || lines.length === 0) return none;
   const dealLines = lines.filter((l) => (!l.type || l.type === 'product') && dealCouponIdOf(l) !== null);
   const productIds = [...new Set(dealLines.map((l) => Number(l.productId)))];
-  if (productIds.length === 0) return null;
+  if (productIds.length === 0) return none;
   const dealIds = [...new Set(dealLines.map(dealCouponIdOf))];
 
   const conn = connection || pool;
+  // Every deal the cart names, live or not: an ended deal still says which
+  // units were picked from it, so they are held instead of billed at the full
+  // price. checkEligibility below decides which deals are live.
   const [coupons] = await conn.query(
     `SELECT * FROM coupons
-     WHERE discount_type = 'deal_price' AND active = 1 AND deleted = 0 AND area_id = ?
-       AND id IN (?)
-       AND (starts_at IS NULL OR starts_at <= ?)
-       AND (ends_at IS NULL OR ends_at >= ?)
+     WHERE discount_type = 'deal_price' AND area_id = ? AND id IN (?)
      ORDER BY priority DESC, id DESC`,
-    [areaId, dealIds, now, now]
+    [areaId, dealIds]
   );
-  if (coupons.length === 0) return null;
+  if (coupons.length === 0) return none;
 
   const [itemRows] = await conn.query(
     `SELECT coupon_id, product_id, variant_id, deal_price
@@ -1143,7 +1154,7 @@ const applyBestDeal = async ({
      WHERE area_id = ? AND active = 1 AND coupon_id IN (?) AND product_id IN (?)`,
     [areaId, coupons.map((c) => c.id), productIds]
   );
-  if (itemRows.length === 0) return null;
+  if (itemRows.length === 0) return none;
 
   const pricesByCoupon = new Map();
   for (const row of itemRows) {
@@ -1152,11 +1163,24 @@ const applyBestDeal = async ({
     pricesByCoupon.set(row.coupon_id, map);
   }
 
-  const results = [];
+  // Each deal's units. Units picked from any deal are never "other items" —
+  // they either sell at a deal price or are held — so the minimum of every
+  // deal is checked against the rest of the cart.
+  const perDeal = [];
+  let othersTotal = toMoney(subtotal);
   for (const coupon of coupons) {
     const dealPrices = pricesByCoupon.get(coupon.id);
     if (!dealPrices) continue;
+    const units = dealUnitsOf({ lines, couponId: coupon.id, dealPrices, maxItems: coupon.deal_max_items });
+    if (units.length === 0) continue;
+    perDeal.push({ coupon, dealPrices, units: unitsByLine(units) });
+    othersTotal = units.reduce((sum, u) => roundMoney(sum - u.unitPrice), othersTotal);
+  }
+  if (perDeal.length === 0) return none;
 
+  const held = [];
+  const results = [];
+  for (const { coupon, dealPrices, units } of perDeal) {
     const eligibility = await checkEligibility({
       coupon: { ...coupon, min_order_amount: 0, min_item_count: null, max_order_amount: null },
       subtotal: 0,
@@ -1167,18 +1191,21 @@ const applyBestDeal = async ({
       connection: conn,
       skipUsageChecks,
     });
-    if (!eligibility.ok) continue;
+    if (!eligibility.ok) {
+      units.forEach(({ index, dealPrice, qty }) => held.push({
+        index, qty, reason: 'unavailable', couponId: coupon.id, dealPrice, amountRemaining: 0,
+      }));
+      continue;
+    }
 
     const pick = pickDealUnits({
       lines,
       couponId: coupon.id,
       dealPrices,
-      subtotal,
+      othersTotal,
       minOrder: coupon.min_order_amount,
       maxItems: coupon.deal_max_items,
     });
-    if (pick.candidateCount === 0) continue;
-
     results.push({
       coupon,
       couponId: coupon.id,
@@ -1189,17 +1216,27 @@ const applyBestDeal = async ({
       minOrder: toMoney(coupon.min_order_amount),
       maxItems: Math.max(1, Number(coupon.deal_max_items) || 1),
       lines: pick.lines,
+      units,
       bestCandidate: pick.bestCandidate,
     });
   }
-  if (results.length === 0) return null;
 
   // Biggest saving wins; among locked deals the one closest to unlocking.
   results.sort((a, b) => (b.dealDiscount - a.dealDiscount)
     || (a.amountRemaining - b.amountRemaining)
     || ((Number(b.coupon.priority) || 0) - (Number(a.coupon.priority) || 0))
     || (b.couponId - a.couponId));
-  return results[0];
+  const deal = results[0] || null;
+
+  for (const r of results) {
+    if (r === deal && r.unlocked) continue;
+    const reason = r.unlocked || (deal && deal.unlocked) ? 'one_deal' : 'locked';
+    r.units.forEach(({ index, dealPrice, qty }) => held.push({
+      index, qty, reason, couponId: r.couponId, dealPrice, amountRemaining: reason === 'locked' ? r.amountRemaining : 0,
+    }));
+  }
+  held.sort((a, b) => a.index - b.index);
+  return { deal, held };
 };
 
 /**

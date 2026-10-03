@@ -137,6 +137,30 @@ describeWithMysql('deal price coupons (real MySQL)', () => {
     expect((res.body.availableCoupons || []).some((c) => c.id === ids.deal)).toBe(false);
   });
 
+  it('a locked deal holds its potato out of the bill', async () => {
+    const res = await request(app)
+      .post('/api/cart/calculate')
+      .set('Authorization', `Bearer ${tokenFor(ids.userA)}`)
+      .send({ items: [{ productId: ids.potato, quantity: 1, dealCouponId: ids.deal }], no_auto_apply: true });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.subtotal).toBe(0);
+    expect(res.body.deal).toMatchObject({ id: ids.deal, unlocked: false, amountRemaining: 299 });
+    expect(res.body.items[0]).toMatchObject({
+      quantity: 1, lineTotal: 0, dealQty: 0, heldQty: 1, heldReason: 'locked', heldDealPrice: 9, unlockAmount: 299,
+    });
+  });
+
+  it('an order of nothing but a locked deal item is refused', async () => {
+    const res = await request(app)
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${tokenFor(ids.userA)}`)
+      .send({ address: '1 Deal St', paymentMethod: 'Cash', no_auto_apply: true, items: [{ productId: ids.potato, quantity: 1, dealCouponId: ids.deal }] });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.code).toBe('DEAL_ITEMS_ONLY');
+  });
+
   it('createOrder snapshots the deal and redeems it', async () => {
     const res = await request(app)
       .post('/api/orders')
@@ -175,7 +199,7 @@ describeWithMysql('deal price coupons (real MySQL)', () => {
     expect(redemptions.map((r) => [Number(r.discount_amount), r.status])).toEqual([[21, 'active']]);
   });
 
-  it('a used-up deal is dropped from the next order, not refused', async () => {
+  it('a used-up deal is dropped from the next order, not refused — its item left out', async () => {
     const res = await request(app)
       .post('/api/orders')
       .set('Authorization', `Bearer ${tokenFor(ids.userB)}`)
@@ -183,9 +207,13 @@ describeWithMysql('deal price coupons (real MySQL)', () => {
 
     expect(res.statusCode).toBe(201);
     expect(res.body.order).toMatchObject({ dealDiscount: 0, dealId: null, discount: 0 });
-    const [[order]] = await pool.query('SELECT deal_coupon_id, deal_discount_amount FROM orders WHERE id = ?', [res.body.orderId]);
+    const [[order]] = await pool.query('SELECT subtotal, deal_coupon_id, deal_discount_amount FROM orders WHERE id = ?', [res.body.orderId]);
     expect(order.deal_coupon_id).toBeNull();
     expect(Number(order.deal_discount_amount)).toBe(0);
+    // The potato picked at ₹9 is left out; the one added normally stays.
+    expect(Number(order.subtotal)).toBe(330);
+    const [lines] = await pool.query('SELECT product_id, quantity FROM order_items WHERE order_id = ? ORDER BY id', [res.body.orderId]);
+    expect(lines.map((l) => [l.product_id, l.quantity])).toEqual([[ids.rice, 1], [ids.potato, 1]]);
   });
 
   it('cancelling the order gives the deal redemption back', async () => {

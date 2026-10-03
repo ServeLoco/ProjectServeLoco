@@ -40,6 +40,13 @@ const DEAL_ACCENT = '#6C3BF5';
 
 const getItemKey = (item) => `${getItemType(item)}-${item.product.id}-${item.variant?.id ?? 'base'}`;
 
+// The bill's deal units held out of it, to spot an item moving between the
+// locked box and the list.
+const heldSignature = (bill) => (bill?.items || [])
+  .filter((line) => line.heldQty > 0)
+  .map((line) => `${line.id}:${line.variantId}:${line.heldQty}`)
+  .join(',');
+
 export default function CartScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
@@ -159,44 +166,69 @@ export default function CartScreen() {
     () => validItems.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0),
     [validItems],
   );
-  // Server-priced lines carrying a deal price, keyed like getItemKey.
-  const dealByLine = useMemo(() => {
+  // Server-priced lines, keyed like getItemKey.
+  const billLineByKey = useMemo(() => {
     const map = {};
     for (const line of bill?.items || []) {
-      if (line.dealQty > 0) map[`${line.type || 'product'}-${line.id}-${line.variantId ?? 'base'}`] = line;
+      map[`${line.type || 'product'}-${line.id}-${line.variantId ?? 'base'}`] = line;
     }
     return map;
   }, [bill]);
 
-  // Units of each line shown in the highlighted deal rows at the end of the
-  // list: what the server priced at the deal price, or — while the deal is
-  // still locked or the bill is loading — the units picked from the deal, up
-  // to its limit. The rest of the line stays a normal row.
-  const dealUnitsByKey = useMemo(() => {
+  // Where each line's units show: `deal` units in the highlighted deal rows
+  // at the end of the list (sold at the deal price), `held` units in the
+  // locked box under the list (picked from a deal but not billed — the deal
+  // is still locked or not available), the rest as a normal row. The server
+  // decides; until its first bill arrives, units picked from a deal show in
+  // the deal rows, up to the deal's limit.
+  const unitsByKey = useMemo(() => {
     const map = {};
-    const deal = bill?.deal || null;
-    let left = Math.max(1, Number(deal?.maxItems) || 1);
+    let left = Math.max(1, Number(bill?.deal?.maxItems) || 1);
     for (const item of validItems) {
-      if (getItemType(item) !== 'product' || item.dealCouponId == null) continue;
-      if (bill && (!deal || String(deal.id) !== String(item.dealCouponId))) continue;
+      if (getItemType(item) !== 'product') continue;
       const key = getItemKey(item);
       const qty = Number(item.quantity) || 0;
-      const units = deal?.unlocked ? (dealByLine[key]?.dealQty || 0) : Math.min(qty, left);
-      if (units > 0) {
-        map[key] = units;
-        left -= units;
+      let deal = 0;
+      let held = 0;
+      if (bill) {
+        deal = Math.min(qty, billLineByKey[key]?.dealQty || 0);
+        held = Math.min(qty - deal, billLineByKey[key]?.heldQty || 0);
+      } else if (item.dealCouponId != null) {
+        deal = Math.min(qty, left);
+        left -= deal;
       }
+      if (deal > 0 || held > 0) map[key] = { deal, held };
     }
     return map;
-  }, [validItems, bill, dealByLine]);
+  }, [validItems, bill, billLineByKey]);
   const normalItems = useMemo(
-    () => validItems.filter((item) => (Number(item.quantity) || 0) - (dealUnitsByKey[getItemKey(item)] || 0) > 0),
-    [validItems, dealUnitsByKey],
+    () => validItems.filter((item) => {
+      const units = unitsByKey[getItemKey(item)];
+      return (Number(item.quantity) || 0) - (units ? units.deal + units.held : 0) > 0;
+    }),
+    [validItems, unitsByKey],
   );
   const dealItems = useMemo(
-    () => validItems.filter((item) => dealUnitsByKey[getItemKey(item)] > 0),
-    [validItems, dealUnitsByKey],
+    () => validItems.filter((item) => unitsByKey[getItemKey(item)]?.deal > 0),
+    [validItems, unitsByKey],
   );
+  const heldItems = useMemo(
+    () => validItems.filter((item) => unitsByKey[getItemKey(item)]?.held > 0),
+    [validItems, unitsByKey],
+  );
+  // What the locked box says: how much more unlocks the deal (from the
+  // server's bill), and how far along the cart is.
+  const heldLock = useMemo(() => {
+    const lockedLine = (bill?.items || []).find((line) => line.heldQty > 0 && line.heldReason === 'locked');
+    if (!lockedLine) return null;
+    const deal = bill.deal && !bill.deal.unlocked ? bill.deal : null;
+    const amount = deal ? deal.amountRemaining : lockedLine.unlockAmount;
+    const minOrder = deal?.minOrder || 0;
+    return { amount, ratio: minOrder > 0 ? Math.max(0, Math.min(1, (minOrder - amount) / minOrder)) : 0 };
+  }, [bill]);
+  // Every unit in the cart is a held deal item: nothing to order yet.
+  const onlyHeldItems = Boolean(bill?.items?.length)
+    && bill.items.every((line) => (line.heldQty || 0) >= (line.quantity || 0));
 
   // Cart-item entrance stagger: only the items present at mount animate in
   // with a per-index delay; items encountered later render fully visible.
@@ -322,6 +354,10 @@ export default function CartScreen() {
       };
       const calculatedBill = normalizeCartCalculation(await cartApi.calculate(payload));
       if (seq !== billRequestSeqRef.current) return; // a newer request superseded this one
+      // A deal item unlocking slides from the locked box into the list.
+      if (bill && heldSignature(bill) !== heldSignature(calculatedBill)) {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      }
       setBill(calculatedBill);
       setFreeDeliveryProgress(calculatedBill.freeDeliveryProgress);
       setFreeDeliveryUnlocked(Boolean(
@@ -450,6 +486,7 @@ export default function CartScreen() {
     calcError ||
     shopStatus === 'closed' ||
     deliveryBlocked ||
+    onlyHeldItems ||
     !bill;
 
   const bottomBarHeight = 78 + insets.bottom;
@@ -457,6 +494,8 @@ export default function CartScreen() {
     ? 'Set delivery location'
     : deliveryBlocked
     ? 'Delivery not available here'
+    : onlyHeldItems
+    ? (heldLock ? `Add ₹${heldLock.amount} more to order` : 'Deal not available now')
     : bill
     ? `Proceed to Pay  •  ₹${bill.grandTotal}`
     : 'Checkout';
@@ -1288,8 +1327,9 @@ export default function CartScreen() {
                 const itemKey = getItemKey(item);
                 const itemAnim = getItemAnim(itemKey);
                 const qty = Number(item.quantity) || 0;
-                // Units in the deal row below are not counted here.
-                const shownQty = qty - (dealUnitsByKey[itemKey] || 0);
+                // Units in the deal rows and the locked box are not counted here.
+                const units = unitsByKey[itemKey];
+                const shownQty = qty - (units ? units.deal + units.held : 0);
                 // One short line per item — "2× Amul Milk (500ml)" — no photo or
                 // unit price, so the whole cart fits on screen; the bill below
                 // has the money.
@@ -1336,8 +1376,8 @@ export default function CartScreen() {
                 );
               })}
 
-              {/* Items picked from a deal: their own highlighted rows, last,
-                  at the offer price. */}
+              {/* Items picked from a deal and unlocked: their own highlighted
+                  rows, last, at the offer price. */}
               {dealItems.length > 0 ? (
                 <View style={[styles.dealBlock, normalItems.length === 0 && styles.dealBlockOnly]}>
                   <View style={styles.dealBlockHead}>
@@ -1350,14 +1390,10 @@ export default function CartScreen() {
                   </View>
                   {dealItems.map((item) => {
                     const itemKey = getItemKey(item);
-                    const units = dealUnitsByKey[itemKey];
+                    const units = unitsByKey[itemKey].deal;
                     const variantLabel = item.variant?.label ? ` (${item.variant.label})` : '';
                     const normalPrice = Number(item.variant?.price ?? item.product.price) || 0;
-                    const hint = bill?.deal?.hintItem;
-                    const hintPrice = hint && String(hint.productId) === String(item.product.id)
-                      && String(hint.variantId ?? '') === String(item.variant?.id ?? '') ? hint.dealPrice : null;
-                    const offerPrice = dealByLine[itemKey]?.dealPrice ?? item.dealPrice ?? hintPrice;
-                    const locked = !!bill?.deal && !bill.deal.unlocked;
+                    const offerPrice = billLineByKey[itemKey]?.dealPrice ?? item.dealPrice;
                     const hasOffer = offerPrice != null && Number.isFinite(Number(offerPrice));
                     return (
                       <View key={`${itemKey}-deal`} style={styles.dealRow}>
@@ -1367,14 +1403,7 @@ export default function CartScreen() {
                             {item.product.name}
                             {variantLabel ? <Text style={styles.itemVariant}>{variantLabel}</Text> : null}
                           </Text>
-                          {locked && bill.deal.amountRemaining > 0 ? (
-                            <View style={styles.dealLockRow} accessibilityLiveRegion="polite">
-                              <AppIcon name="lock" size={12} color={DEAL_ACCENT} />
-                              <Text style={styles.dealLockText}>
-                                Add ₹{bill.deal.amountRemaining} more to unlock
-                              </Text>
-                            </View>
-                          ) : hasOffer && normalPrice > Number(offerPrice) ? (
+                          {bill && hasOffer && normalPrice > Number(offerPrice) ? (
                             <Text style={styles.dealSaveText}>
                               You save ₹{Math.round((normalPrice - Number(offerPrice)) * units)}
                             </Text>
@@ -1382,9 +1411,7 @@ export default function CartScreen() {
                         </View>
                         {hasOffer ? (
                           <View style={styles.dealPriceCol}>
-                            <Text style={[styles.dealPrice, locked && styles.dealPriceLocked]}>
-                              ₹{Number(offerPrice) * units}
-                            </Text>
+                            <Text style={styles.dealPrice}>₹{Number(offerPrice) * units}</Text>
                             {normalPrice > Number(offerPrice) ? (
                               <Text style={styles.dealStrike}>₹{normalPrice * units}</Text>
                             ) : null}
@@ -1406,6 +1433,73 @@ export default function CartScreen() {
                 </View>
               ) : null}
             </Animated.View>
+
+            {/* Items picked from a deal that are not in the bill: the deal is
+                still locked (or not available). They join the list above at
+                the offer price once the cart unlocks the deal. */}
+            {heldItems.length > 0 ? (
+              <Animated.View style={[styles.lockedBox, { opacity: fadeAnim }]}>
+                <View style={styles.lockedHead}>
+                  <View style={styles.lockedIcon}>
+                    <AppIcon name="lock" size={14} color={colors.white} />
+                  </View>
+                  <View style={styles.lockedHeadText} accessibilityLiveRegion="polite">
+                    <Text style={styles.lockedTitle}>
+                      {heldLock ? `Add ₹${heldLock.amount} more to unlock` : 'Deal not available now'}
+                    </Text>
+                  </View>
+                </View>
+                {heldLock ? (
+                  <View style={styles.lockedTrack}>
+                    <View style={[styles.lockedFill, { width: `${Math.round(heldLock.ratio * 100)}%` }]} />
+                  </View>
+                ) : null}
+                {heldItems.map((item) => {
+                  const itemKey = getItemKey(item);
+                  const units = unitsByKey[itemKey].held;
+                  const line = billLineByKey[itemKey];
+                  const variantLabel = item.variant?.label ? ` (${item.variant.label})` : '';
+                  const normalPrice = Number(item.variant?.price ?? item.product.price) || 0;
+                  const offerPrice = line?.heldDealPrice ?? item.dealPrice;
+                  const hasOffer = offerPrice != null && Number.isFinite(Number(offerPrice));
+                  // Said per item only when this one waits for something other
+                  // than the amount in the heading.
+                  const note = line?.heldReason === 'one_deal'
+                    ? 'Only one deal per order'
+                    : heldLock && line?.heldReason === 'unavailable' ? 'Deal not available now' : null;
+                  return (
+                    <View key={`${itemKey}-held`} style={styles.lockedRow}>
+                      <View style={styles.itemBody}>
+                        <Text style={[styles.itemName, styles.lockedName]} numberOfLines={2}>
+                          <Text style={styles.dealQty}>{units}×  </Text>
+                          {item.product.name}
+                          {variantLabel ? <Text style={styles.itemVariant}>{variantLabel}</Text> : null}
+                        </Text>
+                        {note ? <Text style={styles.lockedNote}>{note}</Text> : null}
+                      </View>
+                      {hasOffer ? (
+                        <View style={styles.dealPriceCol}>
+                          <Text style={[styles.dealPrice, styles.dealPriceLocked]}>₹{Number(offerPrice) * units}</Text>
+                          {normalPrice > Number(offerPrice) ? (
+                            <Text style={styles.dealStrike}>₹{normalPrice * units}</Text>
+                          ) : null}
+                        </View>
+                      ) : null}
+                      <PressableScale
+                        onPress={() => handleRemoveDeal(item, units)}
+                        style={styles.dealRemove}
+                        scaleTo={0.9}
+                        hitSlop={8}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Remove locked deal item ${item.product.name}`}
+                      >
+                        <AppIcon name="close" size={14} strokeWidth={2.4} color={colors.textSecondary} />
+                      </PressableScale>
+                    </View>
+                  );
+                })}
+              </Animated.View>
+            ) : null}
 
 
             {/* "People also ordered" — what goes with this cart */}
@@ -1681,17 +1775,6 @@ const styles = StyleSheet.create({
     color: DEAL_ACCENT,
     fontWeight: '800',
   },
-  dealLockRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 2,
-  },
-  dealLockText: {
-    ...typography.captionMedium,
-    color: DEAL_ACCENT,
-    fontWeight: '700',
-  },
   dealSaveText: {
     ...typography.captionMedium,
     color: colors.success,
@@ -1723,6 +1806,67 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#FFFFFF',
     flexShrink: 0,
+  },
+  // Deal items not in the bill yet: dashed, so the box reads as still locked.
+  lockedBox: {
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: '#B9A3FF',
+    backgroundColor: '#F8F5FF',
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 6,
+    marginBottom: 8,
+  },
+  lockedHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  lockedIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: DEAL_ACCENT,
+  },
+  lockedHeadText: {
+    flex: 1,
+  },
+  lockedTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: DEAL_ACCENT,
+  },
+  lockedTrack: {
+    height: 6,
+    borderRadius: 3,
+    overflow: 'hidden',
+    backgroundColor: '#E4DAFF',
+    marginTop: 10,
+    marginBottom: 4,
+  },
+  lockedFill: {
+    height: '100%',
+    borderRadius: 3,
+    backgroundColor: DEAL_ACCENT,
+  },
+  lockedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    gap: 8,
+  },
+  lockedName: {
+    color: colors.textSecondary,
+  },
+  lockedNote: {
+    ...typography.captionMedium,
+    color: DEAL_ACCENT,
+    fontWeight: '700',
+    marginTop: 2,
   },
   itemStepperWrap: {
     flexShrink: 0,

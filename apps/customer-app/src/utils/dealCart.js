@@ -6,7 +6,9 @@
  * and the Deal page can say "Shop for ₹X more" and "Added" without a round
  * trip. The rule mirrors the server's:
  *  - only the OTHER items count toward the deal's minimum,
- *  - at most `maxItems` units sell at the deal price, biggest saving first,
+ *  - at most `maxItems` units are deal units, biggest saving first, and they
+ *    sell at the deal price all together or — below the minimum — are held
+ *    out of the bill until the cart unlocks the deal,
  *  - only lines picked from this deal (line.dealCouponId) take part; the same
  *    product added from a normal list keeps its normal price.
  */
@@ -61,18 +63,10 @@ export function estimateDealProgress(cartItems, deal, index = indexDealItems(dea
   }
   candidates.sort((a, b) => (b.saving - a.saving) || (a.price - b.price));
 
-  let excluded = 0;
-  let picked = 0;
-  for (const c of candidates) {
-    if (picked >= maxItems) break;
-    if (total - excluded - c.price >= minOrder) {
-      excluded += c.price;
-      picked += 1;
-    }
-  }
-  // With nothing picked, the deal item the customer would add is not counted.
-  const othersTotal = picked > 0 ? total - excluded : total - (candidates[0]?.price || 0);
-  const amountRemaining = picked > 0 ? 0 : Math.max(0, Math.ceil(minOrder - othersTotal));
+  // Deal units never count toward the minimum; further picks beyond the
+  // deal's limit are ordinary items at the normal price.
+  const othersTotal = candidates.slice(0, maxItems).reduce((sum, c) => sum - c.price, total);
+  const amountRemaining = Math.max(0, Math.ceil(minOrder - othersTotal));
   const dealUnits = dealLines.reduce((sum, line) => sum + (Number(line.quantity) || 0), 0);
 
   return {

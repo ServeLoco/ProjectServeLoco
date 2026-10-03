@@ -548,11 +548,11 @@ const createOrder = async (req, res) => {
     // Deal price: same rule and order as the cart preview — the deal first,
     // then the coupon on the subtotal after the deal saving (they stack).
     // A deal is always auto-applied, so one that lapsed since the cart, or
-    // whose usage limit a concurrent order took under the lock below, is
-    // dropped silently, like an auto-applied coupon. The deal row is always
-    // locked before the coupon row, so two checkouts never lock in opposite
-    // order.
-    let deal = await applyBestDeal({
+    // whose usage limit a concurrent order took under the lock below, never
+    // fails the order — the items picked from it are left out instead. The
+    // deal row is always locked before the coupon row, so two checkouts never
+    // lock in opposite order.
+    const dealResult = await applyBestDeal({
       lines: orderItems.map((oi) => ({
         productId: oi.product_id, variantId: oi.variant_id, type: oi.item_type, unitPrice: oi.unit_price, quantity: oi.quantity, dealCouponId: oi.deal_coupon_id,
       })),
@@ -562,9 +562,18 @@ const createOrder = async (req, res) => {
       connection,
       areaId: deliveryAreaId,
     });
+    let { deal } = dealResult;
+    // Units picked from a deal that cannot sell at the deal price are not
+    // part of the order (see cartController): a locked deal, another deal on
+    // this order, an ended deal — or, below, a deal whose usage limit a
+    // concurrent order just took.
+    const heldUnits = [...dealResult.held];
     if (deal && deal.unlocked) {
       await connection.query('SELECT id FROM coupons WHERE id = ? FOR UPDATE', [deal.couponId]);
-      if (await recheckUsageUnderLock(connection, deal.coupon, userId)) deal = null;
+      if (await recheckUsageUnderLock(connection, deal.coupon, userId)) {
+        deal.lines.forEach(({ index, dealQty }) => heldUnits.push({ index, qty: dealQty, reason: 'unavailable' }));
+        deal = null;
+      }
     }
     if (!deal || !deal.unlocked) deal = null;
     const dealDiscount = deal ? roundMoney(deal.dealDiscount) : 0;
@@ -573,6 +582,27 @@ const createOrder = async (req, res) => {
         orderItems[index].deal_price = dealPrice;
         orderItems[index].deal_qty = dealQty;
       });
+    }
+    if (heldUnits.length > 0) {
+      for (const { index, qty } of heldUnits) {
+        const oi = orderItems[index];
+        oi.quantity -= Math.min(qty, oi.quantity);
+        oi.line_total = roundMoney(oi.unit_price * oi.quantity);
+        if (oi.shop_unit_price !== null) oi.shop_line_total = roundMoney(oi.shop_unit_price * oi.quantity);
+      }
+      for (let i = orderItems.length - 1; i >= 0; i -= 1) {
+        if (orderItems[i].quantity <= 0) orderItems.splice(i, 1);
+      }
+      if (orderItems.length === 0) {
+        const locked = heldUnits.find((h) => h.reason === 'locked');
+        throw new OrderError(
+          locked
+            ? `Add items worth ₹${locked.amountRemaining} more to unlock your deal item.`
+            : 'Your deal item is not available right now. Remove it to place the order.',
+          'DEAL_ITEMS_ONLY'
+        );
+      }
+      subtotal = roundMoney(orderItems.reduce((sum, oi) => sum + oi.line_total, 0));
     }
     const couponSubtotal = roundMoney(subtotal - dealDiscount);
 

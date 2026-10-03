@@ -26,7 +26,7 @@ jest.mock('../src/utils/coupons', () => ({
   validateCoupon: jest.fn().mockResolvedValue({ ok: false, reason: 'No coupon' }),
   validateCouponById: jest.fn().mockResolvedValue({ ok: false, reason: 'Coupon not found' }),
   pickBestAutoApply: jest.fn().mockResolvedValue(null),
-  applyBestDeal: jest.fn().mockResolvedValue(null),
+  applyBestDeal: jest.fn().mockResolvedValue({ deal: null, held: [] }),
 }));
 
 jest.mock('../src/realtime/orderEvents', () => ({
@@ -80,15 +80,18 @@ describe('createOrder with a deal price', () => {
     };
     pool.getConnection.mockResolvedValue(mockConnection);
     applyBestDeal.mockResolvedValueOnce({
-      coupon: { id: 50, per_user_usage_limit: null, total_usage_limit: null },
-      couponId: 50,
-      title: '₹9ryday',
-      dealDiscount: 21,
-      unlocked: true,
-      amountRemaining: 0,
-      minOrder: 299,
-      maxItems: 1,
-      lines: [{ index: 1, dealPrice: 9, dealQty: 1 }],
+      deal: {
+        coupon: { id: 50, per_user_usage_limit: null, total_usage_limit: null },
+        couponId: 50,
+        title: '₹9ryday',
+        dealDiscount: 21,
+        unlocked: true,
+        amountRemaining: 0,
+        minOrder: 299,
+        maxItems: 1,
+        lines: [{ index: 1, dealPrice: 9, dealQty: 1 }],
+      },
+      held: [],
     });
     pickBestAutoApply.mockResolvedValueOnce({
       coupon: { id: 5, code: null, title: 'Free Delivery', discount_type: 'free_delivery', per_user_usage_limit: null, total_usage_limit: null },
@@ -158,12 +161,15 @@ describe('createOrder with a deal price', () => {
     };
     pool.getConnection.mockResolvedValue(mockConnection);
     applyBestDeal.mockResolvedValueOnce({
-      coupon: { id: 50, per_user_usage_limit: null, total_usage_limit: 5 },
-      couponId: 50,
-      title: '₹9ryday',
-      dealDiscount: 21,
-      unlocked: true,
-      lines: [{ index: 1, dealPrice: 9, dealQty: 1 }],
+      deal: {
+        coupon: { id: 50, per_user_usage_limit: null, total_usage_limit: 5 },
+        couponId: 50,
+        title: '₹9ryday',
+        dealDiscount: 21,
+        unlocked: true,
+        lines: [{ index: 1, dealPrice: 9, dealQty: 1 }],
+      },
+      held: [],
     });
 
     const res = await request(app)
@@ -176,9 +182,76 @@ describe('createOrder with a deal price', () => {
       });
 
     expect(res.statusCode).toEqual(201);
-    expect(res.body.order).toMatchObject({ discount: 0, dealDiscount: 0, dealId: null, total: 340 });
-    expect(res.body.order.items[1]).toMatchObject({ dealPrice: null, dealQty: 0 });
+    // The potato was picked at ₹9; it is left out rather than charged ₹30.
+    expect(res.body.order).toMatchObject({ subtotal: 300, discount: 0, dealDiscount: 0, dealId: null, total: 310 });
+    expect(res.body.order.items).toHaveLength(1);
+    expect(res.body.order.items[0]).toMatchObject({ name: 'Rice', quantity: 1 });
     expect(queries.some((q) => /INSERT INTO coupon_redemptions/.test(q.sql))).toBe(false);
+  });
+
+  const connectionFor = (queries, insertId) => ({
+    beginTransaction: jest.fn(),
+    query: jest.fn(async (sql, params) => {
+      queries.push({ sql: String(sql), params });
+      if (/FROM users/.test(sql)) return [[{ id: 1, name: 'T', phone: '1', whatsapp_number: '1', blocked: 0, address: 'A' }]];
+      if (/FROM settings/.test(sql)) return [[{ shop_open: 1, delivery_available: 1, delivery_charge: 10, night_charge: 0 }]];
+      if (/FROM products/.test(sql)) return [[{ id: 1, price: 40, name: 'Rice' }, { id: 2, price: 30, name: 'Potato' }]];
+      if (/LAST_INSERT_ID/.test(sql)) return [[{ seq: 1 }]];
+      if (/INSERT INTO orders/.test(sql)) return [{ insertId }];
+      return [[]];
+    }),
+    commit: jest.fn(),
+    rollback: jest.fn(),
+    release: jest.fn(),
+  });
+  const lockedDeal = {
+    deal: { couponId: 50, title: '₹9ryday', dealDiscount: 0, unlocked: false, amountRemaining: 259, lines: [] },
+  };
+
+  it('leaves a locked deal item out of the order; units added normally stay', async () => {
+    const queries = [];
+    pool.getConnection.mockResolvedValue(connectionFor(queries, 1203));
+    applyBestDeal.mockResolvedValueOnce({
+      ...lockedDeal,
+      held: [{ index: 1, qty: 1, reason: 'locked', couponId: 50, dealPrice: 9, amountRemaining: 259 }],
+    });
+
+    const res = await request(app)
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        address: '123 Test St',
+        paymentMethod: 'Cash',
+        items: [{ productId: 1, quantity: 1 }, { productId: 2, quantity: 2, dealCouponId: 50 }],
+      });
+
+    expect(res.statusCode).toEqual(201);
+    expect(res.body.order).toMatchObject({ subtotal: 70, dealDiscount: 0, total: 80 });
+    expect(res.body.order.items[1]).toMatchObject({ name: 'Potato', quantity: 1, lineTotal: 30, dealQty: 0 });
+    const orderInsert = queries.find((q) => /INSERT INTO orders/.test(q.sql));
+    expect(orderInsert.params).toContain(70);
+  });
+
+  it('refuses an order that holds nothing but a locked deal item', async () => {
+    const queries = [];
+    pool.getConnection.mockResolvedValue(connectionFor(queries, 1204));
+    applyBestDeal.mockResolvedValueOnce({
+      ...lockedDeal,
+      held: [{ index: 0, qty: 1, reason: 'locked', couponId: 50, dealPrice: 9, amountRemaining: 299 }],
+    });
+
+    const res = await request(app)
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        address: '123 Test St',
+        paymentMethod: 'Cash',
+        items: [{ productId: 2, quantity: 1, dealCouponId: 50 }],
+      });
+
+    expect(res.statusCode).toEqual(400);
+    expect(res.body).toEqual({ code: 'DEAL_ITEMS_ONLY', message: 'Add items worth ₹299 more to unlock your deal item.' });
+    expect(queries.some((q) => /INSERT INTO orders/.test(q.sql))).toBe(false);
   });
 
 });

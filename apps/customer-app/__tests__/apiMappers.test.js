@@ -174,6 +174,10 @@ describe('api mappers', () => {
         variantLabel: '1L',
         dealPrice: null,
         dealQty: 0,
+        heldQty: 0,
+        heldReason: null,
+        heldDealPrice: null,
+        unlockAmount: 0,
       },
       {
         id: '99',
@@ -186,6 +190,10 @@ describe('api mappers', () => {
         variantLabel: null,
         dealPrice: null,
         dealQty: 0,
+        heldQty: 0,
+        heldReason: null,
+        heldDealPrice: null,
+        unlockAmount: 0,
       },
     ]);
   });
@@ -208,6 +216,15 @@ describe('api mappers', () => {
       id: 50, title: '₹9ryday', discount: 21, unlocked: false, amountRemaining: 40,
       minOrder: 299, maxItems: 1, hintItem: { name: 'Potato', dealPrice: 9 },
     });
+  });
+
+  it('maps a deal item held out of the bill', () => {
+    const result = normalizeCartCalculation({
+      data: {
+        items: [{ id: 2, quantity: 2, unitPrice: 30, line_total: 30, held_qty: 1, held_reason: 'locked', held_deal_price: '9.00', unlock_amount: 120 }],
+      },
+    });
+    expect(result.items[0]).toMatchObject({ quantity: 2, lineTotal: 30, heldQty: 1, heldReason: 'locked', heldDealPrice: 9, unlockAmount: 120 });
   });
 
   it('defaults cart calculation items to empty array when absent', () => {

@@ -38,6 +38,18 @@ describe('deal cart estimate', () => {
     expect(result).toMatchObject({ unlocked: true, amountRemaining: 0, othersTotal: 300 });
   });
 
+  it('two deal items never count toward each other', () => {
+    const two = { ...deal, maxItems: 2 };
+    const result = estimateDealProgress([line(1, 280), picked(2, 30), picked(3, 40, 1, { id: '7', price: 40 })], two);
+    expect(result).toMatchObject({ unlocked: false, amountRemaining: 19, othersTotal: 280 });
+  });
+
+  it('a pick beyond the deal limit counts as one of the other items', () => {
+    const result = estimateDealProgress([line(1, 270), picked(2, 30), picked(3, 40, 1, { id: '7', price: 40 })], deal);
+    // Onion (saves 11) is the ordinary item; potato (saves 21) is the deal unit.
+    expect(result).toMatchObject({ unlocked: true, othersTotal: 310 });
+  });
+
   it('with no deal item in the cart, the whole cart counts', () => {
     const result = estimateDealProgress([line(1, 40)], deal);
     expect(result).toMatchObject({ unlocked: false, amountRemaining: 259, dealUnits: 0 });
