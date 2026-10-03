@@ -1,6 +1,8 @@
 import React, { memo, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Animated, Easing } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import OfferCardGlass, { glassTint } from './OfferCardGlass';
+import NativeGlassView from '../../utils/nativeGlass';
 import ProductImage from '../ProductImage';
 import AppIcon from '../AppIcon';
 import { useDealCart } from '../../hooks/useDealCart';
@@ -275,18 +277,16 @@ function DealTabsCard({ card, width, onViewAll }) {
     <Animated.View
       style={{
         flex: 1,
-        opacity: entry,
+        opacity: NativeGlassView ? 1 : entry,
         transform: [
           { translateY: entry.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) },
           { scale: entry.interpolate({ inputRange: [0, 1], outputRange: [0.97, 1] }) },
         ],
       }}
     >
-    <LinearGradient
-      colors={[look.bgColor, look.bgColorEnd]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 0, y: 1 }}
-      style={[styles.card, { width, borderColor: look.tabColor }]}
+    <OfferCardGlass
+      look={look}
+      style={[styles.card, { width }]}
     >
       <View style={styles.head}>
         <View style={styles.headText}>
@@ -306,14 +306,14 @@ function DealTabsCard({ card, width, onViewAll }) {
         <DealProgress progress={progress} accentColor={look.accentColor} reducedMotion={reducedMotion} />
       ) : null}
 
-      <View style={[styles.tabs, { backgroundColor: look.tabColor }]}>
+      <View style={[styles.tabs, { backgroundColor: glassTint(look.tabColor, 0.13) }]}>
         {tiers.map((t, index) => {
           const active = index === activeIndex;
           return (
             <Pressable
               key={t.price}
               onPress={() => setActiveIndex(index)}
-              style={[styles.tab, active && { backgroundColor: look.tabActiveColor }]}
+              style={[styles.tab, active && { backgroundColor: glassTint(look.tabActiveColor, 0.88), borderColor: 'rgba(255,255,255,0.95)' }]}
               accessibilityRole="tab"
               accessibilityState={{ selected: active }}
               accessibilityLabel={`₹${formatPrice(t.price)} items`}
@@ -321,15 +321,13 @@ function DealTabsCard({ card, width, onViewAll }) {
               <View style={[styles.chip, { backgroundColor: look.accentColor }]}>
                 <Text style={styles.chipText}>₹{formatPrice(t.price)}</Text>
               </View>
-              <Text style={[styles.tabText, { color: active ? look.titleColor : look.tabTextColor }]} numberOfLines={1}>Items</Text>
+              <Text style={[styles.tabText, { color: look.titleColor }]} numberOfLines={1}>Items</Text>
             </Pressable>
           );
         })}
       </View>
 
-      {/* The tab colour wraps the white list on the sides and bottom too, so
-          the card keeps its edge on a white page. */}
-      <View style={[styles.frame, { backgroundColor: look.tabColor }]}>
+      <View style={styles.frame}>
         <View style={styles.body}>
           <Animated.View
             style={{
@@ -370,7 +368,7 @@ function DealTabsCard({ card, width, onViewAll }) {
           />
         </Animated.View>
       )}
-    </LinearGradient>
+    </OfferCardGlass>
     <DealSwapModal swap={swap} accentColor={look.accentColor} onKeep={cancelSwap} onReplace={confirmSwap} />
     </Animated.View>
   );
@@ -398,7 +396,7 @@ const styles = StyleSheet.create({
   sparkOrigin: { position: 'absolute', left: '50%', top: '50%', width: 0, height: 0 },
   spark: { position: 'absolute', left: -3, top: -3 },
   progressText: { fontSize: 11, fontWeight: '700' },
-  tabs: { flexDirection: 'row', marginTop: 8, paddingTop: 5, paddingHorizontal: 6, gap: 4, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
+  tabs: { flexDirection: 'row', marginTop: 8, marginHorizontal: 6, marginBottom: 6, padding: 4, gap: 4, borderRadius: 14 },
   tab: {
     flex: 1,
     flexDirection: 'row',
@@ -406,14 +404,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 5,
     paddingVertical: 5,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'transparent',
   },
   chip: { borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1 },
   chipText: { color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
   tabText: { fontSize: 12, fontWeight: '700' },
   frame: { flex: 1, paddingHorizontal: 6, paddingBottom: 6 },
-  body: { flex: 1, backgroundColor: '#FFFFFF', paddingHorizontal: 10, paddingBottom: 2, borderBottomLeftRadius: 14, borderBottomRightRadius: 14 },
+  body: { flex: 1, backgroundColor: 'rgba(255,255,255,0.74)', paddingHorizontal: 10, paddingBottom: 2, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.85)' },
   shine: { position: 'absolute', top: -40, bottom: -40, left: 0, width: SHINE_WIDTH },
   row: {
     flexDirection: 'row',

@@ -13,8 +13,7 @@ import {
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import BlurView from '../components/BlurView';
-import { LinearGradient } from 'expo-linear-gradient';
+import TabBarGlass from '../components/navigation/TabBarGlass';
 import { colors } from '../theme';
 import HomeIcon from '../screens/customer/HomeScreen/HomeIcon';
 import { useAuthStore, useSettingsStore } from '../stores';
@@ -51,30 +50,11 @@ const TABS = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// OutlinedTabIcon
-// A solid black icon with a white border: white copies of the same icon are
-// stacked a hair off-centre in every direction under the black one.
+// TabIcon
+// Keep the glyph crisp and simple so the glass behind it never competes with it.
 // ─────────────────────────────────────────────────────────────────────────────
-const HALO_OFFSETS = [
-  [-1.5, 0], [1.5, 0], [0, -1.5], [0, 1.5],
-  [-1.1, -1.1], [1.1, -1.1], [-1.1, 1.1], [1.1, 1.1],
-];
-
-const OutlinedTabIcon = React.memo(function OutlinedTabIcon({ name, size }) {
-  return (
-    <View style={{ width: size, height: size }}>
-      {HALO_OFFSETS.map(([dx, dy], i) => (
-        <View
-          key={i}
-          style={[StyleSheet.absoluteFill, { transform: [{ translateX: dx }, { translateY: dy }] }]}
-        >
-          <HomeIcon name={name} size={size} color="#FFFFFF" weight="fill" />
-        </View>
-      ))}
-      <HomeIcon name={name} size={size} color={TAB_ICON_COLOR} weight="fill" />
-    </View>
-  );
-});
+const TAB_ICON_ACTIVE = Platform.OS === 'android' ? '#111111' : '#C96C25';
+const TAB_ICON_INACTIVE = Platform.OS === 'android' ? '#202020' : '#59616B';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TabItem
@@ -109,16 +89,25 @@ function TabItem({ tab, focused, onPress }) {
       accessibilityState={{ selected: focused }}
       accessibilityLabel={tab.label}
     >
-      {/* Icon — black fill with a white border. Nothing marks the selected tab:
-          there are only two pages, so both tabs look the same. */}
-      <Animated.View style={{ transform: [{ scale: iconScale }] }}>
-        <OutlinedTabIcon name={tab.icon} size={26} />
-      </Animated.View>
+      {/* Icons and labels sit above the glass and stay sharp. */}
+      <View style={styles.tabItemContent}>
+        <Animated.View style={{ transform: [{ scale: iconScale }] }}>
+          <HomeIcon
+            name={tab.icon}
+            size={23}
+            color={focused ? TAB_ICON_ACTIVE : TAB_ICON_INACTIVE}
+            weight={focused ? 'fill' : 'regular'}
+          />
+        </Animated.View>
 
-      {/* Label */}
-      <Animated.Text style={styles.tabLabel} numberOfLines={1} allowFontScaling={false}>
-        {tab.label}
-      </Animated.Text>
+        <Animated.Text
+          style={[styles.tabLabel, focused ? styles.tabLabelFocused : styles.tabLabelIdle]}
+          numberOfLines={1}
+          allowFontScaling={false}
+        >
+          {tab.label}
+        </Animated.Text>
+      </View>
     </TouchableOpacity>
   );
 }
@@ -199,35 +188,7 @@ function CustomTabBar({ state, navigation }) {
       pointerEvents="box-none"
       style={[styles.tabBarOuter, { paddingBottom: insets.bottom + TAB_BAR_FLOAT_GAP }]}
     >
-      <View style={[styles.tabBarCard, { width: (windowWidth * 2) / 3 }]}>
-        {/* Frosted glass, same as the Home search bar: a real blur of the page
-            scrolling under the pill, a light wash and a soft top highlight.
-            Behind the tabs, never touchable. */}
-        <BlurView
-          pointerEvents="none"
-          intensity={22}
-          tint="light"
-          // No experimentalBlurMethod on Android. That prop switches expo-blur to
-          // Dimezis BlurView, which hangs an onPreDraw listener off the window
-          // and, every single frame, draws the WHOLE React root view tree into
-          // its own bitmap to blur it. Doing that out-of-band while the tree is
-          // changing — i.e. while a list under the bar is scrolling — races
-          // ViewGroup's pre-ordered child list and Android throws
-          // IndexOutOfBoundsException out of dispatchDraw, killing the app.
-          // Confirmed in Play Console: the crash stack ends in
-          // eightbitlab.com.blurview.PreDrawBlurController.updateBlur.
-          // Without it expo-blur paints a flat translucent tint of the same
-          // colour, which is what every other BlurView in this app already does.
-          style={StyleSheet.absoluteFill}
-        />
-        <View pointerEvents="none" style={styles.tabBarGlassWash} />
-        <LinearGradient
-          pointerEvents="none"
-          colors={['rgba(255,255,255,0.3)', 'rgba(255,255,255,0)']}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
+      <TabBarGlass style={[styles.tabBarCard, { width: (windowWidth * 2) / 3 }]}>
         {state.routes.map((route, index) => {
           // Profile stays a real tab route (navigate('Profile') keeps working)
           // but has no slot in the bar — Home's top-right icon opens it.
@@ -255,7 +216,7 @@ function CustomTabBar({ state, navigation }) {
             />
           );
         })}
-      </View>
+      </TabBarGlass>
       <NavPromo />
     </View>
   );
@@ -284,8 +245,6 @@ function CustomerBottomTabs() {
 // Styles
 // ─────────────────────────────────────────────────────────────────────────────
 const TAB_CONTENT_HEIGHT = 62;
-// Both tabs: solid black icon and label.
-const TAB_ICON_COLOR = '#111111';
 // Gap between the floating pill and the bottom of the screen (above the system inset).
 const TAB_BAR_FLOAT_GAP = 10;
 
@@ -324,28 +283,28 @@ const styles = StyleSheet.create({
     height: '100%',
   },
 
-  // Floating glass pill — fully rounded, detached from the screen edges.
-  // No shadow or elevation: both show through a see-through bar (and on
-  // Android an elevated see-through view draws a dark square behind it).
+  // Native Liquid Glass supplies its own material and rim. Keep this layout
+  // transparent so a painted fill doesn't cover Apple's effect.
   tabBarCard: {
     flexDirection: 'row',
     alignItems: 'center',
     height: TAB_CONTENT_HEIGHT,
-    backgroundColor: 'transparent',
     borderRadius: TAB_CONTENT_HEIGHT / 2,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: TAB_ICON_COLOR,
-    paddingHorizontal: 12,
-    overflow: 'hidden',
-  },
-  tabBarGlassWash: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    paddingHorizontal: 8,
   },
 
   // Each tab — equal width, items stacked and centered
   tabItem: {
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+  },
+  tabItemContent: {
+    minWidth: 74,
+    height: 48,
+    paddingHorizontal: 13,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 2,
@@ -354,12 +313,13 @@ const styles = StyleSheet.create({
   // Label
   tabLabel: {
     fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.1,
+    fontWeight: '700',
+    letterSpacing: 0.15,
     includeFontPadding: false,
     lineHeight: 12,
-    color: TAB_ICON_COLOR,
   },
+  tabLabelFocused: { color: TAB_ICON_ACTIVE },
+  tabLabelIdle: { color: TAB_ICON_INACTIVE },
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

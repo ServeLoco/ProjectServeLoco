@@ -35,40 +35,56 @@ function OfferCardGap() {
 
 /**
  * The row moves on by itself: every 2 seconds the next card slides in, to
- * the last card, then back the other way to the first. It waits while a
- * finger is on the row and carries on from wherever the customer leaves it.
+ * the last card, then back the other way to the first. The first touch stops
+ * automatic movement for this rail's lifetime; Home remounts it on reload.
  * It stands still with one card, with reduced motion, and when Home is not
  * on screen.
  */
 function useAutoMove(listRef, stops) {
   const reducedMotion = useReducedMotion();
   const isFocused = useIsFocused();
-  const [held, setHeld] = useState(false);
+  const [touched, setTouched] = useState(false);
+  const touchedRef = useRef(false);
+  const timerRef = useRef(null);
+  const offsetRef = useRef(0);
   const at = useRef(0); // the stop in front
   const step = useRef(1); // 1: moving right, -1: moving back
 
-  const moving = stops.length > 1 && !reducedMotion && isFocused && !held;
+  const moving = stops.length > 1 && !reducedMotion && isFocused && !touched;
   useEffect(() => {
     if (!moving) return undefined;
     const id = setInterval(() => {
+      if (touchedRef.current) return;
       const from = Math.min(at.current, stops.length - 1);
       if (from + step.current < 0 || from + step.current >= stops.length) step.current = -step.current;
       at.current = from + step.current;
       listRef.current?.scrollToOffset({ offset: stops[at.current], animated: true });
     }, AUTO_MOVE_MS);
-    return () => clearInterval(id);
+    timerRef.current = id;
+    return () => {
+      clearInterval(id);
+      timerRef.current = null;
+    };
   }, [moving, stops, listRef]);
 
-  const hold = useCallback(() => setHeld(true), []);
-  const release = useCallback(() => setHeld(false), []);
-  // After a swipe, go on from the card the customer left in front.
+  const stop = useCallback(() => {
+    if (touchedRef.current) return;
+    touchedRef.current = true;
+    clearInterval(timerRef.current);
+    setTouched(true);
+    // Cancel an automatic slide already in flight, including touches on buttons.
+    listRef.current?.scrollToOffset({ offset: offsetRef.current, animated: false });
+  }, [listRef]);
+  const trackScroll = useCallback((e) => {
+    offsetRef.current = e.nativeEvent.contentOffset.x;
+  }, []);
   const settle = useCallback((e) => {
     const x = e.nativeEvent.contentOffset.x;
+    offsetRef.current = x;
     at.current = stops.reduce((best, s, i) => (Math.abs(s - x) < Math.abs(stops[best] - x) ? i : best), 0);
-    setHeld(false);
   }, [stops]);
 
-  return { hold, release, settle };
+  return { stop, trackScroll, settle };
 }
 
 /**
@@ -82,7 +98,13 @@ export function OfferCardsRail({ cards, cardWidth, gutter, onScroll, renderCard 
     () => offerRailStops({ count: cards.length, cardWidth, railWidth, gutter, unique: true }),
     [cards.length, cardWidth, railWidth, gutter],
   );
-  const { hold, release, settle } = useAutoMove(listRef, stops);
+  const { stop, trackScroll, settle } = useAutoMove(listRef, stops);
+  // Preserve the native animated backdrop while observing the current offset.
+  useEffect(() => {
+    if (!onScroll) return undefined;
+    Animated.forkEvent(onScroll, trackScroll);
+    return () => Animated.unforkEvent(onScroll, trackScroll);
+  }, [onScroll, trackScroll]);
   const Rail = onScroll ? Animated.FlatList : FlatList;
 
   return (
@@ -92,13 +114,16 @@ export function OfferCardsRail({ cards, cardWidth, gutter, onScroll, renderCard 
       data={cards}
       keyExtractor={(card) => String(card.id)}
       showsHorizontalScrollIndicator={false}
-      onScroll={onScroll}
-      scrollEventThrottle={onScroll ? 16 : undefined}
-      onTouchStart={hold}
-      onTouchEnd={release}
-      onTouchCancel={release}
-      onScrollEndDrag={settle}
+      onScroll={onScroll || trackScroll}
+      scrollEventThrottle={16}
+      onTouchStart={stop}
+      onScrollBeginDrag={stop}
       onMomentumScrollEnd={settle}
+      snapToOffsets={stops}
+      snapToStart
+      snapToEnd
+      decelerationRate="fast"
+      disableIntervalMomentum
       contentContainerStyle={[styles.rail, { paddingHorizontal: gutter }]}
       ItemSeparatorComponent={OfferCardGap}
       renderItem={({ item }) => renderCard(item)}

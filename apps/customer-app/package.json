@@ -33,6 +33,7 @@
     "expo-build-properties": "~1.0.10",
     "expo-constants": "~18.0.13",
     "expo-dev-client": "~6.0.21",
+    "expo-glass-effect": "~0.1.10",
     "expo-image": "~3.0.0",
     "expo-linear-gradient": "~15.0.8",
     "expo-location": "^19.0.0",

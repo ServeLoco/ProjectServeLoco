@@ -5,18 +5,7 @@ import { colors, typography, spacing } from '../../theme';
 import { useReducedMotion } from '../../utils';
 import AppIcon from '../AppIcon';
 import PressableScale from '../PressableScale';
-
-// Per-mode circle color + icon. Falls back to a rotating palette for any
-// admin-added mode slug not covered here (store_modes supports up to 5).
-const MODE_STYLE = {
-  packed: { icon: 'home', color: '#FF6B6B' },
-  house: { icon: 'home', color: '#FF6B6B' },
-  fast_food: { icon: 'burger', color: '#FFD93D', iconColor: '#7D2D00' },
-  sweets: { icon: 'cake', color: '#FF85B3' },
-};
-const FALLBACK_PALETTE = ['#FF6B6B', '#FFD93D', '#FF85B3', '#7FD1AE', '#8AB4FF'];
-const resolveModeStyle = (slug, idx) =>
-  MODE_STYLE[slug] || { icon: 'box', color: FALLBACK_PALETTE[idx % FALLBACK_PALETTE.length] };
+import { resolveModeStyle } from './modeStyles';
 
 const BOUNCE_DISTANCE = -12;
 const BOUNCE_DURATION = 2000;

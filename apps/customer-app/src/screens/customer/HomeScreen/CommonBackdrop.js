@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Circle, Path, Rect } from 'react-native-svg';
+import Svg, { Circle, Rect } from 'react-native-svg';
 import { useReducedMotion } from '../../../utils';
 
 // The light, bright area the Common sections sit on, matched to the top
@@ -17,7 +17,6 @@ const CLOUD_COLORS = {
   night: '#686D78',
   rain: '#F3F5F8',
 };
-const STAR_COLORS = ['#8E83E8', '#F2B84B'];
 // How much of an offer card's colour goes into the area (the rest is white):
 // at the top, in the middle, and none at the bottom.
 const TINT_TOP = 0.22;
@@ -39,7 +38,7 @@ function tintColors(hex) {
 export const COMMON_FADE_PX = 34;
 
 // Where the bar meets the light area it ends in a bank of puffy clouds, with
-// lighter clouds drifting slowly in front; at night a few stars twinkle below.
+// lighter clouds drifting slowly in front.
 const BANK_OVERLAP = 20; // how far the bank's drawing reaches up into the bar
 const BANK_HEIGHT = BANK_OVERLAP + 16;
 const BANK_STEP = 22;
@@ -52,14 +51,6 @@ const CLOUDS = [
   { at: 0.27, w: 40, h: 14 },
   { at: 0.5, w: 62, h: 20 },
   { at: 0.78, w: 46, h: 16 },
-];
-// Night stars below the clouds: x (fraction), y (from the bar's bottom), size.
-const STARS = [
-  { x: 0.1, y: 28, size: 9 },
-  { x: 0.31, y: 34, size: 7 },
-  { x: 0.55, y: 27, size: 10 },
-  { x: 0.74, y: 35, size: 7 },
-  { x: 0.92, y: 29, size: 8 },
 ];
 
 // Confetti falling gently through the area: x (fraction of the width),
@@ -131,40 +122,6 @@ function CloudShape({ x, y, w, h, fill }) {
   );
 }
 
-// A four-point sparkle star.
-const starPath = (s) => `M${s / 2} 0 Q${s * 0.58} ${s * 0.42} ${s} ${s / 2} Q${s * 0.58} ${s * 0.58} ${s / 2} ${s} Q${s * 0.42} ${s * 0.58} 0 ${s / 2} Q${s * 0.42} ${s * 0.42} ${s / 2} 0 Z`;
-
-function TwinkleStar({ left, top, size, color, delay, still }) {
-  const glow = useRef(new Animated.Value(still ? 1 : 0)).current;
-  useEffect(() => {
-    if (still) return undefined;
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.delay(delay),
-        Animated.timing(glow, { toValue: 1, duration: 900, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(glow, { toValue: 0, duration: 900, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [glow, delay, still]);
-  return (
-    <Animated.View
-      style={{
-        position: 'absolute',
-        left,
-        top,
-        opacity: glow.interpolate({ inputRange: [0, 1], outputRange: [0.25, 1] }),
-        transform: [{ scale: glow.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1.15] }) }],
-      }}
-    >
-      <Svg width={size} height={size}>
-        <Path d={starPath(size)} fill={color} />
-      </Svg>
-    </Animated.View>
-  );
-}
-
 /**
  * Background of the Home "Common" area. It covers the scroll content from
  * the very top (behind the top bar) down to the end of the Common sections:
@@ -180,7 +137,7 @@ function TwinkleStar({ left, top, size, color, delay, still }) {
  *   takes a light shade of the card in view, cross-fading as the row scrolls
  *   (tintScrollX is that row's scroll).
  */
-export default function CommonBackdrop({ width, height, barColor, barShadow, barBottom, look = 'day', tint = null, tintScrollX = null }) {
+function CommonBackdrop({ width, height, barColor, barShadow, barBottom, look = 'day', tint = null, tintScrollX = null }) {
   const reducedMotion = useReducedMotion();
   const drift = useRef(new Animated.Value(0)).current;
   const lookColors = AREA_COLORS[look] || AREA_COLORS.day;
@@ -304,22 +261,11 @@ export default function CommonBackdrop({ width, height, barColor, barShadow, bar
         </Animated.View>
       </View>
 
-      {look === 'night'
-        ? STARS.map((star, i) => (
-          <TwinkleStar
-            key={i}
-            left={star.x * width - star.size / 2}
-            top={solid + star.y}
-            size={star.size}
-            color={STAR_COLORS[i % STAR_COLORS.length]}
-            delay={i * 420}
-            still={reducedMotion}
-          />
-        ))
-        : null}
     </View>
   );
 }
+
+export default React.memo(CommonBackdrop);
 
 const styles = StyleSheet.create({
   fill: { position: 'absolute', top: 0, left: 0, right: 0 },

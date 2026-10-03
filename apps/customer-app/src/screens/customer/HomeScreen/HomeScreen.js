@@ -1,9 +1,9 @@
-import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import React, { useMemo, useState, useEffect, useRef, useCallback, startTransition } from 'react';
 import { Image as ExpoImage } from 'expo-image';
 import { addEventListener as addNetInfoListener } from '@react-native-community/netinfo';
 import RetryingImage from '../../../components/ProductImage/RetryingImage';
 import { normalizeProductCached, orderHomeUnits, isCommonSection } from './homeSectionOrder';
-import CommonBackdrop, { COMMON_FADE_PX } from './CommonBackdrop';
+import CommonBackdrop from './CommonBackdrop';
 import { LinearGradient } from 'expo-linear-gradient';
 import BlurView from '../../../components/BlurView';
 import {
@@ -27,7 +27,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   AppScreen,
-  SegmentedControl,
   CategoryCard,
   ProductCard,
   StickyMiniCart,
@@ -45,6 +44,8 @@ import {
 import { showToast } from '../../../components/Toast';
 import { offerCardDesignOf, drawableOfferCards, offerCardColorOf } from '../../../components/OfferCards/offerCardDesigns';
 import { OfferCardsRail, offerCardWidthFor, offerRailStops } from './OfferCardsRail';
+import ShopModeSelector from './ShopModeSelector';
+import NativeGlassView from '../../../utils/nativeGlass';
 import { colors, typography, fontSizes, lineHeights, spacing, radius, layout } from '../../../theme';
 import HomeIcon from './HomeIcon';
 import useAreaLine from './useAreaLine';
@@ -108,7 +109,7 @@ const productRowListProps = (count) => ({
   removeClippedSubviews: false,
 });
 // Home draws its sections a few at a time: this many at first, then one more
-// each time the customer scrolls within a screen of the end of what is drawn.
+// each time the customer scrolls within two screens of the end of what is drawn.
 const SECTIONS_INITIAL = 2;
 // The automatic rows at the end of Home (a row per shop, then a row per category) show this many items each.
 const AUTO_BLOCK_LIMIT = 8;
@@ -176,17 +177,24 @@ function SkeletonSectionTitle() {
 // full-screen version, where the real ones are not on screen yet).
 function HomeSectionsSkeleton({ windowWidth, withBanner = false, modeCount = 2 }) {
   const size = homeSkeletonSizes(windowWidth);
+  const skeletonModeCount = Math.min(Math.max(modeCount, 1), 3);
+  const skeletonModeWidth = Math.floor((windowWidth - 32 - (skeletonModeCount - 1) * 10) / skeletonModeCount);
   return (
     <View>
       {withBanner ? (
         <>
-          <View style={styles.skeletonModeRow}>
-            {Array.from({ length: Math.min(Math.max(modeCount, 2), 5) }, (_, i) => (
-              <LoadingSkeleton key={i} width={58} height={58} borderRadius={29} />
-            ))}
-          </View>
           <View style={styles.offerCarouselSection}>
             <LoadingSkeleton width={size.bannerWidth} height={size.bannerHeight} borderRadius={18} />
+          </View>
+          <View style={styles.skeletonModeRow}>
+            {Array.from({ length: skeletonModeCount }, (_, i) => (
+              <LoadingSkeleton
+                key={i}
+                width={skeletonModeWidth}
+                height={130}
+                borderRadius={24}
+              />
+            ))}
           </View>
         </>
       ) : null}
@@ -748,6 +756,7 @@ export default function HomeScreen() {
     return () => clearTimeout(timer);
   }, [isLoading]);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [offerReloadVersion, setOfferReloadVersion] = useState(0);
   const [dashboardSections, setDashboardSections] = useState([]);
   // "Common" sections (admin App Home → Common tab) come with every mode's
   // dashboard. They are kept apart and drawn above the shop modes, so
@@ -780,15 +789,28 @@ export default function HomeScreen() {
   const totalDrawUnits = orderedUnits.length;
   sectionTotalRef.current = totalDrawUnits;
   const scrollMetricsRef = useRef({ offset: 0, viewport: 0, content: 0 });
-  // Draw the next section when what is drawn ends less than one screen below
-  // the bottom of the view. Lower sections are not built until then, so the
-  // top of Home is not slowed down by the parts nobody can see yet.
+  const drawnCountRef = useRef(renderedSectionCount);
+  drawnCountRef.current = renderedSectionCount;
+  const drawTimerRef = useRef(null);
+  // Keep two screens ready below the viewport. Coalesce frame/layout events
+  // into one low-priority append, rather than rebuilding Home every frame.
   const drawMoreIfNeeded = useCallback(() => {
     const { offset, viewport, content } = scrollMetricsRef.current;
-    if (!viewport || !content) return;
-    if (offset + viewport * 2 < content) return;
-    setRenderedSectionCount(count => (count < sectionTotalRef.current ? count + 1 : count));
+    if (!viewport || !content || offset + viewport * 3 < content) return;
+    if (drawTimerRef.current !== null || drawnCountRef.current >= sectionTotalRef.current) return;
+    drawTimerRef.current = setTimeout(() => {
+      drawTimerRef.current = null;
+      const metrics = scrollMetricsRef.current;
+      if (metrics.offset + metrics.viewport * 3 < metrics.content) return;
+      const next = Math.min(drawnCountRef.current + 1, sectionTotalRef.current);
+      if (next <= drawnCountRef.current) return;
+      startTransition(() => setRenderedSectionCount(count => Math.max(count, next)));
+    }, 80);
   }, []);
+  useEffect(() => () => {
+    clearTimeout(drawTimerRef.current);
+    drawTimerRef.current = null;
+  }, [storeType]);
   const [homeError, setHomeError] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
   const [isSearchOverlayOpen, setIsSearchOverlayOpen] = useState(false);
@@ -807,6 +829,7 @@ export default function HomeScreen() {
   // below it stays pinned to the top.
   const [topRowHeight, setTopRowHeight] = useState(0);
   const scrollY = useRef(new Animated.Value(0)).current;
+  const lastScrollCheckRef = useRef(0);
   const onHomeScroll = useMemo(() => Animated.event(
     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
     {
@@ -817,7 +840,13 @@ export default function HomeScreen() {
         metrics.offset = contentOffset.y;
         metrics.viewport = layoutMeasurement.height;
         metrics.content = contentSize.height;
-        drawMoreIfNeeded();
+        // The header still animates natively every frame. JavaScript only
+        // checks for more content a few times per second.
+        const now = Date.now();
+        if (now - lastScrollCheckRef.current >= 100) {
+          lastScrollCheckRef.current = now;
+          drawMoreIfNeeded();
+        }
       },
     },
   ), [scrollY, drawMoreIfNeeded]);
@@ -939,6 +968,7 @@ export default function HomeScreen() {
     let isMounted = true;
     if (refresh) {
       setIsRefreshing(true);
+      setOfferReloadVersion((version) => version + 1);
       // Mode icons/labels are admin-editable and otherwise only fetched once
       // on mount — pull-to-refresh is the escape hatch to pick up changes.
       refetchModes();
@@ -1312,6 +1342,7 @@ export default function HomeScreen() {
     };
   }, [queueUnreadRefresh, refreshDashboardSilently]);
 
+  const prefetchedImageUrlsRef = useRef(new Set());
   const prefetchSectionImages = React.useCallback((sections) => {
     // Pre-warm expo-image's disk cache for every image that will render on the
     // home screen. Images are loaded off the main thread in the background
@@ -1340,16 +1371,23 @@ export default function HomeScreen() {
         }
       }
     }
-    if (urls.length > 0) {
-      // Fire-and-forget; expo-image deduplicates and handles failures silently.
-      ExpoImage.prefetch(urls).catch(() => {});
+    const freshUrls = [...new Set(urls)].filter(url => !prefetchedImageUrlsRef.current.has(url));
+    if (freshUrls.length > 0) {
+      freshUrls.forEach(url => prefetchedImageUrlsRef.current.add(url));
+      // Warm each image once per Home session, rather than resubmitting every
+      // earlier section's pictures whenever one more section is appended.
+      ExpoImage.prefetch(freshUrls).then((success) => {
+        if (!success) freshUrls.forEach(url => prefetchedImageUrlsRef.current.delete(url));
+      }).catch(() => {
+        freshUrls.forEach(url => prefetchedImageUrlsRef.current.delete(url));
+      });
     }
   }, []);
 
   useEffect(() => {
-    // Only the sections that are drawn; the rest are warmed as they come up.
+    // Warm the drawn sections and the next two before the customer reaches them.
     prefetchSectionImages(
-      [...commonUnits, ...orderedUnits.slice(0, renderedSectionCount + 1)]
+      [...commonUnits, ...orderedUnits.slice(0, renderedSectionCount + 2)]
         .filter((unit) => unit.kind === 'section')
         .map((unit) => unit.section)
     );
@@ -1360,7 +1398,7 @@ export default function HomeScreen() {
   // otherwise leave no size change to trigger the next one.
   useEffect(() => {
     if (renderedSectionCount >= totalDrawUnits) return undefined;
-    // One frame apart: the rows' skeletons appear together, not one by one.
+    // The append itself is coalesced by drawMoreIfNeeded.
     const timer = setTimeout(drawMoreIfNeeded, 16);
     return () => clearTimeout(timer);
   }, [renderedSectionCount, totalDrawUnits, drawMoreIfNeeded]);
@@ -1418,17 +1456,17 @@ export default function HomeScreen() {
 
   // See all on an automatic row: a shop's row opens that shop's items, a
   // category's row opens the category.
-  const handleAutoSeeAll = (auto) => {
+  const handleAutoSeeAll = useCallback((auto) => {
     if (auto.autoKind === 'shop') {
       navigation.navigate('ProductList', { shopId: auto.sourceId, sectionTitle: auto.title, storeType: currentApiStoreType });
     } else {
       navigation.navigate('ProductList', { categoryId: auto.sourceId, categoryName: auto.title, storeType: currentApiStoreType });
     }
-  };
+  }, [navigation, currentApiStoreType]);
 
-  const handleCategoryPress = (category) => {
+  const handleCategoryPress = useCallback((category) => {
     navigation.navigate('ProductList', { categoryId: category.id, categoryName: category.name, storeType: currentApiStoreType });
-  };
+  }, [navigation, currentApiStoreType]);
 
   // Segment control only — no swipe-to-switch (avoids clashing with rails).
   // Reacts at once on tap — the old sections clear right away and the new
@@ -1571,7 +1609,7 @@ export default function HomeScreen() {
   const commonOfferSectionId = commonOfferTint?.sectionId;
   useEffect(() => {
     commonOfferScrollX.setValue(0); // a new rail starts at its first card
-  }, [commonOfferSectionId, commonOfferScrollX]);
+  }, [commonOfferSectionId, commonOfferScrollX, offerReloadVersion]);
   const onCommonOfferScroll = useMemo(
     () => Animated.event([{ nativeEvent: { contentOffset: { x: commonOfferScrollX } } }], { useNativeDriver: true }),
     [commonOfferScrollX],
@@ -1587,7 +1625,7 @@ export default function HomeScreen() {
 
   // Draws a list of Home units (sections and automatic rows). Used for the
   // Common sections above the shop modes and for the mode's own sections.
-  const renderHomeUnits = (units) => {
+  const renderHomeUnits = useCallback((units) => {
     // Every automatic row above the current one has shown its content?
     let rowsAboveRevealed = true;
     return units.map(unit => {
@@ -1857,6 +1895,7 @@ export default function HomeScreen() {
               </View>
             ) : null}
             <OfferCardsRail
+              key={`${section.id}:${offerReloadVersion}`}
               cards={cards}
               cardWidth={offerCardWidth}
               gutter={PAGE_GUTTER}
@@ -1882,7 +1921,18 @@ export default function HomeScreen() {
 
       return null;
     });
-  };
+  }, [currentApiStoreType, deliveryCoords?.lat, deliveryCoords?.lng, autoBlocksRefresh,
+    windowWidth, handleAddToCart, handleIncrement, handleDecrement, handleAutoSeeAll,
+    loadedAutoIds, handleAutoLoaded, navigation, categoryCardWidth, categoryGap,
+    staggerCatAnims, handleCategoryPress, hotBadgePulse, contentWidth, staggerComboAnims,
+    commonOfferSectionId, onCommonOfferScroll, offerReloadVersion]);
+
+  // Adding catalog sections must not rebuild the offers above them.
+  const renderedCommonUnits = useMemo(() => renderHomeUnits(commonUnits), [renderHomeUnits, commonUnits]);
+  const renderedCatalogUnits = useMemo(
+    () => renderHomeUnits(orderedUnits.slice(0, renderedSectionCount)),
+    [renderHomeUnits, orderedUnits, renderedSectionCount],
+  );
 
   return (
     <AppScreen
@@ -2128,10 +2178,13 @@ export default function HomeScreen() {
           <HomeSectionsSkeleton windowWidth={windowWidth} withBanner modeCount={modes.length} />
         </ScrollView>
       ) : (
+        // Native Liquid Glass requires fully opaque ancestors. Keep the slide
+        // entrance on iOS; the translucent fallback can also use the fade.
         <Animated.ScrollView
           contentContainerStyle={[styles.scrollContent, { paddingTop: fadeOverlap }]}
           showsVerticalScrollIndicator={false}
-          style={{ marginTop: -fadeOverlap, opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
+          directionalLockEnabled
+          style={{ marginTop: -fadeOverlap, opacity: NativeGlassView ? 1 : fadeAnim, transform: [{ translateY: slideAnim }] }}
           onScroll={onHomeScroll}
           onLayout={(event) => {
             scrollMetricsRef.current.viewport = event.nativeEvent.layout.height;
@@ -2155,14 +2208,13 @@ export default function HomeScreen() {
             />
           }
         >
-          {/* Common sections: every mode, between the top bar and the shop modes */}
-          {commonUnits.length > 0 ? (
-            <View
-              style={styles.commonSections}
-              onLayout={(e) => setCommonAreaHeight(Math.round(e.nativeEvent.layout.height))}
-            >
-              {/* Reaches up behind the top group: the bar colour, a cloud edge
-                  where the bar ends, then the light area under the sections. */}
+          {/* Offers and shop modes share one backdrop, fading into the catalog. */}
+          <View
+            style={styles.commonSections}
+            onLayout={(e) => setCommonAreaHeight(Math.round(e.nativeEvent.layout.height))}
+          >
+            {/* Reaches up behind the top group and continues under the modes. */}
+            {commonUnits.length > 0 ? (
               <View pointerEvents="none" style={[styles.commonBackdrop, { top: -fadeOverlap }]}>
                 <CommonBackdrop
                   width={windowWidth}
@@ -2175,24 +2227,23 @@ export default function HomeScreen() {
                   tintScrollX={commonOfferScrollX}
                 />
               </View>
-              {renderHomeUnits(commonUnits)}
-            </View>
-          ) : null}
-
-          {/* Store Type Toggle */}
-          <View style={styles.toggleContainer}>
-            <SegmentedControl
-              options={modes.map(m => m.slug)}
-              renderLabel={(slug) => modes.find(m => m.slug === slug)?.label || slug}
-              renderIconUrl={(slug) => modes.find(m => m.slug === slug)?.iconImageUrl || modes.find(m => m.slug === slug)?.icon_image_url}
-              selectedOption={storeType}
-              onSelect={selectStoreType}
-              style={styles.toggleCardBare}
-            />
+            ) : null}
+            {renderedCommonUnits}
+            {commonUnits.length > 0 && modes.length > 0 ? (
+              <LinearGradient
+                pointerEvents="none"
+                colors={['rgba(255,255,255,0.12)', 'rgba(255,255,255,0.85)', 'rgba(255,255,255,0.12)']}
+                locations={[0, 0.5, 1]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.offerGlassDivider}
+              />
+            ) : null}
+            <ShopModeSelector modes={modes} selectedMode={storeType} onSelect={selectStoreType} />
           </View>
 
           {/* Dynamic Sections */}
-          <Animated.View style={{ opacity: sectionsFade }}>
+          <Animated.View style={{ opacity: NativeGlassView ? 1 : sectionsFade }}>
           {isSectionsLoading ? (
             <View>
               {isDataSlow ? (
@@ -2201,7 +2252,10 @@ export default function HomeScreen() {
               <HomeSectionsSkeleton windowWidth={windowWidth} />
             </View>
           ) : null}
-          {renderHomeUnits(orderedUnits.slice(0, renderedSectionCount))}
+          {!isSectionsLoading && !homeError && orderedUnits.length === 0 ? (
+            <EmptyState title="Nothing here yet" subtitle="Try another shop mode to keep browsing." />
+          ) : null}
+          {renderedCatalogUnits}
           {renderedSectionCount < totalDrawUnits ? (
             <View style={styles.section}>
               <SkeletonSectionTitle />
@@ -3387,14 +3441,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: PAGE_GUTTER,
     overflow: 'hidden',
   },
-  // Stands in for the shop-mode circles (same top offset and centring).
+  // Same card sizes and gutter as the Home shop-mode selector.
   skeletonModeRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: spacing.lg,
-    height: 100,
-    paddingTop: spacing.sm,
+    gap: 10,
+    paddingHorizontal: 16,
+    height: 146,
   },
   locationLoadingNotice: {
     ...typography.caption,
@@ -3827,20 +3881,6 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     color: colors.textPrimary,
   },
-  toggleContainer: {
-    marginHorizontal: PAGE_GUTTER,
-    marginTop: 0,
-    marginBottom: -spacing.sm,
-  },
-  // Shop modes sit straight on the page: no card background, border or shadow.
-  toggleCardBare: {
-    backgroundColor: 'transparent',
-    borderWidth: 0,
-    shadowOpacity: 0,
-    elevation: 0,
-    paddingTop: spacing.sm,
-    paddingBottom: 0,
-  },
   offerCarouselSection: {
     marginTop: spacing.md,
     paddingHorizontal: PAGE_GUTTER,
@@ -3987,8 +4027,18 @@ const styles = StyleSheet.create({
     // FlatList in horizontal mode
   },
   commonSections: {
-    paddingBottom: COMMON_FADE_PX - 6,
-    marginBottom: spacing.xs,
+    paddingBottom: spacing.sm,
+  },
+  offerGlassDivider: {
+    height: 4,
+    marginHorizontal: PAGE_GUTTER,
+    marginTop: spacing.sm,
+    borderRadius: radius.pill,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255,255,255,0.9)',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(90,110,130,0.12)',
+    overflow: 'hidden',
   },
   commonBackdrop: {
     position: 'absolute',

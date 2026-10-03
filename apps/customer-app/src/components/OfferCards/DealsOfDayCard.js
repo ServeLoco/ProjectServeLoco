@@ -1,6 +1,8 @@
 import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Animated, Easing } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import OfferCardGlass from './OfferCardGlass';
+import NativeGlassView from '../../utils/nativeGlass';
 import ProductImage from '../ProductImage';
 import AppIcon from '../AppIcon';
 import OfferAddButton from './OfferAddButton';
@@ -215,18 +217,16 @@ function DealsOfDayCard({ card, width, onViewAll }) {
     <Animated.View
       style={{
         flex: 1,
-        opacity: entry,
+        opacity: NativeGlassView ? 1 : entry,
         transform: [
           { translateY: entry.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) },
           { scale: entry.interpolate({ inputRange: [0, 1], outputRange: [0.97, 1] }) },
         ],
       }}
     >
-      <LinearGradient
-        colors={[look.bgColor, look.bgColorEnd]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={[styles.card, { width, borderColor: `${look.accentColor}40` }]}
+      <OfferCardGlass
+        look={look}
+        style={[styles.card, { width }]}
       >
         <DayCardHeader card={card} look={look} width={width - 2} reducedMotion={reducedMotion} />
         <View style={styles.divider} />
@@ -260,7 +260,7 @@ function DealsOfDayCard({ card, width, onViewAll }) {
             </View>
           </View>
         </Pressable>
-      </LinearGradient>
+      </OfferCardGlass>
     </Animated.View>
   );
 }
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
   subtitleBig: { fontSize: 14, lineHeight: 19, marginTop: 4 },
   shine: { position: 'absolute', top: -30, bottom: -30, left: 0, width: SHINE_WIDTH },
   divider: { height: 1, backgroundColor: 'rgba(255, 255, 255, 0.8)' },
-  list: { flex: 1, paddingHorizontal: 9, paddingTop: 3 },
+  list: { flex: 1, paddingHorizontal: 9, paddingTop: 3, marginHorizontal: 6, marginTop: 5, marginBottom: 5, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.58)' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingVertical: 4 },
   rowUnavailable: { opacity: 0.5 },
   rowImage: { backgroundColor: '#FFFFFF' },
