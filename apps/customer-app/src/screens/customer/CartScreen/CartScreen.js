@@ -1441,7 +1441,7 @@ export default function CartScreen() {
               <Animated.View style={[styles.lockedBox, { opacity: fadeAnim }]}>
                 <View style={styles.lockedHead}>
                   <View style={styles.lockedIcon}>
-                    <AppIcon name="lock" size={14} color={colors.white} />
+                    <AppIcon name="lock" size={12} color={colors.white} />
                   </View>
                   <View style={styles.lockedHeadText} accessibilityLiveRegion="polite">
                     <Text style={styles.lockedTitle}>
@@ -1807,27 +1807,26 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     flexShrink: 0,
   },
-  // Deal items not in the bill yet: dashed, so the box reads as still locked.
+  // Deal items not in the bill yet.
   lockedBox: {
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
+    borderRadius: 12,
+    borderWidth: 1,
     borderColor: '#B9A3FF',
     backgroundColor: '#F8F5FF',
-    paddingHorizontal: 12,
-    paddingTop: 10,
-    paddingBottom: 6,
+    paddingHorizontal: 10,
+    paddingTop: 7,
+    paddingBottom: 3,
     marginBottom: 8,
   },
   lockedHead: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   lockedIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: DEAL_ACCENT,
@@ -1845,8 +1844,8 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     overflow: 'hidden',
     backgroundColor: '#E4DAFF',
-    marginTop: 10,
-    marginBottom: 4,
+    marginTop: 6,
+    marginBottom: 2,
   },
   lockedFill: {
     height: '100%',
@@ -1856,7 +1855,7 @@ const styles = StyleSheet.create({
   lockedRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
+    paddingVertical: 4,
     gap: 8,
   },
   lockedName: {
