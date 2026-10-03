@@ -19,10 +19,18 @@ firebase-service-account.json
 # AI tool configs/state
 .claude/
 .codebase-memory/
+.codex/
+AGENTS.md
 .kimchi/
 .opencode/
 .mcp.json
 skills-lock.json
+
+# Local design backups and private server/database audit reports
+.design-backups/
+plans/rds-audit-day1.md
+plans/rds-performance-audit.md
+plans/server-audit-day1.md
 
 # Written on the production box by the deploy workflow (last good image tag)
 .deploy-tag
