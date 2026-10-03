@@ -2079,7 +2079,7 @@ export default function HomeScreen() {
               const cards = (section.items || []).filter((card) => card.design === 'deal_tabs' && card.deal?.tiers?.length);
               if (cards.length === 0) return null;
               // One card fills most of the width; with more, the next one peeks.
-              const offerCardWidth = cards.length === 1 ? contentWidth : Math.floor(contentWidth * 0.86);
+              const offerCardWidth = cards.length === 1 ? contentWidth : Math.floor(contentWidth * 0.8);
               return (
                 <View key={section.id} style={styles.section}>
                   {section.title ? (

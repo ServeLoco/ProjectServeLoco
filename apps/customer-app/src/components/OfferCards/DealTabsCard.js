@@ -1,9 +1,12 @@
-import React, { memo, useState } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import React, { memo, useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, Pressable, Animated, Easing } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import ProductImage from '../ProductImage';
 import AppIcon from '../AppIcon';
 import { useDealCart } from '../../hooks/useDealCart';
+import { useReducedMotion } from '../../utils';
+
+const SHINE_WIDTH = 70;
 
 // Same defaults as the API (offerCardController DEFAULT_STYLE), so a card
 // still draws if a key is missing.
@@ -34,7 +37,7 @@ function DealRow({ item, look, selected, onSelect }) {
   const label = item.dealVariantLabel || item.unit || '';
   return (
     <View style={[styles.row, unavailable && styles.rowUnavailable]}>
-      <ProductImage uri={item.thumbUrl || item.imageUrl} width={52} height={52} borderRadius={10} resizeMode="contain" style={styles.rowImage} />
+      <ProductImage uri={item.thumbUrl || item.imageUrl} width={40} height={40} borderRadius={8} resizeMode="contain" style={styles.rowImage} />
       <View style={styles.rowBody}>
         <Text style={styles.rowName} numberOfLines={2}>{item.name}</Text>
         {label ? <Text style={styles.rowUnit} numberOfLines={1}>{label}</Text> : null}
@@ -78,17 +81,62 @@ function DealTabsCard({ card, width, onViewAll }) {
   const tiers = card?.deal?.tiers || [];
   const [activeIndex, setActiveIndex] = useState(0);
   const { progress, isSelected, toggle } = useDealCart(card?.deal);
+  const reducedMotion = useReducedMotion();
+  const entry = useRef(new Animated.Value(reducedMotion ? 1 : 0)).current;
+  const shine = useRef(new Animated.Value(0)).current;
+  const rowsIn = useRef(new Animated.Value(1)).current;
+  const fill = useRef(new Animated.Value(progress.ratio)).current;
+
+  // The card rises in once, then a soft light sweeps across it every few seconds.
+  useEffect(() => {
+    if (reducedMotion) {
+      entry.setValue(1);
+      return undefined;
+    }
+    Animated.timing(entry, { toValue: 1, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.delay(2200),
+        Animated.timing(shine, { toValue: 1, duration: 1100, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.timing(shine, { toValue: 0, duration: 0, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [entry, shine, reducedMotion]);
+
+  // Rows slide in when the price tab changes.
+  useEffect(() => {
+    if (reducedMotion) return;
+    rowsIn.setValue(0);
+    Animated.timing(rowsIn, { toValue: 1, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+  }, [activeIndex, rowsIn, reducedMotion]);
+
+  // The progress bar fills smoothly as the cart grows.
+  useEffect(() => {
+    Animated.timing(fill, { toValue: progress.ratio, duration: reducedMotion ? 0 : 500, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
+  }, [fill, progress.ratio, reducedMotion]);
+
   if (tiers.length === 0) return null;
   const tier = tiers[Math.min(activeIndex, tiers.length - 1)];
   const rows = tier.items.slice(0, Number(look.rowsPerTab) || 3);
   const minOrder = Number(card.deal.minOrder) || 0;
 
   return (
+    <Animated.View
+      style={{
+        opacity: entry,
+        transform: [
+          { translateY: entry.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) },
+          { scale: entry.interpolate({ inputRange: [0, 1], outputRange: [0.97, 1] }) },
+        ],
+      }}
+    >
     <LinearGradient
       colors={[look.bgColor, look.bgColorEnd]}
       start={{ x: 0, y: 0 }}
       end={{ x: 0, y: 1 }}
-      style={[styles.card, { width }]}
+      style={[styles.card, { width, borderColor: look.tabColor }]}
     >
       <View style={styles.head}>
         <View style={styles.headText}>
@@ -98,14 +146,19 @@ function DealTabsCard({ card, width, onViewAll }) {
           ) : null}
         </View>
         {card.imageUrl ? (
-          <ProductImage uri={card.imageUrl} width={60} height={60} borderRadius={0} resizeMode="contain" fallback={null} style={styles.art} />
+          <ProductImage uri={card.imageUrl} width={44} height={44} borderRadius={0} resizeMode="contain" fallback={null} style={styles.art} />
         ) : null}
       </View>
 
       {minOrder > 0 ? (
         <View style={styles.progressWrap} accessibilityLiveRegion="polite">
           <View style={[styles.progressTrack, { backgroundColor: `${look.accentColor}22` }]}>
-            <View style={[styles.progressFill, { backgroundColor: look.accentColor, width: `${Math.round(progress.ratio * 100)}%` }]} />
+            <Animated.View
+              style={[
+                styles.progressFill,
+                { backgroundColor: look.accentColor, width: fill.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'], extrapolate: 'clamp' }) },
+              ]}
+            />
           </View>
           <Text style={[styles.progressText, { color: look.accentColor }]} numberOfLines={1}>
             {progress.unlocked ? 'Unlocked! Pick your deal item' : `Shop for ₹${progress.amountRemaining} more to claim`}
@@ -134,16 +187,50 @@ function DealTabsCard({ card, width, onViewAll }) {
         })}
       </View>
 
-      <View style={styles.body}>
-        {rows.map((item) => (
-          <DealRow key={`${item.id}:${item.dealVariantId || ''}`} item={item} look={look} selected={isSelected(item)} onSelect={toggle} />
-        ))}
-        <Pressable onPress={onViewAll} style={styles.footer} accessibilityRole="link" hitSlop={6}>
-          <Text style={[styles.footerText, { color: look.accentColor }]}>{look.footerText}</Text>
-          <AppIcon name="chevronRight" size={16} color={look.accentColor} />
-        </Pressable>
+      {/* The tab colour wraps the white list on the sides and bottom too, so
+          the card keeps its edge on a white page. */}
+      <View style={[styles.frame, { backgroundColor: look.tabColor }]}>
+        <View style={styles.body}>
+          <Animated.View
+            style={{
+              opacity: rowsIn,
+              transform: [{ translateX: rowsIn.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }],
+            }}
+          >
+            {rows.map((item) => (
+              <DealRow key={`${item.id}:${item.dealVariantId || ''}`} item={item} look={look} selected={isSelected(item)} onSelect={toggle} />
+            ))}
+          </Animated.View>
+          <Pressable onPress={onViewAll} style={styles.footer} accessibilityRole="link" hitSlop={6}>
+            <Text style={[styles.footerText, { color: look.accentColor }]}>{look.footerText}</Text>
+            <AppIcon name="chevronRight" size={14} color={look.accentColor} />
+          </Pressable>
+        </View>
       </View>
+
+      {reducedMotion ? null : (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.shine,
+            {
+              transform: [
+                { translateX: shine.interpolate({ inputRange: [0, 1], outputRange: [-SHINE_WIDTH * 2, (Number(width) || 320) + SHINE_WIDTH] }) },
+                { rotate: '18deg' },
+              ],
+            },
+          ]}
+        >
+          <LinearGradient
+            colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.45)', 'rgba(255,255,255,0)']}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
+      )}
     </LinearGradient>
+    </Animated.View>
   );
 }
 
@@ -151,62 +238,63 @@ export default memo(DealTabsCard);
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 20,
+    borderRadius: 18,
     overflow: 'hidden',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(0,0,0,0.08)',
+    borderWidth: 1,
   },
-  head: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 14, paddingTop: 14, gap: 8, minHeight: 60 },
+  head: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 12, paddingTop: 10, gap: 8, minHeight: 44 },
   headText: { flex: 1 },
-  title: { fontSize: 19, lineHeight: 23, fontWeight: '800', letterSpacing: -0.2 },
-  subtitle: { fontSize: 12.5, lineHeight: 17, marginTop: 3, fontWeight: '500' },
+  title: { fontSize: 16, lineHeight: 20, fontWeight: '800', letterSpacing: -0.2 },
+  subtitle: { fontSize: 11.5, lineHeight: 15, marginTop: 2, fontWeight: '500' },
   art: { backgroundColor: 'transparent' },
-  progressWrap: { paddingHorizontal: 14, marginTop: 8, gap: 4 },
+  progressWrap: { paddingHorizontal: 12, marginTop: 6, gap: 3 },
   progressTrack: { height: 5, borderRadius: 3, overflow: 'hidden' },
   progressFill: { height: 5, borderRadius: 3 },
-  progressText: { fontSize: 12, fontWeight: '700' },
-  tabs: { flexDirection: 'row', marginTop: 10, paddingTop: 6, paddingHorizontal: 6, gap: 4, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
+  progressText: { fontSize: 11, fontWeight: '700' },
+  tabs: { flexDirection: 'row', marginTop: 8, paddingTop: 5, paddingHorizontal: 6, gap: 4, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
   tab: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    paddingVertical: 8,
+    paddingVertical: 6,
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
   },
   chip: { borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1 },
-  chipText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
-  tabText: { fontSize: 13, fontWeight: '700' },
-  body: { backgroundColor: '#FFFFFF', paddingHorizontal: 12, paddingBottom: 6 },
+  chipText: { color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
+  tabText: { fontSize: 12, fontWeight: '700' },
+  frame: { paddingHorizontal: 6, paddingBottom: 6 },
+  body: { backgroundColor: '#FFFFFF', paddingHorizontal: 10, paddingBottom: 2, borderBottomLeftRadius: 14, borderBottomRightRadius: 14 },
+  shine: { position: 'absolute', top: -40, bottom: -40, left: 0, width: SHINE_WIDTH },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingVertical: 9,
+    gap: 8,
+    paddingVertical: 6,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#ECECEC',
   },
   rowUnavailable: { opacity: 0.5 },
   rowImage: { backgroundColor: '#F6F6F8' },
   rowBody: { flex: 1, minWidth: 0 },
-  rowName: { fontSize: 13.5, lineHeight: 17, fontWeight: '700', color: '#1F1F1F' },
-  rowUnit: { fontSize: 12, color: '#8A8A8A', marginTop: 2 },
+  rowName: { fontSize: 12.5, lineHeight: 15, fontWeight: '700', color: '#1F1F1F' },
+  rowUnit: { fontSize: 11, color: '#8A8A8A', marginTop: 1 },
   selectBtn: {
     borderWidth: 1.5,
     borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     backgroundColor: '#F2F6FF',
-    minWidth: 70,
+    minWidth: 62,
     alignItems: 'center',
   },
   selectedInner: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  selectText: { fontSize: 13, fontWeight: '800' },
+  selectText: { fontSize: 12, fontWeight: '800' },
   priceCol: { alignItems: 'flex-end', minWidth: 38 },
-  strike: { fontSize: 12, color: '#9A9A9A', textDecorationLine: 'line-through' },
-  dealPrice: { fontSize: 15, fontWeight: '800', color: '#1F1F1F' },
-  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2, paddingVertical: 11 },
-  footerText: { fontSize: 14, fontWeight: '800' },
+  strike: { fontSize: 11, color: '#9A9A9A', textDecorationLine: 'line-through' },
+  dealPrice: { fontSize: 14, fontWeight: '800', color: '#1F1F1F' },
+  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2, paddingVertical: 8 },
+  footerText: { fontSize: 13, fontWeight: '800' },
 });
