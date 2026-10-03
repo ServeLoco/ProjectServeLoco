@@ -57,8 +57,8 @@ export function useDealCart(deal) {
 
   const add = useCallback((item) => {
     const product = normalizeProduct(item);
-    addItem(product, 1, variantOf(product), { dealCouponId: dealId });
     const price = Number(item.dealPrice ?? item.deal_price);
+    addItem(product, 1, variantOf(product), { dealCouponId: dealId, dealPrice: Number.isFinite(price) ? price : null });
     showToast(`${product.name} added — ₹${price} deal`, { type: 'success' });
   }, [addItem, dealId]);
 

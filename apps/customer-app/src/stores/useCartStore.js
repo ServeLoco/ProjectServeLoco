@@ -68,10 +68,14 @@ export const useCartStore = create(
       // legacy single-line behavior (variant === null matches null).
       // options.dealCouponId marks the line as picked from that deal (Select
       // on an offer card / the Deal page); only such lines get a deal price.
+      // options.dealPrice is the offer price shown on the card, kept for the
+      // cart's deal row until the server prices it.
       addItem: (product, quantity = 1, variant = null, options = {}) => {
         const { items } = get();
         const variantId = variant?.id ?? null;
-        const dealMark = options.dealCouponId != null ? { dealCouponId: options.dealCouponId } : {};
+        const dealMark = options.dealCouponId != null
+          ? { dealCouponId: options.dealCouponId, dealPrice: options.dealPrice ?? null }
+          : {};
         const existingItemIndex = items.findIndex((item) =>
           item.product.id === product.id &&
           item.type !== 'combo' &&
@@ -129,12 +133,12 @@ export const useCartStore = create(
       },
 
       // Sets (or, with null, clears) the deal a product line was picked from.
-      setLineDeal: (productId, variantId = null, dealCouponId = null) => {
+      setLineDeal: (productId, variantId = null, dealCouponId = null, dealPrice = null) => {
         set({ items: get().items.map((item) => (
           String(item.product.id) === String(productId)
           && (item.type || 'product') === 'product'
           && (item.variant?.id ?? null) === (variantId ?? null)
-            ? { ...item, dealCouponId: dealCouponId ?? null }
+            ? { ...item, dealCouponId: dealCouponId ?? null, dealPrice: dealCouponId == null ? null : dealPrice }
             : item
         )) });
       },

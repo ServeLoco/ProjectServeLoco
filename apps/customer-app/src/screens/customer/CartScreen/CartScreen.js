@@ -35,6 +35,9 @@ const getItemType = (item) =>
 // Includes variant id — two lines of the same product with different
 // variants (e.g. 2x Veg + 1x Chicken) must get distinct keys, otherwise
 // React collides them and quantity controls would target the wrong line.
+// The deal card's purple, so a deal row reads as the same offer.
+const DEAL_ACCENT = '#6C3BF5';
+
 const getItemKey = (item) => `${getItemType(item)}-${item.product.id}-${item.variant?.id ?? 'base'}`;
 
 export default function CartScreen() {
@@ -43,6 +46,7 @@ export default function CartScreen() {
   const items = useCartStore(state => state.items);
   const updateQuantity = useCartStore(state => state.updateQuantity);
   const removeItem = useCartStore(state => state.removeItem);
+  const setLineDeal = useCartStore(state => state.setLineDeal);
   const clearCart = useCartStore(state => state.clearCart);
   const appliedCouponCode = useCartStore(state => state.appliedCouponCode);
   const appliedCouponId = useCartStore(state => state.appliedCouponId);
@@ -163,6 +167,36 @@ export default function CartScreen() {
     }
     return map;
   }, [bill]);
+
+  // Units of each line shown in the highlighted deal rows at the end of the
+  // list: what the server priced at the deal price, or — while the deal is
+  // still locked or the bill is loading — the units picked from the deal, up
+  // to its limit. The rest of the line stays a normal row.
+  const dealUnitsByKey = useMemo(() => {
+    const map = {};
+    const deal = bill?.deal || null;
+    let left = Math.max(1, Number(deal?.maxItems) || 1);
+    for (const item of validItems) {
+      if (getItemType(item) !== 'product' || item.dealCouponId == null) continue;
+      if (bill && (!deal || String(deal.id) !== String(item.dealCouponId))) continue;
+      const key = getItemKey(item);
+      const qty = Number(item.quantity) || 0;
+      const units = deal?.unlocked ? (dealByLine[key]?.dealQty || 0) : Math.min(qty, left);
+      if (units > 0) {
+        map[key] = units;
+        left -= units;
+      }
+    }
+    return map;
+  }, [validItems, bill, dealByLine]);
+  const normalItems = useMemo(
+    () => validItems.filter((item) => (Number(item.quantity) || 0) - (dealUnitsByKey[getItemKey(item)] || 0) > 0),
+    [validItems, dealUnitsByKey],
+  );
+  const dealItems = useMemo(
+    () => validItems.filter((item) => dealUnitsByKey[getItemKey(item)] > 0),
+    [validItems, dealUnitsByKey],
+  );
 
   // Cart-item entrance stagger: only the items present at mount animate in
   // with a per-index delay; items encountered later render fully visible.
@@ -344,6 +378,19 @@ export default function CartScreen() {
   const handleRemove = (id, type = 'product', variantId = null) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     removeItem(id, type, variantId);
+  };
+
+  // Takes the deal units out; any units added normally stay, at the normal price.
+  const handleRemoveDeal = (item, units) => {
+    const qty = Number(item.quantity) || 0;
+    const variantId = item.variant?.id ?? null;
+    if (qty - units <= 0) {
+      handleRemove(item.product.id, 'product', variantId);
+      return;
+    }
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    updateQuantity(item.product.id, qty - units, 'product', variantId);
+    setLineDeal(item.product.id, variantId, null);
   };
 
   const handleClear = () => {
@@ -1236,16 +1283,18 @@ export default function CartScreen() {
                 },
               ]}
             >
-              {validItems.map((item, index) => {
+              {normalItems.map((item, index) => {
                 const itemType = getItemType(item);
                 const itemKey = getItemKey(item);
                 const itemAnim = getItemAnim(itemKey);
                 const qty = Number(item.quantity) || 0;
+                // Units in the deal row below are not counted here.
+                const shownQty = qty - (dealUnitsByKey[itemKey] || 0);
                 // One short line per item — "2× Amul Milk (500ml)" — no photo or
                 // unit price, so the whole cart fits on screen; the bill below
                 // has the money.
                 const variantLabel = item.variant?.label ? ` (${item.variant.label})` : '';
-                const isLast = index === validItems.length - 1;
+                const isLast = index === normalItems.length - 1;
 
                 return (
                   <Animated.View
@@ -1260,28 +1309,20 @@ export default function CartScreen() {
                     <View style={styles.itemRow}>
                       <View style={styles.itemBody}>
                         <Text style={styles.itemName} numberOfLines={2}>
-                          <Text style={styles.itemQty}>{qty}×  </Text>
+                          <Text style={styles.itemQty}>{shownQty}×  </Text>
                           {item.product.name}
                           {variantLabel ? <Text style={styles.itemVariant}>{variantLabel}</Text> : null}
                         </Text>
                         {!item.product.available ? (
                           <Text style={styles.itemUnavailable}>Currently unavailable</Text>
                         ) : null}
-                        {dealByLine[itemKey]?.dealQty > 0 ? (
-                          <View style={styles.itemDealTag}>
-                            <AppIcon name="ticket" size={12} color={colors.success} />
-                            <Text style={styles.itemDealText}>
-                              {dealByLine[itemKey].dealQty < qty ? `${dealByLine[itemKey].dealQty} at ` : ''}
-                              ₹{dealByLine[itemKey].dealPrice} deal price
-                            </Text>
-                          </View>
-                        ) : null}
                       </View>
 
                       <View style={styles.itemStepperWrap}>
                         <QuantityStepper
                           dense
-                          quantity={qty}
+                          mini
+                          quantity={shownQty}
                           onIncrement={() => updateQuantity(item.product.id, qty + 1, itemType, item.variant?.id ?? null)}
                           onDecrement={() => {
                             if (qty <= 1) handleRemove(item.product.id, itemType, item.variant?.id ?? null);
@@ -1294,17 +1335,78 @@ export default function CartScreen() {
                   </Animated.View>
                 );
               })}
+
+              {/* Items picked from a deal: their own highlighted rows, last,
+                  at the offer price. */}
+              {dealItems.length > 0 ? (
+                <View style={[styles.dealBlock, normalItems.length === 0 && styles.dealBlockOnly]}>
+                  <View style={styles.dealBlockHead}>
+                    <View style={styles.dealBadge}>
+                      <Text style={styles.dealBadgeText}>DEAL</Text>
+                    </View>
+                    <Text style={styles.dealBlockTitle} numberOfLines={1}>
+                      {bill?.deal?.title || 'Offer item'}
+                    </Text>
+                  </View>
+                  {dealItems.map((item) => {
+                    const itemKey = getItemKey(item);
+                    const units = dealUnitsByKey[itemKey];
+                    const variantLabel = item.variant?.label ? ` (${item.variant.label})` : '';
+                    const normalPrice = Number(item.variant?.price ?? item.product.price) || 0;
+                    const hint = bill?.deal?.hintItem;
+                    const hintPrice = hint && String(hint.productId) === String(item.product.id)
+                      && String(hint.variantId ?? '') === String(item.variant?.id ?? '') ? hint.dealPrice : null;
+                    const offerPrice = dealByLine[itemKey]?.dealPrice ?? item.dealPrice ?? hintPrice;
+                    const locked = !!bill?.deal && !bill.deal.unlocked;
+                    const hasOffer = offerPrice != null && Number.isFinite(Number(offerPrice));
+                    return (
+                      <View key={`${itemKey}-deal`} style={styles.dealRow}>
+                        <View style={styles.itemBody}>
+                          <Text style={styles.itemName} numberOfLines={2}>
+                            <Text style={styles.dealQty}>{units}×  </Text>
+                            {item.product.name}
+                            {variantLabel ? <Text style={styles.itemVariant}>{variantLabel}</Text> : null}
+                          </Text>
+                          {locked && bill.deal.amountRemaining > 0 ? (
+                            <View style={styles.dealLockRow} accessibilityLiveRegion="polite">
+                              <AppIcon name="lock" size={12} color={DEAL_ACCENT} />
+                              <Text style={styles.dealLockText}>
+                                Add ₹{bill.deal.amountRemaining} more to unlock
+                              </Text>
+                            </View>
+                          ) : hasOffer && normalPrice > Number(offerPrice) ? (
+                            <Text style={styles.dealSaveText}>
+                              You save ₹{Math.round((normalPrice - Number(offerPrice)) * units)}
+                            </Text>
+                          ) : null}
+                        </View>
+                        {hasOffer ? (
+                          <View style={styles.dealPriceCol}>
+                            <Text style={[styles.dealPrice, locked && styles.dealPriceLocked]}>
+                              ₹{Number(offerPrice) * units}
+                            </Text>
+                            {normalPrice > Number(offerPrice) ? (
+                              <Text style={styles.dealStrike}>₹{normalPrice * units}</Text>
+                            ) : null}
+                          </View>
+                        ) : null}
+                        <PressableScale
+                          onPress={() => handleRemoveDeal(item, units)}
+                          style={styles.dealRemove}
+                          scaleTo={0.9}
+                          hitSlop={8}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Remove deal item ${item.product.name}`}
+                        >
+                          <AppIcon name="close" size={14} strokeWidth={2.4} color={colors.textSecondary} />
+                        </PressableScale>
+                      </View>
+                    );
+                  })}
+                </View>
+              ) : null}
             </Animated.View>
 
-            {/* A deal item is in the cart but the rest of the cart is short of the deal's minimum. */}
-            {bill?.deal && !bill.deal.unlocked && bill.deal.hintItem && bill.deal.amountRemaining > 0 ? (
-              <View style={styles.dealHint} accessibilityLiveRegion="polite">
-                <AppIcon name="lock" size={14} color={colors.primary} />
-                <Text style={styles.dealHintText}>
-                  Add ₹{bill.deal.amountRemaining} more to get {bill.deal.hintItem.name} at ₹{bill.deal.hintItem.dealPrice}
-                </Text>
-              </View>
-            ) : null}
 
             {/* "People also ordered" — what goes with this cart */}
             <CartSuggestions />
@@ -1399,18 +1501,18 @@ const styles = StyleSheet.create({
   cartHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
     minHeight: 64,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 6,
     backgroundColor: colors.bgSurface,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#E3E6EA',
   },
   cartHeaderBack: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#F4F5F7',
@@ -1421,7 +1523,7 @@ const styles = StyleSheet.create({
   },
   cartHeaderTitle: {
     ...typography.labelLarge,
-    fontSize: 19,
+    fontSize: 17,
     lineHeight: 24,
     fontWeight: '800',
     color: colors.textPrimary,
@@ -1441,18 +1543,18 @@ const styles = StyleSheet.create({
   },
   cartHeaderSub: {
     ...typography.caption,
-    fontSize: 12,
+    fontSize: 11.5,
     color: colors.textSecondary,
     fontWeight: '600',
   },
   clearHeaderBtn: {
-    height: 34,
+    height: 30,
     justifyContent: 'center',
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.error,
     borderRadius: radius.pill,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     gap: 4,
     shadowColor: colors.error,
     shadowOffset: { width: 0, height: 2 },
@@ -1478,14 +1580,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
   },
   scrollContent: {
-    paddingTop: 12,
+    paddingTop: 8,
     paddingHorizontal: 10,
   },
 
   // ── Cart items (light outlined list, rows split by hairlines) ──
   itemsCard: {
     backgroundColor: colors.bgSurface,
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: '#ECEEF1',
     shadowColor: '#101828',
@@ -1493,14 +1595,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,
-    paddingHorizontal: 12,
-    marginBottom: 12,
+    paddingHorizontal: 10,
+    marginBottom: 8,
   },
   itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    gap: 12,
+    paddingVertical: 5,
+    gap: 10,
   },
   itemDivider: {
     height: StyleSheet.hairlineWidth,
@@ -1515,8 +1617,8 @@ const styles = StyleSheet.create({
     ...typography.label,
     color: colors.textPrimary,
     fontWeight: '700',
-    fontSize: 14,
-    lineHeight: 19,
+    fontSize: 13.5,
+    lineHeight: 18,
   },
   itemQty: {
     color: colors.primary,
@@ -1531,32 +1633,96 @@ const styles = StyleSheet.create({
     color: colors.error,
     marginTop: 4,
   },
-  itemDealTag: {
+  dealBlock: {
+    marginHorizontal: -4,
+    marginTop: 4,
+    marginBottom: 8,
+    paddingHorizontal: 8,
+    paddingTop: 6,
+    paddingBottom: 2,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#D9CCFF',
+    backgroundColor: '#F4EFFF',
+  },
+  dealBlockOnly: {
+    marginTop: 8,
+  },
+  dealBlockHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  dealBadge: {
+    backgroundColor: DEAL_ACCENT,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+  },
+  dealBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10.5,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  dealBlockTitle: {
+    ...typography.captionMedium,
+    flex: 1,
+    color: DEAL_ACCENT,
+    fontWeight: '800',
+  },
+  dealRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 5,
+    gap: 8,
+  },
+  dealQty: {
+    color: DEAL_ACCENT,
+    fontWeight: '800',
+  },
+  dealLockRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginTop: 4,
+    marginTop: 2,
   },
-  itemDealText: {
+  dealLockText: {
+    ...typography.captionMedium,
+    color: DEAL_ACCENT,
+    fontWeight: '700',
+  },
+  dealSaveText: {
     ...typography.captionMedium,
     color: colors.success,
     fontWeight: '700',
+    marginTop: 2,
   },
-  dealHint: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: spacing.md,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: '#F1ECFF',
+  dealPriceCol: {
+    alignItems: 'flex-end',
+    flexShrink: 0,
   },
-  dealHintText: {
-    ...typography.captionMedium,
-    flex: 1,
+  dealPrice: {
+    fontSize: 14,
+    fontWeight: '800',
     color: colors.textPrimary,
-    fontWeight: '700',
+  },
+  dealPriceLocked: {
+    color: colors.textSecondary,
+  },
+  dealStrike: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    textDecorationLine: 'line-through',
+  },
+  dealRemove: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    flexShrink: 0,
   },
   itemStepperWrap: {
     flexShrink: 0,
@@ -1568,9 +1734,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.errorLight,
-    borderRadius: 16,
-    padding: 12,
-    marginBottom: 12,
+    borderRadius: 14,
+    padding: 10,
+    marginBottom: 8,
     borderWidth: borderWidth.thin,
     borderColor: colors.errorBorder,
     gap: spacing.sm,
@@ -1584,7 +1750,7 @@ const styles = StyleSheet.create({
   // ── Bill Summary ──────────────────────────────────────────────
   billCard: {
     backgroundColor: colors.bgSurface,
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: '#ECEEF1',
     shadowColor: '#101828',
@@ -1592,27 +1758,27 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    marginBottom: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 8,
   },
   billHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    paddingBottom: 12,
-    marginBottom: 14,
+    paddingBottom: 8,
+    marginBottom: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#E3E6EA',
   },
   billTitle: {
     ...typography.label,
-    fontSize: 15,
+    fontSize: 14,
     color: colors.textPrimary,
     fontWeight: '800',
   },
   billRows: {
-    gap: 10,
+    gap: 6,
   },
   billRow: {
     flexDirection: 'row',
@@ -1621,12 +1787,12 @@ const styles = StyleSheet.create({
   },
   billRowLabel: {
     ...typography.body,
-    fontSize: 14,
+    fontSize: 13,
     color: '#4B5563',
   },
   billRowValue: {
     ...typography.label,
-    fontSize: 14,
+    fontSize: 13,
     color: colors.textPrimary,
     fontWeight: '700',
   },
@@ -1670,39 +1836,39 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderRadius: 12,
+    marginTop: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
     backgroundColor: '#F6F7F9',
   },
   grandTotalLabel: {
     ...typography.label,
-    fontSize: 16,
+    fontSize: 15,
     color: colors.textPrimary,
     fontWeight: '800',
   },
   grandTotalValue: {
     ...typography.priceLarge,
-    fontSize: 20,
+    fontSize: 18,
     color: colors.textPrimary,
     fontWeight: '800',
   },
 
   freeDeliveryBox: {
-    marginTop: 14,
+    marginTop: 10,
     backgroundColor: colors.bgSurface,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(255, 122, 58, 0.22)',
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
   fdTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
-    marginBottom: spacing.sm + 2,
+    marginBottom: 6,
   },
   fdLine: {
     flex: 1,
@@ -1712,17 +1878,17 @@ const styles = StyleSheet.create({
     ...typography.label,
     color: colors.saffronDark,
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: 13,
     letterSpacing: 0.1,
   },
   fdAmount: {
     color: colors.saffron,
     fontWeight: '800',
-    fontSize: 16,
+    fontSize: 15,
     letterSpacing: -0.2,
   },
   fdProgressTrack: {
-    height: 12,
+    height: 10,
     backgroundColor: 'rgba(255, 122, 58, 0.12)',
     borderRadius: radius.pill,
     overflow: 'hidden',
@@ -1787,13 +1953,13 @@ const styles = StyleSheet.create({
   couponCard: {
     borderRadius: radius.lg,
     borderWidth: borderWidth.thin,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
     overflow: 'hidden',
   },
   couponCardInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.md,
+    padding: spacing.sm + 2,
     minWidth: 0,
   },
   couponCardError: {
@@ -1814,12 +1980,12 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   couponIconWrap: {
-    width: 40,
-    height: 40,
+    width: 32,
+    height: 32,
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.md,
+    marginRight: spacing.sm + 2,
     flexShrink: 0,
   },
   couponIconWrapError: {
@@ -1865,14 +2031,14 @@ const styles = StyleSheet.create({
 
   // ── Applied offer + future unlocks (auto-apply, display only) ──
   couponOffersSection: {
-    gap: spacing.sm,
-    marginBottom: spacing.md,
+    gap: 6,
+    marginBottom: spacing.sm,
   },
   couponOffersHeadingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing.xs,
+    marginBottom: 0,
   },
   couponOffersHeadingLeft: {
     flexDirection: 'row',
@@ -1893,8 +2059,8 @@ const styles = StyleSheet.create({
   couponFutureRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.sm + 2,
-    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm + 4,
     backgroundColor: colors.bgSurface,
     borderRadius: radius.md,
   },
@@ -1942,7 +2108,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.bgSurface,
     borderRadius: radius.md,
-    padding: spacing.md,
+    padding: spacing.sm + 2,
     borderWidth: borderWidth.thin,
     borderStyle: 'dashed',
     borderColor: colors.saffron + '59',
@@ -1953,13 +2119,13 @@ const styles = StyleSheet.create({
     borderColor: colors.success + '59',
   },
   couponOfferIconFrame: {
-    width: 36,
-    height: 36,
+    width: 30,
+    height: 30,
     borderRadius: radius.md,
     backgroundColor: colors.saffronLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.md,
+    marginRight: spacing.sm + 2,
     flexShrink: 0,
   },
   couponOfferIconFrameApplied: {
@@ -2000,8 +2166,8 @@ const styles = StyleSheet.create({
   couponOfferSavingsPill: {
     backgroundColor: colors.saffronLight,
     borderRadius: radius.pill,
-    paddingVertical: 4,
-    paddingHorizontal: spacing.md,
+    paddingVertical: 3,
+    paddingHorizontal: 12,
     marginLeft: spacing.sm,
     flexShrink: 0,
   },
@@ -2021,7 +2187,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xs,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm + 2,
     borderRadius: radius.md,
     borderWidth: borderWidth.thin,
     borderColor: colors.saffron + '40',
@@ -2043,11 +2209,11 @@ const styles = StyleSheet.create({
     borderTopWidth: borderWidth.thin,
     borderTopColor: colors.border,
     paddingHorizontal: 10,
-    paddingTop: 10,
+    paddingTop: 8,
     ...shadows.lg,
   },
   checkoutBtn: {
-    height: layout.buttonHeightLarge,
+    height: layout.buttonHeightMd,
     backgroundColor: colors.success,
     borderRadius: radius.button,
     justifyContent: 'center',

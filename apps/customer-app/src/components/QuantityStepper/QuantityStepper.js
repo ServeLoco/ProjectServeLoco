@@ -21,6 +21,7 @@ import AppIcon from '../AppIcon';
  *   disabled     - disables all interactions (unavailable product)
  *   compact      - smaller variant for list cards
  *   dense        - even smaller variant for compact grids
+ *   mini         - smallest, for one-line rows (the cart list); use with dense
  */
 function QuantityStepper({
   quantity = 0,
@@ -30,6 +31,7 @@ function QuantityStepper({
   disabled = false,
   compact = false,
   dense = false,
+  mini = false,
 }) {
   const normalizedQuantity = Math.max(0, Number(quantity) || 0);
   const prevQuantity = useRef(quantity);
@@ -69,6 +71,7 @@ function QuantityStepper({
             styles.addBtn,
             compact && styles.addBtnCompact,
             dense && styles.addBtnDense,
+            mini && styles.addBtnMini,
             disabled && styles.disabled,
           ]}
           accessibilityRole="button"
@@ -89,7 +92,7 @@ function QuantityStepper({
 
   return (
     <View
-      style={[styles.stepper, compact && styles.stepperCompact, dense && styles.stepperDense]}
+      style={[styles.stepper, compact && styles.stepperCompact, dense && styles.stepperDense, mini && styles.stepperMini]}
       onStartShouldSetResponder={() => true}
       onTouchEnd={(e) => { e.stopPropagation && e.stopPropagation(); }}
     >
@@ -97,14 +100,14 @@ function QuantityStepper({
         onPress={onDecrement}
         disabled={disabled}
         activeOpacity={0.7}
-        style={[styles.stepBtn, compact && styles.stepBtnCompact, dense && styles.stepBtnDense]}
+        style={[styles.stepBtn, compact && styles.stepBtnCompact, dense && styles.stepBtnDense, mini && styles.stepBtnMini]}
         accessibilityRole="button"
         accessibilityLabel="Decrease quantity"
       >
-        <Text style={styles.stepIcon}>-</Text>
+        <Text style={[styles.stepIcon, mini && styles.stepIconMini]}>-</Text>
       </TouchableOpacity>
 
-      <Animated.Text style={[styles.qty, compact && styles.qtyCompact, dense && styles.qtyDense, { transform: [{ scale: scaleAnim }] }]}>
+      <Animated.Text style={[styles.qty, compact && styles.qtyCompact, dense && styles.qtyDense, mini && styles.qtyMini, { transform: [{ scale: scaleAnim }] }]}>
         {normalizedQuantity}
       </Animated.Text>
 
@@ -112,11 +115,11 @@ function QuantityStepper({
         onPress={onIncrement}
         disabled={disabled}
         activeOpacity={0.7}
-        style={[styles.stepBtn, compact && styles.stepBtnCompact, dense && styles.stepBtnDense]}
+        style={[styles.stepBtn, compact && styles.stepBtnCompact, dense && styles.stepBtnDense, mini && styles.stepBtnMini]}
         accessibilityRole="button"
         accessibilityLabel="Increase quantity"
       >
-        <Text style={styles.stepIcon}>+</Text>
+        <Text style={[styles.stepIcon, mini && styles.stepIconMini]}>+</Text>
       </TouchableOpacity>
     </View>
   );
@@ -216,6 +219,26 @@ const styles = StyleSheet.create({
   stepBtnDense: {
     width: 28,
     height: 38,
+  },
+  stepperMini: {
+    height: 30,
+    minWidth: 74,
+  },
+  addBtnMini: {
+    height: 30,
+    minWidth: 58,
+  },
+  stepBtnMini: {
+    width: 25,
+    height: 30,
+  },
+  stepIconMini: {
+    fontSize: 16,
+    lineHeight: 18,
+  },
+  qtyMini: {
+    fontSize: 13,
+    lineHeight: 15,
   },
   stepIcon: {
     fontSize: 18,
