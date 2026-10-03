@@ -87,6 +87,14 @@ const ALLOWLIST = [
       'every area\'s upi_qr_image_id, not just one area\'s.',
   },
   {
+    file: 'src/controllers/imageController.js',
+    line: 40,
+    reason:
+      "getUsedImageIds' offer_cards query — same cross-area \"is this image " +
+      'used anywhere" scan as the settings one above: images are global, so ' +
+      'an image only an offer card uses must count as in use in every area.',
+  },
+  {
     file: 'src/controllers/deliveryZonesController.js',
     line: 148,
     reason:

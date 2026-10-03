@@ -161,7 +161,8 @@ describe('getUsedImageIds (via GET /admin/images) — both areas report their UP
       .mockResolvedValueOnce([[]]) // store_modes
       .mockResolvedValueOnce([[]]) // product_library
       .mockResolvedValueOnce([[]]) // category_library
-      .mockResolvedValueOnce([[]]); // store_mode_library
+      .mockResolvedValueOnce([[]]) // store_mode_library
+      .mockResolvedValueOnce([[]]); // offer_cards
 
     const req = {};
     const res = mockRes();

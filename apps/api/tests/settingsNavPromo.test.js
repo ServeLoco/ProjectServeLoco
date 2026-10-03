@@ -135,7 +135,8 @@ describe('the nav-bar image counts as in use', () => {
       .mockResolvedValueOnce([[]]) // store_modes
       .mockResolvedValueOnce([[]]) // product_library
       .mockResolvedValueOnce([[]]) // category_library
-      .mockResolvedValueOnce([[]]); // store_mode_library
+      .mockResolvedValueOnce([[]]) // store_mode_library
+      .mockResolvedValueOnce([[]]); // offer_cards
 
     const res = mockRes();
     await getImages({}, res);
