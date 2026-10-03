@@ -44,6 +44,7 @@ import {
 } from '../../../components';
 import { showToast } from '../../../components/Toast';
 import { offerCardDesignOf, drawableOfferCards, offerCardColorOf } from '../../../components/OfferCards/offerCardDesigns';
+import { OfferCardsRail, offerCardWidthFor, offerRailStops } from './OfferCardsRail';
 import { colors, typography, fontSizes, lineHeights, spacing, radius, layout } from '../../../theme';
 import HomeIcon from './HomeIcon';
 import useAreaLine from './useAreaLine';
@@ -97,11 +98,6 @@ const TOP_BAR_FADE_LOCATIONS = TOP_BAR_FADE_ALPHAS.map((_, i) => i / (TOP_BAR_FA
 // unavailable ones still leaves a full row.
 // Left/right space between the screen edge and the Home content.
 const PAGE_GUTTER = 10;
-const OFFER_CARD_GAP = 10;
-
-// Every offer card type has the same width: one card fills most of the
-// width; with more, the next one peeks.
-const offerCardWidthFor = (count, contentWidth) => (count === 1 ? contentWidth : Math.floor(contentWidth * 0.75));
 // Home draws its sections a few at a time: this many at first, then one more
 // each time the customer scrolls within a screen of the end of what is drawn.
 const SECTIONS_INITIAL = 2;
@@ -1559,11 +1555,10 @@ export default function HomeScreen() {
     if (!unit) return null;
     const cards = drawableOfferCards(unit.section);
     const cardWidth = offerCardWidthFor(cards.length, contentWidth);
-    const maxScroll = Math.max(0, PAGE_GUTTER * 2 + cards.length * (cardWidth + OFFER_CARD_GAP) - OFFER_CARD_GAP - windowWidth);
     return {
       sectionId: unit.section.id,
       colors: cards.map(offerCardColorOf),
-      stops: cards.map((_, i) => Math.min(i * (cardWidth + OFFER_CARD_GAP), maxScroll)),
+      stops: offerRailStops({ count: cards.length, cardWidth, railWidth: windowWidth, gutter: PAGE_GUTTER }),
     };
   }, [commonUnits, contentWidth, windowWidth]);
   const commonOfferSectionId = commonOfferTint?.sectionId;
@@ -1846,7 +1841,6 @@ export default function HomeScreen() {
         const offerCardWidth = offerCardWidthFor(cards.length, contentWidth);
         // The row that colours the Common area reports its scroll.
         const tintsArea = section.id === commonOfferSectionId;
-        const Rail = tintsArea ? Animated.FlatList : FlatList;
         return (
           <View key={section.id} style={styles.section}>
             {section.title ? (
@@ -1857,16 +1851,12 @@ export default function HomeScreen() {
                 </View>
               </View>
             ) : null}
-            <Rail
-              horizontal
-              data={cards}
-              keyExtractor={(card) => String(card.id)}
-              showsHorizontalScrollIndicator={false}
+            <OfferCardsRail
+              cards={cards}
+              cardWidth={offerCardWidth}
+              gutter={PAGE_GUTTER}
               onScroll={tintsArea ? onCommonOfferScroll : undefined}
-              scrollEventThrottle={tintsArea ? 16 : undefined}
-              contentContainerStyle={styles.offerCardsRail}
-              ItemSeparatorComponent={OfferCardGap}
-              renderItem={({ item: card }) => {
+              renderCard={(card) => {
                 const design = offerCardDesignOf(card);
                 const CardView = design.Component;
                 return (
@@ -3278,11 +3268,6 @@ function OfferBannerCarousel({ offers = [], bannerWidth, onOfferPress }) {
   );
 }
 
-// Space between two offer cards in their rail.
-function OfferCardGap() {
-  return <View style={{ width: OFFER_CARD_GAP }} />;
-}
-
 function SeeAllButton({ label = 'See all', onPress, accessibilityLabel }) {
   const pressAnim = useRef(new Animated.Value(0)).current;
   const chevronAnim = useRef(new Animated.Value(0)).current;
@@ -4005,12 +3990,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-  },
-  // Every card in the row is as tall as the tallest one (each card fills
-  // its cell), so cards of any template line up as one size.
-  offerCardsRail: {
-    paddingHorizontal: PAGE_GUTTER,
-    alignItems: 'stretch',
   },
   productScrollContent: {
     paddingHorizontal: PAGE_GUTTER,
