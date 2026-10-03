@@ -3,6 +3,7 @@ import { Image as ExpoImage } from 'expo-image';
 import { addEventListener as addNetInfoListener } from '@react-native-community/netinfo';
 import RetryingImage from '../../../components/ProductImage/RetryingImage';
 import { normalizeProductCached, orderHomeUnits, isCommonSection } from './homeSectionOrder';
+import CommonBackdrop, { COMMON_FADE_PX } from './CommonBackdrop';
 import { LinearGradient } from 'expo-linear-gradient';
 import BlurView from '../../../components/BlurView';
 import {
@@ -91,17 +92,6 @@ const DAY_FADE_COLORS = fadeColorsFor(DAY_BAR_RGB);
 const NIGHT_FADE_COLORS = fadeColorsFor(NIGHT_BAR_RGB);
 const RAIN_FADE_COLORS = fadeColorsFor(RAIN_BAR_RGB);
 const TOP_BAR_FADE_LOCATIONS = TOP_BAR_FADE_ALPHAS.map((_, i) => i / (TOP_BAR_FADE_ALPHAS.length - 1));
-// The Common sections sit on the bar colour, which runs on from the top bar
-// and fades into the page in the space under them (the same eased fade).
-const COMMON_FADE_PX = 34;
-const commonBackdropFor = (rgb, totalHeight) => {
-  const start = totalHeight > COMMON_FADE_PX ? (totalHeight - COMMON_FADE_PX) / totalHeight : 0.8;
-  const last = TOP_BAR_FADE_ALPHAS.length - 1;
-  return {
-    colors: [`rgba(${rgb}, 1)`, ...fadeColorsFor(rgb)],
-    locations: [0, ...TOP_BAR_FADE_ALPHAS.map((_, i) => start + ((1 - start) * i) / last)],
-  };
-};
 
 // Search shows at most 6 buyable items; it fetches more so that dropping
 // unavailable ones still leaves a full row.
@@ -1532,6 +1522,15 @@ export default function HomeScreen() {
   // Scrolling up slides the group up by the location row's height and fades
   // that row out; then it stops, leaving the search bar pinned at the top.
   const collapseDistance = Math.max(topRowHeight, 1);
+  // Common sections on screen (not a permission / no-delivery / loading page).
+  const hasCommon = commonUnits.length > 0 && !isHomeLoading && !needsLocationPermission
+    && !locationUnresolved && !(isInitialLocationSyncComplete && insideDeliveryZone === false);
+  const topFadeOpacity = useMemo(
+    () => (hasCommon
+      ? scrollY.interpolate({ inputRange: [0, 48], outputRange: [0, 1], extrapolate: 'clamp' })
+      : 1),
+    [hasCommon, scrollY],
+  );
   const topGroupTranslateY = scrollY.interpolate({
     inputRange: [0, collapseDistance],
     outputRange: [0, -collapseDistance],
@@ -1556,10 +1555,7 @@ export default function HomeScreen() {
 
   // Draws a list of Home units (sections and automatic rows). Used for the
   // Common sections above the shop modes and for the mode's own sections.
-  // `onBar`: the units sit on the top bar colour (the Common area), so their
-  // titles take the bar's text colour.
-  const renderHomeUnits = (units, { onBar = false } = {}) => {
-    const titleStyle = onBar ? [styles.sectionTitlePremium, { color: onBarColor }] : styles.sectionTitlePremium;
+  const renderHomeUnits = (units) => {
     // Every automatic row above the current one has shown its content?
     let rowsAboveRevealed = true;
     return units.map(unit => {
@@ -1643,7 +1639,7 @@ export default function HomeScreen() {
                   {section.sectionIcon && section.sectionIcon !== 'box' && (
                     <HomeIcon name={section.sectionIcon} size={14} color={colors.primary} style={styles.sectionTypeIcon} />
                   )}
-                  <Text style={titleStyle}>{section.title}</Text>
+                  <Text style={styles.sectionTitlePremium}>{section.title}</Text>
                   {section.showHotBadge === true && (
                     <Animated.View style={[styles.hotBadge, { transform: [{ scale: hotBadgePulse }] }]}>
                       <LinearGradient
@@ -1752,7 +1748,7 @@ export default function HomeScreen() {
                 {section.sectionIcon && section.sectionIcon !== 'box' && section.sectionIcon !== 'shoppingBag' && section.sectionIcon !== 'star' && (
                   <HomeIcon name={section.sectionIcon} size={14} color={colors.primary} style={styles.sectionTypeIcon} />
                 )}
-                <Text style={titleStyle}>{section.title}</Text>
+                <Text style={styles.sectionTitlePremium}>{section.title}</Text>
                 {section.showHotBadge === true && (
                   <Animated.View style={[styles.hotBadge, { transform: [{ scale: hotBadgePulse }] }]}>
                     <LinearGradient
@@ -1825,7 +1821,7 @@ export default function HomeScreen() {
               <View style={styles.sectionHeader}>
                 <View style={styles.titleRow}>
                   <View style={styles.headerIndicator} />
-                  <Text style={titleStyle}>{section.title}</Text>
+                  <Text style={styles.sectionTitlePremium}>{section.title}</Text>
                 </View>
               </View>
             ) : null}
@@ -1995,21 +1991,28 @@ export default function HomeScreen() {
           />
         </View>
 
-        <LinearGradient
-          colors={barFadeColors}
-          locations={TOP_BAR_FADE_LOCATIONS}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
+        <View
           style={styles.topFade}
           pointerEvents="none"
           onLayout={(e) => setTopFadeHeight(Math.round(e.nativeEvent.layout.height))}
         >
+          {/* With Common sections the wave under the bar is the edge, so the
+              fade only comes in once the page scrolls under the bar. */}
+          <Animated.View style={[StyleSheet.absoluteFill, { opacity: topFadeOpacity }]}>
+            <LinearGradient
+              colors={barFadeColors}
+              locations={TOP_BAR_FADE_LOCATIONS}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+          </Animated.View>
           {shopStatus === 'closed' && (
             <View style={styles.closedBanner}>
               <Text style={styles.closedText}>Shop is currently closed. We are not accepting orders.</Text>
             </View>
           )}
-        </LinearGradient>
+        </View>
       </Animated.View>
       <View style={{ height: topGroupHeight }} />
 
@@ -2122,15 +2125,17 @@ export default function HomeScreen() {
               style={styles.commonSections}
               onLayout={(e) => setCommonAreaHeight(Math.round(e.nativeEvent.layout.height))}
             >
-              {/* Reaches up behind the top group, so the bar runs on without a seam. */}
-              <LinearGradient
-                pointerEvents="none"
-                {...commonBackdropFor(barRgb, commonAreaHeight + fadeOverlap)}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
-                style={[styles.commonBackdrop, { top: -fadeOverlap }]}
-              />
-              {renderHomeUnits(commonUnits, { onBar: true })}
+              {/* Reaches up behind the top group: the bar colour, a wave where
+                  the bar ends, then the light area under the sections. */}
+              <View pointerEvents="none" style={[styles.commonBackdrop, { top: -fadeOverlap }]}>
+                <CommonBackdrop
+                  width={windowWidth}
+                  height={commonAreaHeight + fadeOverlap}
+                  barColor={barColor}
+                  barBottom={fadeOverlap - topFadeHeight}
+                />
+              </View>
+              {renderHomeUnits(commonUnits)}
             </View>
           ) : null}
 
