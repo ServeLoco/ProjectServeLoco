@@ -20,7 +20,7 @@ import { colors, spacing, easing, screenMs } from '../../theme';
 const SUGGESTION_LIMIT = 9;
 // Wait for the stepper taps to settle before asking again.
 const REFETCH_DEBOUNCE_MS = 400;
-const CARD_WIDTH_SHARE = 0.31;
+const CARD_WIDTH_SHARE = 0.38;
 const SIDE_PADDING = 20;
 // Cards glide in from the right one after another.
 const CARD_ENTRY_SHIFT = 28;
@@ -61,7 +61,7 @@ const SuggestionCard = React.memo(function SuggestionCard({ item, index, width, 
     <Animated.View
       style={{
         width,
-        marginRight: spacing.sm + 2,
+        marginRight: spacing.md,
         opacity: entry,
         transform: [{ translateX: entry.interpolate({ inputRange: [0, 1], outputRange: [CARD_ENTRY_SHIFT, 0] }) }],
       }}
@@ -259,7 +259,7 @@ export default function CartSuggestions() {
         {products === null ? (
           <View style={styles.skeletonRow}>
             {[0, 1, 2].map((key) => (
-              <SkeletonCard key={key} style={{ width: cardWidth, marginRight: spacing.sm + 2 }} />
+              <SkeletonCard key={key} style={{ width: cardWidth, marginRight: spacing.md }} />
             ))}
           </View>
         ) : (
