@@ -7,9 +7,9 @@ import { useReducedMotion } from '../../../utils';
 // The light, bright area the Common sections sit on, matched to the top
 // bar's look (top to bottom), fading into the white page under the sections.
 const AREA_COLORS = {
-  day: ['#B3DCF5', '#D3EBF9', '#FFFFFF'], // sky, under the sky blue bar
-  night: ['#C7C1F5', '#DEDAFA', '#FFFFFF'], // moonlight lavender
-  rain: ['#C6D1DF', '#DDE4ED', '#FFFFFF'], // grey-blue
+  day: ['#C0E3F8', '#DBEFFB', '#FFFFFF'], // sky, under the sky blue bar
+  night: ['#D2CDF8', '#E5E2FC', '#FFFFFF'], // moonlight lavender
+  rain: ['#D1DAE6', '#E4EAF1', '#FFFFFF'], // grey-blue
 };
 // The clouds drifting in front of the bar's edge.
 const CLOUD_COLORS = {
