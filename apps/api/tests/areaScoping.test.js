@@ -99,7 +99,7 @@ const ALLOWLIST = [
   },
   {
     file: 'src/utils/coupons.js',
-    line: 250,
+    line: 255,
     reason:
       "getZoneAndAncestorIds' ancestor-walk — same reasoning as the " +
       'deliveryZonesController.js entry above (parent_zone_id never crosses ' +

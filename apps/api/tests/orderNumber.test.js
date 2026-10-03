@@ -30,6 +30,7 @@ jest.mock('../src/utils/coupons', () => ({
   validateCoupon: jest.fn(),
   validateCouponById: jest.fn(),
   pickBestAutoApply: jest.fn().mockResolvedValue(null),
+  applyBestDeal: jest.fn().mockResolvedValue(null),
 }));
 
 const { generateOrderNumber } = require('../src/controllers/orderController');
