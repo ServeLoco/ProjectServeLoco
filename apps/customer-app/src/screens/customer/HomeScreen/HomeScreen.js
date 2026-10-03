@@ -1996,7 +1996,7 @@ export default function HomeScreen() {
           pointerEvents="none"
           onLayout={(e) => setTopFadeHeight(Math.round(e.nativeEvent.layout.height))}
         >
-          {/* With Common sections the curve under the bar is the edge, so the
+          {/* With Common sections the coupon edge under the bar is the edge, so the
               fade only comes in once the page scrolls under the bar. */}
           <Animated.View style={[StyleSheet.absoluteFill, { opacity: topFadeOpacity }]}>
             <LinearGradient
@@ -2125,8 +2125,8 @@ export default function HomeScreen() {
               style={styles.commonSections}
               onLayout={(e) => setCommonAreaHeight(Math.round(e.nativeEvent.layout.height))}
             >
-              {/* Reaches up behind the top group: the bar colour, a gentle curve
-                  where the bar ends, then the light area under the sections. */}
+              {/* Reaches up behind the top group: the bar colour, a torn-coupon
+                  edge where the bar ends, then the light area under the sections. */}
               <View pointerEvents="none" style={[styles.commonBackdrop, { top: -fadeOverlap }]}>
                 <CommonBackdrop
                   width={windowWidth}

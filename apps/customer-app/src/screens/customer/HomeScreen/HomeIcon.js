@@ -32,6 +32,7 @@ import { PackageIcon } from 'phosphor-react-native/src/icons/Package';
 import { PencilSimpleIcon } from 'phosphor-react-native/src/icons/PencilSimple';
 import { PhoneIcon } from 'phosphor-react-native/src/icons/Phone';
 import { PlusIcon } from 'phosphor-react-native/src/icons/Plus';
+import { ScissorsIcon } from 'phosphor-react-native/src/icons/Scissors';
 import { ShoppingCartIcon } from 'phosphor-react-native/src/icons/ShoppingCart';
 import { SignOutIcon } from 'phosphor-react-native/src/icons/SignOut';
 import { StarIcon } from 'phosphor-react-native/src/icons/Star';
@@ -89,6 +90,7 @@ const PHOSPHOR_ICONS = {
   pencil: PencilSimpleIcon,
   phone: PhoneIcon,
   profile: UserIcon,
+  scissors: ScissorsIcon,
   search: MagnifyingGlassIcon,
   shoppingBag: HandbagIcon,
   star: StarIcon,
