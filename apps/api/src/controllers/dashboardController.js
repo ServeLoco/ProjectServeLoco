@@ -518,8 +518,10 @@ const getDashboard = async (req, res) => {
     `;
     const params = [areaId];
 
+    // Offer Cards rows are global: they show in every shop mode (the app
+    // draws them under the mode switch), whatever mode they were saved in.
     if (expectedStoreType && expectedStoreType !== 'all') {
-      query += ' AND store_type = ?';
+      query += " AND (store_type = ? OR section_type = 'offer_cards')";
       params.push(expectedStoreType);
     }
 
@@ -649,7 +651,7 @@ const getDashboard = async (req, res) => {
         items = await offerCards().loadSectionOfferCards({
           sectionId: section.id,
           areaId,
-          storeType: expectedStoreType,
+          storeType: 'all', // global row: every card, whatever its mode
           includeClosedShops,
         });
       }
@@ -736,7 +738,7 @@ const getSectionItems = async (req, res) => {
     `;
     const sectionParams = [slug, areaId];
     if (expectedStoreType && expectedStoreType !== 'all') {
-      sectionQuery += ' AND store_type = ?';
+      sectionQuery += " AND (store_type = ? OR section_type = 'offer_cards')";
       sectionParams.push(expectedStoreType);
     }
     sectionQuery += ' ORDER BY id DESC LIMIT 1';
@@ -881,7 +883,7 @@ const getSectionItems = async (req, res) => {
       items = await offerCards().loadSectionOfferCards({
         sectionId: section.id,
         areaId,
-        storeType: expectedStoreType,
+        storeType: 'all', // global row: every card, whatever its mode
         includeClosedShops,
         limit: limitNumber,
         offset,
@@ -929,7 +931,8 @@ const getAdminSections = async (req, res) => {
     let query = 'SELECT id, title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, auto_kind, auto_source_id, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at FROM dashboard_sections WHERE deleted_at IS NULL AND area_id = ?';
     const params = [areaId];
     if (store_type) {
-      query += ' AND (store_type = ? OR (store_type = "all" AND section_type != "offer_banner"))';
+      // Offer Cards rows are global, so they are listed under every mode.
+      query += ' AND (store_type = ? OR section_type = "offer_cards" OR (store_type = "all" AND section_type != "offer_banner"))';
       params.push(store_type);
     }
     query += ' ORDER BY display_order ASC, id ASC';

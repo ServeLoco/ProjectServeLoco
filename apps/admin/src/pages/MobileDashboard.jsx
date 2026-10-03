@@ -12,6 +12,9 @@ import { useStoreModes, modeLabel } from '../hooks/useStoreModes';
 
 // Section types whose cards carry their own names, so the title above is optional.
 const TITLE_OPTIONAL_TYPES = ['category_grid', 'offer_cards'];
+// Shown in every shop mode, under the mode switch in the app.
+const GLOBAL_SECTION_TYPES = ['offer_cards'];
+const GLOBAL_SECTION_NOTE = 'Offer Cards show in every shop mode, right under the mode switch on Home.';
 
 const DEFAULT_MAX_VISIBLE_BY_SECTION = {
   offer_banner: 5,
@@ -180,8 +183,8 @@ export default function MobileDashboard() {
         const res = await CombosApi.list({ limit: 100, available: '1', store_type: storeType });
         setCandidates(readList(res, ['products', 'combos']));
       } else if (sectionType === 'offer_cards') {
-        // Cards made on the Offer Cards page, for this mode or for every mode.
-        const res = await OfferCardsApi.list({ store_type: storeType });
+        // Cards made on the Offer Cards page; the row is global, so all of them.
+        const res = await OfferCardsApi.list();
         setCandidates(readList(res));
       }
     } catch (err) {
@@ -260,6 +263,7 @@ export default function MobileDashboard() {
 
       const payload = {
         ...newSectionForm,
+        store_type: GLOBAL_SECTION_TYPES.includes(newSectionForm.section_type) ? 'all' : newSectionForm.store_type,
         active: Number(newSectionForm.active),
         display_order: Number(newSectionForm.display_order),
         max_visible_items: Number(newSectionForm.max_visible_items),
@@ -317,6 +321,7 @@ export default function MobileDashboard() {
 
       const payload = {
         ...editForm,
+        store_type: GLOBAL_SECTION_TYPES.includes(selectedSection.section_type) ? 'all' : editForm.store_type,
         active: Number(editForm.active),
         display_order: Number(editForm.display_order),
         max_visible_items: Number(editForm.max_visible_items),
@@ -679,7 +684,7 @@ export default function MobileDashboard() {
                     <span className="badge badge-type">
                       {sec.auto_kind ? `${sec.auto_kind} row` : sec.section_type.replace('_', ' ')}
                     </span>
-                    <span className="badge badge-store">{sec.store_type}</span>
+                    <span className="badge badge-store">{GLOBAL_SECTION_TYPES.includes(sec.section_type) ? 'all modes' : sec.store_type}</span>
                     <span className={`badge ${sec.active ? 'badge-status-active' : 'badge-status-hidden'}`}>
                       {sec.active ? 'Active' : 'Hidden'}
                     </span>
@@ -756,6 +761,9 @@ export default function MobileDashboard() {
                 <div className="form-grid-2">
                   <div className="form-group">
                     <label className="form-label">Store Visibility</label>
+                    {GLOBAL_SECTION_TYPES.includes(selectedSection.section_type) ? (
+                      <div className="form-hint">{GLOBAL_SECTION_NOTE}</div>
+                    ) : (
                     <select 
                       name="store_type" 
                       className="form-select" 
@@ -766,6 +774,7 @@ export default function MobileDashboard() {
                       <option value="all">All Stores (legacy)</option>
                       {modes.map(m => <option key={m.slug} value={m.slug}>{m.label} Only</option>)}
                     </select>
+                    )}
                   </div>
                   <div className="form-group">
                     <label className="form-label">
@@ -1109,6 +1118,9 @@ export default function MobileDashboard() {
 
                 <div className="form-group">
                   <label className="form-label">Store Visibility</label>
+                  {GLOBAL_SECTION_TYPES.includes(newSectionForm.section_type) ? (
+                    <div className="form-hint">{GLOBAL_SECTION_NOTE}</div>
+                  ) : (
                   <select 
                     name="store_type" 
                     className="form-select" 
@@ -1117,6 +1129,7 @@ export default function MobileDashboard() {
                   >
                     {modes.map(m => <option key={m.slug} value={m.slug}>{m.label} Only</option>)}
                   </select>
+                  )}
                 </div>
 
                 <div className="form-group">

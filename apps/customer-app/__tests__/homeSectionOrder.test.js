@@ -92,6 +92,11 @@ describe('orderHomeUnits', () => {
     expect(ids(orderHomeUnits(sections))).toEqual([2, 11, 1, 10]);
   });
 
+  it('leaves Offer Cards rows out (Home draws them under the mode switch, in every mode)', () => {
+    const sections = [manual(1, [], 'offer_cards'), manual(2, [sellable(2)]), auto(10)];
+    expect(ids(orderHomeUnits(sections))).toEqual([2, 10]);
+  });
+
   it('handles no sections', () => {
     expect(orderHomeUnits([])).toEqual([]);
     expect(orderHomeUnits(undefined)).toEqual([]);

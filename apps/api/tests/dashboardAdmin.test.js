@@ -45,7 +45,7 @@ describe('Dashboard Admin Filter', () => {
       .set('Authorization', `Bearer ${adminToken}`);
 
     expect(res.statusCode).toEqual(200);
-    expect(pool.query.mock.calls[1][0]).toContain('(store_type = ? OR (store_type = "all" AND section_type != "offer_banner"))');
+    expect(pool.query.mock.calls[1][0]).toContain('(store_type = ? OR section_type = "offer_cards" OR (store_type = "all" AND section_type != "offer_banner"))');
     expect(pool.query.mock.calls[1][1]).toEqual([1, 'packed']);
   });
 });

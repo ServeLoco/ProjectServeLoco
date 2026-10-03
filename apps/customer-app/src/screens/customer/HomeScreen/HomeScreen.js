@@ -740,6 +740,10 @@ export default function HomeScreen() {
   }, [isLoading]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [dashboardSections, setDashboardSections] = useState([]);
+  // Offer Cards rows are global (the API sends them in every shop mode).
+  // They live apart from the mode's sections and sit under the mode switch,
+  // so switching modes never clears or redraws them.
+  const [globalOfferSections, setGlobalOfferSections] = useState([]);
   // How many of the sections are drawn so far (see SECTIONS_INITIAL).
   const [renderedSectionCount, setRenderedSectionCount] = useState(SECTIONS_INITIAL);
   // Bumped when Home hears of a catalog/shop change; the blocks refetch on it.
@@ -853,6 +857,10 @@ export default function HomeScreen() {
   const applySections = React.useCallback((slug, sectionsData) => {
     const previous = sectionsCacheRef.current[slug];
     sectionsCacheRef.current[slug] = sectionsData;
+    const offerSections = sectionsData.filter((section) => section.sectionType === 'offer_cards');
+    setGlobalOfferSections(current => (
+      JSON.stringify(current) === JSON.stringify(offerSections) ? current : offerSections
+    ));
     setDashboardSections(current => {
       if (previous && current === previous && JSON.stringify(previous) === JSON.stringify(sectionsData)) {
         sectionsCacheRef.current[slug] = previous;
@@ -1330,13 +1338,14 @@ export default function HomeScreen() {
 
   useEffect(() => {
     // Only the sections that are drawn; the rest are warmed as they come up.
-    prefetchSectionImages(
-      orderedUnits
+    prefetchSectionImages([
+      ...globalOfferSections,
+      ...orderedUnits
         .slice(0, renderedSectionCount + 1)
         .filter((unit) => unit.kind === 'section')
-        .map((unit) => unit.section)
-    );
-  }, [orderedUnits, renderedSectionCount, prefetchSectionImages]);
+        .map((unit) => unit.section),
+    ]);
+  }, [globalOfferSections, orderedUnits, renderedSectionCount, prefetchSectionImages]);
 
   // After each section is drawn, look again (once layout has settled): the
   // screen may still not be filled, and a section that draws nothing would
@@ -1528,6 +1537,41 @@ export default function HomeScreen() {
   // Horizontal-scrolling cards: ~28% of content width so the next card peeks
   // (peek effect — multiple cards visible at once).
   const categoryCardWidth = Math.floor(contentWidth * CATEGORY_CARD_RATIO);
+
+  // An Offer Cards row (global, drawn under the mode switch).
+  const renderOfferCardsSection = (section) => {
+    const cards = (section.items || []).filter((card) => card.design === 'deal_tabs' && card.deal?.tiers?.length);
+    if (cards.length === 0) return null;
+    // One card fills most of the width; with more, the next one peeks.
+    const offerCardWidth = cards.length === 1 ? contentWidth : Math.floor(contentWidth * 0.8);
+    return (
+      <View key={section.id} style={styles.section}>
+        {section.title ? (
+          <View style={styles.sectionHeader}>
+            <View style={styles.titleRow}>
+              <View style={styles.headerIndicator} />
+              <Text style={styles.sectionTitlePremium}>{section.title}</Text>
+            </View>
+          </View>
+        ) : null}
+        <FlatList
+          horizontal
+          data={cards}
+          keyExtractor={(card) => String(card.id)}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.offerCardsRail}
+          ItemSeparatorComponent={OfferCardGap}
+          renderItem={({ item: card }) => (
+            <DealTabsCard
+              card={card}
+              width={offerCardWidth}
+              onViewAll={() => navigation.navigate('Deal', { couponId: card.dealId, card })}
+            />
+          )}
+        />
+      </View>
+    );
+  };
 
   const comboGap = spacing.sm;
   const comboGridWidth = windowWidth - (spacing.md * 2);
@@ -1810,6 +1854,9 @@ export default function HomeScreen() {
             />
           </View>
 
+          {/* Offer cards: global, the same in every shop mode */}
+          {globalOfferSections.map(renderOfferCardsSection)}
+
           {/* Dynamic Sections */}
           <Animated.View style={{ opacity: sectionsFade }}>
           {isSectionsLoading ? (
@@ -2070,40 +2117,6 @@ export default function HomeScreen() {
                         </View>
                       ) : null
                     }
-                  />
-                </View>
-              );
-            }
-
-            if (section.sectionType === 'offer_cards') {
-              const cards = (section.items || []).filter((card) => card.design === 'deal_tabs' && card.deal?.tiers?.length);
-              if (cards.length === 0) return null;
-              // One card fills most of the width; with more, the next one peeks.
-              const offerCardWidth = cards.length === 1 ? contentWidth : Math.floor(contentWidth * 0.8);
-              return (
-                <View key={section.id} style={styles.section}>
-                  {section.title ? (
-                    <View style={styles.sectionHeader}>
-                      <View style={styles.titleRow}>
-                        <View style={styles.headerIndicator} />
-                        <Text style={styles.sectionTitlePremium}>{section.title}</Text>
-                      </View>
-                    </View>
-                  ) : null}
-                  <FlatList
-                    horizontal
-                    data={cards}
-                    keyExtractor={(card) => String(card.id)}
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.offerCardsRail}
-                    ItemSeparatorComponent={OfferCardGap}
-                    renderItem={({ item: card }) => (
-                      <DealTabsCard
-                        card={card}
-                        width={offerCardWidth}
-                        onViewAll={() => navigation.navigate('Deal', { couponId: card.dealId, card })}
-                      />
-                    )}
                   />
                 </View>
               );

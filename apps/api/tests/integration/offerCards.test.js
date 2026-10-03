@@ -201,6 +201,14 @@ describeWithMysql('offer cards + deal admin (real MySQL)', () => {
     expect(card.deal.tiers[2].items[0]).toMatchObject({ dealVariantId: ids.onion1kg, dealVariantLabel: '1 kg', regularPrice: 40, dealPrice: 29 });
   });
 
+  it('the offer cards row is global: it shows in the other shop modes too', async () => {
+    const res = await request(app).get('/api/dashboard?storeType=fast_food');
+    expect(res.statusCode).toBe(200);
+    const section = res.body.data.sections.find((s) => s.id === ids.section);
+    expect(section).toBeDefined();
+    expect(section.items.map((c) => c.id)).toEqual([ids.card]);
+  });
+
   it('the Deal page lists every product with the card look', async () => {
     const res = await request(app).get(`/api/dashboard/deals/${ids.deal}`);
     expect(res.statusCode).toBe(200);

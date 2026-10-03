@@ -48,6 +48,8 @@ export function orderHomeUnits(sections) {
   const available = [];
   const unavailable = [];
   for (const section of sections || []) {
+    // Offer Cards rows are global: Home draws them under the mode switch.
+    if (section.sectionType === 'offer_cards') continue;
     const isAuto = Boolean(section.auto);
     const allUnavailable = isAuto
       ? Boolean(section.allUnavailable)
