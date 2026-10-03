@@ -31,6 +31,7 @@ const requireOneArea = (req, res) => {
 };
 
 const SECTION_TYPES = ['offer_banner', 'category_grid', 'product_block', 'combo_block', 'offer_cards'];
+const TITLE_OPTIONAL_SECTION_TYPES = ['category_grid', 'offer_cards'];
 const SECTION_ITEM_TYPES = {
   offer_banner: 'offer',
   category_grid: 'category',
@@ -90,10 +91,10 @@ const validateSectionPayload = async ({ title, slug, section_type, store_type, d
   if (!partial && (!slug || !section_type)) {
     return 'Slug and section type are required';
   }
-  // Category grid cards carry their own name — the section title above the
-  // grid is purely optional real estate, unlike other block types where it's
-  // the only label the customer sees.
-  if (!partial && !title && section_type !== 'category_grid') {
+  // Category grid cards and offer cards carry their own names — the section
+  // title above them is purely optional real estate, unlike other block types
+  // where it's the only label the customer sees.
+  if (!partial && !title && !TITLE_OPTIONAL_SECTION_TYPES.includes(section_type)) {
     return 'Title, slug, and section type are required';
   }
   if (section_type !== undefined && !SECTION_TYPES.includes(section_type)) {

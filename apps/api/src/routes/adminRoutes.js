@@ -540,13 +540,15 @@ const productImageSchema = (req) => {
   return { errors, data: { id: req.params.id, image_id: imageId } };
 };
 
+const TITLE_OPTIONAL_SECTION_TYPES = ['category_grid', 'offer_cards'];
+
 const dashboardSectionSchema = (req) => {
   const errors = [];
   const data = {};
   const body = req.body || {};
-  // Category grid cards already show their own names — the section title
-  // above the grid is the only block type where it's optional.
-  const titleOptional = body.section_type === 'category_grid';
+  // Category grid cards and offer cards already show their own names, so
+  // the section title above them is optional.
+  const titleOptional = TITLE_OPTIONAL_SECTION_TYPES.includes(body.section_type);
   const titleBlank = !body.title || typeof body.title !== 'string' || body.title.trim() === '';
   if (titleBlank && !titleOptional) {
     errors.push('title is required');
@@ -582,9 +584,9 @@ const dashboardSectionUpdateSchema = (req) => {
   const body = req.body || {};
   if (body.title !== undefined) {
     const titleBlank = typeof body.title !== 'string' || body.title.trim() === '';
-    // Same category_grid exemption as create — an admin clearing the title
-    // on an existing category grid section must not be blocked.
-    if (titleBlank && body.section_type !== 'category_grid') {
+    // Same exemption as create — an admin clearing the title on an existing
+    // category grid / offer cards section must not be blocked.
+    if (titleBlank && !TITLE_OPTIONAL_SECTION_TYPES.includes(body.section_type)) {
       errors.push('title must be a non-empty string');
     } else {
       data.title = titleBlank ? '' : body.title.trim();

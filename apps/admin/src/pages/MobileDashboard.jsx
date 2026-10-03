@@ -10,6 +10,9 @@ import { readList } from '../utils/apiResponse';
 import { normalizeImageUrl, FALLBACK_IMAGE, handleImageError } from '../utils/imageUrl';
 import { useStoreModes, modeLabel } from '../hooks/useStoreModes';
 
+// Section types whose cards carry their own names, so the title above is optional.
+const TITLE_OPTIONAL_TYPES = ['category_grid', 'offer_cards'];
+
 const DEFAULT_MAX_VISIBLE_BY_SECTION = {
   offer_banner: 5,
   category_grid: 8,
@@ -720,13 +723,13 @@ export default function MobileDashboard() {
                 <div className="form-grid-2">
                   <div className="form-group">
                     <label className="form-label">
-                      Section Title{editForm.section_type === 'category_grid' ? ' (optional)' : ''}
+                      Section Title{TITLE_OPTIONAL_TYPES.includes(editForm.section_type) ? ' (optional)' : ''}
                     </label>
                     <input
                       type="text"
                       name="title"
-                      required={editForm.section_type !== 'category_grid'}
-                      placeholder={editForm.section_type === 'category_grid' ? 'Leave blank to hide the header' : ''}
+                      required={!TITLE_OPTIONAL_TYPES.includes(editForm.section_type)}
+                      placeholder={TITLE_OPTIONAL_TYPES.includes(editForm.section_type) ? 'Leave blank to hide the header' : ''}
                       className="form-input"
                       value={editForm.title}
                       onChange={handleEditFormChange}
@@ -1027,13 +1030,13 @@ export default function MobileDashboard() {
               <div className="modal-body">
                 <div className="form-group">
                   <label className="form-label">
-                    Section Title{newSectionForm.section_type === 'category_grid' ? ' (optional)' : ''}
+                    Section Title{TITLE_OPTIONAL_TYPES.includes(newSectionForm.section_type) ? ' (optional)' : ''}
                   </label>
                   <input
                     type="text"
                     name="title"
-                    required={newSectionForm.section_type !== 'category_grid'}
-                    placeholder={newSectionForm.section_type === 'category_grid' ? 'Leave blank to hide the header' : 'e.g. Milk Products, Daily Banners'}
+                    required={!TITLE_OPTIONAL_TYPES.includes(newSectionForm.section_type)}
+                    placeholder={TITLE_OPTIONAL_TYPES.includes(newSectionForm.section_type) ? 'Leave blank to hide the header' : 'e.g. Milk Products, Daily Banners'}
                     className="form-input"
                     value={newSectionForm.title}
                     onChange={handleModalFormChange}
