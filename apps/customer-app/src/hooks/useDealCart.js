@@ -1,5 +1,4 @@
-import { useCallback, useMemo } from 'react';
-import { Alert } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
 import { useCartStore } from '../stores';
 import { useAuthGate } from './useAuthGate';
 import { showToast } from '../components/Toast';
@@ -31,6 +30,8 @@ export function useDealCart(deal) {
   const setLineDeal = useCartStore((s) => s.setLineDeal);
   const { requireAuth } = useAuthGate();
   const dealId = deal?.id ?? null;
+  // The pending "replace X with Y?" question, shown by DealSwapModal.
+  const [swapAsk, setSwapAsk] = useState(null);
 
   const index = useMemo(() => indexDealItems(deal), [deal]);
   const progress = useMemo(() => estimateDealProgress(items, deal, index), [items, deal, index]);
@@ -72,22 +73,45 @@ export function useDealCart(deal) {
       }
       if (progress.dealUnits >= progress.maxItems && progress.dealLines.length > 0) {
         const out = progress.dealLines[progress.dealLines.length - 1];
-        const count = progress.maxItems;
-        Alert.alert(
-          'Swap your deal item?',
-          `This offer gives ${count} item${count === 1 ? '' : 's'} at the deal price. Replace ${out.product?.name || 'the current item'} with ${item.name}?`,
-          [
-            { text: 'Keep current', style: 'cancel' },
-            { text: 'Replace', onPress: () => { dropOne(out); add(item); } },
-          ],
-        );
+        setSwapAsk({ out, item });
         return;
       }
       add(item);
     });
   }, [requireAuth, picked, progress, dropOne, add]);
 
-  return { progress, isSelected, toggle };
+  const cancelSwap = useCallback(() => setSwapAsk(null), []);
+  const confirmSwap = useCallback(() => {
+    if (!swapAsk) return;
+    setSwapAsk(null);
+    dropOne(swapAsk.out);
+    add(swapAsk.item);
+  }, [swapAsk, dropOne, add]);
+
+  // What DealSwapModal draws: the item going out and the one coming in.
+  const swap = useMemo(() => {
+    if (!swapAsk) return null;
+    const { out, item } = swapAsk;
+    const outDeal = index.get(cartLineKey(out));
+    const outProduct = out.product || {};
+    return {
+      count: progress.maxItems,
+      out: {
+        name: outProduct.name || 'Current item',
+        image: outProduct.thumbUrl || outProduct.imageUrl || outProduct.image,
+        price: out.dealPrice ?? outDeal?.dealPrice,
+        regular: out.variant?.price ?? outProduct.price,
+      },
+      in: {
+        name: item.name,
+        image: item.thumbUrl || item.imageUrl,
+        price: item.dealPrice ?? item.deal_price,
+        regular: item.regularPrice ?? item.regular_price,
+      },
+    };
+  }, [swapAsk, index, progress.maxItems]);
+
+  return { progress, isSelected, toggle, swap, confirmSwap, cancelSwap };
 }
 
 export default useDealCart;

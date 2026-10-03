@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import ProductImage from '../ProductImage';
 import AppIcon from '../AppIcon';
 import { useDealCart } from '../../hooks/useDealCart';
+import DealSwapModal from './DealSwapModal';
 import { useReducedMotion } from '../../utils';
 
 const SHINE_WIDTH = 70;
@@ -80,7 +81,7 @@ function DealTabsCard({ card, width, onViewAll }) {
   const look = cardStyleOf(card);
   const tiers = card?.deal?.tiers || [];
   const [activeIndex, setActiveIndex] = useState(0);
-  const { progress, isSelected, toggle } = useDealCart(card?.deal);
+  const { progress, isSelected, toggle, swap, confirmSwap, cancelSwap } = useDealCart(card?.deal);
   const reducedMotion = useReducedMotion();
   const entry = useRef(new Animated.Value(reducedMotion ? 1 : 0)).current;
   const shine = useRef(new Animated.Value(0)).current;
@@ -105,8 +106,14 @@ function DealTabsCard({ card, width, onViewAll }) {
     return () => loop.stop();
   }, [entry, shine, reducedMotion]);
 
-  // Rows slide in when the price tab changes.
+  // Rows slide in when the price tab changes (not on the first draw, so the
+  // list is never hidden while the card is still settling).
+  const firstTab = useRef(true);
   useEffect(() => {
+    if (firstTab.current) {
+      firstTab.current = false;
+      return;
+    }
     if (reducedMotion) return;
     rowsIn.setValue(0);
     Animated.timing(rowsIn, { toValue: 1, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
@@ -230,6 +237,7 @@ function DealTabsCard({ card, width, onViewAll }) {
         </Animated.View>
       )}
     </LinearGradient>
+    <DealSwapModal swap={swap} accentColor={look.accentColor} onKeep={cancelSwap} onReplace={confirmSwap} />
     </Animated.View>
   );
 }

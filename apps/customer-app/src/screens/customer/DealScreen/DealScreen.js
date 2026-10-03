@@ -21,6 +21,7 @@ import {
   LoadingSkeleton,
 } from '../../../components';
 import { cardStyleOf } from '../../../components/OfferCards/DealTabsCard';
+import DealSwapModal from '../../../components/OfferCards/DealSwapModal';
 import { useCartStore, useDeliveryLocationStore } from '../../../stores';
 import { useDealCart } from '../../../hooks/useDealCart';
 import { dashboardApi } from '../../../api';
@@ -119,7 +120,7 @@ export default function DealScreen() {
   useEffect(() => { load(); }, [load]);
 
   const look = cardStyleOf(card);
-  const { progress, isSelected, toggle } = useDealCart(deal);
+  const { progress, isSelected, toggle, swap, confirmSwap, cancelSwap } = useDealCart(deal);
   const tiers = useMemo(() => deal?.tiers || [], [deal]);
   const tier = tiers[Math.min(activeIndex, Math.max(0, tiers.length - 1))];
   const tileWidth = Math.floor((windowWidth - GUTTER * 2 - GAP * 2) / 3);
@@ -220,6 +221,7 @@ export default function DealScreen() {
       )}
 
       <StickyMiniCart itemCount={cartItemCount} onPress={() => navigation.navigate('Cart')} />
+      <DealSwapModal swap={swap} accentColor={look.accentColor} onKeep={cancelSwap} onReplace={confirmSwap} />
     </AppScreen>
   );
 }
