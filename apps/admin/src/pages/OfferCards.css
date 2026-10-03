@@ -1,0 +1,85 @@
+.oc-muted { color: var(--text-secondary); font-size: 0.85rem; }
+.oc-danger { color: var(--danger-color); font-weight: 600; }
+.oc-empty {
+  text-align: center;
+  padding: 2rem;
+  background: var(--surface-color);
+  border-radius: var(--radius-lg);
+}
+
+.oc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.25rem;
+}
+.oc-tile {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.oc-tile-meta { display: flex; flex-direction: column; gap: 0.3rem; }
+.oc-tile-actions { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.25rem; }
+.oc-tile-actions .btn-secondary { padding: 0.35rem 0.75rem; font-size: 0.85rem; }
+
+/* Card preview: an HTML stand-in for the app's deal_tabs card. */
+.oc-preview {
+  width: 100%;
+  max-width: 320px;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  font-family: inherit;
+  color: #1f1f1f;
+}
+.oc-preview-head { display: flex; align-items: flex-start; gap: 0.5rem; padding: 14px 14px 10px; min-height: 64px; }
+.oc-preview-head-text { flex: 1; min-width: 0; }
+.oc-preview-title { font-size: 18px; font-weight: 800; line-height: 1.2; }
+.oc-preview-subtitle { font-size: 12px; margin-top: 4px; }
+.oc-preview-art { width: 64px; height: 64px; object-fit: contain; }
+.oc-preview-empty { padding: 1.5rem 1rem; font-size: 0.85rem; color: #555; background: rgba(255, 255, 255, 0.7); }
+.oc-preview-tabs { display: flex; padding: 6px 6px 0; gap: 4px; border-radius: 14px 14px 0 0; }
+.oc-preview-tab {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  border-radius: 12px 12px 0 0;
+  padding: 8px 4px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.oc-preview-chip { color: #fff; border-radius: 6px; padding: 1px 5px; font-weight: 800; }
+.oc-preview-body { background: #fff; padding: 4px 10px 10px; }
+.oc-preview-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid #f1f1f1; }
+.oc-preview-row img { width: 44px; height: 44px; object-fit: contain; border-radius: 8px; background: #f7f7f7; }
+.oc-preview-name { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; }
+.oc-preview-name div { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.oc-preview-name small { color: #888; font-weight: 400; }
+.oc-preview-select { border: 1.5px solid; border-radius: 10px; padding: 4px 10px; font-size: 12px; font-weight: 700; background: #f3f7ff; }
+.oc-preview-price { display: flex; flex-direction: column; align-items: flex-end; font-size: 12px; min-width: 40px; }
+.oc-preview-price s { color: #999; }
+.oc-preview-price b { font-size: 14px; }
+.oc-preview-footer { text-align: center; font-weight: 700; font-size: 13px; padding-top: 10px; }
+
+/* Drawer: form on the left, live preview on the right. */
+.oc-drawer { width: min(980px, 100vw); max-width: 100vw; }
+.oc-drawer-body { display: flex; gap: 1.5rem; align-items: flex-start; }
+.oc-drawer-form { flex: 1; min-width: 0; }
+.oc-drawer-preview { width: 330px; position: sticky; top: 0; }
+@media (max-width: 860px) {
+  .oc-drawer-body { flex-direction: column-reverse; }
+  .oc-drawer-preview { width: 100%; position: static; }
+}
+.oc-two { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+.oc-image-row { display: flex; align-items: center; gap: 0.75rem; }
+.oc-image-thumb { width: 56px; height: 56px; object-fit: contain; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-color); }
+.oc-presets { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+.oc-preset { border: 2px solid; border-radius: 999px; padding: 0.3rem 0.9rem; cursor: pointer; font-weight: 600; color: #222; }
+.oc-colors { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.5rem; }
+.oc-color { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; }
+.oc-color input[type="color"] { width: 34px; height: 26px; border: 1px solid var(--border-color); border-radius: 4px; padding: 0; background: none; cursor: pointer; }

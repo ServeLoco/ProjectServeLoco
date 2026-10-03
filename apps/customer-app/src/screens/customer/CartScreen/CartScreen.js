@@ -155,6 +155,14 @@ export default function CartScreen() {
     () => validItems.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0),
     [validItems],
   );
+  // Server-priced lines carrying a deal price, keyed like getItemKey.
+  const dealByLine = useMemo(() => {
+    const map = {};
+    for (const line of bill?.items || []) {
+      if (line.dealQty > 0) map[`${line.type || 'product'}-${line.id}-${line.variantId ?? 'base'}`] = line;
+    }
+    return map;
+  }, [bill]);
 
   // Cart-item entrance stagger: only the items present at mount animate in
   // with a per-index delay; items encountered later render fully visible.
@@ -463,7 +471,7 @@ export default function CartScreen() {
   const futureOffers = useMemo(() => {
     if (!appliedCoupon) return [];
     const appliedId = appliedCoupon.id;
-    const appliedSavings = Number(appliedCoupon.discount || bill?.discount || 0);
+    const appliedSavings = Number(appliedCoupon.discount || bill?.couponDiscount || 0);
     const subtotal = Number(bill?.subtotal || 0);
     const list = bill?.availableCoupons || [];
 
@@ -489,7 +497,7 @@ export default function CartScreen() {
         if (minDiff !== 0) return minDiff;
         return Number(b.discount || 0) - Number(a.discount || 0);
       });
-  }, [appliedCoupon, bill?.availableCoupons, bill?.discount, bill?.subtotal]);
+  }, [appliedCoupon, bill?.availableCoupons, bill?.couponDiscount, bill?.subtotal]);
 
   const formatUnlockHint = (coupon) => {
     const parts = [];
@@ -779,7 +787,8 @@ export default function CartScreen() {
     // delivery to somewhere we won't deliver at all.
     const deliveryFree = !deliveryBlocked
       && (bill.deliveryCharge === 0 || bill.isFreeDeliveryApplied);
-    const discountToShow = bill.isFreeDeliveryApplied ? bill.itemDiscount : bill.discount;
+    // Both include the deal saving, which gets its own row below.
+    const discountToShow = Math.max(0, (bill.isFreeDeliveryApplied ? bill.itemDiscount : bill.discount) - (bill.dealDiscount || 0));
 
     return (
       <Animated.View style={[styles.billCard, { opacity: listOpacity }]}>
@@ -814,6 +823,13 @@ export default function CartScreen() {
               label="Rain Charge"
               value={`₹${bill.rainCharge}`}
               valueStyle={styles.nightChargeValue}
+            />
+          )}
+          {bill.dealDiscount > 0 && (
+            <BillRow
+              label="Deal savings"
+              value={`− ₹${bill.dealDiscount}`}
+              valueStyle={styles.discountValue}
             />
           )}
           {discountToShow > 0 && (
@@ -1047,8 +1063,9 @@ export default function CartScreen() {
     }
 
     // couponState === 'applied'
-    const savings = bill?.discount > 0
-      ? `Save ₹${bill.discount}`
+    // The coupon's own saving — bill.discount also carries the deal price.
+    const savings = bill?.couponDiscount > 0
+      ? `Save ₹${bill.couponDiscount}`
       : formatOfferBadge(appliedCoupon);
 
     return (
@@ -1249,6 +1266,15 @@ export default function CartScreen() {
                         {!item.product.available ? (
                           <Text style={styles.itemUnavailable}>Currently unavailable</Text>
                         ) : null}
+                        {dealByLine[itemKey]?.dealQty > 0 ? (
+                          <View style={styles.itemDealTag}>
+                            <AppIcon name="ticket" size={12} color={colors.success} />
+                            <Text style={styles.itemDealText}>
+                              {dealByLine[itemKey].dealQty < qty ? `${dealByLine[itemKey].dealQty} at ` : ''}
+                              ₹{dealByLine[itemKey].dealPrice} deal price
+                            </Text>
+                          </View>
+                        ) : null}
                       </View>
 
                       <View style={styles.itemStepperWrap}>
@@ -1268,6 +1294,16 @@ export default function CartScreen() {
                 );
               })}
             </Animated.View>
+
+            {/* A deal item is in the cart but the rest of the cart is short of the deal's minimum. */}
+            {bill?.deal && !bill.deal.unlocked && bill.deal.hintItem && bill.deal.amountRemaining > 0 ? (
+              <View style={styles.dealHint} accessibilityLiveRegion="polite">
+                <AppIcon name="lock" size={14} color={colors.primary} />
+                <Text style={styles.dealHintText}>
+                  Add ₹{bill.deal.amountRemaining} more to get {bill.deal.hintItem.name} at ₹{bill.deal.hintItem.dealPrice}
+                </Text>
+              </View>
+            ) : null}
 
             {/* "People also ordered" — what goes with this cart */}
             <CartSuggestions />
@@ -1493,6 +1529,33 @@ const styles = StyleSheet.create({
     ...typography.captionMedium,
     color: colors.error,
     marginTop: 4,
+  },
+  itemDealTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+  },
+  itemDealText: {
+    ...typography.captionMedium,
+    color: colors.success,
+    fontWeight: '700',
+  },
+  dealHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: spacing.md,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: '#F1ECFF',
+  },
+  dealHintText: {
+    ...typography.captionMedium,
+    flex: 1,
+    color: colors.textPrimary,
+    fontWeight: '700',
   },
   itemStepperWrap: {
     flexShrink: 0,

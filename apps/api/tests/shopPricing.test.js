@@ -43,6 +43,7 @@ jest.mock('../src/utils/coupons', () => ({
   validateCoupon: jest.fn().mockResolvedValue({ ok: false, reason: 'No coupon' }),
   validateCouponById: jest.fn().mockResolvedValue({ ok: false, reason: 'Coupon not found' }),
   pickBestAutoApply: jest.fn().mockResolvedValue(null),
+  applyBestDeal: jest.fn().mockResolvedValue(null),
 }));
 
 const adminApp = express();

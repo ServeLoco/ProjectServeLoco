@@ -30,13 +30,18 @@ const requireOneArea = (req, res) => {
   return areaId;
 };
 
-const SECTION_TYPES = ['offer_banner', 'category_grid', 'product_block', 'combo_block'];
+const SECTION_TYPES = ['offer_banner', 'category_grid', 'product_block', 'combo_block', 'offer_cards'];
 const SECTION_ITEM_TYPES = {
   offer_banner: 'offer',
   category_grid: 'category',
   product_block: 'product',
   combo_block: 'combo',
+  offer_cards: 'offer_card',
 };
+
+// offerCardController requires this file (for resolveImageUrls /
+// mapProductRows), so it is required lazily here to keep the import acyclic.
+const offerCards = () => require('./offerCardController');
 // Slug suffix must be URL-hyphenated; mode slugs use underscores (e.g. fast_food).
 const offerBannerSlugSuffix = (storeType) => storeType.replace(/_/g, '-');
 
@@ -175,6 +180,13 @@ const getLinkedItemInfo = async (itemType, itemId, areaId) => {
     if (rows.length === 0) return { error: 'Offer does not exist' };
     if (rows[0].active !== undefined && !rows[0].active) return { error: 'Only active offers can be added to dashboard banners.' };
     return { storeType: rows[0].store_type };
+  }
+
+  if (itemType === 'offer_card') {
+    const [rows] = await pool.query('SELECT id, active, store_type FROM offer_cards WHERE id = ? AND deleted_at IS NULL AND area_id = ?', [itemId, areaId]);
+    if (rows.length === 0) return { error: 'Offer card does not exist' };
+    // A card for every store mode fits any section.
+    return { storeType: rows[0].store_type === 'all' ? null : rows[0].store_type };
   }
 
   return { error: 'Invalid item type' };
@@ -632,6 +644,13 @@ const getDashboard = async (req, res) => {
 
         let filteredRows = rows;
         items = mapProductRows(filteredRows);
+      } else if (section.section_type === 'offer_cards') {
+        items = await offerCards().loadSectionOfferCards({
+          sectionId: section.id,
+          areaId,
+          storeType: expectedStoreType,
+          includeClosedShops,
+        });
       }
 
       const maxVisible = section.section_type === 'offer_banner'
@@ -857,6 +876,15 @@ const getSectionItems = async (req, res) => {
         categoryType: r.category_type,
         comboItems: r.combo_items || []
       }));
+    } else if (section.section_type === 'offer_cards') {
+      items = await offerCards().loadSectionOfferCards({
+        sectionId: section.id,
+        areaId,
+        storeType: expectedStoreType,
+        includeClosedShops,
+        limit: limitNumber,
+        offset,
+      });
     }
 
     res.status(200).json({
@@ -945,6 +973,17 @@ const hydrateSectionItem = async (item, areaId) => {
     const [offers] = await pool.query('SELECT * FROM offers WHERE id = ? AND area_id = ?', [item.item_id, areaId]);
     if (offers.length > 0) {
       details = offers[0];
+      await resolveImageUrls([details]);
+    }
+  } else if (item.item_type === 'offer_card') {
+    const [cards] = await pool.query(
+      `SELECT oc.*, c.title AS deal_title FROM offer_cards oc
+       LEFT JOIN coupons c ON c.id = oc.deal_coupon_id AND c.area_id = oc.area_id
+       WHERE oc.id = ? AND oc.area_id = ?`,
+      [item.item_id, areaId]
+    );
+    if (cards.length > 0) {
+      details = cards[0];
       await resolveImageUrls([details]);
     }
   }

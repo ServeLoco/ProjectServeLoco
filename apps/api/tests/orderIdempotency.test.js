@@ -27,6 +27,7 @@ jest.mock('../src/db/mysql', () => {
 jest.mock("../src/utils/coupons", () => ({
   validateCoupon: jest.fn().mockResolvedValue({ ok: false, reason: "No coupon" }),
   pickBestAutoApply: jest.fn().mockResolvedValue(null),
+  applyBestDeal: jest.fn().mockResolvedValue(null),
   findApplicableCoupons: jest.fn().mockResolvedValue([]),
   computeDiscount: jest.fn().mockReturnValue(0),
   checkEligibility: jest.fn().mockResolvedValue({ ok: false, reason: "No coupon" }),

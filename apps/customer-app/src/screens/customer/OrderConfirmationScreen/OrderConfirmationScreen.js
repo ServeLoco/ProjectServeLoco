@@ -27,7 +27,9 @@ export default function OrderConfirmationScreen() {
   const total = order.total || order.bill?.grandTotal || 0;
   const deliveryCharge = order.bill?.delivery || 0;
   const isFreeDeliveryApplied = Boolean(order.bill?.freeDeliveryApplied);
-  const itemDiscount = order.bill?.itemDiscount || 0;
+  // itemDiscount includes the deal saving, which has its own row.
+  const dealDiscount = order.bill?.dealDiscount || 0;
+  const itemDiscount = Math.max(0, (order.bill?.itemDiscount || 0) - dealDiscount);
   // Delivery Charge is always the standard fee — Fast is a separate additive
   // line below, never discounted.
   const fastDeliveryFee = order.bill?.fastDeliveryFee || 0;
@@ -229,6 +231,15 @@ export default function OrderConfirmationScreen() {
                 <View style={styles.row}>
                   <Text style={styles.label}>Rain Charge</Text>
                   <Text style={styles.value}>₹{rainCharge}</Text>
+                </View>
+              </>
+            )}
+            {dealDiscount > 0 && (
+              <>
+                <View style={styles.divider} />
+                <View style={styles.row}>
+                  <Text style={styles.label}>Deal savings</Text>
+                  <Text style={[styles.value, styles.freeDeliveryText]}>- ₹{dealDiscount}</Text>
                 </View>
               </>
             )}

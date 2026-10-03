@@ -1462,6 +1462,7 @@ describe('createOrder coupon race-safety', () => {
       .mockResolvedValueOnce([[{ id: 1, price: 100, available: 1, name: 'Test' }]])
       // 2b. exclusion zones (always loaded, before coupon validation)
       .mockResolvedValueOnce([[]])
+      .mockResolvedValueOnce([[]]) // deal price lookup (applyBestDeal: no live deal)
       // 3. validateCoupon: SELECT coupon row
       .mockResolvedValueOnce([[
         buildCoupon({
@@ -1570,6 +1571,7 @@ describe('createOrder coupon race-safety', () => {
       .mockResolvedValueOnce([[{ id: 1, price: 100, available: 1, name: 'T' }]])
       // exclusion zones
       .mockResolvedValueOnce([[]])
+      .mockResolvedValueOnce([[]]) // deal price lookup (applyBestDeal: no live deal)
       // validateCoupon: coupon row
       .mockResolvedValueOnce([[
         buildCoupon({ id: 21, code: 'ONCE', discount_type: 'flat', discount_value: 10, per_user_usage_limit: 1 })
@@ -1636,6 +1638,7 @@ describe('createOrder coupon race-safety', () => {
       .mockResolvedValueOnce([[{ id: 1, price: 100, available: 1, name: 'T' }]])
       // exclusion zones
       .mockResolvedValueOnce([[]])
+      .mockResolvedValueOnce([[]]) // deal price lookup (applyBestDeal: no live deal)
       // validateCoupon: coupon row
       .mockResolvedValueOnce([[
         buildCoupon({ id: 21, code: 'ONCE', discount_type: 'flat', discount_value: 10, per_user_usage_limit: 1 })
@@ -1680,6 +1683,7 @@ describe('createOrder coupon race-safety', () => {
       }]])
       .mockResolvedValueOnce([[{ id: 1, price: 100, available: 1, name: 'T' }]])
       .mockResolvedValueOnce([[]]) // exclusion zones
+      .mockResolvedValueOnce([[]]) // deal price lookup (applyBestDeal: no live deal)
       .mockResolvedValueOnce([[
         buildCoupon({ id: 31, code: 'GLOBAL', discount_type: 'flat', discount_value: 5, total_usage_limit: 100 })
       ]])
@@ -1744,7 +1748,8 @@ describe('createOrder auto-applied coupon lapse (coupon_auto_applied)', () => {
       // product lookup
       .mockResolvedValueOnce([[{ id: 1, price: 100, available: 1, name: 'Test' }]])
       // exclusion zones
-      .mockResolvedValueOnce([[]]);
+      .mockResolvedValueOnce([[]])
+      .mockResolvedValueOnce([[]]); // deal price lookup (applyBestDeal: no live deal)
   };
 
   it('drops a vanished auto-applied coupon and places the order at full price', async () => {
@@ -2099,13 +2104,14 @@ describe('coupons.getNearestUnlockableCoupon', () => {
   });
 
   it('excludes free_delivery coupons — those have their own dedicated hint', async () => {
-    // SQL filters discount_type != 'free_delivery', so the mocked query
+    // SQL filters out 'free_delivery' (and 'deal_price', which is never a
+    // coupon-list offer), so the mocked query
     // result already reflects what the DB would return.
     pool.query.mockResolvedValueOnce([[]]);
     const result = await coupons.getNearestUnlockableCoupon({ subtotal: 50 });
     expect(result).toBeNull();
     expect(pool.query).toHaveBeenCalledWith(
-      expect.stringContaining("discount_type != 'free_delivery'"),
+      expect.stringContaining("discount_type NOT IN ('free_delivery', 'deal_price')"),
       expect.any(Array)
     );
   });

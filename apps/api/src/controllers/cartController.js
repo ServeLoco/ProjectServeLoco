@@ -4,7 +4,7 @@ const { resolveDeliveryPricing, loadActiveZones, loadActiveExclusionZones, parse
 const { resolveAreaIdForPricing, getDefaultArea } = require('../utils/areaScope');
 const { roundMoney, toMoney } = require('../utils/money');
 const { calculateRainCharge } = require('../utils/rainCharge');
-const { validateCoupon, validateCouponById, pickBestAutoApply, findApplicableCoupons, getNextFreeDeliveryThreshold, getNearestUnlockableCoupon } = require('../utils/coupons');
+const { validateCoupon, validateCouponById, pickBestAutoApply, findApplicableCoupons, getNextFreeDeliveryThreshold, getNearestUnlockableCoupon, applyBestDeal } = require('../utils/coupons');
 const logger = require('../utils/logger');
 
 // With no pin, the coupon endpoints use the area the customer's phone was
@@ -42,6 +42,36 @@ const areaOfCartItems = async (items) => {
   }
   const defaultArea = await getDefaultArea();
   return defaultArea ? defaultArea.id : 1;
+};
+
+// The cart's `deal` block: the deal being applied (or, while still locked,
+// the one closest to unlocking with the item it would cover). Both casings.
+const buildDealPayload = (deal, dealDiscount, processedItems) => {
+  if (!deal) return null;
+  const hintLine = !deal.unlocked && deal.bestCandidate ? processedItems[deal.bestCandidate.index] : null;
+  const hintItem = hintLine ? {
+    productId: hintLine.id,
+    product_id: hintLine.id,
+    variantId: hintLine.variantId,
+    variant_id: hintLine.variantId,
+    name: hintLine.name,
+    dealPrice: deal.bestCandidate.dealPrice,
+    deal_price: deal.bestCandidate.dealPrice,
+  } : null;
+  return {
+    id: deal.couponId,
+    title: deal.title,
+    discount: dealDiscount,
+    unlocked: deal.unlocked,
+    amountRemaining: deal.amountRemaining,
+    amount_remaining: deal.amountRemaining,
+    minOrder: deal.minOrder,
+    min_order: deal.minOrder,
+    maxItems: deal.maxItems,
+    max_items: deal.maxItems,
+    hintItem,
+    hint_item: hintItem,
+  };
 };
 
 const calculateCart = async (req, res) => {
@@ -463,6 +493,48 @@ const calculateCart = async (req, res) => {
     // Non-fatal: if store-type detection fails, just skip store-type filtering.
   }
 
+  // ───────────────────────────────────────────────────────────────────
+  // Deal price (₹9 / ₹29 ... items). Runs BEFORE the coupon and stacks with
+  // it: the coupon below sees the subtotal after the deal saving. Lines keep
+  // their normal unitPrice/lineTotal; the deal adds dealPrice/dealQty to the
+  // units it covers and its saving to the discount.
+  // ───────────────────────────────────────────────────────────────────
+  let deal = null;
+  if (!noDeliveryArea) {
+    try {
+      deal = await applyBestDeal({
+        lines: processedItems.map((i) => ({
+          productId: i.id, variantId: i.variantId, type: i.type, unitPrice: i.unitPrice, quantity: i.quantity,
+        })),
+        subtotal,
+        storeType: cartStoreType,
+        userId,
+        zoneId,
+        areaId: deliveryAreaId,
+      });
+    } catch (err) {
+      // Non-fatal: the cart prices without the deal.
+      logger.error('[cart] applyBestDeal failed:', err.message);
+    }
+  }
+  const dealDiscount = deal && deal.unlocked ? roundMoney(deal.dealDiscount) : 0;
+  processedItems.forEach((item) => {
+    item.dealPrice = null;
+    item.deal_price = null;
+    item.dealQty = 0;
+    item.deal_qty = 0;
+  });
+  if (deal && deal.unlocked) {
+    deal.lines.forEach(({ index, dealPrice, dealQty }) => {
+      const item = processedItems[index];
+      item.dealPrice = dealPrice;
+      item.deal_price = dealPrice;
+      item.dealQty = dealQty;
+      item.deal_qty = dealQty;
+    });
+  }
+  const couponSubtotal = roundMoney(subtotal - dealDiscount);
+
   // Builds the appliedCoupon payload from a checkEligibility/pickBestAutoApply
   // result, carrying the itemDiscount / freeDeliveryWaiver split forward so
   // the bill summary can show "Delivery: FREE" separately from the
@@ -504,7 +576,7 @@ const calculateCart = async (req, res) => {
     // User entered a code — validate it. User's code always wins over auto-apply.
     const result = await validateCoupon({
       code: couponCode,
-      subtotal,
+      subtotal: couponSubtotal,
       deliveryCharge,
       standardDeliveryCharge,
       storeType: cartStoreType,
@@ -524,7 +596,7 @@ const calculateCart = async (req, res) => {
     // exact coupon rather than falling back to auto-picking the best one.
     const result = await validateCouponById({
       couponId,
-      subtotal,
+      subtotal: couponSubtotal,
       deliveryCharge,
       standardDeliveryCharge,
       storeType: cartStoreType,
@@ -543,7 +615,7 @@ const calculateCart = async (req, res) => {
     // No code entered and the user hasn't explicitly removed a coupon —
     // try auto-apply.
     const best = await pickBestAutoApply({
-      subtotal,
+      subtotal: couponSubtotal,
       deliveryCharge,
       standardDeliveryCharge,
       storeType: cartStoreType,
@@ -564,7 +636,7 @@ const calculateCart = async (req, res) => {
   // show "code invalid" alongside the still-applied auto discount.
   if (!appliedCoupon && couponError && !noAutoApply && !noDeliveryArea) {
     const best = await pickBestAutoApply({
-      subtotal,
+      subtotal: couponSubtotal,
       deliveryCharge,
       standardDeliveryCharge,
       storeType: cartStoreType,
@@ -584,7 +656,7 @@ const calculateCart = async (req, res) => {
   // alternatives and switch.
   try {
     if (!noDeliveryArea) availableCoupons = await findApplicableCoupons({
-      subtotal,
+      subtotal: couponSubtotal,
       deliveryCharge,
       standardDeliveryCharge,
       storeType: cartStoreType,
@@ -597,7 +669,11 @@ const calculateCart = async (req, res) => {
     // Non-fatal: empty list on error.
   }
 
-  discount = roundMoney(discount);
+  // `discount` so far is the coupon's alone; the deal saving joins it here so
+  // every reader of `discount` (and older app builds' bill maths) sees the
+  // full amount taken off. couponDiscount / dealDiscount carry the split.
+  const couponDiscount = roundMoney(discount);
+  discount = roundMoney(couponDiscount + dealDiscount);
   // Clamp grand total so it never goes negative (discount can't exceed the
   // sum of subtotal + delivery + night charge + rain charge). Bill delivery
   // is always the standard fee (free-delivery-eligible); the fast fee is a
@@ -613,7 +689,7 @@ const calculateCart = async (req, res) => {
   let freeDeliveryProgress = null;
   if (!isFreeDeliveryApplied && !noDeliveryArea) {
     try {
-      freeDeliveryProgress = await getNextFreeDeliveryThreshold({ subtotal, storeType: cartStoreType, userId, zoneId, itemCount: totalItemCount, areaId: deliveryAreaId });
+      freeDeliveryProgress = await getNextFreeDeliveryThreshold({ subtotal: couponSubtotal, storeType: cartStoreType, userId, zoneId, itemCount: totalItemCount, areaId: deliveryAreaId });
     } catch (err) {
       // Non-fatal: no progress hint on error, but log so a broken hint
       // (e.g. missing migration column) doesn't fail silently in prod.
@@ -628,7 +704,7 @@ const calculateCart = async (req, res) => {
   let nearestOfferProgress = null;
   try {
     if (!noDeliveryArea) nearestOfferProgress = await getNearestUnlockableCoupon({
-      subtotal,
+      subtotal: couponSubtotal,
       storeType: cartStoreType,
       userId,
       zoneId,
@@ -770,7 +846,15 @@ const calculateCart = async (req, res) => {
     // slice of a combined flat/percent + also_free_delivery coupon), and the
     // remaining item-level discount to show on the Discount line.
     isFreeDeliveryApplied,
-    itemDiscount: appliedCoupon ? appliedCoupon.itemDiscount : discount,
+    itemDiscount: roundMoney((appliedCoupon ? appliedCoupon.itemDiscount : couponDiscount) + dealDiscount),
+
+    // Deal price. `discount` and `itemDiscount` above already include the
+    // deal saving; these carry the split for builds that show it apart.
+    couponDiscount,
+    coupon_discount: couponDiscount,
+    dealDiscount,
+    deal_discount: dealDiscount,
+    deal: buildDealPayload(deal, dealDiscount, processedItems),
   };
 
   res.status(200).json({

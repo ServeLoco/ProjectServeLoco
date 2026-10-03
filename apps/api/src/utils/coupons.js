@@ -5,6 +5,11 @@
  * Design rules (locked):
  *  - Only ONE coupon applies per order (no stacking). If the user enters a
  *    code it wins; otherwise the best auto-apply offer is picked.
+ *  - 'deal_price' coupons are the one exception: a deal sells chosen products
+ *    at a fixed deal price and stacks with that one coupon. Deals never show
+ *    in the coupon list, never take a code and are never picked by the
+ *    coupon functions below — only applyBestDeal sees them, and the normal
+ *    coupon then runs on the subtotal after the deal saving.
  *  - A coupon never overrides any charge line — it only adds a Discount line
  *    that subtracts from the grand total.
  *  - free_delivery (and also_free_delivery) applies to STANDARD delivery
@@ -463,8 +468,8 @@ const validateCoupon = async ({
   // omitted only by callers that haven't been threaded through yet (their
   // owning stopgap, not this file's).
   const [rows] = areaId !== null
-    ? await conn.query('SELECT * FROM coupons WHERE code = ? AND deleted = 0 AND area_id = ? LIMIT 1', [normalizedCode, areaId])
-    : await conn.query('SELECT * FROM coupons WHERE code = ? AND deleted = 0 LIMIT 1', [normalizedCode]);
+    ? await conn.query("SELECT * FROM coupons WHERE code = ? AND deleted = 0 AND discount_type != 'deal_price' AND area_id = ? LIMIT 1", [normalizedCode, areaId])
+    : await conn.query("SELECT * FROM coupons WHERE code = ? AND deleted = 0 AND discount_type != 'deal_price' LIMIT 1", [normalizedCode]);
 
   if (rows.length === 0) {
     return { ok: false, reason: 'Invalid coupon code' };
@@ -515,8 +520,8 @@ const validateCouponById = async ({
   const conn = connection || pool;
 
   const [rows] = areaId !== null
-    ? await conn.query('SELECT * FROM coupons WHERE id = ? AND deleted = 0 AND area_id = ? LIMIT 1', [couponId, areaId])
-    : await conn.query('SELECT * FROM coupons WHERE id = ? AND deleted = 0 LIMIT 1', [couponId]);
+    ? await conn.query("SELECT * FROM coupons WHERE id = ? AND deleted = 0 AND discount_type != 'deal_price' AND area_id = ? LIMIT 1", [couponId, areaId])
+    : await conn.query("SELECT * FROM coupons WHERE id = ? AND deleted = 0 AND discount_type != 'deal_price' LIMIT 1", [couponId]);
 
   if (rows.length === 0) {
     return { ok: false, reason: 'Coupon not found' };
@@ -579,7 +584,7 @@ const pickBestAutoApply = async ({
   const [rows] = areaId !== null
     ? await conn.query(
         `SELECT * FROM coupons
-         WHERE auto_apply = 1 AND active = 1 AND deleted = 0 AND area_id = ?
+         WHERE auto_apply = 1 AND active = 1 AND deleted = 0 AND discount_type != 'deal_price' AND area_id = ?
            AND (starts_at IS NULL OR starts_at <= ?)
            AND (ends_at IS NULL OR ends_at >= ?)
          ORDER BY priority DESC, id DESC`,
@@ -587,7 +592,7 @@ const pickBestAutoApply = async ({
       )
     : await conn.query(
         `SELECT * FROM coupons
-         WHERE auto_apply = 1 AND active = 1 AND deleted = 0
+         WHERE auto_apply = 1 AND active = 1 AND deleted = 0 AND discount_type != 'deal_price'
            AND (starts_at IS NULL OR starts_at <= ?)
            AND (ends_at IS NULL OR ends_at >= ?)
          ORDER BY priority DESC, id DESC`,
@@ -673,7 +678,7 @@ const findApplicableCoupons = async ({
   const [rows] = areaId !== null
     ? await conn.query(
         `SELECT * FROM coupons
-         WHERE active = 1 AND deleted = 0 AND area_id = ?
+         WHERE active = 1 AND deleted = 0 AND discount_type != 'deal_price' AND area_id = ?
            AND (starts_at IS NULL OR starts_at <= ?)
            AND (ends_at IS NULL OR ends_at >= ?)
          ORDER BY auto_apply DESC, priority DESC, id DESC`,
@@ -681,7 +686,7 @@ const findApplicableCoupons = async ({
       )
     : await conn.query(
         `SELECT * FROM coupons
-         WHERE active = 1 AND deleted = 0
+         WHERE active = 1 AND deleted = 0 AND discount_type != 'deal_price'
            AND (starts_at IS NULL OR starts_at <= ?)
            AND (ends_at IS NULL OR ends_at >= ?)
          ORDER BY auto_apply DESC, priority DESC, id DESC`,
@@ -937,7 +942,7 @@ const getNearestUnlockableCoupon = async ({
   const [rows] = areaId !== null
     ? await conn.query(
         `SELECT * FROM coupons
-         WHERE active = 1 AND deleted = 0 AND discount_type != 'free_delivery' AND area_id = ?
+         WHERE active = 1 AND deleted = 0 AND discount_type NOT IN ('free_delivery', 'deal_price') AND area_id = ?
            AND (starts_at IS NULL OR starts_at <= ?)
            AND (ends_at IS NULL OR ends_at >= ?)
          ORDER BY min_order_amount ASC, min_item_count ASC, priority DESC, id ASC`,
@@ -945,7 +950,7 @@ const getNearestUnlockableCoupon = async ({
       )
     : await conn.query(
         `SELECT * FROM coupons
-         WHERE active = 1 AND deleted = 0 AND discount_type != 'free_delivery'
+         WHERE active = 1 AND deleted = 0 AND discount_type NOT IN ('free_delivery', 'deal_price')
            AND (starts_at IS NULL OR starts_at <= ?)
            AND (ends_at IS NULL OR ends_at >= ?)
          ORDER BY min_order_amount ASC, min_item_count ASC, priority DESC, id ASC`,
@@ -988,6 +993,200 @@ const getNearestUnlockableCoupon = async ({
   };
 };
 
+// ─────────────────────────────────────────────────────────────────────────
+// Deal price coupons (discount_type = 'deal_price')
+// ─────────────────────────────────────────────────────────────────────────
+
+// A deal item names a product, plus a variant when the product has variants.
+// The same key shape is used for cart lines, so a line matches a deal item
+// only on the exact product + variant the admin priced.
+const dealLineKey = (productId, variantId) => `${Number(productId)}:${variantId ? Number(variantId) : 0}`;
+
+/**
+ * Pure: decides which cart units sell at a deal's price.
+ *
+ * Rules (owner decisions, 2026-10-03):
+ *  - Only the OTHER items count toward the deal's minimum: a unit is sold at
+ *    the deal price only while (subtotal − normal price of every unit picked)
+ *    stays ≥ minOrder.
+ *  - At most maxItems units across the whole cart; the biggest saving first.
+ *  - Combos never take part, and a deal price that is not below the line's
+ *    current price is ignored (the product got cheaper than the deal).
+ *
+ * @param {Object} params
+ * @param {Array<{productId, variantId, type, unitPrice, quantity}>} params.lines
+ * @param {Map<string, number>} params.dealPrices - dealLineKey -> deal price
+ * @returns {{ dealDiscount, unlocked, amountRemaining, lines: Array<{index, dealPrice, dealQty}>, candidateCount, bestCandidate }}
+ */
+const pickDealUnits = ({ lines, dealPrices, subtotal, minOrder, maxItems }) => {
+  const sub = toMoney(subtotal);
+  const min = toMoney(minOrder);
+  const limit = Math.max(1, Number(maxItems) || 1);
+
+  const candidates = [];
+  lines.forEach((line, index) => {
+    if (line.type && line.type !== 'product') return;
+    const dealPrice = dealPrices.get(dealLineKey(line.productId, line.variantId));
+    if (dealPrice === undefined) return;
+    const unitPrice = toMoney(line.unitPrice);
+    const saving = roundMoney(unitPrice - toMoney(dealPrice));
+    if (saving <= 0) return;
+    const units = Math.min(Number(line.quantity) || 0, limit);
+    for (let u = 0; u < units; u += 1) {
+      candidates.push({ index, dealPrice: toMoney(dealPrice), unitPrice, saving });
+    }
+  });
+  // Biggest saving first; on a tie the cheaper unit, so the other items keep
+  // as much of the subtotal as possible.
+  candidates.sort((a, b) => (b.saving - a.saving) || (a.unitPrice - b.unitPrice) || (a.index - b.index));
+
+  const picked = [];
+  let excluded = 0;
+  for (const c of candidates) {
+    if (picked.length >= limit) break;
+    if (roundMoney(sub - excluded - c.unitPrice) >= min) {
+      picked.push(c);
+      excluded = roundMoney(excluded + c.unitPrice);
+    }
+  }
+
+  const byLine = new Map();
+  let dealDiscount = 0;
+  for (const c of picked) {
+    const entry = byLine.get(c.index) || { index: c.index, dealPrice: c.dealPrice, dealQty: 0 };
+    entry.dealQty += 1;
+    byLine.set(c.index, entry);
+    dealDiscount = roundMoney(dealDiscount + c.saving);
+  }
+
+  // What is still missing: with no deal unit picked, the other items are the
+  // whole cart minus the best candidate (if one is in the cart at all).
+  const best = candidates[0] || null;
+  const othersNow = picked.length > 0
+    ? roundMoney(sub - excluded)
+    : roundMoney(sub - (best ? best.unitPrice : 0));
+  const amountRemaining = picked.length > 0 ? 0 : Math.max(0, roundMoney(min - othersNow));
+
+  return {
+    dealDiscount,
+    unlocked: picked.length > 0,
+    amountRemaining,
+    lines: [...byLine.values()],
+    candidateCount: candidates.length,
+    bestCandidate: best,
+  };
+};
+
+/**
+ * Finds the deal that saves the most on this cart. Deals stack with one
+ * normal coupon; the caller runs the coupon engine on (subtotal − deal
+ * saving) afterwards.
+ *
+ * Every rule of checkEligibility applies (date/day/time window, store type,
+ * zone, audience, first-order, usage limits) except the money gates: the
+ * deal's minimum is checked against the other items by pickDealUnits, and
+ * min_item_count / max_order_amount do not apply to deals.
+ *
+ * Returns null when no live deal has a matching product in the cart. When a
+ * deal's products are in the cart but its minimum is not met yet, returns it
+ * with unlocked: false, dealDiscount: 0 and amountRemaining, for the
+ * "Add ₹X more to get it at ₹9" hint.
+ *
+ * @param {Object} params
+ * @param {Array<{productId, variantId, type, unitPrice, quantity}>} params.lines
+ * @returns {Promise<null | { coupon, couponId, title, dealDiscount, unlocked, amountRemaining, minOrder, maxItems, lines }>}
+ */
+const applyBestDeal = async ({
+  lines,
+  subtotal,
+  storeType = null,
+  userId = null,
+  zoneId = null,
+  now = new Date(),
+  connection = null,
+  areaId = null,
+  skipUsageChecks = false,
+}) => {
+  // Deals are created per area; with no area there is nothing to look up.
+  if (areaId === null || areaId === undefined || !Array.isArray(lines) || lines.length === 0) return null;
+  const productIds = [...new Set(lines.filter((l) => !l.type || l.type === 'product').map((l) => Number(l.productId)))];
+  if (productIds.length === 0) return null;
+
+  const conn = connection || pool;
+  const [coupons] = await conn.query(
+    `SELECT * FROM coupons
+     WHERE discount_type = 'deal_price' AND active = 1 AND deleted = 0 AND area_id = ?
+       AND (starts_at IS NULL OR starts_at <= ?)
+       AND (ends_at IS NULL OR ends_at >= ?)
+     ORDER BY priority DESC, id DESC`,
+    [areaId, now, now]
+  );
+  if (coupons.length === 0) return null;
+
+  const [itemRows] = await conn.query(
+    `SELECT coupon_id, product_id, variant_id, deal_price
+     FROM coupon_deal_items
+     WHERE area_id = ? AND active = 1 AND coupon_id IN (?) AND product_id IN (?)`,
+    [areaId, coupons.map((c) => c.id), productIds]
+  );
+  if (itemRows.length === 0) return null;
+
+  const pricesByCoupon = new Map();
+  for (const row of itemRows) {
+    const map = pricesByCoupon.get(row.coupon_id) || new Map();
+    map.set(dealLineKey(row.product_id, row.variant_id), toMoney(row.deal_price));
+    pricesByCoupon.set(row.coupon_id, map);
+  }
+
+  const results = [];
+  for (const coupon of coupons) {
+    const dealPrices = pricesByCoupon.get(coupon.id);
+    if (!dealPrices) continue;
+
+    const eligibility = await checkEligibility({
+      coupon: { ...coupon, min_order_amount: 0, min_item_count: null, max_order_amount: null },
+      subtotal: 0,
+      storeType,
+      userId,
+      zoneId,
+      now,
+      connection: conn,
+      skipUsageChecks,
+    });
+    if (!eligibility.ok) continue;
+
+    const pick = pickDealUnits({
+      lines,
+      dealPrices,
+      subtotal,
+      minOrder: coupon.min_order_amount,
+      maxItems: coupon.deal_max_items,
+    });
+    if (pick.candidateCount === 0) continue;
+
+    results.push({
+      coupon,
+      couponId: coupon.id,
+      title: coupon.title,
+      dealDiscount: pick.dealDiscount,
+      unlocked: pick.unlocked,
+      amountRemaining: pick.amountRemaining,
+      minOrder: toMoney(coupon.min_order_amount),
+      maxItems: Math.max(1, Number(coupon.deal_max_items) || 1),
+      lines: pick.lines,
+      bestCandidate: pick.bestCandidate,
+    });
+  }
+  if (results.length === 0) return null;
+
+  // Biggest saving wins; among locked deals the one closest to unlocking.
+  results.sort((a, b) => (b.dealDiscount - a.dealDiscount)
+    || (a.amountRemaining - b.amountRemaining)
+    || ((Number(b.coupon.priority) || 0) - (Number(a.coupon.priority) || 0))
+    || (b.couponId - a.couponId));
+  return results[0];
+};
+
 /**
  * Builds a human-readable savings text for display in the UI.
  */
@@ -1018,6 +1217,7 @@ module.exports = {
   checkEligibility,
   computeDiscount,
   computeDiscountBreakdown,
+  applyBestDeal,
 
   // Helpers (exported for testing)
   isWithinDateWindow,
@@ -1029,4 +1229,6 @@ module.exports = {
   isUserTargeted,
   isZoneTargeted,
   buildSavingsText,
+  pickDealUnits,
+  dealLineKey,
 };

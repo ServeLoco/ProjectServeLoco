@@ -39,11 +39,14 @@ const SCAN_DIRS = ['controllers', 'services', 'utils'].map((d) => path.join(__di
 // column to (TASK 3). Child/junction tables (coupon_zones, order_items'
 // siblings like rider_order_offers, product_variants, combo_items, etc.)
 // are deliberately NOT here unless they themselves carry area_id.
+// coupon_deal_items / offer_cards are created with area_id NOT NULL
+// directly (end of migrate.js), so they are here too.
 const SCOPED_TABLES = [
   'shops', 'riders', 'mobile_admins', 'delivery_zones', 'delivery_exclusion_zones',
   'settings', 'orders', 'order_items', 'coupons', 'offers',
   'dashboard_sections', 'dashboard_section_items', 'categories', 'products', 'combos',
   'product_groups', 'store_modes', 'admin_notifications', 'notification_batches',
+  'coupon_deal_items', 'offer_cards',
 ];
 
 // Tables where EVERY current .query() site has been verified to carry an
@@ -53,6 +56,8 @@ const SWEPT_TABLES = [
   'settings', // TASK 9
   'delivery_zones', // TASK 10
   'delivery_exclusion_zones', // TASK 10
+  'coupon_deal_items', // deal price coupons: created area-scoped from day one
+  'offer_cards', // Home offer cards: created area-scoped from day one
   // categories/products/combos/store_modes/product_groups are NOT here yet
   // even though TASK 11 fully scoped its own file list — cartController.js,
   // orderController.js, dashboardController.js, analyticsController.js and
@@ -82,6 +87,14 @@ const ALLOWLIST = [
       'every area\'s upi_qr_image_id, not just one area\'s.',
   },
   {
+    file: 'src/controllers/imageController.js',
+    line: 40,
+    reason:
+      "getUsedImageIds' offer_cards query — same cross-area \"is this image " +
+      'used anywhere" scan as the settings one above: images are global, so ' +
+      'an image only an offer card uses must count as in use in every area.',
+  },
+  {
     file: 'src/controllers/deliveryZonesController.js',
     line: 148,
     reason:
@@ -94,7 +107,7 @@ const ALLOWLIST = [
   },
   {
     file: 'src/utils/coupons.js',
-    line: 250,
+    line: 255,
     reason:
       "getZoneAndAncestorIds' ancestor-walk — same reasoning as the " +
       'deliveryZonesController.js entry above (parent_zone_id never crosses ' +
