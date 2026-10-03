@@ -18,6 +18,12 @@ const CLOUD_COLORS = {
   rain: '#F3F5F8',
 };
 const STAR_COLORS = ['#8E83E8', '#F2B84B'];
+// The see-through bubbles rising in the light area, in a tint of each look.
+const BUBBLE_TINTS = {
+  day: '96, 170, 220',
+  night: '142, 131, 232',
+  rain: '120, 140, 165',
+};
 export const COMMON_FADE_PX = 34;
 
 // Where the bar meets the light area it ends in a bank of puffy clouds, with
@@ -43,6 +49,56 @@ const STARS = [
   { x: 0.74, y: 35, size: 7 },
   { x: 0.92, y: 29, size: 8 },
 ];
+
+// Bubbles: x (fraction of the width), size, time to rise, first start.
+const BUBBLES = [
+  { x: 0.03, size: 14, rise: 9000, delay: 0 },
+  { x: 0.12, size: 12, rise: 10000, delay: 7600 },
+  { x: 0.18, size: 9, rise: 7500, delay: 2200 },
+  { x: 0.34, size: 18, rise: 10500, delay: 4800 },
+  { x: 0.47, size: 11, rise: 8200, delay: 1200 },
+  { x: 0.62, size: 16, rise: 9800, delay: 3600 },
+  { x: 0.78, size: 10, rise: 7000, delay: 600 },
+  { x: 0.8, size: 20, rise: 11000, delay: 5600 },
+  { x: 0.92, size: 12, rise: 8600, delay: 2900 },
+  { x: 0.97, size: 15, rise: 9400, delay: 6800 },
+];
+
+// One bubble: rises from `from` to `to` (px from the backdrop's top),
+// swaying a little, fading in at the bottom and out near the clouds.
+function Bubble({ left, size, from, to, rise, delay, tint }) {
+  const progress = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const run = Animated.sequence([
+      Animated.delay(delay),
+      Animated.loop(Animated.timing(progress, { toValue: 1, duration: rise, easing: Easing.linear, useNativeDriver: true })),
+    ]);
+    run.start();
+    return () => run.stop();
+  }, [progress, rise, delay]);
+  return (
+    <Animated.View
+      style={[
+        styles.bubble,
+        {
+          left,
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          borderColor: `rgba(${tint}, 0.55)`,
+          backgroundColor: `rgba(${tint}, 0.16)`,
+          opacity: progress.interpolate({ inputRange: [0, 0.15, 0.75, 1], outputRange: [0, 1, 0.9, 0] }),
+          transform: [
+            { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [from, to] }) },
+            { translateX: progress.interpolate({ inputRange: [0, 0.25, 0.5, 0.75, 1], outputRange: [0, 5, 0, -5, 0] }) },
+          ],
+        },
+      ]}
+    >
+      <View style={[styles.bubbleShine, { width: size * 0.28, height: size * 0.28, borderRadius: size * 0.14 }]} />
+    </Animated.View>
+  );
+}
 
 // A puffy cloud with a flat bottom, as SVG shapes at (x, y), w × h.
 function CloudShape({ x, y, w, h, fill }) {
@@ -94,7 +150,8 @@ function TwinkleStar({ left, top, size, color, delay, still }) {
  * Background of the Home "Common" area. It covers the scroll content from
  * the very top (behind the top bar) down to the end of the Common sections:
  * the bar colour behind the bar, a cloud edge where the bar ends, then a
- * light area that fades into the page. Purely decorative.
+ * light area with bubbles slowly rising in it, fading into the page.
+ * Purely decorative.
  *
  * look: 'day' | 'night' | 'rain' (the top bar's look).
  * barBottom: where the bar's solid part ends, from the top of this backdrop.
@@ -139,6 +196,21 @@ export default function CommonBackdrop({ width, height, barColor, barShadow, bar
         end={{ x: 0, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
+      {/* Bubbles rise behind the clouds and the cards. */}
+      {reducedMotion || total - solid < 60
+        ? null
+        : BUBBLES.map((b, i) => (
+          <Bubble
+            key={i}
+            left={b.x * width - b.size / 2}
+            size={b.size}
+            from={total - b.size - 4}
+            to={solid + 6}
+            rise={b.rise}
+            delay={b.delay}
+            tint={BUBBLE_TINTS[look] || BUBBLE_TINTS.day}
+          />
+        ))}
       <View style={[styles.bar, { height: solid, backgroundColor: barColor }]} />
 
       {/* The bank of puffy bumps hanging from the bar, with a soft shadow. */}
@@ -197,4 +269,6 @@ const styles = StyleSheet.create({
   bar: { position: 'absolute', top: 0, left: 0, right: 0 },
   abs: { position: 'absolute', left: 0 },
   clip: { overflow: 'hidden' },
+  bubble: { position: 'absolute', top: 0, borderWidth: 1.2 },
+  bubbleShine: { position: 'absolute', top: '18%', left: '20%', backgroundColor: 'rgba(255, 255, 255, 0.85)' },
 });
