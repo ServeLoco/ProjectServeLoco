@@ -18,6 +18,24 @@ const CLOUD_COLORS = {
   rain: '#F3F5F8',
 };
 const STAR_COLORS = ['#8E83E8', '#F2B84B'];
+// How much of an offer card's colour goes into the area (the rest is white):
+// at the top, in the middle, and none at the bottom.
+const TINT_TOP = 0.22;
+const TINT_MIDDLE = 0.11;
+
+// "#2E9E45" or "#2E9" → [46, 158, 69]; null if it is not a hex colour.
+function hexToRgb(hex) {
+  const m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(String(hex || '').trim());
+  if (!m) return null;
+  const h = m[1].length === 3 ? m[1].split('').map((c) => c + c).join('') : m[1];
+  return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+}
+const mixWithWhite = (rgb, amount) => `rgb(${rgb.map((c) => Math.round(c * amount + 255 * (1 - amount))).join(', ')})`;
+// The area colours for one offer card colour, or null to keep the bar look's.
+function tintColors(hex) {
+  const rgb = hexToRgb(hex);
+  return rgb ? [mixWithWhite(rgb, TINT_TOP), mixWithWhite(rgb, TINT_MIDDLE), '#FFFFFF'] : null;
+}
 export const COMMON_FADE_PX = 34;
 
 // Where the bar meets the light area it ends in a bank of puffy clouds, with
@@ -157,10 +175,33 @@ function TwinkleStar({ left, top, size, color, delay, still }) {
  *
  * look: 'day' | 'night' | 'rain' (the top bar's look).
  * barBottom: where the bar's solid part ends, from the top of this backdrop.
+ * tint: { colors, stops } from the offer cards row — each card's colour and
+ *   the scroll position where it is in front — or null. With it, the area
+ *   takes a light shade of the card in view, cross-fading as the row scrolls
+ *   (tintScrollX is that row's scroll).
  */
-export default function CommonBackdrop({ width, height, barColor, barShadow, barBottom, look = 'day' }) {
+export default function CommonBackdrop({ width, height, barColor, barShadow, barBottom, look = 'day', tint = null, tintScrollX = null }) {
   const reducedMotion = useReducedMotion();
   const drift = useRef(new Animated.Value(0)).current;
+  const lookColors = AREA_COLORS[look] || AREA_COLORS.day;
+
+  // One full-area layer per card; each fades in over the one before it as
+  // the row scrolls from the earlier card to this one.
+  const tintLayers = useMemo(() => {
+    if (!tint || !tintScrollX || !tint.colors?.length) return null;
+    let last = -Infinity;
+    return tint.colors.map((color, i) => {
+      const at = Math.max(Number(tint.stops?.[i]) || 0, last + 1);
+      const from = last;
+      last = at;
+      return {
+        colors: tintColors(color) || lookColors,
+        opacity: i === 0
+          ? 1
+          : tintScrollX.interpolate({ inputRange: [from, at], outputRange: [0, 1], extrapolate: 'clamp' }),
+      };
+    });
+  }, [tint, tintScrollX, lookColors]);
 
   // The front clouds drift slowly left, forever (two copies side by side,
   // moved by one screen width, so the loop has no jump).
@@ -191,13 +232,25 @@ export default function CommonBackdrop({ width, height, barColor, barShadow, bar
 
   return (
     <View pointerEvents="none" style={[styles.fill, { height: total }]}>
-      <LinearGradient
-        colors={AREA_COLORS[look] || AREA_COLORS.day}
-        locations={[areaTop, fadeStart, 1]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
+      {tintLayers ? tintLayers.map((layer, i) => (
+        <Animated.View key={i} style={[StyleSheet.absoluteFill, { opacity: layer.opacity }]}>
+          <LinearGradient
+            colors={layer.colors}
+            locations={[areaTop, fadeStart, 1]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
+      )) : (
+        <LinearGradient
+          colors={lookColors}
+          locations={[areaTop, fadeStart, 1]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+      )}
       {/* Confetti falls gently from behind the clouds, behind the cards. */}
       {reducedMotion || total - solid < 60
         ? null

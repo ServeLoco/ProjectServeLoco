@@ -43,7 +43,7 @@ import {
   LocationPermissionCard,
 } from '../../../components';
 import { showToast } from '../../../components/Toast';
-import DealTabsCard from '../../../components/OfferCards/DealTabsCard';
+import DealTabsCard, { cardStyleOf } from '../../../components/OfferCards/DealTabsCard';
 import { colors, typography, fontSizes, lineHeights, spacing, radius, layout } from '../../../theme';
 import HomeIcon from './HomeIcon';
 import useAreaLine from './useAreaLine';
@@ -97,6 +97,13 @@ const TOP_BAR_FADE_LOCATIONS = TOP_BAR_FADE_ALPHAS.map((_, i) => i / (TOP_BAR_FA
 // unavailable ones still leaves a full row.
 // Left/right space between the screen edge and the Home content.
 const PAGE_GUTTER = 10;
+const OFFER_CARD_GAP = 10;
+
+// The cards an offer cards section draws (only the designs Home knows).
+const drawableOfferCards = (section) =>
+  (section.items || []).filter((card) => card.design === 'deal_tabs' && card.deal?.tiers?.length);
+// One card fills most of the width; with more, the next one peeks.
+const offerCardWidthFor = (count, contentWidth) => (count === 1 ? contentWidth : Math.floor(contentWidth * 0.8));
 // Home draws its sections a few at a time: this many at first, then one more
 // each time the customer scrolls within a screen of the end of what is drawn.
 const SECTIONS_INITIAL = 2;
@@ -1544,6 +1551,32 @@ export default function HomeScreen() {
 
   const categoryGap = spacing.md;
   const contentWidth = windowWidth - (PAGE_GUTTER * 2);
+
+  // The Common area takes its colour from the offer card in view: the first
+  // offer cards row there gives each card's colour and the scroll position
+  // where that card is in front, and its scroll drives the cross-fade.
+  const commonOfferScrollX = useRef(new Animated.Value(0)).current;
+  const commonOfferTint = useMemo(() => {
+    const unit = commonUnits.find((u) => u.kind === 'section'
+      && u.section.sectionType === 'offer_cards' && drawableOfferCards(u.section).length > 0);
+    if (!unit) return null;
+    const cards = drawableOfferCards(unit.section);
+    const cardWidth = offerCardWidthFor(cards.length, contentWidth);
+    const maxScroll = Math.max(0, PAGE_GUTTER * 2 + cards.length * (cardWidth + OFFER_CARD_GAP) - OFFER_CARD_GAP - windowWidth);
+    return {
+      sectionId: unit.section.id,
+      colors: cards.map((card) => cardStyleOf(card).tabColor),
+      stops: cards.map((_, i) => Math.min(i * (cardWidth + OFFER_CARD_GAP), maxScroll)),
+    };
+  }, [commonUnits, contentWidth, windowWidth]);
+  const commonOfferSectionId = commonOfferTint?.sectionId;
+  useEffect(() => {
+    commonOfferScrollX.setValue(0); // a new rail starts at its first card
+  }, [commonOfferSectionId, commonOfferScrollX]);
+  const onCommonOfferScroll = useMemo(
+    () => Animated.event([{ nativeEvent: { contentOffset: { x: commonOfferScrollX } } }], { useNativeDriver: true }),
+    [commonOfferScrollX],
+  );
   // Horizontal-scrolling cards: ~28% of content width so the next card peeks
   // (peek effect — multiple cards visible at once).
   const categoryCardWidth = Math.floor(contentWidth * CATEGORY_CARD_RATIO);
@@ -1811,10 +1844,12 @@ export default function HomeScreen() {
       }
 
       if (section.sectionType === 'offer_cards') {
-        const cards = (section.items || []).filter((card) => card.design === 'deal_tabs' && card.deal?.tiers?.length);
+        const cards = drawableOfferCards(section);
         if (cards.length === 0) return null;
-        // One card fills most of the width; with more, the next one peeks.
-        const offerCardWidth = cards.length === 1 ? contentWidth : Math.floor(contentWidth * 0.8);
+        const offerCardWidth = offerCardWidthFor(cards.length, contentWidth);
+        // The row that colours the Common area reports its scroll.
+        const tintsArea = section.id === commonOfferSectionId;
+        const Rail = tintsArea ? Animated.FlatList : FlatList;
         return (
           <View key={section.id} style={styles.section}>
             {section.title ? (
@@ -1825,11 +1860,13 @@ export default function HomeScreen() {
                 </View>
               </View>
             ) : null}
-            <FlatList
+            <Rail
               horizontal
               data={cards}
               keyExtractor={(card) => String(card.id)}
               showsHorizontalScrollIndicator={false}
+              onScroll={tintsArea ? onCommonOfferScroll : undefined}
+              scrollEventThrottle={tintsArea ? 16 : undefined}
               contentContainerStyle={styles.offerCardsRail}
               ItemSeparatorComponent={OfferCardGap}
               renderItem={({ item: card }) => (
@@ -2135,6 +2172,8 @@ export default function HomeScreen() {
                   barShadow={isLightBar ? '#5B7A99' : '#1F2329'}
                   barBottom={fadeOverlap - topFadeHeight}
                   look={isRainy ? 'rain' : isDaytime ? 'day' : 'night'}
+                  tint={commonOfferTint}
+                  tintScrollX={commonOfferScrollX}
                 />
               </View>
               {renderHomeUnits(commonUnits)}
@@ -3237,7 +3276,7 @@ function OfferBannerCarousel({ offers = [], bannerWidth, onOfferPress }) {
 
 // Space between two offer cards in their rail.
 function OfferCardGap() {
-  return <View style={{ width: 10 }} />;
+  return <View style={{ width: OFFER_CARD_GAP }} />;
 }
 
 function SeeAllButton({ label = 'See all', onPress, accessibilityLabel }) {
