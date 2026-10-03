@@ -7,9 +7,9 @@ import { useReducedMotion } from '../../../utils';
 // The light, bright area the Common sections sit on, matched to the top
 // bar's look (top to bottom), fading into the white page under the sections.
 const AREA_COLORS = {
-  day: ['#E2F3FD', '#F1F9FE', '#FFFFFF'], // light sky, under the sky blue bar
-  night: ['#ECEBFF', '#F5F4FF', '#FFFFFF'], // soft moonlight lavender
-  rain: ['#EBF0F6', '#F4F7FA', '#FFFFFF'], // light grey-blue
+  day: ['#CDE9FA', '#E3F2FC', '#FFFFFF'], // light sky, under the sky blue bar
+  night: ['#DDDAFC', '#ECEAFE', '#FFFFFF'], // soft moonlight lavender
+  rain: ['#DCE3EC', '#EBEFF4', '#FFFFFF'], // light grey-blue
 };
 // The clouds drifting in front of the bar's edge.
 const CLOUD_COLORS = {
@@ -18,12 +18,6 @@ const CLOUD_COLORS = {
   rain: '#F3F5F8',
 };
 const STAR_COLORS = ['#8E83E8', '#F2B84B'];
-// The see-through bubbles rising in the light area, in a tint of each look.
-const BUBBLE_TINTS = {
-  day: '96, 170, 220',
-  night: '142, 131, 232',
-  rain: '120, 140, 165',
-};
 export const COMMON_FADE_PX = 34;
 
 // Where the bar meets the light area it ends in a bank of puffy clouds, with
@@ -50,53 +44,44 @@ const STARS = [
   { x: 0.92, y: 29, size: 8 },
 ];
 
-// Bubbles: x (fraction of the width), size, time to rise, first start.
-const BUBBLES = [
-  { x: 0.03, size: 14, rise: 9000, delay: 0 },
-  { x: 0.12, size: 12, rise: 10000, delay: 7600 },
-  { x: 0.18, size: 9, rise: 7500, delay: 2200 },
-  { x: 0.34, size: 18, rise: 10500, delay: 4800 },
-  { x: 0.47, size: 11, rise: 8200, delay: 1200 },
-  { x: 0.62, size: 16, rise: 9800, delay: 3600 },
-  { x: 0.78, size: 10, rise: 7000, delay: 600 },
-  { x: 0.8, size: 20, rise: 11000, delay: 5600 },
-  { x: 0.92, size: 12, rise: 8600, delay: 2900 },
-  { x: 0.97, size: 15, rise: 9400, delay: 6800 },
-];
+// The soft shine band that slides across the light area now and then.
+const SWEEP_WIDTH = 110;
+const SWEEP_MS = 2400;
+const SWEEP_PAUSE_MS = 3200;
+const SWEEP_COLORS = ['rgba(255, 255, 255, 0)', 'rgba(255, 255, 255, 0.7)', 'rgba(255, 255, 255, 0)'];
 
-// One bubble: rises from `from` to `to` (px from the backdrop's top),
-// swaying a little, fading in at the bottom and out near the clouds.
-function Bubble({ left, size, from, to, rise, delay, tint }) {
+// A slanted band of light that slides left to right across the area
+// (from `top`, `height` tall), then waits and slides again.
+function LightSweep({ width, top, height }) {
   const progress = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    const run = Animated.sequence([
-      Animated.delay(delay),
-      Animated.loop(Animated.timing(progress, { toValue: 1, duration: rise, easing: Easing.linear, useNativeDriver: true })),
-    ]);
-    run.start();
-    return () => run.stop();
-  }, [progress, rise, delay]);
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(progress, { toValue: 1, duration: SWEEP_MS, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.delay(SWEEP_PAUSE_MS),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [progress]);
+  const bandHeight = height + 80; // taller than the area, so the slant still covers it
   return (
-    <Animated.View
-      style={[
-        styles.bubble,
-        {
-          left,
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          borderColor: `rgba(${tint}, 0.55)`,
-          backgroundColor: `rgba(${tint}, 0.16)`,
-          opacity: progress.interpolate({ inputRange: [0, 0.15, 0.75, 1], outputRange: [0, 1, 0.9, 0] }),
+    <View style={[styles.abs, styles.clip, { top, width, height }]}>
+      <Animated.View
+        style={{
+          position: 'absolute',
+          top: -40,
+          width: SWEEP_WIDTH,
+          height: bandHeight,
           transform: [
-            { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [from, to] }) },
-            { translateX: progress.interpolate({ inputRange: [0, 0.25, 0.5, 0.75, 1], outputRange: [0, 5, 0, -5, 0] }) },
+            { translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [-SWEEP_WIDTH * 1.5, width + SWEEP_WIDTH * 0.5] }) },
+            { rotate: '18deg' },
           ],
-        },
-      ]}
-    >
-      <View style={[styles.bubbleShine, { width: size * 0.28, height: size * 0.28, borderRadius: size * 0.14 }]} />
-    </Animated.View>
+        }}
+      >
+        <LinearGradient colors={SWEEP_COLORS} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={StyleSheet.absoluteFill} />
+      </Animated.View>
+    </View>
   );
 }
 
@@ -150,7 +135,8 @@ function TwinkleStar({ left, top, size, color, delay, still }) {
  * Background of the Home "Common" area. It covers the scroll content from
  * the very top (behind the top bar) down to the end of the Common sections:
  * the bar colour behind the bar, a cloud edge where the bar ends, then a
- * light area with bubbles slowly rising in it, fading into the page.
+ * light area that a soft light sweeps across now and then, fading into
+ * the page.
  * Purely decorative.
  *
  * look: 'day' | 'night' | 'rain' (the top bar's look).
@@ -196,21 +182,8 @@ export default function CommonBackdrop({ width, height, barColor, barShadow, bar
         end={{ x: 0, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
-      {/* Bubbles rise behind the clouds and the cards. */}
-      {reducedMotion || total - solid < 60
-        ? null
-        : BUBBLES.map((b, i) => (
-          <Bubble
-            key={i}
-            left={b.x * width - b.size / 2}
-            size={b.size}
-            from={total - b.size - 4}
-            to={solid + 6}
-            rise={b.rise}
-            delay={b.delay}
-            tint={BUBBLE_TINTS[look] || BUBBLE_TINTS.day}
-          />
-        ))}
+      {/* A soft light sweeps across, behind the clouds and the cards. */}
+      {reducedMotion || total - solid < 60 ? null : <LightSweep width={width} top={solid} height={total - solid} />}
       <View style={[styles.bar, { height: solid, backgroundColor: barColor }]} />
 
       {/* The bank of puffy bumps hanging from the bar, with a soft shadow. */}
@@ -269,6 +242,4 @@ const styles = StyleSheet.create({
   bar: { position: 'absolute', top: 0, left: 0, right: 0 },
   abs: { position: 'absolute', left: 0 },
   clip: { overflow: 'hidden' },
-  bubble: { position: 'absolute', top: 0, borderWidth: 1.2 },
-  bubbleShine: { position: 'absolute', top: '18%', left: '20%', backgroundColor: 'rgba(255, 255, 255, 0.85)' },
 });
