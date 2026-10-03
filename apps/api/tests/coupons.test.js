@@ -2099,13 +2099,14 @@ describe('coupons.getNearestUnlockableCoupon', () => {
   });
 
   it('excludes free_delivery coupons — those have their own dedicated hint', async () => {
-    // SQL filters discount_type != 'free_delivery', so the mocked query
+    // SQL filters out 'free_delivery' (and 'deal_price', which is never a
+    // coupon-list offer), so the mocked query
     // result already reflects what the DB would return.
     pool.query.mockResolvedValueOnce([[]]);
     const result = await coupons.getNearestUnlockableCoupon({ subtotal: 50 });
     expect(result).toBeNull();
     expect(pool.query).toHaveBeenCalledWith(
-      expect.stringContaining("discount_type != 'free_delivery'"),
+      expect.stringContaining("discount_type NOT IN ('free_delivery', 'deal_price')"),
       expect.any(Array)
     );
   });
