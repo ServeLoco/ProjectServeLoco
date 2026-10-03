@@ -91,6 +91,17 @@ const DAY_FADE_COLORS = fadeColorsFor(DAY_BAR_RGB);
 const NIGHT_FADE_COLORS = fadeColorsFor(NIGHT_BAR_RGB);
 const RAIN_FADE_COLORS = fadeColorsFor(RAIN_BAR_RGB);
 const TOP_BAR_FADE_LOCATIONS = TOP_BAR_FADE_ALPHAS.map((_, i) => i / (TOP_BAR_FADE_ALPHAS.length - 1));
+// The Common sections sit on the bar colour, which runs on from the top bar
+// and fades into the page in the space under them (the same eased fade).
+const COMMON_FADE_PX = 34;
+const commonBackdropFor = (rgb, totalHeight) => {
+  const start = totalHeight > COMMON_FADE_PX ? (totalHeight - COMMON_FADE_PX) / totalHeight : 0.8;
+  const last = TOP_BAR_FADE_ALPHAS.length - 1;
+  return {
+    colors: [`rgba(${rgb}, 1)`, ...fadeColorsFor(rgb)],
+    locations: [0, ...TOP_BAR_FADE_ALPHAS.map((_, i) => start + ((1 - start) * i) / last)],
+  };
+};
 
 // Search shows at most 6 buyable items; it fetches more so that dropping
 // unavailable ones still leaves a full row.
@@ -744,6 +755,7 @@ export default function HomeScreen() {
   // dashboard. They are kept apart and drawn above the shop modes, so
   // switching modes never clears or redraws them.
   const [commonSections, setCommonSections] = useState([]);
+  const [commonAreaHeight, setCommonAreaHeight] = useState(0);
   // How many of the sections are drawn so far (see SECTIONS_INITIAL).
   const [renderedSectionCount, setRenderedSectionCount] = useState(SECTIONS_INITIAL);
   // Bumped when Home hears of a catalog/shop change; the blocks refetch on it.
@@ -1544,7 +1556,10 @@ export default function HomeScreen() {
 
   // Draws a list of Home units (sections and automatic rows). Used for the
   // Common sections above the shop modes and for the mode's own sections.
-  const renderHomeUnits = (units) => {
+  // `onBar`: the units sit on the top bar colour (the Common area), so their
+  // titles take the bar's text colour.
+  const renderHomeUnits = (units, { onBar = false } = {}) => {
+    const titleStyle = onBar ? [styles.sectionTitlePremium, { color: onBarColor }] : styles.sectionTitlePremium;
     // Every automatic row above the current one has shown its content?
     let rowsAboveRevealed = true;
     return units.map(unit => {
@@ -1628,7 +1643,7 @@ export default function HomeScreen() {
                   {section.sectionIcon && section.sectionIcon !== 'box' && (
                     <HomeIcon name={section.sectionIcon} size={14} color={colors.primary} style={styles.sectionTypeIcon} />
                   )}
-                  <Text style={styles.sectionTitlePremium}>{section.title}</Text>
+                  <Text style={titleStyle}>{section.title}</Text>
                   {section.showHotBadge === true && (
                     <Animated.View style={[styles.hotBadge, { transform: [{ scale: hotBadgePulse }] }]}>
                       <LinearGradient
@@ -1737,7 +1752,7 @@ export default function HomeScreen() {
                 {section.sectionIcon && section.sectionIcon !== 'box' && section.sectionIcon !== 'shoppingBag' && section.sectionIcon !== 'star' && (
                   <HomeIcon name={section.sectionIcon} size={14} color={colors.primary} style={styles.sectionTypeIcon} />
                 )}
-                <Text style={styles.sectionTitlePremium}>{section.title}</Text>
+                <Text style={titleStyle}>{section.title}</Text>
                 {section.showHotBadge === true && (
                   <Animated.View style={[styles.hotBadge, { transform: [{ scale: hotBadgePulse }] }]}>
                     <LinearGradient
@@ -1810,7 +1825,7 @@ export default function HomeScreen() {
               <View style={styles.sectionHeader}>
                 <View style={styles.titleRow}>
                   <View style={styles.headerIndicator} />
-                  <Text style={styles.sectionTitlePremium}>{section.title}</Text>
+                  <Text style={titleStyle}>{section.title}</Text>
                 </View>
               </View>
             ) : null}
@@ -2102,7 +2117,22 @@ export default function HomeScreen() {
           }
         >
           {/* Common sections: every mode, between the top bar and the shop modes */}
-          {commonUnits.length > 0 ? <View style={styles.commonSections}>{renderHomeUnits(commonUnits)}</View> : null}
+          {commonUnits.length > 0 ? (
+            <View
+              style={styles.commonSections}
+              onLayout={(e) => setCommonAreaHeight(Math.round(e.nativeEvent.layout.height))}
+            >
+              {/* Reaches up behind the top group, so the bar runs on without a seam. */}
+              <LinearGradient
+                pointerEvents="none"
+                {...commonBackdropFor(barRgb, commonAreaHeight + fadeOverlap)}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={[styles.commonBackdrop, { top: -fadeOverlap }]}
+              />
+              {renderHomeUnits(commonUnits, { onBar: true })}
+            </View>
+          ) : null}
 
           {/* Store Type Toggle */}
           <View style={styles.toggleContainer}>
@@ -3917,7 +3947,14 @@ const styles = StyleSheet.create({
     // FlatList in horizontal mode
   },
   commonSections: {
-    marginBottom: spacing.sm,
+    paddingBottom: COMMON_FADE_PX - 6,
+    marginBottom: spacing.xs,
+  },
+  commonBackdrop: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   offerCardsRail: {
     paddingHorizontal: PAGE_GUTTER,
