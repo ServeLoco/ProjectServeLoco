@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { OfferCardsApi, CouponsApi, ImagesApi } from '../api';
+import OfferCardProductsPanel from '../components/OfferCardProductsPanel';
 import { readList } from '../utils/apiResponse';
 import { getUploadedImage, normalizeImageUrl, FALLBACK_IMAGE, handleImageError } from '../utils/imageUrl';
 import { getImageUploadError } from '../utils/fileValidation';
@@ -10,7 +11,23 @@ import { GENERIC_ERROR } from '../utils/constants';
 import './Offers.css';
 import './OfferCards.css';
 
-// Mirrors DEFAULT_STYLE in apps/api/src/controllers/offerCardController.js —
+// The card templates (offer_cards.design). A card keeps its template; each
+// has its own fields, look and preview.
+const TEMPLATES = [
+  {
+    design: 'deal_tabs',
+    name: 'Template 1 · Deal tabs',
+    blurb: 'A Deal Price offer (Coupons page) with one tab per deal price — ₹9 / ₹29 / ₹49. Select picks the deal item.',
+  },
+  {
+    design: 'deals_of_day',
+    name: 'Template 2 · Deals of the day',
+    blurb: 'Products you pick, each at its own price with the MRP struck through. ADD puts it in the cart; See all opens the full list.',
+  },
+];
+const templateOf = (design) => TEMPLATES.find((t) => t.design === design) || TEMPLATES[0];
+
+// Mirrors DEFAULT_STYLES in apps/api/src/controllers/offerCardController.js —
 // the app falls back to these for any key a card leaves unset.
 const DEFAULT_STYLE = {
   bgColor: '#EDE7FF',
@@ -26,8 +43,25 @@ const DEFAULT_STYLE = {
   footerText: 'View items at all prices',
   rowsPerTab: 3,
 };
+const DEFAULT_STYLES = {
+  deal_tabs: DEFAULT_STYLE,
+  deals_of_day: {
+    ...DEFAULT_STYLE,
+    bgColor: '#FFF6D8',
+    bgColorEnd: '#FFE7A3',
+    accentColor: '#E8590C',
+    titleColor: '#D9480F',
+    subtitleColor: '#8A5A12',
+    tabColor: '#F2B705',
+    buttonColor: '#2F6BFF',
+    buttonText: 'ADD',
+    footerText: 'See all',
+    rowsPerTab: 4,
+  },
+};
+const styleOf = (card) => ({ ...(DEFAULT_STYLES[card?.design] || DEFAULT_STYLE), ...(card?.style || {}) });
 
-const COLOR_FIELDS = [
+const DEAL_COLOR_FIELDS = [
   { key: 'bgColor', label: 'Background (top)' },
   { key: 'bgColorEnd', label: 'Background (bottom)' },
   { key: 'accentColor', label: 'Price chip & link' },
@@ -38,14 +72,30 @@ const COLOR_FIELDS = [
   { key: 'tabTextColor', label: 'Tab text' },
   { key: 'buttonColor', label: 'Select button' },
 ];
+const DAY_COLOR_FIELDS = [
+  { key: 'bgColor', label: 'Background (top)' },
+  { key: 'bgColorEnd', label: 'Background (bottom)' },
+  { key: 'accentColor', label: 'Main colour & See all' },
+  { key: 'titleColor', label: 'Title text' },
+  { key: 'subtitleColor', label: 'Subtitle text' },
+  { key: 'buttonColor', label: 'ADD button' },
+];
+const COLOR_FIELDS = { deal_tabs: DEAL_COLOR_FIELDS, deals_of_day: DAY_COLOR_FIELDS };
 
 // Ready-made looks the admin can start from, then tweak.
-const PRESETS = [
+const DEAL_PRESETS = [
   { name: 'Purple', style: {} },
   { name: 'Sunny', style: { bgColor: '#FFF4C2', bgColorEnd: '#FFFFFF', accentColor: '#E8590C', titleColor: '#4A2600', subtitleColor: '#6B4A1F', tabColor: '#F08C00', tabActiveColor: '#FFFFFF', tabTextColor: '#FFFFFF', buttonColor: '#E8590C' } },
   { name: 'Fresh', style: { bgColor: '#DDF7E3', bgColorEnd: '#FFFFFF', accentColor: '#2B8A3E', titleColor: '#0B3D1A', subtitleColor: '#2F5D3A', tabColor: '#2F9E44', tabActiveColor: '#FFFFFF', tabTextColor: '#FFFFFF', buttonColor: '#2B8A3E' } },
   { name: 'Berry', style: { bgColor: '#FFE3EC', bgColorEnd: '#FFFFFF', accentColor: '#C2255C', titleColor: '#4A0D24', subtitleColor: '#6E2A44', tabColor: '#D6336C', tabActiveColor: '#FFFFFF', tabTextColor: '#FFFFFF', buttonColor: '#C2255C' } },
 ];
+const DAY_PRESETS = [
+  { name: 'Sunny', style: {} },
+  { name: 'Mint', style: { bgColor: '#E6F8EC', bgColorEnd: '#C9F0D6', accentColor: '#2B8A3E', titleColor: '#1E7B34', subtitleColor: '#2F5D3A' } },
+  { name: 'Rose', style: { bgColor: '#FFE8EF', bgColorEnd: '#FFCFDD', accentColor: '#C2255C', titleColor: '#A61E4D', subtitleColor: '#6E2A44' } },
+  { name: 'Sky', style: { bgColor: '#E3F2FF', bgColorEnd: '#C6E3FF', accentColor: '#1971C2', titleColor: '#1864AB', subtitleColor: '#2B4C6F' } },
+];
+const PRESETS = { deal_tabs: DEAL_PRESETS, deals_of_day: DAY_PRESETS };
 
 const groupByPrice = (items) => {
   const map = new Map();
@@ -59,7 +109,7 @@ const groupByPrice = (items) => {
 
 /** An HTML stand-in for how the app draws a deal_tabs card. */
 export function DealTabsCardPreview({ card, tiers, minOrder = 0 }) {
-  const style = { ...DEFAULT_STYLE, ...(card.style || {}) };
+  const style = styleOf({ ...card, design: 'deal_tabs' });
   const [active, setActive] = useState(0);
   const tier = tiers[Math.min(active, Math.max(0, tiers.length - 1))];
   const rows = tier ? tier.items.slice(0, Number(style.rowsPerTab) || 3) : [];
@@ -122,6 +172,61 @@ export function DealTabsCardPreview({ card, tiers, minOrder = 0 }) {
   );
 }
 
+/** An HTML stand-in for how the app draws a deals_of_day card. */
+export function DealsOfDayCardPreview({ card, products }) {
+  const style = styleOf({ ...card, design: 'deals_of_day' });
+  const rows = products.slice(0, Number(style.rowsPerTab) || 4);
+  const imageUrl = normalizeImageUrl(card.image_url || card.imageUrl);
+
+  return (
+    <div className="oc-preview oc-dod" style={{ background: `linear-gradient(180deg, ${style.bgColor} 0%, ${style.bgColorEnd} 100%)`, borderColor: `${style.accentColor}33` }}>
+      {imageUrl ? (
+        <img src={imageUrl} alt="" className="oc-dod-banner" onError={handleImageError} />
+      ) : (
+        <div className="oc-dod-head">
+          <div className="oc-dod-title" style={{ color: style.titleColor, textShadow: `0 2px 0 ${style.accentColor}33` }}>{card.title || 'Card title'}</div>
+          {card.subtitle && <div className="oc-preview-subtitle" style={{ color: style.subtitleColor }}>{card.subtitle}</div>}
+        </div>
+      )}
+      {rows.length === 0 ? (
+        <div className="oc-preview-empty">Add products to see them here.</div>
+      ) : (
+        <div className="oc-dod-list">
+          {rows.map((item) => (
+            <div key={item.id} className="oc-dod-row">
+              <img src={normalizeImageUrl(item.imageUrl) || FALLBACK_IMAGE} onError={handleImageError} alt="" />
+              <div className="oc-preview-name">
+                <div className="oc-dod-name">{item.name}</div>
+                <small>{item.variantLabel || item.unit || ''}</small>
+              </div>
+              <span className="oc-dod-add" style={{ color: style.buttonColor, borderColor: style.buttonColor }}>{style.buttonText}</span>
+              <div className="oc-preview-price">
+                {item.mrp ? <s>₹{item.mrp}</s> : null}
+                <b>₹{item.price}</b>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="oc-preview-footer oc-dod-footer" style={{ color: style.accentColor }}>{style.footerText} »</div>
+    </div>
+  );
+}
+
+// Loads a card's products (template 2) for its tile preview.
+function useCardProducts(cardId) {
+  const [products, setProducts] = useState([]);
+  useEffect(() => {
+    let cancelled = false;
+    if (!cardId) { setProducts([]); return undefined; }
+    OfferCardsApi.products(cardId)
+      .then((res) => { if (!cancelled) setProducts(readList(res)); })
+      .catch(() => { if (!cancelled) setProducts([]); });
+    return () => { cancelled = true; };
+  }, [cardId]);
+  return products;
+}
+
 // Loads a deal's items once per deal id for previews.
 const minOrderOf = (deals, dealId) => Number(deals.find((d) => String(d.id) === String(dealId))?.min_order_amount) || 0;
 
@@ -139,14 +244,22 @@ function useDealTiers(dealId) {
 }
 
 function CardTile({ card, modes, minOrder, onEdit, onToggle }) {
-  const tiers = useDealTiers(card.deal_coupon_id);
+  const isDayCard = card.design === 'deals_of_day';
+  const tiers = useDealTiers(isDayCard ? null : card.deal_coupon_id);
+  const products = useCardProducts(isDayCard ? card.id : null);
   return (
     <div className="oc-tile">
-      <DealTabsCardPreview card={card} tiers={tiers} minOrder={minOrder} />
+      {isDayCard
+        ? <DealsOfDayCardPreview card={card} products={products} />
+        : <DealTabsCardPreview card={card} tiers={tiers} minOrder={minOrder} />}
       <div className="oc-tile-meta">
         <div><b>{card.title}</b></div>
         <div className="oc-muted">
-          Deal: {card.dealTitle || <span className="oc-danger">none — pick one</span>} • {card.store_type === 'all' ? 'All modes' : modeLabel(modes, card.store_type)}
+          {templateOf(card.design).name} •{' '}
+          {isDayCard
+            ? (products.length ? `${products.length} product${products.length === 1 ? '' : 's'}` : <span className="oc-danger">no products yet</span>)
+            : <>Deal: {card.dealTitle || <span className="oc-danger">none — pick one</span>}</>}
+          {' '}• {card.store_type === 'all' ? 'All modes' : modeLabel(modes, card.store_type)}
         </div>
         <div className="oc-tile-actions">
           <span className={`offer-status ${card.active ? 'active' : 'inactive'}`}>{card.active ? 'Active' : 'Inactive'}</span>
@@ -204,8 +317,8 @@ export default function OfferCards() {
         <div>
           <h1 className="offers-title">Offer Cards</h1>
           <p className="oc-muted">
-            Cards for the &quot;Offer Cards&quot; row on App Home. A deal card shows a Deal Price offer (made on the Coupons page) with one tab per price.
-            After saving, add the card to an Offer Cards section on App Home.
+            Cards for the &quot;Offer Cards&quot; row on App Home. Pick a template for each card: Template 1 shows a Deal Price offer (made on the Coupons page) with one tab per price;
+            Template 2 &ldquo;Deals of the day&rdquo; shows products you pick. After saving, add the card to an Offer Cards section on App Home.
           </p>
         </div>
         <button className="btn-primary" onClick={() => setEditing(null)}>+ New Card</button>
@@ -217,7 +330,7 @@ export default function OfferCards() {
         <div style={{ textAlign: 'center', padding: '2rem' }}>Loading cards...</div>
       ) : cards.length === 0 ? (
         <div className="oc-empty">
-          No cards yet. {deals.length === 0 ? 'First create a Deal Price offer on the Coupons page, then make a card for it.' : 'Create one to show a deal on App Home.'}
+          No cards yet. Create one and pick its template.
         </div>
       ) : (
         <section className="oc-grid">
@@ -229,21 +342,45 @@ export default function OfferCards() {
 
       {editing !== undefined && (
         <OfferCardDrawer
+          key={editing?.id ?? 'new'}
           card={editing}
           deals={deals}
           modes={modes}
           onClose={() => setEditing(undefined)}
           onSaved={() => { setEditing(undefined); load(); }}
+          onCreated={async (id) => {
+            // A product card's products are added once it exists: reopen it.
+            load();
+            try {
+              const res = await OfferCardsApi.get(id);
+              setEditing(res?.data || res);
+            } catch {
+              setEditing(undefined);
+            }
+          }}
         />
       )}
     </div>
   );
 }
 
+// Stand-in content for the template picker's previews.
+const SAMPLE_PRODUCTS = [
+  { id: 1, name: 'Hide & Seek Parle', unit: '200 g', price: 39, mrp: 60 },
+  { id: 2, name: 'Karachi Bakery Osmania', unit: '400 g', price: 140, mrp: 200 },
+  { id: 3, name: 'Amul Butter', unit: '100 g', price: 56, mrp: 62 },
+];
+const SAMPLE_TIERS = [9, 29, 49].map((price) => ({
+  price,
+  items: [{ id: price, name: 'Chips Pack', unit: '1 packet', regularPrice: price + 11, dealPrice: price }],
+}));
+
 const toLocalInput = (value) => (value ? String(value).replace(' ', 'T').slice(0, 16) : '');
 
-function OfferCardDrawer({ card, deals, modes, onClose, onSaved }) {
+function OfferCardDrawer({ card, deals, modes, onClose, onSaved, onCreated }) {
   const isEdit = Boolean(card);
+  // A new card starts with the template choice; a saved one keeps its own.
+  const [design, setDesign] = useState(card?.design || null);
   const [form, setForm] = useState(() => ({
     title: card?.title || '',
     subtitle: card?.subtitle || '',
@@ -254,14 +391,21 @@ function OfferCardDrawer({ card, deals, modes, onClose, onSaved }) {
     active: card ? Boolean(card.active) : true,
     starts_at: toLocalInput(card?.starts_at),
     ends_at: toLocalInput(card?.ends_at),
-    style: { ...DEFAULT_STYLE, ...(card?.style || {}) },
+    style: styleOf(card),
   }));
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState(null);
   const fileInputRef = useRef(null);
-  const tiers = useDealTiers(form.deal_coupon_id);
-  const previewCard = useMemo(() => ({ ...form, image_url: form.image_url }), [form]);
+  const isDayCard = design === 'deals_of_day';
+  const tiers = useDealTiers(isDayCard ? null : form.deal_coupon_id);
+  const [products, setProducts] = useState([]);
+  const previewCard = useMemo(() => ({ ...form, design, image_url: form.image_url }), [form, design]);
+
+  const chooseTemplate = (next) => {
+    setDesign(next);
+    setForm((prev) => ({ ...prev, style: { ...DEFAULT_STYLES[next] } }));
+  };
 
   const set = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
   const setStyle = (key, value) => setForm((prev) => ({ ...prev, style: { ...prev.style, [key]: value } }));
@@ -291,21 +435,26 @@ function OfferCardDrawer({ card, deals, modes, onClose, onSaved }) {
     setSaving(true);
     setMessage(null);
     const payload = {
-      design: 'deal_tabs',
+      design,
       title: form.title,
       subtitle: form.subtitle,
-      deal_coupon_id: form.deal_coupon_id ? Number(form.deal_coupon_id) : null,
+      deal_coupon_id: !isDayCard && form.deal_coupon_id ? Number(form.deal_coupon_id) : null,
       store_type: form.store_type,
       image_id: form.image_id || null,
       active: form.active,
       starts_at: form.starts_at || null,
       ends_at: form.ends_at || null,
-      style: { ...form.style, rowsPerTab: Number(form.style.rowsPerTab) || 3 },
+      style: { ...form.style, rowsPerTab: Number(form.style.rowsPerTab) || DEFAULT_STYLES[design].rowsPerTab },
     };
     try {
-      if (isEdit) await OfferCardsApi.update(card.id, payload);
-      else await OfferCardsApi.create(payload);
-      onSaved();
+      if (isEdit) {
+        await OfferCardsApi.update(card.id, payload);
+        onSaved();
+      } else {
+        const res = await OfferCardsApi.create(payload);
+        if (isDayCard && res?.id) onCreated(res.id);
+        else onSaved();
+      }
     } catch (err) {
       setMessage({ type: 'error', text: err.message || GENERIC_ERROR });
       setSaving(false);
@@ -333,10 +482,34 @@ function OfferCardDrawer({ card, deals, modes, onClose, onSaved }) {
             <button type="button" className="drawer-close" onClick={onClose}>&times;</button>
           </div>
 
+          {!design ? (
+            <div className="drawer-body">
+              <p className="oc-muted" style={{ marginBottom: '0.75rem' }}>Pick a template. A card keeps its template; to change it, make a new card.</p>
+              <div className="oc-templates">
+                {TEMPLATES.map((t) => (
+                  <button type="button" key={t.design} className="oc-template" onClick={() => chooseTemplate(t.design)}>
+                    <div className="oc-template-preview">
+                      {t.design === 'deals_of_day'
+                        ? <DealsOfDayCardPreview card={{ title: 'Deals of the day', design: t.design }} products={SAMPLE_PRODUCTS} />
+                        : <DealTabsCardPreview card={{ title: 'Items from ₹9 everyday!', design: t.design }} tiers={SAMPLE_TIERS} />}
+                    </div>
+                    <b>{t.name}</b>
+                    <span className="oc-muted">{t.blurb}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
           <div className="drawer-body oc-drawer-body">
             <div className="oc-drawer-form">
               {message && <p className={`upload-message ${message.type}`}>{message.text}</p>}
 
+              <div className="oc-template-chip">
+                {templateOf(design).name}
+                {!isEdit && <button type="button" className="action-link" onClick={() => setDesign(null)}>Change</button>}
+              </div>
+
+              {!isDayCard && (
               <div className="form-group">
                 <label className="form-label">Deal *</label>
                 <select required className="form-select" value={form.deal_coupon_id} onChange={(e) => set('deal_coupon_id', e.target.value)}>
@@ -345,16 +518,30 @@ function OfferCardDrawer({ card, deals, modes, onClose, onSaved }) {
                 </select>
                 {deals.length === 0 && <p className="oc-muted">No Deal Price offers yet — create one on the Coupons page (template &quot;Deal Price&quot;).</p>}
               </div>
+              )}
 
               <div className="form-group">
                 <label className="form-label">Title *</label>
-                <input required maxLength={120} className="form-input" value={form.title} onChange={(e) => set('title', e.target.value)} placeholder="e.g. Items from ₹9 everyday!" />
+                <input required maxLength={120} className="form-input" value={form.title} onChange={(e) => set('title', e.target.value)} placeholder={isDayCard ? 'e.g. Deals of the day' : 'e.g. Items from ₹9 everyday!'} />
               </div>
               <div className="form-group">
                 <label className="form-label">Subtitle</label>
-                <p className="image-dimension-hint">Shown on the Deal page. On the Home card it shows only when the deal has no minimum order — otherwise the &ldquo;Shop for ₹X more&rdquo; line takes its place.</p>
-                <input maxLength={255} className="form-input" value={form.subtitle} onChange={(e) => set('subtitle', e.target.value)} placeholder="e.g. Get any 1 item when you shop for ₹299" />
+                <p className="image-dimension-hint">
+                  {isDayCard
+                    ? 'Shown under the title on the card (when it has no header picture) and on its See all page.'
+                    : <>Shown on the Deal page. On the Home card it shows only when the deal has no minimum order — otherwise the &ldquo;Shop for ₹X more&rdquo; line takes its place.</>}
+                </p>
+                <input maxLength={255} className="form-input" value={form.subtitle} onChange={(e) => set('subtitle', e.target.value)} placeholder={isDayCard ? 'e.g. Fresh prices, today only' : 'e.g. Get any 1 item when you shop for ₹299'} />
               </div>
+
+              {isDayCard && (
+                <div className="form-group">
+                  <label className="form-label">Products</label>
+                  {isEdit
+                    ? <OfferCardProductsPanel cardId={card.id} onChange={setProducts} />
+                    : <p className="oc-muted">Save the card first — then you can add its products here.</p>}
+                </div>
+              )}
 
               <div className="form-group">
                 <label className="form-label">Show in mode</label>
@@ -365,8 +552,12 @@ function OfferCardDrawer({ card, deals, modes, onClose, onSaved }) {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Corner picture (optional)</label>
-                <p className="image-dimension-hint">Small art in the top-right corner. Recommended 300 × 300 px PNG or WebP with a transparent background.</p>
+                <label className="form-label">{isDayCard ? 'Header picture (optional)' : 'Corner picture (optional)'}</label>
+                <p className="image-dimension-hint">
+                  {isDayCard
+                    ? 'Wide art across the top of the card, like "DEALS OF THE DAY". Recommended 900 × 300 px PNG or WebP. Without it, the title shows big and bold.'
+                    : 'Small art in the top-right corner. Recommended 300 × 300 px PNG or WebP with a transparent background.'}
+                </p>
                 <div className="oc-image-row">
                   {form.image_url && <img src={normalizeImageUrl(form.image_url)} alt="" className="oc-image-thumb" />}
                   <button type="button" className="btn-secondary" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
@@ -380,20 +571,23 @@ function OfferCardDrawer({ card, deals, modes, onClose, onSaved }) {
               <div className="form-group">
                 <label className="form-label">Look</label>
                 <div className="oc-presets">
-                  {PRESETS.map((p) => (
+                  {PRESETS[design].map((p) => (
                     <button
                       type="button" key={p.name} className="oc-preset"
-                      style={{ background: (p.style.bgColor || DEFAULT_STYLE.bgColor), borderColor: (p.style.tabColor || DEFAULT_STYLE.tabColor) }}
-                      onClick={() => setForm((prev) => ({ ...prev, style: { ...prev.style, ...DEFAULT_STYLE, ...p.style, buttonText: prev.style.buttonText, footerText: prev.style.footerText, rowsPerTab: prev.style.rowsPerTab } }))}
+                      style={{
+                        background: p.style.bgColor || DEFAULT_STYLES[design].bgColor,
+                        borderColor: isDayCard ? (p.style.accentColor || DEFAULT_STYLES[design].accentColor) : (p.style.tabColor || DEFAULT_STYLE.tabColor),
+                      }}
+                      onClick={() => setForm((prev) => ({ ...prev, style: { ...prev.style, ...DEFAULT_STYLES[design], ...p.style, buttonText: prev.style.buttonText, footerText: prev.style.footerText, rowsPerTab: prev.style.rowsPerTab } }))}
                     >
                       {p.name}
                     </button>
                   ))}
                 </div>
                 <div className="oc-colors">
-                  {COLOR_FIELDS.map(({ key, label }) => (
+                  {COLOR_FIELDS[design].map(({ key, label }) => (
                     <label key={key} className="oc-color">
-                      <input type="color" value={(form.style[key] || DEFAULT_STYLE[key]).slice(0, 7)} onChange={(e) => setStyle(key, e.target.value.toUpperCase())} />
+                      <input type="color" value={(form.style[key] || DEFAULT_STYLES[design][key]).slice(0, 7)} onChange={(e) => setStyle(key, e.target.value.toUpperCase())} />
                       <span>{label}</span>
                     </label>
                   ))}
@@ -406,7 +600,7 @@ function OfferCardDrawer({ card, deals, modes, onClose, onSaved }) {
                   <input maxLength={20} className="form-input" value={form.style.buttonText} onChange={(e) => setStyle('buttonText', e.target.value)} />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Products per tab</label>
+                  <label className="form-label">{isDayCard ? 'Products on the card' : 'Products per tab'}</label>
                   <input type="number" min={1} max={6} className="form-input" value={form.style.rowsPerTab} onChange={(e) => setStyle('rowsPerTab', e.target.value)} />
                 </div>
               </div>
@@ -433,10 +627,13 @@ function OfferCardDrawer({ card, deals, modes, onClose, onSaved }) {
             </div>
 
             <div className="oc-drawer-preview">
-              <div className="oc-muted" style={{ marginBottom: '0.5rem' }}>Preview (tap a tab)</div>
-              <DealTabsCardPreview card={previewCard} tiers={tiers} minOrder={minOrderOf(deals, form.deal_coupon_id)} />
+              <div className="oc-muted" style={{ marginBottom: '0.5rem' }}>{isDayCard ? 'Preview' : 'Preview (tap a tab)'}</div>
+              {isDayCard
+                ? <DealsOfDayCardPreview card={previewCard} products={products} />
+                : <DealTabsCardPreview card={previewCard} tiers={tiers} minOrder={minOrderOf(deals, form.deal_coupon_id)} />}
             </div>
           </div>
+          )}
 
           <div className="drawer-footer">
             {isEdit && (
@@ -445,7 +642,7 @@ function OfferCardDrawer({ card, deals, modes, onClose, onSaved }) {
               </button>
             )}
             <button type="button" className="btn-secondary" onClick={onClose} disabled={saving}>Cancel</button>
-            <button type="submit" className="btn-primary" disabled={saving || uploading}>{saving ? 'Saving...' : 'Save Card'}</button>
+            <button type="submit" className="btn-primary" disabled={!design || saving || uploading}>{saving ? 'Saving...' : 'Save Card'}</button>
           </div>
         </form>
       </div>

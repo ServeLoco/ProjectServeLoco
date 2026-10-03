@@ -290,6 +290,11 @@ export const OfferCardsApi = {
   create: (data) => apiClient('/admin/offer-cards', { method: 'POST', body: data }),
   update: (id, data) => apiClient(`/admin/offer-cards/${id}`, { method: 'PATCH', body: data }),
   delete: (id) => apiClient(`/admin/offer-cards/${id}`, { method: 'DELETE' }),
+  // The products of a "Deals of the day" card (template 2).
+  products: (id) => apiClient(`/admin/offer-cards/${id}/products`, { method: 'GET' }),
+  addProduct: (id, data) => apiClient(`/admin/offer-cards/${id}/products`, { method: 'POST', body: data }),
+  removeProduct: (id, itemId) => apiClient(`/admin/offer-cards/${id}/products/${itemId}`, { method: 'DELETE' }),
+  reorderProducts: (id, itemIds) => apiClient(`/admin/offer-cards/${id}/products/reorder`, { method: 'PATCH', body: { itemIds } }),
 };
 
 export const AnalyticsApi = {

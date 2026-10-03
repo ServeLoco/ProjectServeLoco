@@ -986,7 +986,7 @@ export default function MobileDashboard() {
                               {details.price && ` • ₹${details.price}`}
                               {(details.store_type || details.type) && ` • ${modeLabel(modes, details.store_type || details.type)}`}
                               {item.item_type === 'offer' && ` • ${details.active ? 'Active' : 'Inactive'}`}
-                              {item.item_type === 'offer_card' && details.deal_title && ` • ${details.deal_title}`}
+                              {item.item_type === 'offer_card' && (details.design === 'deals_of_day' ? ' • Deals of the day' : details.deal_title && ` • ${details.deal_title}`)}
                               {item.item_type === 'offer_card' && ` • ${details.active ? 'Active' : 'Inactive'}`}
                             </div>
                           </div>
@@ -1091,7 +1091,7 @@ export default function MobileDashboard() {
                     <option value="category_grid">Category Grid</option>
                     <option value="product_block">Product Block</option>
                     <option value="combo_block">Combo Block</option>
-                    <option value="offer_cards">Offer Cards (₹9 / ₹29 deals)</option>
+                    <option value="offer_cards">Offer Cards (deal tabs, deals of the day)</option>
                   </select>
                 </div>
 
@@ -1351,7 +1351,7 @@ export default function MobileDashboard() {
                               {isOfferBanner && ` • ${cand.active ? 'Active' : 'Inactive'}`}
                               {isOfferBanner && ` • ${cand.isClickable || cand.is_clickable ? 'Clickable' : 'Image only'}`}
                               {isOfferBanner && !hasImage && <span style={{color: 'var(--danger-color)'}}> • Missing image</span>}
-                              {isOfferCard && cand.dealTitle && ` • ${cand.dealTitle}`}
+                              {isOfferCard && (cand.design === 'deals_of_day' ? ' • Deals of the day' : cand.dealTitle && ` • ${cand.dealTitle}`)}
                               {isOfferCard && ` • ${cand.active ? 'Active' : 'Inactive'}`}
                               {isInactiveOffer && <span style={{color: 'var(--danger-color)'}}> • Activate offer first</span>}
                             </div>
