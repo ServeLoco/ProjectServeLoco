@@ -29,6 +29,7 @@ import {
   ProfileScreen,
   ProductListScreen,
   DealScreen,
+  OfferCardScreen,
   ProductDetailScreen,
   CartScreen,
   CheckoutScreen,
@@ -398,6 +399,7 @@ function CustomerNavigatorTree({ isAuthenticated }) {
             <Stack.Screen name="Categories"    component={CategoriesScreen} />
             <Stack.Screen name="ProductList"   component={ProductListScreen} />
             <Stack.Screen name="Deal"          component={DealScreen} />
+            <Stack.Screen name="OfferCard"     component={OfferCardScreen} />
             <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
 
             {/* Checkout Flow */}

@@ -1329,11 +1329,10 @@ export default function HomeScreen() {
       } else if (section.sectionType === 'offer_cards' && Array.isArray(section.items)) {
         for (const card of section.items) {
           if (card.imageUrl) urls.push(card.imageUrl);
-          for (const tier of card.deal?.tiers || []) {
-            for (const item of tier.items || []) {
-              const u = item.thumbUrl || item.imageUrl;
-              if (u) urls.push(u);
-            }
+          const cardItems = [...(card.deal?.tiers || []).flatMap((tier) => tier.items || []), ...(card.products || [])];
+          for (const item of cardItems) {
+            const u = item.thumbUrl || item.imageUrl;
+            if (u) urls.push(u);
           }
         }
       }

@@ -1,4 +1,5 @@
 import DealTabsCard, { cardStyleOf } from './DealTabsCard';
+import DealsOfDayCard, { dayCardStyleOf } from './DealsOfDayCard';
 
 /**
  * Every offer card design (type) the app can draw, by the card's `design`.
@@ -19,6 +20,12 @@ export const OFFER_CARD_DESIGNS = {
     canDraw: (card) => Boolean(card.deal?.tiers?.length),
     colorOf: (card) => cardStyleOf(card).tabColor,
     viewAll: (card) => ({ name: 'Deal', params: { couponId: card.dealId, card } }),
+  },
+  deals_of_day: {
+    Component: DealsOfDayCard,
+    canDraw: (card) => Boolean(card.products?.length),
+    colorOf: (card) => dayCardStyleOf(card).accentColor,
+    viewAll: (card) => ({ name: 'OfferCard', params: { cardId: card.id, card } }),
   },
 };
 
