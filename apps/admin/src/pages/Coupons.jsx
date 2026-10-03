@@ -3,6 +3,7 @@ import { CouponsApi, CustomersApi, DeliveryZonesApi } from '../api';
 import { Loading, ErrorState, EmptyState } from '../components/SharedUI';
 import { useStoreModes } from '../hooks/useStoreModes';
 import PickAreaNotice from '../components/PickAreaNotice';
+import DealItemsPanel from '../components/DealItemsPanel';
 import { useAreaStore } from '../stores/useAreaStore';
 import './Coupons.css';
 
@@ -84,6 +85,31 @@ const COUPON_TEMPLATES = [
     }),
   },
   {
+    id: 'deal_price',
+    label: 'Deal Price (\u20B99 / \u20B929 / \u20B949)',
+    description: 'Sell chosen items at a special price once the rest of the cart reaches a minimum. Works together with other coupons.',
+    icon: '\uD83C\uDFF7\uFE0F',
+    fieldGroups: [
+      'title', 'description', 'applies_to',
+      'min_order_amount', 'deal_max_items',
+      'per_user_usage_limit', 'total_usage_limit',
+      'target_audience',
+      'starts_at', 'ends_at', 'active_days_mask', 'active_time_start', 'active_time_end',
+      'active', 'priority',
+    ],
+    buildDefaults: () => ({
+      ...EMPTY_FORM,
+      discount_type: 'deal_price',
+      discount_value: '0',
+      min_order_amount: '299',
+      deal_max_items: '1',
+      per_user_usage_limit: '',
+      requires_code: false,
+      auto_apply: true,
+      active: true,
+    }),
+  },
+  {
     id: 'custom',
     label: 'Custom Coupon',
     description: 'Full control over validity windows, targeting, and usage limits.',
@@ -138,9 +164,31 @@ const EMPTY_FORM = {
   target_audience: 'all', auto_apply: false, requires_code: true, priority: '0', active: true,
   targeted_user_ids: [],
   target_zones: 'all', targeted_zone_ids: [],
+  deal_max_items: '1',
 };
 
+function DealPreview({ form }) {
+  const minOrder = Number(form.min_order_amount || 0);
+  const maxItems = Number(form.deal_max_items || 1);
+  return (
+    <div className="coupon-preview">
+      <div className="coupon-preview-card">
+        <div className="coupon-preview-badges"><span className="coupon-preview-auto-badge">AUTO</span></div>
+        <div className="coupon-preview-title">{form.title || 'Untitled deal'}</div>
+        <div className="coupon-preview-savings">Get any {maxItems} item{maxItems === 1 ? '' : 's'} at the deal price</div>
+        <div className="coupon-preview-hint">{minOrder > 0 ? `When you shop for \u20B9${minOrder}` : 'On any order'}</div>
+      </div>
+      <div className="coupon-preview-example">
+        {minOrder > 0
+          ? `The \u20B9${minOrder} counts only the OTHER items in the cart. Once reached, up to ${maxItems} deal item${maxItems === 1 ? '' : 's'} sell at their deal price (biggest saving first). Other coupons still apply on top. VillKro pays the difference; shops get their normal price.`
+          : `Up to ${maxItems} deal item${maxItems === 1 ? '' : 's'} sell at their deal price on every order. Other coupons still apply on top.`}
+      </div>
+    </div>
+  );
+}
+
 function CouponPreview({ form }) {
+  if (form.discount_type === 'deal_price') return <DealPreview form={form} />;
   const isAuto = Boolean(form.auto_apply);
   const requiresCode = form.requires_code !== false;
   const hasCode = Boolean(form.code && form.code.trim());
@@ -307,9 +355,14 @@ export default function Coupons() {
         targeted_user_ids: (c.targetedUsers || []).map(u => u.user_id),
         target_zones: c.target_zones || 'all',
         targeted_zone_ids: (c.targetedZones || []).map(z => z.delivery_zone_id),
+        deal_max_items: c.deal_max_items != null ? String(c.deal_max_items) : '1',
       });
+      // A deal's per-user limit is "no limit" when empty, not 1.
+      if (c.discount_type === 'deal_price' && c.per_user_usage_limit === null) {
+        setForm(prev => ({ ...prev, per_user_usage_limit: '' }));
+      }
       setEditingId(id); setShowForm(true); setFormError(null);
-      setSelectedTemplateId('custom'); setWizardStep('form');
+      setSelectedTemplateId(c.discount_type === 'deal_price' ? 'deal_price' : 'custom'); setWizardStep('form');
     } catch (err) { setError(err.message || 'Failed to load coupon'); }
   };
 
@@ -406,6 +459,16 @@ export default function Coupons() {
       if (!payload.per_user_usage_limit) payload.per_user_usage_limit = null;
       if (!payload.first_n_orders) payload.first_n_orders = null;
       if (payload.discount_type === 'free_delivery') { payload.discount_value = 0; payload.also_free_delivery = false; }
+      const isDeal = payload.discount_type === 'deal_price';
+      if (isDeal) {
+        Object.assign(payload, { code: null, requires_code: false, auto_apply: true, discount_value: 0, also_free_delivery: false });
+        if (!Number(payload.deal_max_items) || Number(payload.deal_max_items) < 1) {
+          setFormError('"Get any N items" must be at least 1');
+          return;
+        }
+      } else {
+        delete payload.deal_max_items;
+      }
 
       // Client-side validation for percent discounts
       if (payload.discount_type === 'percent' && (Number(payload.discount_value) < 0 || Number(payload.discount_value) > 100)) {
@@ -421,7 +484,17 @@ export default function Coupons() {
       }
       
       if (editingId) { await CouponsApi.update(editingId, payload); }
-      else { await CouponsApi.create(payload); }
+      else {
+        const res = await CouponsApi.create(payload);
+        // A new deal has no items yet: stay in the form, now editing it, so
+        // the admin can add the products right away.
+        if (isDeal && res?.id) {
+          setEditingId(res.id);
+          setFormError(null);
+          fetchCoupons();
+          return;
+        }
+      }
       setShowForm(false); setEditingId(null); setForm(EMPTY_FORM);
       setWizardStep('template'); setSelectedTemplateId(null);
       fetchCoupons();
@@ -441,6 +514,10 @@ export default function Coupons() {
     if (c.discount_type === 'flat') return `Rs.${Number(c.discount_value)} off${freeDeliverySuffix}`;
     if (c.discount_type === 'percent') return `${Number(c.discount_value)}% off${c.max_discount_amount ? ` (max Rs.${Number(c.max_discount_amount)})` : ''}${freeDeliverySuffix}`;
     if (c.discount_type === 'free_delivery') return 'Free Delivery';
+    if (c.discount_type === 'deal_price') {
+      const n = Number(c.deal_max_items) || 1;
+      return `Deal price \u00B7 any ${n} item${n === 1 ? '' : 's'} \u00B7 ${c.dealItemCount ?? 0} products`;
+    }
     return '—';
   };
 
@@ -565,6 +642,18 @@ export default function Coupons() {
                     )}
                   </fieldset>
                 )}
+                {showField('deal_max_items') && (
+                  <fieldset><legend>Deal</legend>
+                    <div className="form-row">
+                      <label>Get any N items *</label>
+                      <input type="number" min="1" step="1" value={form.deal_max_items} onChange={e => handleFormChange('deal_max_items', e.target.value)} required />
+                      <span className="form-hint">How many deal items one order can get at the deal price. Instamart-style &quot;get any 1 item&quot; = 1.</span>
+                    </div>
+                    <p className="coupon-form-info">
+                      Min Order below counts only the other items in the cart, not the deal item itself. This deal works together with the customer&apos;s normal coupon.
+                    </p>
+                  </fieldset>
+                )}
                 {showAnyField('min_order_amount', 'max_order_amount', 'min_item_count', 'per_user_usage_limit', 'total_usage_limit', 'first_order_only', 'first_n_orders') && (
                   <fieldset><legend>Eligibility</legend>
                     {(showField('min_order_amount') || showField('max_order_amount')) && (
@@ -595,7 +684,7 @@ export default function Coupons() {
                     {(showField('per_user_usage_limit') || showField('total_usage_limit')) && (
                       <div className="form-row-2">
                         {showField('per_user_usage_limit') && (
-                          <div className="form-row"><label>Per-User Limit</label><input type="number" min="0" value={form.per_user_usage_limit} onChange={e => handleFormChange('per_user_usage_limit', e.target.value)} placeholder="1" /></div>
+                          <div className="form-row"><label>Per-User Limit</label><input type="number" min="0" value={form.per_user_usage_limit} onChange={e => handleFormChange('per_user_usage_limit', e.target.value)} placeholder={form.discount_type === 'deal_price' ? 'No limit' : '1'} /></div>
                         )}
                         {showField('total_usage_limit') && (
                           <div className="form-row"><label>Total Usage Limit</label><input type="number" min="0" value={form.total_usage_limit} onChange={e => handleFormChange('total_usage_limit', e.target.value)} placeholder="No limit" /></div>
@@ -671,6 +760,15 @@ export default function Coupons() {
                 <fieldset><legend>Preview</legend>
                   <CouponPreview form={form} />
                 </fieldset>
+                {form.discount_type === 'deal_price' && (
+                  <fieldset><legend>Deal items</legend>
+                    {editingId ? (
+                      <DealItemsPanel couponId={editingId} />
+                    ) : (
+                      <p className="coupon-form-info">Create the deal first — then add its products and their deal prices here.</p>
+                    )}
+                  </fieldset>
+                )}
                 {showAnyField('auto_apply', 'requires_code', 'active', 'priority') && (
                   <fieldset><legend>Behaviour</legend>
                     {showField('auto_apply') && (
@@ -694,7 +792,7 @@ export default function Coupons() {
                 )}
                 <div className="coupon-form-actions">
                   <button type="button" className="btn-secondary" onClick={closeForm}>Cancel</button>
-                  <button type="submit" className="btn-primary" disabled={saving}>{saving ? 'Saving...' : (editingId ? 'Update Coupon' : 'Create Coupon')}</button>
+                  <button type="submit" className="btn-primary" disabled={saving}>{saving ? 'Saving...' : (editingId ? (form.discount_type === 'deal_price' ? 'Save Deal' : 'Update Coupon') : (form.discount_type === 'deal_price' ? 'Create Deal' : 'Create Coupon'))}</button>
                 </div>
               </form>
             )}

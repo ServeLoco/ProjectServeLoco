@@ -19,6 +19,7 @@ import Riders from './pages/Riders';
 import MobileAdmins from './pages/MobileAdmins';
 import Offers from './pages/Offers';
 import Coupons from './pages/Coupons';
+import OfferCards from './pages/OfferCards';
 import MobileDashboard from './pages/MobileDashboard';
 import Customers from './pages/Customers';
 import Notifications from './pages/Notifications';
@@ -92,6 +93,7 @@ function App() {
                     <Route path="/offers" element={<Offers />} />
                     <Route path="/coupons" element={<Coupons />} />
                     <Route path="/mobile-dashboard" element={<MobileDashboard />} />
+                    <Route path="/offer-cards" element={<OfferCards />} />
                     <Route path="/notifications" element={<Notifications />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/delivery-zones" element={<DeliveryZones />} />

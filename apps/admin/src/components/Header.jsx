@@ -14,6 +14,7 @@ const PAGE_META = {
   '/categories': { title: 'Categories', subtitle: 'Product categories' },
   '/offers': { title: 'Offers', subtitle: 'Promotions & discounts' },
   '/mobile-dashboard': { title: 'App Home', subtitle: 'Mobile app layout' },
+  '/offer-cards': { title: 'Offer Cards', subtitle: 'Deal cards for App Home' },
   '/customers': { title: 'Customers', subtitle: 'User management' },
   '/notifications': { title: 'Notifications', subtitle: 'Push alerts' },
   '/settings': { title: 'Settings', subtitle: 'Store configuration' },
