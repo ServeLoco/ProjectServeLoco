@@ -558,6 +558,13 @@ const maybeAutoCancelOrderWhenAllShopsRejected = async (orderId) => {
           [orderId, order.coupon_id]
         );
       }
+      // The deal price (if any) was redeemed as its own row.
+      if (order.deal_coupon_id) {
+        await connection.query(
+          "UPDATE coupon_redemptions SET status = 'cancelled' WHERE order_id = ? AND coupon_id = ?",
+          [orderId, order.deal_coupon_id]
+        );
+      }
       await connection.commit();
       cancelled = true;
     } catch (err) {

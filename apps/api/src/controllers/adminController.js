@@ -1209,6 +1209,7 @@ const getAdminOrders = async (req, res) => {
   let query = `SELECT o.id, o.order_number, o.customer_id, o.customer_name, o.phone, o.whatsapp_number, o.address,
     o.latitude, o.longitude, o.map_url, o.subtotal, o.delivery_charge, o.night_charge, o.rain_charge, o.fast_delivery_charge, o.total, o.delivery_type,
     o.coupon_id, o.coupon_code, o.coupon_title, o.discount_amount, o.free_delivery_waiver_amount,
+    o.deal_coupon_id, o.deal_title, o.deal_discount_amount,
     o.payment_method, o.payment_status, o.status, o.note, o.admin_remark, o.cancel_reason, o.created_at, o.updated_at,
     o.rider_id, o.rider_assigned_at, o.rider_picked_up_at, o.rider_assignment_status,
     r.display_name AS rider_name, u.trusted AS customer_trusted
@@ -1335,6 +1336,10 @@ const getAdminOrders = async (req, res) => {
       couponTitle: row.coupon_title,
       discountAmount: row.discount_amount,
       freeDeliveryWaiverAmount: row.free_delivery_waiver_amount,
+      // discount_amount is coupon + deal; the deal's share and title.
+      dealCouponId: row.deal_coupon_id,
+      dealTitle: row.deal_title,
+      dealDiscountAmount: row.deal_discount_amount,
       customer_trusted: Boolean(row.customer_trusted),
       customerTrusted: Boolean(row.customer_trusted),
       items: itemsByOrderId[row.id] || [],
@@ -1363,6 +1368,7 @@ const getAdminOrderById = async (req, res) => {
     `SELECT o.id, o.order_number, o.customer_id, o.customer_name, o.phone, o.whatsapp_number, o.address,
       o.latitude, o.longitude, o.map_url, o.subtotal, o.delivery_charge, o.night_charge, o.rain_charge, o.fast_delivery_charge, o.total, o.delivery_type,
       o.coupon_id, o.coupon_code, o.coupon_title, o.discount_amount, o.free_delivery_waiver_amount,
+      o.deal_coupon_id, o.deal_title, o.deal_discount_amount,
       o.payment_method, o.payment_status, o.status, o.note, o.admin_remark, o.cancel_reason, o.created_at, o.updated_at,
       o.rider_id, o.rider_assigned_at, o.rider_picked_up_at, o.rider_assignment_status,
       -- Order lifecycle timestamps, for the drawer's Timeline section. Every
@@ -1397,6 +1403,10 @@ const getAdminOrderById = async (req, res) => {
   order.couponTitle = order.coupon_title;
   order.discountAmount = order.discount_amount;
   order.freeDeliveryWaiverAmount = order.free_delivery_waiver_amount;
+  // discount_amount is coupon + deal; the deal's share and title.
+  order.dealCouponId = order.deal_coupon_id;
+  order.dealTitle = order.deal_title;
+  order.dealDiscountAmount = order.deal_discount_amount;
   order.customer_trusted = Boolean(order.customer_trusted);
   order.customerTrusted = order.customer_trusted;
   order.couponApplied = Boolean(order.coupon_id || order.coupon_code);
@@ -1591,6 +1601,13 @@ const updateOrderStatus = async (req, res) => {
             [id, orderRows[0].coupon_id]
           );
         }
+        // The deal price (if any) was redeemed as its own row.
+        if (orderRows[0].deal_coupon_id) {
+          await connection.query(
+            "UPDATE coupon_redemptions SET status = 'cancelled' WHERE order_id = ? AND coupon_id = ?",
+            [id, orderRows[0].deal_coupon_id]
+          );
+        }
         await connection.commit();
       }
     } catch (err) {
@@ -1628,6 +1645,12 @@ const updateOrderStatus = async (req, res) => {
           await connection.query(
             "UPDATE coupon_redemptions SET status = 'active' WHERE order_id = ? AND coupon_id = ? AND status = 'cancelled'",
             [id, orderRows[0].coupon_id]
+          );
+        }
+        if (orderRows[0].deal_coupon_id) {
+          await connection.query(
+            "UPDATE coupon_redemptions SET status = 'active' WHERE order_id = ? AND coupon_id = ? AND status = 'cancelled'",
+            [id, orderRows[0].deal_coupon_id]
           );
         }
         // Clear per-shop state too, otherwise a shop that rejected before the
