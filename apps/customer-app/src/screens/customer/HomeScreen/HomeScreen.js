@@ -101,7 +101,7 @@ const OFFER_CARD_GAP = 10;
 
 // Every offer card type has the same width: one card fills most of the
 // width; with more, the next one peeks.
-const offerCardWidthFor = (count, contentWidth) => (count === 1 ? contentWidth : Math.floor(contentWidth * 0.8));
+const offerCardWidthFor = (count, contentWidth) => (count === 1 ? contentWidth : Math.floor(contentWidth * 0.75));
 // Home draws its sections a few at a time: this many at first, then one more
 // each time the customer scrolls within a screen of the end of what is drawn.
 const SECTIONS_INITIAL = 2;

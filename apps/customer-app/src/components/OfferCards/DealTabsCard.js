@@ -9,7 +9,7 @@ import { useReducedMotion } from '../../utils';
 
 const SHINE_WIDTH = 70;
 // Every product row is this tall, so the list keeps one height on every tab.
-const ROW_HEIGHT = 52;
+const ROW_HEIGHT = 46;
 const SHIMMER_WIDTH = 46;
 const UNLOCKED_COLOR = '#1E9E5A';
 // The little burst when the deal unlocks: where each spark flies, and its colour.
@@ -49,7 +49,7 @@ function DealRow({ item, look, selected, onSelect }) {
   const label = item.dealVariantLabel || item.unit || '';
   return (
     <View style={[styles.row, unavailable && styles.rowUnavailable]}>
-      <ProductImage uri={item.thumbUrl || item.imageUrl} width={40} height={40} borderRadius={8} resizeMode="contain" style={styles.rowImage} />
+      <ProductImage uri={item.thumbUrl || item.imageUrl} width={36} height={36} borderRadius={8} resizeMode="contain" style={styles.rowImage} />
       <View style={styles.rowBody}>
         <Text style={styles.rowName} numberOfLines={2}>{item.name}</Text>
         {label ? <Text style={styles.rowUnit} numberOfLines={1}>{label}</Text> : null}
@@ -387,7 +387,7 @@ const styles = StyleSheet.create({
   },
   head: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 12, paddingTop: 10, gap: 8 },
   headText: { flex: 1 },
-  title: { fontSize: 16, lineHeight: 20, fontWeight: '800', letterSpacing: -0.2 },
+  title: { fontSize: 15, lineHeight: 19, fontWeight: '800', letterSpacing: -0.2 },
   subtitle: { fontSize: 11.5, lineHeight: 15, marginTop: 2, fontWeight: '500' },
   art: { backgroundColor: 'transparent' },
   progressWrap: { paddingHorizontal: 12, marginTop: 6, gap: 3 },
@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    paddingVertical: 6,
+    paddingVertical: 5,
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
   },
@@ -426,22 +426,22 @@ const styles = StyleSheet.create({
   rowUnavailable: { opacity: 0.5 },
   rowImage: { backgroundColor: '#F6F6F8' },
   rowBody: { flex: 1, minWidth: 0 },
-  rowName: { fontSize: 12.5, lineHeight: 15, fontWeight: '700', color: '#1F1F1F' },
-  rowUnit: { fontSize: 11, color: '#8A8A8A', marginTop: 1 },
+  rowName: { fontSize: 12, lineHeight: 14.5, fontWeight: '700', color: '#1F1F1F' },
+  rowUnit: { fontSize: 10.5, color: '#8A8A8A', marginTop: 1 },
   selectBtn: {
     borderWidth: 1.5,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    borderRadius: 9,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     backgroundColor: '#F2F6FF',
-    minWidth: 62,
+    minWidth: 54,
     alignItems: 'center',
   },
   selectedInner: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  selectText: { fontSize: 12, fontWeight: '800' },
-  priceCol: { alignItems: 'flex-end', minWidth: 38 },
-  strike: { fontSize: 11, color: '#9A9A9A', textDecorationLine: 'line-through' },
-  dealPrice: { fontSize: 14, fontWeight: '800', color: '#1F1F1F' },
-  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2, paddingVertical: 8, marginTop: 'auto' },
-  footerText: { fontSize: 13, fontWeight: '800' },
+  selectText: { fontSize: 11.5, fontWeight: '800' },
+  priceCol: { alignItems: 'flex-end', minWidth: 34 },
+  strike: { fontSize: 10.5, color: '#9A9A9A', textDecorationLine: 'line-through' },
+  dealPrice: { fontSize: 13.5, fontWeight: '800', color: '#1F1F1F' },
+  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2, paddingVertical: 6, marginTop: 'auto' },
+  footerText: { fontSize: 12.5, fontWeight: '800' },
 });
