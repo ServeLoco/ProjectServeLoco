@@ -8,6 +8,8 @@ import DealSwapModal from './DealSwapModal';
 import { useReducedMotion } from '../../utils';
 
 const SHINE_WIDTH = 70;
+// Every product row is this tall, so the list keeps one height on every tab.
+const ROW_HEIGHT = 52;
 const SHIMMER_WIDTH = 46;
 const UNLOCKED_COLOR = '#1E9E5A';
 // The little burst when the deal unlocks: where each spark flies, and its colour.
@@ -263,12 +265,16 @@ function DealTabsCard({ card, width, onViewAll }) {
 
   if (tiers.length === 0) return null;
   const tier = tiers[Math.min(activeIndex, tiers.length - 1)];
-  const rows = tier.items.slice(0, Number(look.rowsPerTab) || 3);
+  const rowsPerTab = Number(look.rowsPerTab) || 3;
+  const rows = tier.items.slice(0, rowsPerTab);
+  // Room for the fullest tab, so switching tabs never changes the card's size.
+  const reservedRows = Math.min(rowsPerTab, Math.max(...tiers.map((t) => t.items.length)));
   const minOrder = Number(card.deal.minOrder) || 0;
 
   return (
     <Animated.View
       style={{
+        flex: 1,
         opacity: entry,
         transform: [
           { translateY: entry.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) },
@@ -327,6 +333,7 @@ function DealTabsCard({ card, width, onViewAll }) {
         <View style={styles.body}>
           <Animated.View
             style={{
+              minHeight: reservedRows * ROW_HEIGHT,
               opacity: rowsIn,
               transform: [{ translateX: rowsIn.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }],
             }}
@@ -373,6 +380,7 @@ export default memo(DealTabsCard);
 
 const styles = StyleSheet.create({
   card: {
+    flex: 1, // as tall as the tallest card in the row
     borderRadius: 18,
     overflow: 'hidden',
     borderWidth: 1,
@@ -404,14 +412,14 @@ const styles = StyleSheet.create({
   chip: { borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1 },
   chipText: { color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
   tabText: { fontSize: 12, fontWeight: '700' },
-  frame: { paddingHorizontal: 6, paddingBottom: 6 },
-  body: { backgroundColor: '#FFFFFF', paddingHorizontal: 10, paddingBottom: 2, borderBottomLeftRadius: 14, borderBottomRightRadius: 14 },
+  frame: { flex: 1, paddingHorizontal: 6, paddingBottom: 6 },
+  body: { flex: 1, backgroundColor: '#FFFFFF', paddingHorizontal: 10, paddingBottom: 2, borderBottomLeftRadius: 14, borderBottomRightRadius: 14 },
   shine: { position: 'absolute', top: -40, bottom: -40, left: 0, width: SHINE_WIDTH },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingVertical: 6,
+    height: ROW_HEIGHT,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#ECECEC',
   },
@@ -434,6 +442,6 @@ const styles = StyleSheet.create({
   priceCol: { alignItems: 'flex-end', minWidth: 38 },
   strike: { fontSize: 11, color: '#9A9A9A', textDecorationLine: 'line-through' },
   dealPrice: { fontSize: 14, fontWeight: '800', color: '#1F1F1F' },
-  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2, paddingVertical: 8 },
+  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2, paddingVertical: 8, marginTop: 'auto' },
   footerText: { fontSize: 13, fontWeight: '800' },
 });

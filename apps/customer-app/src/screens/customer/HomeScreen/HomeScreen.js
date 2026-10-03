@@ -4006,9 +4006,11 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
+  // Every card in the row is as tall as the tallest one (each card fills
+  // its cell), so cards of any template line up as one size.
   offerCardsRail: {
     paddingHorizontal: PAGE_GUTTER,
-    alignItems: 'flex-start',
+    alignItems: 'stretch',
   },
   productScrollContent: {
     paddingHorizontal: PAGE_GUTTER,

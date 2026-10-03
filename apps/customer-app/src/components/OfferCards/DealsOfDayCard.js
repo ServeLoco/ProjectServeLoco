@@ -169,6 +169,7 @@ function DealsOfDayCard({ card, width, onViewAll }) {
   return (
     <Animated.View
       style={{
+        flex: 1,
         opacity: entry,
         transform: [
           { translateY: entry.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) },
@@ -221,7 +222,7 @@ function DealsOfDayCard({ card, width, onViewAll }) {
 export default memo(DealsOfDayCard);
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 18, overflow: 'hidden', borderWidth: 1 },
+  card: { flex: 1, borderRadius: 18, overflow: 'hidden', borderWidth: 1 }, // as tall as the tallest card in the row
   banner: { backgroundColor: 'transparent' },
   head: { paddingHorizontal: 12, paddingTop: 12, paddingBottom: 9, alignItems: 'center', overflow: 'hidden' },
   headBig: { paddingTop: 4, paddingBottom: 14 },
@@ -243,7 +244,7 @@ const styles = StyleSheet.create({
   subtitleBig: { fontSize: 14, lineHeight: 19, marginTop: 4 },
   shine: { position: 'absolute', top: -30, bottom: -30, left: 0, width: SHINE_WIDTH },
   divider: { height: 1, backgroundColor: 'rgba(255, 255, 255, 0.8)' },
-  list: { paddingHorizontal: 10, paddingTop: 4 },
+  list: { flex: 1, paddingHorizontal: 10, paddingTop: 4 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6 },
   rowUnavailable: { opacity: 0.5 },
   rowImage: { backgroundColor: '#FFFFFF' },
