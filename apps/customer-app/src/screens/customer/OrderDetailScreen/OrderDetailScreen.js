@@ -548,7 +548,8 @@ export default function OrderDetailScreen() {
   const deliveryChargeLabel = order.bill.belowThresholdDelivery
     ? 'Delivery (Below Minimum)'
     : 'Delivery Charge';
-  const billDiscount = order.bill.freeDeliveryApplied ? order.bill.itemDiscount : order.bill.discount;
+  // Both include the deal saving, which has its own row.
+  const billDiscount = Math.max(0, (order.bill.freeDeliveryApplied ? order.bill.itemDiscount : order.bill.discount) - (order.bill.dealDiscount || 0));
   // Hide map after delivery or cancel — full sheet only (no live tracking map).
   const mapMode = order.status !== 'Cancelled' && order.status !== 'Delivered';
   const orderNumberLabel = order.orderNumber || order.order_number || order.id || orderId;
@@ -884,6 +885,14 @@ export default function OrderDetailScreen() {
               label="Rain Charge"
               value={`₹${order.bill.rainCharge}`}
               tone="warning"
+            />
+          ) : null}
+
+          {order.bill.dealDiscount > 0 ? (
+            <BillLineRow
+              label="Deal savings"
+              value={`- ₹${order.bill.dealDiscount}`}
+              tone="success"
             />
           ) : null}
 

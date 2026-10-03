@@ -172,6 +172,8 @@ describe('api mappers', () => {
         type: 'product',
         variantId: 3,
         variantLabel: '1L',
+        dealPrice: null,
+        dealQty: 0,
       },
       {
         id: '99',
@@ -182,8 +184,30 @@ describe('api mappers', () => {
         type: 'combo',
         variantId: null,
         variantLabel: null,
+        dealPrice: null,
+        dealQty: 0,
       },
     ]);
+  });
+
+  it('maps the deal price split and the deal block', () => {
+    const result = normalizeCartCalculation({
+      data: {
+        subtotal: 330,
+        discount: 31,
+        couponDiscount: 10,
+        dealDiscount: 21,
+        items: [{ id: 2, quantity: 1, unitPrice: 30, deal_price: '9.00', deal_qty: 1 }],
+        deal: { id: 50, title: '₹9ryday', discount: 21, unlocked: false, amount_remaining: 40, min_order: 299, max_items: 1, hint_item: { name: 'Potato', deal_price: 9 } },
+      },
+    });
+    expect(result.dealDiscount).toBe(21);
+    expect(result.couponDiscount).toBe(10);
+    expect(result.items[0]).toMatchObject({ dealPrice: 9, dealQty: 1 });
+    expect(result.deal).toEqual({
+      id: 50, title: '₹9ryday', discount: 21, unlocked: false, amountRemaining: 40,
+      minOrder: 299, maxItems: 1, hintItem: { name: 'Potato', dealPrice: 9 },
+    });
   });
 
   it('defaults cart calculation items to empty array when absent', () => {

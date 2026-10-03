@@ -21,3 +21,4 @@ export * from './useHomeLocationPermission';
 export * from './useNewOrderAlert';
 export * from './useSyncCartFreeDeliveryProgress';
 export * from './useRefetchOnFocus';
+export * from './useDealCart';

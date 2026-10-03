@@ -2382,12 +2382,19 @@ export default function CheckoutScreen() {
                     <Text style={styles.summaryValue}>₹{bill.rainCharge}</Text>
                   </View>
                 )}
+                {bill.dealDiscount > 0 && (
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Deal savings</Text>
+                    <Text style={[styles.summaryValue, styles.summaryDiscountValue]}>- ₹{bill.dealDiscount}</Text>
+                  </View>
+                )}
                 {(() => {
                   // When free-del fully covers delivery, Discount row is item-only
-                  // (free-del is shown on the Delivery line as FREE).
-                  const discountToShow = bill.isFreeDeliveryApplied
+                  // (free-del is shown on the Delivery line as FREE). Both
+                  // include the deal saving, which has its own row above.
+                  const discountToShow = Math.max(0, (bill.isFreeDeliveryApplied
                     ? bill.itemDiscount
-                    : bill.discount;
+                    : bill.discount) - (bill.dealDiscount || 0));
                   if (!(discountToShow > 0)) return null;
                   return (
                     <View style={styles.summaryRow}>

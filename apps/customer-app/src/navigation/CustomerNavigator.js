@@ -28,6 +28,7 @@ import {
   OrdersScreen,
   ProfileScreen,
   ProductListScreen,
+  DealScreen,
   ProductDetailScreen,
   CartScreen,
   CheckoutScreen,
@@ -396,6 +397,7 @@ function CustomerNavigatorTree({ isAuthenticated }) {
             {/* Product Flow */}
             <Stack.Screen name="Categories"    component={CategoriesScreen} />
             <Stack.Screen name="ProductList"   component={ProductListScreen} />
+            <Stack.Screen name="Deal"          component={DealScreen} />
             <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
 
             {/* Checkout Flow */}

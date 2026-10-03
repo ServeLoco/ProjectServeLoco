@@ -42,6 +42,7 @@ import {
   LocationPermissionCard,
 } from '../../../components';
 import { showToast } from '../../../components/Toast';
+import DealTabsCard from '../../../components/OfferCards/DealTabsCard';
 import { colors, typography, fontSizes, lineHeights, spacing, radius, layout } from '../../../theme';
 import HomeIcon from './HomeIcon';
 import useAreaLine from './useAreaLine';
@@ -1308,6 +1309,16 @@ export default function HomeScreen() {
           const u = item.imageUrl || item.image_url;
           if (u) urls.push(u);
         }
+      } else if (section.sectionType === 'offer_cards' && Array.isArray(section.items)) {
+        for (const card of section.items) {
+          if (card.imageUrl) urls.push(card.imageUrl);
+          for (const tier of card.deal?.tiers || []) {
+            for (const item of tier.items || []) {
+              const u = item.thumbUrl || item.imageUrl;
+              if (u) urls.push(u);
+            }
+          }
+        }
       }
     }
     if (urls.length > 0) {
@@ -2058,6 +2069,40 @@ export default function HomeScreen() {
                         </View>
                       ) : null
                     }
+                  />
+                </View>
+              );
+            }
+
+            if (section.sectionType === 'offer_cards') {
+              const cards = (section.items || []).filter((card) => card.design === 'deal_tabs' && card.deal?.tiers?.length);
+              if (cards.length === 0) return null;
+              // One card fills most of the width; with more, the next one peeks.
+              const offerCardWidth = cards.length === 1 ? contentWidth : Math.floor(contentWidth * 0.86);
+              return (
+                <View key={section.id} style={styles.section}>
+                  {section.title ? (
+                    <View style={styles.sectionHeader}>
+                      <View style={styles.titleRow}>
+                        <View style={styles.headerIndicator} />
+                        <Text style={styles.sectionTitlePremium}>{section.title}</Text>
+                      </View>
+                    </View>
+                  ) : null}
+                  <FlatList
+                    horizontal
+                    data={cards}
+                    keyExtractor={(card) => String(card.id)}
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.offerCardsRail}
+                    ItemSeparatorComponent={OfferCardGap}
+                    renderItem={({ item: card }) => (
+                      <DealTabsCard
+                        card={card}
+                        width={offerCardWidth}
+                        onViewAll={() => navigation.navigate('Deal', { couponId: card.dealId, card })}
+                      />
+                    )}
                   />
                 </View>
               );
@@ -3137,6 +3182,11 @@ function OfferBannerCarousel({ offers = [], bannerWidth, onOfferPress }) {
   );
 }
 
+// Space between two offer cards in their rail.
+function OfferCardGap() {
+  return <View style={{ width: 10 }} />;
+}
+
 function SeeAllButton({ label = 'See all', onPress, accessibilityLabel }) {
   const pressAnim = useRef(new Animated.Value(0)).current;
   const chevronAnim = useRef(new Animated.Value(0)).current;
@@ -3849,6 +3899,10 @@ const styles = StyleSheet.create({
   },
   productScroll: {
     // FlatList in horizontal mode
+  },
+  offerCardsRail: {
+    paddingHorizontal: PAGE_GUTTER,
+    alignItems: 'flex-start',
   },
   productScrollContent: {
     paddingHorizontal: PAGE_GUTTER,
