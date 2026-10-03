@@ -1,5 +1,5 @@
 const { pool } = require('../db/mysql');
-const { isId, isPositiveInteger, validateCoordinates } = require('../validators');
+const { isId, idOrNull, isPositiveInteger, validateCoordinates } = require('../validators');
 const { resolveDeliveryPricing, loadActiveZones, loadActiveExclusionZones, parseBoundary, polygonAreaKm2 } = require('../utils/deliveryPricing');
 const { resolveAreaIdForPricing, getDefaultArea } = require('../utils/areaScope');
 const { roundMoney, toMoney } = require('../utils/money');
@@ -158,7 +158,7 @@ const calculateCart = async (req, res) => {
     if (!isPositiveInteger(item.quantity)) {
       return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Item ${index + 1}: quantity must be a whole number between 1 and 999` });
     }
-    normalizedItems.push({ productId: Number(productId), variantId: rawVariantId !== null && rawVariantId !== undefined ? Number(rawVariantId) : null, quantity: Number(item.quantity), isCombo });
+    normalizedItems.push({ productId: Number(productId), variantId: rawVariantId !== null && rawVariantId !== undefined ? Number(rawVariantId) : null, quantity: Number(item.quantity), isCombo, dealCouponId: isCombo ? null : idOrNull(item.deal_coupon_id ?? item.dealCouponId) });
   }
   // Batch fetch products and combos in 2 queries instead of N queries
   const productIds = normalizedItems.filter(i => !i.isCombo).map(i => i.productId);
@@ -228,7 +228,8 @@ const calculateCart = async (req, res) => {
   const unavailableItems = [];
 
   for (let index = 0; index < normalizedItems.length; index++) {
-    const { productId, variantId, quantity, isCombo } = normalizedItems[index];
+    const normalizedItem = normalizedItems[index];
+    const { productId, variantId, quantity, isCombo } = normalizedItem;
     const product = isCombo ? comboMap[productId] : productMap[productId];
 
     if (!product) {
@@ -304,6 +305,9 @@ const calculateCart = async (req, res) => {
       variant_id: effectiveVariantId,
       variantLabel: effectiveVariantLabel,
       variant_label: effectiveVariantLabel,
+      // Echoes the deal this line was picked from (null for a normal add).
+      dealCouponId: normalizedItem.dealCouponId,
+      deal_coupon_id: normalizedItem.dealCouponId,
     });
   }
 
@@ -504,7 +508,7 @@ const calculateCart = async (req, res) => {
     try {
       deal = await applyBestDeal({
         lines: processedItems.map((i) => ({
-          productId: i.id, variantId: i.variantId, type: i.type, unitPrice: i.unitPrice, quantity: i.quantity,
+          productId: i.id, variantId: i.variantId, type: i.type, unitPrice: i.unitPrice, quantity: i.quantity, dealCouponId: i.dealCouponId,
         })),
         subtotal,
         storeType: cartStoreType,

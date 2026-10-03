@@ -23,6 +23,7 @@ const { pool } = require('../db/mysql');
 const { istDayOfWeek, istInstantFromWallClock } = require('./businessTime');
 const { roundMoney, toMoney } = require('./money');
 const { getNowMinutesInZone, DEFAULT_TIMEZONE } = require('./nightDelivery');
+const { idOrNull } = require('../validators');
 
 // ─────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -1002,6 +1003,11 @@ const getNearestUnlockableCoupon = async ({
 // only on the exact product + variant the admin priced.
 const dealLineKey = (productId, variantId) => `${Number(productId)}:${variantId ? Number(variantId) : 0}`;
 
+// The deal a cart line was picked from (Select on an offer card or the Deal
+// page), sent by the app as deal_coupon_id / dealCouponId. A line without it
+// was added from anywhere else and always sells at the normal price.
+const dealCouponIdOf = (item) => idOrNull(item?.deal_coupon_id ?? item?.dealCouponId);
+
 /**
  * Pure: decides which cart units sell at a deal's price.
  *
@@ -1012,13 +1018,17 @@ const dealLineKey = (productId, variantId) => `${Number(productId)}:${variantId 
  *  - At most maxItems units across the whole cart; the biggest saving first.
  *  - Combos never take part, and a deal price that is not below the line's
  *    current price is ignored (the product got cheaper than the deal).
+ *  - Only lines picked from this deal (line.dealCouponId === couponId) take
+ *    part. The same product added from a normal list keeps its normal price
+ *    and counts as one of the other items.
  *
  * @param {Object} params
- * @param {Array<{productId, variantId, type, unitPrice, quantity}>} params.lines
+ * @param {Array<{productId, variantId, type, unitPrice, quantity, dealCouponId}>} params.lines
+ * @param {number} params.couponId - the deal being priced
  * @param {Map<string, number>} params.dealPrices - dealLineKey -> deal price
  * @returns {{ dealDiscount, unlocked, amountRemaining, lines: Array<{index, dealPrice, dealQty}>, candidateCount, bestCandidate }}
  */
-const pickDealUnits = ({ lines, dealPrices, subtotal, minOrder, maxItems }) => {
+const pickDealUnits = ({ lines, couponId, dealPrices, subtotal, minOrder, maxItems }) => {
   const sub = toMoney(subtotal);
   const min = toMoney(minOrder);
   const limit = Math.max(1, Number(maxItems) || 1);
@@ -1026,6 +1036,7 @@ const pickDealUnits = ({ lines, dealPrices, subtotal, minOrder, maxItems }) => {
   const candidates = [];
   lines.forEach((line, index) => {
     if (line.type && line.type !== 'product') return;
+    if (Number(line.dealCouponId) !== Number(couponId)) return;
     const dealPrice = dealPrices.get(dealLineKey(line.productId, line.variantId));
     if (dealPrice === undefined) return;
     const unitPrice = toMoney(line.unitPrice);
@@ -1087,13 +1098,13 @@ const pickDealUnits = ({ lines, dealPrices, subtotal, minOrder, maxItems }) => {
  * deal's minimum is checked against the other items by pickDealUnits, and
  * min_item_count / max_order_amount do not apply to deals.
  *
- * Returns null when no live deal has a matching product in the cart. When a
+ * Returns null when no line in the cart was picked from a live deal. When a
  * deal's products are in the cart but its minimum is not met yet, returns it
  * with unlocked: false, dealDiscount: 0 and amountRemaining, for the
  * "Add ₹X more to get it at ₹9" hint.
  *
  * @param {Object} params
- * @param {Array<{productId, variantId, type, unitPrice, quantity}>} params.lines
+ * @param {Array<{productId, variantId, type, unitPrice, quantity, dealCouponId}>} params.lines
  * @returns {Promise<null | { coupon, couponId, title, dealDiscount, unlocked, amountRemaining, minOrder, maxItems, lines }>}
  */
 const applyBestDeal = async ({
@@ -1109,17 +1120,20 @@ const applyBestDeal = async ({
 }) => {
   // Deals are created per area; with no area there is nothing to look up.
   if (areaId === null || areaId === undefined || !Array.isArray(lines) || lines.length === 0) return null;
-  const productIds = [...new Set(lines.filter((l) => !l.type || l.type === 'product').map((l) => Number(l.productId)))];
+  const dealLines = lines.filter((l) => (!l.type || l.type === 'product') && dealCouponIdOf(l) !== null);
+  const productIds = [...new Set(dealLines.map((l) => Number(l.productId)))];
   if (productIds.length === 0) return null;
+  const dealIds = [...new Set(dealLines.map(dealCouponIdOf))];
 
   const conn = connection || pool;
   const [coupons] = await conn.query(
     `SELECT * FROM coupons
      WHERE discount_type = 'deal_price' AND active = 1 AND deleted = 0 AND area_id = ?
+       AND id IN (?)
        AND (starts_at IS NULL OR starts_at <= ?)
        AND (ends_at IS NULL OR ends_at >= ?)
      ORDER BY priority DESC, id DESC`,
-    [areaId, now, now]
+    [areaId, dealIds, now, now]
   );
   if (coupons.length === 0) return null;
 
@@ -1157,6 +1171,7 @@ const applyBestDeal = async ({
 
     const pick = pickDealUnits({
       lines,
+      couponId: coupon.id,
       dealPrices,
       subtotal,
       minOrder: coupon.min_order_amount,
@@ -1231,4 +1246,5 @@ module.exports = {
   buildSavingsText,
   pickDealUnits,
   dealLineKey,
+  dealCouponIdOf,
 };

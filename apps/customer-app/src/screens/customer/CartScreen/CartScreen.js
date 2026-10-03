@@ -266,6 +266,7 @@ export default function CartScreen() {
         items: validItems.map(item => ({
           productId: item.product.id,
           variantId: item.variant?.id ?? null,
+          dealCouponId: item.dealCouponId ?? null,
           quantity: item.quantity,
           type: item.type || (item.product?.isCombo || item.product?.is_combo ? 'combo' : 'product'),
           isCombo: (item.type || (item.product?.isCombo || item.product?.is_combo ? 'combo' : 'product')) === 'combo',

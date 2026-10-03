@@ -15,6 +15,7 @@ const { bustUserState } = require('../utils/userState');
 const config = require('../config/env');
 const { istDateOf } = require('../utils/businessTime');
 const logger = require('../utils/logger');
+const { idOrNull } = require('../validators');
 
 // Expected business failures → 400. clientCode lets specific failures carry a
 // distinct machine-readable code (e.g. OUT_OF_DELIVERY_RANGE) while everything
@@ -448,7 +449,10 @@ const createOrder = async (req, res) => {
         line_total: lineTotal,
         shop_unit_price: shopUnitPrice,
         shop_line_total: shopLineTotal,
-        item_type: isCombo ? 'combo' : 'product'
+        item_type: isCombo ? 'combo' : 'product',
+        // The deal this line was picked from; only such lines can get a deal
+        // price. Not stored as its own column — deal_price/deal_qty are.
+        deal_coupon_id: isCombo ? null : idOrNull(item.deal_coupon_id ?? item.dealCouponId),
       });
     }
 
@@ -550,7 +554,7 @@ const createOrder = async (req, res) => {
     // order.
     let deal = await applyBestDeal({
       lines: orderItems.map((oi) => ({
-        productId: oi.product_id, variantId: oi.variant_id, type: oi.item_type, unitPrice: oi.unit_price, quantity: oi.quantity,
+        productId: oi.product_id, variantId: oi.variant_id, type: oi.item_type, unitPrice: oi.unit_price, quantity: oi.quantity, dealCouponId: oi.deal_coupon_id,
       })),
       subtotal,
       userId,

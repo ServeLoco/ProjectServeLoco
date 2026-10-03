@@ -20,6 +20,8 @@ const isId = (val) => {
   const num = Number(val);
   return Number.isInteger(num) && num > 0;
 };
+// A valid id as a number, or null for anything else (missing, 0, junk).
+const idOrNull = (val) => (isId(val) ? Number(val) : null);
 const isPhone = (val) => typeof val === 'string' && /^\+?[0-9]{10,15}$/.test(val.replace(/[\s-]/g, ''));
 
 const validateCoordinates = (lat, lng) => {
@@ -71,6 +73,7 @@ module.exports = {
   isBoolean,
   isEnum,
   isId,
+  idOrNull,
   isPhone,
   validateCoordinates,
   validatePagination,

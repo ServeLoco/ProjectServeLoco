@@ -108,14 +108,15 @@ describe('Cart and Order Tests', () => {
     const res = await request(app)
       .post('/api/cart/calculate')
       .set('Authorization', `Bearer ${token}`)
-      .send({ items: [{ productId: 1, quantity: 1 }, { productId: 2, quantity: 1 }] });
+      .send({ items: [{ productId: 1, quantity: 1 }, { productId: 2, quantity: 1, dealCouponId: 50 }] });
 
     expect(res.statusCode).toEqual(200);
+    // Only the line picked from the deal carries its id.
     expect(applyBestDeal).toHaveBeenCalledWith(expect.objectContaining({
       subtotal: 330,
       lines: [
-        { productId: 1, variantId: null, type: 'product', unitPrice: 300, quantity: 1 },
-        { productId: 2, variantId: null, type: 'product', unitPrice: 30, quantity: 1 },
+        { productId: 1, variantId: null, type: 'product', unitPrice: 300, quantity: 1, dealCouponId: null },
+        { productId: 2, variantId: null, type: 'product', unitPrice: 30, quantity: 1, dealCouponId: 50 },
       ],
     }));
     // The coupon sees what the customer really pays for items.

@@ -4,7 +4,7 @@ import { useCartStore } from '../stores';
 import { useAuthGate } from './useAuthGate';
 import { showToast } from '../components/Toast';
 import { normalizeProduct } from '../utils/apiMappers';
-import { cartLineKey, dealItemKey, estimateDealProgress, indexDealItems } from '../utils/dealCart';
+import { cartLineKey, dealItemKey, estimateDealProgress, indexDealItems, isDealLine } from '../utils/dealCart';
 
 const keyOfItem = (item) => dealItemKey(item.id, item.dealVariantId ?? item.deal_variant_id ?? null);
 
@@ -19,38 +19,53 @@ const variantOf = (item) => {
  * the cart, how far the cart is from unlocking the deal, and the Select
  * action (adds one unit; when the deal's "any N items" are already taken it
  * offers to swap the last one out, like Instamart).
+ *
+ * Select marks the cart line with the deal's id, and only marked lines get
+ * the deal price — the same product added from a normal list does not.
  */
 export function useDealCart(deal) {
   const items = useCartStore((s) => s.items);
   const addItem = useCartStore((s) => s.addItem);
   const updateQuantity = useCartStore((s) => s.updateQuantity);
   const removeItem = useCartStore((s) => s.removeItem);
+  const setLineDeal = useCartStore((s) => s.setLineDeal);
   const { requireAuth } = useAuthGate();
+  const dealId = deal?.id ?? null;
 
   const index = useMemo(() => indexDealItems(deal), [deal]);
   const progress = useMemo(() => estimateDealProgress(items, deal, index), [items, deal, index]);
-  const inCart = useMemo(() => new Set(items.filter((l) => (l.type || 'product') !== 'combo').map(cartLineKey)), [items]);
+  const picked = useMemo(
+    () => items.filter((l) => (l.type || 'product') !== 'combo' && isDealLine(l, dealId)),
+    [items, dealId],
+  );
+  const inCart = useMemo(() => new Set(picked.map(cartLineKey)), [picked]);
 
   const isSelected = useCallback((item) => inCart.has(keyOfItem(item)), [inCart]);
 
+  // Takes the deal unit back out: one unit less, and the rest of the line
+  // (if any was added normally) goes back to the normal price.
   const dropOne = useCallback((line) => {
     const qty = Number(line.quantity) || 0;
     const variantId = line.variant?.id ?? null;
-    if (qty <= 1) removeItem(line.product.id, 'product', variantId);
-    else updateQuantity(line.product.id, qty - 1, 'product', variantId);
-  }, [removeItem, updateQuantity]);
+    if (qty <= 1) {
+      removeItem(line.product.id, 'product', variantId);
+      return;
+    }
+    updateQuantity(line.product.id, qty - 1, 'product', variantId);
+    setLineDeal(line.product.id, variantId, null);
+  }, [removeItem, updateQuantity, setLineDeal]);
 
   const add = useCallback((item) => {
     const product = normalizeProduct(item);
-    addItem(product, 1, variantOf(product));
+    addItem(product, 1, variantOf(product), { dealCouponId: dealId });
     const price = Number(item.dealPrice ?? item.deal_price);
     showToast(`${product.name} added — ₹${price} deal`, { type: 'success' });
-  }, [addItem]);
+  }, [addItem, dealId]);
 
   const toggle = useCallback((item) => {
     requireAuth(null, () => {
       const key = keyOfItem(item);
-      const existing = items.find((l) => (l.type || 'product') !== 'combo' && cartLineKey(l) === key);
+      const existing = picked.find((l) => cartLineKey(l) === key);
       if (existing) {
         dropOne(existing);
         return;
@@ -70,7 +85,7 @@ export function useDealCart(deal) {
       }
       add(item);
     });
-  }, [requireAuth, items, progress, dropOne, add]);
+  }, [requireAuth, picked, progress, dropOne, add]);
 
   return { progress, isSelected, toggle };
 }

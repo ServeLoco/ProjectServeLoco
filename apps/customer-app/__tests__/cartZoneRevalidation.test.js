@@ -85,7 +85,7 @@ describe('syncDeliveryLocation revalidates the cart on a zone change', () => {
     expect(cartApi.calculate).toHaveBeenCalledTimes(2);
     const revalidationCall = cartApi.calculate.mock.calls[1][0];
     expect(revalidationCall.items).toEqual([
-      { productId: 501, variantId: null, quantity: 2, type: 'product', isCombo: false },
+      { productId: 501, variantId: null, dealCouponId: null, quantity: 2, type: 'product', isCombo: false },
     ]);
     expect(useDeliveryLocationStore.getState().zoneId).toBe(9);
   });

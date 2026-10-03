@@ -6,7 +6,9 @@
  * and the Deal page can say "Shop for ₹X more" and "Added" without a round
  * trip. The rule mirrors the server's:
  *  - only the OTHER items count toward the deal's minimum,
- *  - at most `maxItems` units sell at the deal price, biggest saving first.
+ *  - at most `maxItems` units sell at the deal price, biggest saving first,
+ *  - only lines picked from this deal (line.dealCouponId) take part; the same
+ *    product added from a normal list keeps its normal price.
  */
 
 // A deal item is a product, plus the option it was priced for (if any).
@@ -14,6 +16,10 @@ export const dealItemKey = (productId, variantId) =>
   `${String(productId)}:${variantId == null || variantId === '' ? '' : String(variantId)}`;
 
 export const cartLineKey = (line) => dealItemKey(line?.product?.id, line?.variant?.id ?? null);
+
+/** True when the cart line was picked from this deal (Select). */
+export const isDealLine = (line, dealId) =>
+  dealId != null && line?.dealCouponId != null && String(line.dealCouponId) === String(dealId);
 
 const unitPriceOf = (line) => Number(line?.variant?.price ?? line?.product?.price) || 0;
 
@@ -45,6 +51,7 @@ export function estimateDealProgress(cartItems, deal, index = indexDealItems(dea
     const price = unitPriceOf(line);
     total += price * qty;
     if ((line?.type || 'product') === 'combo') continue;
+    if (!isDealLine(line, deal?.id)) continue;
     const item = index.get(cartLineKey(line));
     if (!item) continue;
     dealLines.push(line);

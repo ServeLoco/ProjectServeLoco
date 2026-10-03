@@ -103,10 +103,24 @@ describeWithMysql('deal price coupons (real MySQL)', () => {
     { productId: 0, quantity: 1 },
     { productId: 0, quantity: 2 },
   ];
+  // The potato line was picked from the deal (Select on its card).
   const items = () => [
     { ...cart[0], productId: ids.rice },
-    { ...cart[1], productId: ids.potato },
+    { ...cart[1], productId: ids.potato, dealCouponId: ids.deal },
   ];
+
+  it('the same potato added from a normal list stays at its normal price', async () => {
+    const res = await request(app)
+      .post('/api/cart/calculate')
+      .set('Authorization', `Bearer ${tokenFor(ids.userA)}`)
+      .send({ items: items().map((line) => ({ ...line, dealCouponId: null })), no_auto_apply: true });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.subtotal).toBe(360);
+    expect(res.body.dealDiscount).toBe(0);
+    expect(res.body.deal).toBeNull();
+    expect(res.body.items[1]).toMatchObject({ dealPrice: null, dealQty: 0, dealCouponId: null });
+  });
 
   it('the cart preview prices one potato at ₹9', async () => {
     const res = await request(app)
@@ -118,7 +132,7 @@ describeWithMysql('deal price coupons (real MySQL)', () => {
     expect(res.body.subtotal).toBe(360);
     expect(res.body.dealDiscount).toBe(21);
     expect(res.body.deal).toMatchObject({ id: ids.deal, unlocked: true, maxItems: 1 });
-    expect(res.body.items[1]).toMatchObject({ dealPrice: 9, dealQty: 1, unitPrice: 30, lineTotal: 60 });
+    expect(res.body.items[1]).toMatchObject({ dealPrice: 9, dealQty: 1, unitPrice: 30, lineTotal: 60, dealCouponId: ids.deal });
     // The deal never shows up as a normal coupon offer.
     expect((res.body.availableCoupons || []).some((c) => c.id === ids.deal)).toBe(false);
   });
