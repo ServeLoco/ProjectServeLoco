@@ -41,13 +41,13 @@
     </service>
     <service android:name="expo.modules.audio.service.AudioControlsService" tools:node="remove"/>
     <service android:name="expo.modules.audio.service.AudioRecordingService" tools:node="remove"/>
-    <activity android:name=".MainActivity" android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|uiMode" android:launchMode="singleTask" android:windowSoftInputMode="adjustResize" android:theme="@style/Theme.App.SplashScreen" android:exported="true">
+    <activity android:name=".MainActivity" android:screenOrientation="portrait" android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|uiMode" android:launchMode="singleTask" android:windowSoftInputMode="adjustResize" android:theme="@style/Theme.App.SplashScreen" android:exported="true">
       <intent-filter>
         <action android:name="android.intent.action.MAIN"/>
         <category android:name="android.intent.category.LAUNCHER"/>
       </intent-filter>
     </activity>
-    <activity android:name=".AlarmActivity" android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|uiMode" android:theme="@style/AppTheme" android:exported="false" android:launchMode="singleTask" android:taskAffinity="" android:excludeFromRecents="true" android:showWhenLocked="true" android:turnScreenOn="true"/>
+    <activity android:name=".AlarmActivity" android:screenOrientation="portrait" android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|uiMode" android:theme="@style/AppTheme" android:exported="false" android:launchMode="singleTask" android:taskAffinity="" android:excludeFromRecents="true" android:showWhenLocked="true" android:turnScreenOn="true"/>
     <receiver android:name="app.notifee.core.RebootBroadcastReceiver" tools:node="remove"/>
     <receiver android:name="app.notifee.core.NotificationAlarmReceiver" tools:node="remove"/>
   </application>

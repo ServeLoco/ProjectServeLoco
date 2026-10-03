@@ -52,17 +52,15 @@ const MENU_SECTIONS = [
     rows: [
       {
         key: 'edit',
-        iconBg: colors.saffronLight,
-        iconColor: colors.saffronDark,
-        icon: 'edit',
+        gradient: ['#FFB07A', '#F0611E'],
+        icon: 'pencil',
         label: 'Edit Profile',
         caption: 'Name, phone, address',
         action: 'editProfile',
       },
       {
         key: 'orders',
-        iconBg: colors.infoLight,
-        iconColor: colors.info,
+        gradient: ['#7CB4FF', '#2563EB'],
         icon: 'orders',
         label: 'My Orders',
         caption: 'Track current and past orders',
@@ -70,8 +68,7 @@ const MENU_SECTIONS = [
       },
       {
         key: 'notifications',
-        iconBg: colors.warningLight,
-        iconColor: colors.warning,
+        gradient: ['#FCD34D', '#F59E0B'],
         icon: 'notification',
         label: 'Notifications',
         caption: 'notifStatus',
@@ -86,8 +83,7 @@ const MENU_SECTIONS = [
     rows: [
       {
         key: 'help',
-        iconBg: '#E8F8EF',
-        iconColor: '#1FB574',
+        gradient: ['#5EE39A', '#16A34A'],
         icon: 'whatsapp',
         label: 'Help & Support',
         caption: 'supportPhone',
@@ -95,8 +91,7 @@ const MENU_SECTIONS = [
       },
       {
         key: 'privacy',
-        iconBg: colors.primaryLight,
-        iconColor: colors.primary,
+        gradient: ['#A5B4FC', '#5B5BD6'],
         icon: 'lock',
         label: 'Privacy Policy',
         caption: 'How we handle your data',
@@ -104,8 +99,7 @@ const MENU_SECTIONS = [
       },
       {
         key: 'terms',
-        iconBg: '#F1F5F9',
-        iconColor: '#475569',
+        gradient: ['#A3B1C6', '#475569'],
         icon: 'settings',
         label: 'Terms of Service',
         caption: 'Rules for using VillKro',
@@ -113,8 +107,7 @@ const MENU_SECTIONS = [
       },
       {
         key: 'data',
-        iconBg: colors.saffronLight,
-        iconColor: colors.saffronDark,
+        gradient: ['#5EEAD4', '#0D9488'],
         icon: 'check',
         label: 'Data Safety',
         caption: 'Permissions, sharing and retention',
@@ -122,8 +115,7 @@ const MENU_SECTIONS = [
       },
       {
         key: 'contact',
-        iconBg: '#E0F2FE',
-        iconColor: '#0284C7',
+        gradient: ['#7DD3FC', '#0284C7'],
         icon: 'mail',
         label: 'Contact us',
         caption: 'decodelabsofficial@gmail.com',
@@ -138,8 +130,7 @@ const MENU_SECTIONS = [
     rows: [
       {
         key: 'logout',
-        iconBg: '#FFF7ED',
-        iconColor: '#9A3412',
+        gradient: ['#FDBA74', '#C2410C'],
         icon: 'logout',
         label: 'Logout',
         caption: 'Log out from this device',
@@ -147,8 +138,7 @@ const MENU_SECTIONS = [
       },
       {
         key: 'delete',
-        iconBg: colors.errorLight,
-        iconColor: colors.error,
+        gradient: ['#FCA5A5', '#DC2626'],
         icon: 'delete',
         label: 'Delete Account',
         caption: '30-day grace period before permanent deletion',
@@ -356,11 +346,11 @@ export default function ProfileScreen() {
   const statusColor =
     statusLabel === 'Blocked' ? colors.error :
     statusLabel === 'Trusted' ? colors.success :
-    colors.primary;
+    '#3FE09D';
 
   return (
-    <AppScreen style={styles.container} safeAreaBottom={false}>
-      <AppHeader title="Profile" />
+    <AppScreen style={styles.container} bg={colors.bgSurface} safeAreaBottom={false}>
+      <AppHeader title="Profile" bordered />
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -376,7 +366,7 @@ export default function ProfileScreen() {
           />
         }
       >
-        {/* Hero card with gradient + avatar + identity */}
+        {/* Hero: dark card, avatar with saffron ring, identity */}
         <Animated.View
           style={[
             styles.hero,
@@ -384,22 +374,35 @@ export default function ProfileScreen() {
           ]}
         >
           <LinearGradient
-            colors={[colors.brandGradientStart, colors.brandGradientEnd]}
+            colors={['#2A303D', '#0E1116']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.heroGradient}
           >
-            {/* Decorative blobs */}
-            <View style={styles.heroBlobA} pointerEvents="none" />
-            <View style={styles.heroBlobB} pointerEvents="none" />
+            {/* Soft saffron glow fading in from the top-right corner */}
+            <LinearGradient
+              colors={['rgba(255,122,58,0.30)', 'rgba(255,122,58,0.08)', 'rgba(255,122,58,0)']}
+              locations={[0, 0.45, 1]}
+              start={{ x: 1, y: 0 }}
+              end={{ x: 0.2, y: 1 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
 
             <View style={styles.heroTopRow}>
-              <View style={styles.avatarRing}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>
-                    {profile?.name ? profile.name.charAt(0).toUpperCase() : 'U'}
-                  </Text>
-                </View>
+              <View style={styles.avatarWrap}>
+                <LinearGradient
+                  colors={[colors.brandGradientStart, colors.brandGradientEnd]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.avatarRing}
+                >
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>
+                      {profile?.name ? profile.name.charAt(0).toUpperCase() : 'U'}
+                    </Text>
+                  </View>
+                </LinearGradient>
                 <View style={styles.avatarBadge}>
                   <AppIcon name="star" size={10} color={colors.textInverse} strokeWidth={3} />
                 </View>
@@ -409,20 +412,11 @@ export default function ProfileScreen() {
                 <Text style={styles.heroName} numberOfLines={1}>
                   {profile?.name || 'Welcome to VillKro'}
                 </Text>
-                <Text style={styles.heroPhone} numberOfLines={1}>
-                  {user?.phone || 'No phone added'}
-                </Text>
-                <View style={styles.heroChipsRow}>
-                  <View style={styles.heroChip}>
-                    <AppIcon name="star" size={11} color={colors.warning} strokeWidth={2.6} />
-                    <Text style={styles.heroChipText}>VillKro Member</Text>
-                  </View>
-                  <View style={[styles.heroChip, styles.heroChipGhost]}>
-                    <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-                    <Text style={[styles.heroChipGhostText, { color: statusColor }]}>
-                      {statusLabel}
-                    </Text>
-                  </View>
+                <View style={styles.heroPhoneRow}>
+                  <AppIcon name="phone" size={12} color="rgba(255,255,255,0.6)" strokeWidth={2.4} />
+                  <Text style={styles.heroPhone} numberOfLines={1}>
+                    {user?.phone || 'No phone added'}
+                  </Text>
                 </View>
               </View>
 
@@ -433,17 +427,28 @@ export default function ProfileScreen() {
                 accessibilityLabel="Edit profile"
                 activeOpacity={0.78}
               >
-                <AppIcon name="edit" size={16} color={colors.textInverse} strokeWidth={2.4} />
+                <AppIcon name="pencil" size={16} color={colors.textInverse} strokeWidth={2.4} />
               </TouchableOpacity>
+            </View>
+
+            <View style={styles.heroChipsRow}>
+              <View style={styles.heroChip}>
+                <AppIcon name="star" size={11} color="#FBBF24" strokeWidth={2.6} />
+                <Text style={styles.heroChipText}>VillKro Member</Text>
+              </View>
+              <View style={styles.heroChip}>
+                <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+                <Text style={[styles.heroChipText, { color: statusColor }]}>
+                  {statusLabel}
+                </Text>
+              </View>
             </View>
           </LinearGradient>
         </Animated.View>
 
-        {/* Address / info panel */}
+        {/* Delivery address */}
         <View style={styles.addressCard}>
-          <View style={styles.addressIconBubble}>
-            <AppIcon name="location" size={16} color={colors.primary} />
-          </View>
+          <IconTile icon="location" gradient={[colors.brandGradientStart, '#F0611E']} round />
           <View style={styles.addressContent}>
             <Text style={styles.addressLabel}>Delivery address</Text>
             <Text style={styles.addressText} numberOfLines={2}>
@@ -457,7 +462,7 @@ export default function ProfileScreen() {
             accessibilityRole="button"
             accessibilityLabel="Edit address"
           >
-            <AppIcon name="edit" size={13} color={colors.primary} strokeWidth={2.4} />
+            <AppIcon name="pencil" size={12} color={colors.textInverse} strokeWidth={2.6} />
             <Text style={styles.addressEditChipText}>Edit</Text>
           </TouchableOpacity>
         </View>
@@ -528,8 +533,7 @@ export default function ProfileScreen() {
                     <MenuRow
                       key={row.key}
                       icon={row.icon}
-                      iconBg={row.iconBg}
-                      iconColor={row.iconColor}
+                      gradient={row.gradient}
                       label={row.label}
                       caption={caption}
                       destructive={row.destructive}
@@ -545,7 +549,6 @@ export default function ProfileScreen() {
 
         {/* Footer */}
         <View style={styles.footer}>
-          <View style={styles.footerDivider} />
           <View style={styles.footerLine}>
             <Text style={styles.footerBrand}>Developed in Gorakhpur with </Text>
             <Text style={styles.footerHeart}>❤️</Text>
@@ -554,9 +557,11 @@ export default function ProfileScreen() {
           {/* Native binary version — what's actually installed from the Play
               Store. appJson.expo.version is only a fallback because after an
               OTA update it reflects the JS bundle, not the installed binary. */}
-          <Text style={styles.footerVersion}>
-            v{Application.nativeApplicationVersion ?? appJson?.expo?.version ?? '1.1.1'}
-          </Text>
+          <View style={styles.footerVersionPill}>
+            <Text style={styles.footerVersion}>
+              v{Application.nativeApplicationVersion ?? appJson?.expo?.version ?? '1.1.1'}
+            </Text>
+          </View>
         </View>
       </ScrollView>
 
@@ -603,18 +608,35 @@ export default function ProfileScreen() {
 /* Sub-components                                                              */
 /* ------------------------------------------------------------------------- */
 
-function MenuRow({ icon, iconBg, iconColor, label, caption, destructive, isLast, onPress }) {
+// Glossy gradient tile: two-colour fill, a soft light sheen on the top half,
+// and a shadow in the tile's own colour.
+function IconTile({ icon, gradient, size = ROW_ICON, iconSize = 18, round = false }) {
+  const shape = { width: size, height: size, borderRadius: round ? size / 2 : Math.round(size * 0.32) };
+  return (
+    <View style={[styles.tileShadow, shape, { shadowColor: gradient[1] }]}>
+      <LinearGradient
+        colors={gradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.tile, shape]}
+      >
+        <View style={[styles.tileSheen, { borderTopLeftRadius: shape.borderRadius, borderTopRightRadius: shape.borderRadius }]} />
+        <AppIcon name={icon} size={iconSize} color="#FFFFFF" strokeWidth={2.4} />
+      </LinearGradient>
+    </View>
+  );
+}
+
+function MenuRow({ icon, gradient, label, caption, destructive, isLast, onPress }) {
   return (
     <TouchableOpacity
-      style={[styles.menuRow, isLast && styles.menuRowLast]}
+      style={styles.menuRow}
       onPress={onPress}
       activeOpacity={0.7}
       accessibilityRole="button"
       accessibilityLabel={label}
     >
-      <View style={[styles.menuRowIcon, { backgroundColor: iconBg }]}>
-        <AppIcon name={icon} size={17} color={iconColor} strokeWidth={2.2} />
-      </View>
+      <IconTile icon={icon} gradient={gradient} />
       <View style={styles.menuRowContent}>
         <Text style={[styles.menuRowLabel, destructive && { color: colors.error }]} numberOfLines={1}>
           {label}
@@ -623,9 +645,11 @@ function MenuRow({ icon, iconBg, iconColor, label, caption, destructive, isLast,
           <Text style={styles.menuRowCaption} numberOfLines={1}>{caption}</Text>
         ) : null}
       </View>
-      <View style={styles.menuRowChevron}>
-        <AppIcon name="chevronRight" size={16} color={colors.textTertiary} />
+      <View style={[styles.menuRowChevron, destructive && styles.menuRowChevronDanger]}>
+        <AppIcon name="chevronRight" size={14} color={destructive ? colors.error : colors.textSecondary} strokeWidth={2.6} />
       </View>
+      {/* Hairline between rows, starting after the icon */}
+      {!isLast && <View style={styles.menuRowDivider} />}
     </TouchableOpacity>
   );
 }
@@ -634,10 +658,18 @@ function MenuRow({ icon, iconBg, iconColor, label, caption, destructive, isLast,
 /* Styles                                                                     */
 /* ------------------------------------------------------------------------- */
 
+// Light greys that carry the structure on the plain white page (same as the
+// My Orders and Notifications pages).
+const LINE = '#ECEEF2';
+const MUTED_BG = '#F5F6F8';
+const SIDE = 8;
+const ROW_PAD_H = 14;
+const ROW_ICON = 40;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.bgApp,
+    backgroundColor: colors.bgSurface,
   },
   scrollContent: {
     paddingBottom: 120,
@@ -645,7 +677,7 @@ const styles = StyleSheet.create({
 
   /* ----- Hero ----- */
   hero: {
-    marginHorizontal: spacing.md,
+    marginHorizontal: SIDE,
     marginTop: spacing.md,
     borderRadius: radius.xxl,
     overflow: 'hidden',
@@ -653,189 +685,168 @@ const styles = StyleSheet.create({
   },
   heroGradient: {
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.xl,
+    paddingTop: spacing.md + 4,
+    paddingBottom: spacing.md,
+    gap: spacing.md,
     position: 'relative',
     overflow: 'hidden',
-  },
-  heroBlobA: {
-    position: 'absolute',
-    top: -60,
-    right: -40,
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-  },
-  heroBlobB: {
-    position: 'absolute',
-    bottom: -70,
-    left: -30,
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: 'rgba(255,255,255,0.12)',
   },
   heroTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
-    zIndex: 1,
+    gap: 14,
+  },
+  avatarWrap: {
+    width: 72,
+    height: 72,
   },
   avatarRing: {
-    width: 78,
-    height: 78,
-    borderRadius: 26,
-    padding: 4,
-    backgroundColor: 'rgba(255,255,255,0.4)',
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    padding: 3,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatar: {
-    width: 70,
-    height: 70,
-    borderRadius: 22,
-    backgroundColor: colors.textInverse,
+    width: 66,
+    height: 66,
+    borderRadius: 33,
+    backgroundColor: '#1A1F2B',
+    borderWidth: 2,
+    borderColor: '#1A1F2B',
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadows.md,
   },
   avatarText: {
-    ...typography.hero,
-    color: colors.saffronDark,
+    fontSize: 28,
+    lineHeight: 34,
+    color: colors.textInverse,
     fontWeight: '900',
   },
   avatarBadge: {
     position: 'absolute',
-    bottom: -2,
-    right: -2,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: colors.warning,
+    bottom: 0,
+    right: 0,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#F59E0B',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2.5,
-    borderColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#1A1F2B',
   },
   heroIdentity: {
     flex: 1,
     minWidth: 0,
+    gap: 4,
   },
   heroName: {
-    ...typography.h2,
-    color: colors.brandInk,
+    fontSize: 20,
+    lineHeight: 25,
+    color: colors.textInverse,
     fontWeight: '900',
     letterSpacing: -0.3,
-    marginBottom: 2,
+  },
+  heroPhoneRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
   },
   heroPhone: {
-    ...typography.caption,
-    color: 'rgba(26,31,43,0.7)',
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.7)',
     fontWeight: '600',
-    marginBottom: spacing.xs,
+    letterSpacing: 0.2,
   },
   heroChipsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: 8,
   },
   heroChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    gap: 5,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: radius.pill,
   },
   heroChipText: {
-    ...typography.caption,
     fontSize: 10,
+    lineHeight: 13,
     fontWeight: '900',
-    color: colors.warning,
+    color: '#FBBF24',
     textTransform: 'uppercase',
-    letterSpacing: 0.4,
-  },
-  heroChipGhost: {
-    backgroundColor: 'rgba(255,255,255,0.55)',
-  },
-  heroChipGhostText: {
-    ...typography.caption,
-    fontSize: 10,
-    fontWeight: '900',
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
+    letterSpacing: 0.5,
   },
   statusDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    marginRight: 2,
   },
   heroEditBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: radius.lg,
-    backgroundColor: 'rgba(255,255,255,0.35)',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.5)',
+    borderColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
+    alignSelf: 'flex-start',
   },
 
   /* ----- Address card ----- */
   addressCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-    marginHorizontal: spacing.md,
-    marginTop: spacing.md,
-    padding: spacing.md,
+    gap: 12,
+    marginHorizontal: SIDE,
+    marginTop: 12,
+    padding: ROW_PAD_H,
     backgroundColor: colors.bgSurface,
     borderRadius: radius.xl,
     borderWidth: 1,
-    borderColor: colors.border,
-    ...shadows.card,
-  },
-  addressIconBubble: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.md,
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: LINE,
+    ...shadows.xs,
   },
   addressContent: {
     flex: 1,
     minWidth: 0,
   },
   addressLabel: {
-    ...typography.caption,
+    fontSize: 10,
+    lineHeight: 13,
     color: colors.textSecondary,
     fontWeight: '800',
     textTransform: 'uppercase',
-    letterSpacing: 0.3,
-    marginBottom: 2,
+    letterSpacing: 0.5,
+    marginBottom: 3,
   },
   addressText: {
-    ...typography.bodySmall,
+    fontSize: 13,
     color: colors.textPrimary,
+    fontWeight: '600',
     lineHeight: 18,
   },
   addressEditChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     borderRadius: radius.pill,
-    backgroundColor: colors.primaryLight,
+    backgroundColor: colors.primary,
   },
   addressEditChipText: {
-    ...typography.caption,
+    fontSize: 12,
     fontWeight: '800',
-    color: colors.primary,
+    color: colors.textInverse,
   },
 
   /* ----- Status banners ----- */
@@ -843,18 +854,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    marginHorizontal: spacing.md,
-    marginTop: spacing.md,
-    padding: spacing.md,
+    marginHorizontal: SIDE,
+    marginTop: 12,
+    padding: ROW_PAD_H,
     backgroundColor: colors.errorLight,
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
     borderWidth: 1,
     borderColor: colors.errorBorder,
   },
   blockedBannerIcon: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: 'rgba(229,72,77,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -867,13 +878,13 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   deletionBanner: {
-    marginHorizontal: spacing.md,
-    marginTop: spacing.md,
+    marginHorizontal: SIDE,
+    marginTop: 12,
     backgroundColor: '#FFFBEB',
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
     borderWidth: 1,
     borderColor: '#FCD34D',
-    padding: spacing.md,
+    padding: ROW_PAD_H,
     gap: 6,
   },
   deletionBannerHead: {
@@ -882,9 +893,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   deletionBannerIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     backgroundColor: 'rgba(180,83,9,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -923,106 +934,122 @@ const styles = StyleSheet.create({
 
   /* ----- Menu sections ----- */
   menuContainer: {
-    marginTop: spacing.lg,
+    marginTop: spacing.sm,
   },
   menuSection: {
-    marginHorizontal: spacing.md,
-    marginBottom: spacing.md,
+    marginHorizontal: SIDE,
+    marginTop: spacing.md,
   },
   menuSectionTitle: {
-    ...typography.captionMedium,
-    color: colors.textSecondary,
-    marginBottom: spacing.xs,
-    marginLeft: spacing.sm,
-    fontWeight: '900',
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
+    fontSize: 15,
+    lineHeight: 20,
+    color: colors.textPrimary,
+    marginBottom: 8,
+    marginLeft: 4,
+    fontWeight: '800',
+    letterSpacing: -0.1,
   },
   menuCard: {
     backgroundColor: colors.bgSurface,
     borderRadius: radius.xl,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: LINE,
     overflow: 'hidden',
-    ...shadows.card,
+    ...shadows.xs,
   },
   menuRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: ROW_PAD_H,
     paddingVertical: 12,
-    gap: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    gap: 12,
   },
-  menuRowLast: {
-    borderBottomWidth: 0,
+  menuRowDivider: {
+    position: 'absolute',
+    left: ROW_PAD_H + ROW_ICON + 12,
+    right: 0,
+    bottom: 0,
+    height: 1,
+    backgroundColor: LINE,
   },
-  menuRowIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: radius.md,
+  tileShadow: {
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  tile: {
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  tileSheen: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '50%',
+    backgroundColor: 'rgba(255,255,255,0.16)',
   },
   menuRowContent: {
     flex: 1,
     minWidth: 0,
   },
   menuRowLabel: {
-    ...typography.label,
+    fontSize: 14,
     color: colors.textPrimary,
     fontWeight: '800',
-    lineHeight: 18,
-    marginBottom: 2,
+    lineHeight: 19,
+    marginBottom: 1,
   },
   menuRowCaption: {
-    ...typography.caption,
+    fontSize: 12,
     color: colors.textSecondary,
-    lineHeight: 14,
+    lineHeight: 16,
   },
   menuRowChevron: {
-    width: 22,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: MUTED_BG,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  menuRowChevronDanger: {
+    backgroundColor: colors.errorLight,
   },
 
   /* ----- Footer ----- */
   footer: {
     alignItems: 'center',
-    paddingTop: spacing.lg,
+    paddingTop: spacing.xl,
     paddingBottom: spacing.md,
-  },
-  footerDivider: {
-    width: 40,
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: colors.borderStrong,
-    marginBottom: spacing.md,
-  },
-  footerBrand: {
-    ...typography.h4,
-    color: colors.textPrimary,
-    fontWeight: '900',
-    letterSpacing: 0.3,
-    marginBottom: 2,
+    gap: 8,
   },
   footerLine: {
     flexDirection: 'row',
     alignItems: 'center',
   },
+  footerBrand: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
   footerHeart: {
-    fontSize: 16,
+    fontSize: 14,
     marginHorizontal: 2,
   },
-  footerTag: {
-    ...typography.caption,
-    color: colors.textTertiary,
+  footerVersionPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: radius.pill,
+    backgroundColor: MUTED_BG,
   },
   footerVersion: {
-    ...typography.caption,
+    fontSize: 11,
+    fontWeight: '700',
     color: colors.textTertiary,
-    marginTop: 4,
     letterSpacing: 0.3,
   },
 });

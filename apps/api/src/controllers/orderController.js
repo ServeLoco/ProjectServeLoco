@@ -820,7 +820,29 @@ const getOrders = async (req, res) => {
     params
   );
   const total = Number(countRows[0].total);
-  const orders = rows.map(o => ({ ...o, canCancel: o.status === 'Pending' }));
+
+  // Additive: a short item list per order for the My Orders cards (name,
+  // variant, quantity only). One query for the whole page. Existing fields
+  // untouched.
+  const previewsByOrder = new Map();
+  if (rows.length > 0) {
+    const [itemRows] = await pool.query(
+      `SELECT order_id, product_name, variant_label, quantity
+       FROM order_items WHERE order_id IN (?) ORDER BY id`,
+      [rows.map(o => o.id)]
+    );
+    (itemRows || []).forEach((it) => {
+      const list = previewsByOrder.get(it.order_id) || [];
+      list.push({ name: it.product_name, variant_label: it.variant_label || null, quantity: Number(it.quantity) });
+      previewsByOrder.set(it.order_id, list);
+    });
+  }
+
+  const orders = rows.map(o => ({
+    ...o,
+    canCancel: o.status === 'Pending',
+    items_preview: previewsByOrder.get(o.id) || [],
+  }));
   res.status(200).json({
     data: orders,
     meta: {

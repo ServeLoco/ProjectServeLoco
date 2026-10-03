@@ -30,6 +30,7 @@ import {
   LoadingSkeleton,
   ConfirmModal,
   LocationPicker,
+  SpeedStreaks,
 } from '../../../components';
 import { colors, typography, spacing, radius, shadows, smallMs, easing } from '../../../theme';
 import { useCartStore, useSettingsStore, useAuthStore, useDeliveryLocationStore, useDeliveryZonesStore } from '../../../stores';
@@ -1909,11 +1910,6 @@ export default function CheckoutScreen() {
               <View style={styles.sectionAccent} />
               <View style={styles.sectionHeadText}>
                 <Text style={styles.sectionTitle}>Delivery</Text>
-                <Text style={styles.sectionSubtitle}>
-                  {bill.fastDeliveryEnabled
-                    ? 'Standard delivery applies. Add Fast for priority.'
-                    : 'Standard delivery applies to your order.'}
-                </Text>
               </View>
             </View>
 
@@ -1970,6 +1966,7 @@ export default function CheckoutScreen() {
                     end={{ x: 1, y: 1 }}
                     style={[styles.fastToggleCard, styles.chip3dSelected]}
                   >
+                    <SpeedStreaks tone="light" borderRadius={radius.xl} />
                     <Animated.Text
                       style={[
                         styles.deliveryTypeEmojiOn,
@@ -1996,6 +1993,7 @@ export default function CheckoutScreen() {
                   </LinearGradient>
                 ) : (
                   <View style={[styles.fastToggleCard, styles.chip3dIdle]}>
+                    <SpeedStreaks borderRadius={radius.xl} />
                     <Animated.Text
                       style={[
                         styles.deliveryTypeEmoji,
@@ -2023,7 +2021,7 @@ export default function CheckoutScreen() {
             )}
             {bill.fastDeliveryEnabled && (
               <Text style={styles.fastDeliveryHint}>
-                Add Fast Delivery if your order has hot, fresh, or fast-food items — this keeps them hot on arrival.
+                Add Fast Delivery to keep your food hot and fresh.
               </Text>
             )}
           </Animated.View>
@@ -2064,7 +2062,6 @@ export default function CheckoutScreen() {
                 <Text style={[styles.sectionTitle, paymentError && styles.sectionTitleError]}>
                   Payment Method
                 </Text>
-                <Text style={styles.sectionSubtitle}>How would you like to pay?</Text>
               </View>
             </View>
 
@@ -2224,16 +2221,6 @@ export default function CheckoutScreen() {
             </View>
 
             {paymentMethod === 'UPI' && (
-              <Text style={styles.paymentMethodNote}>Complete UPI payment before placing your order.</Text>
-            )}
-            {paymentMethod === 'Cash' && (
-              <Text style={styles.paymentMethodNote}>Pay cash to the delivery executive.</Text>
-            )}
-            {!paymentMethod && (
-              <Text style={styles.paymentMethodNote}>Select how you would like to pay.</Text>
-            )}
-
-            {paymentMethod === 'UPI' && (
               <View
                 style={styles.upiBlock}
                 onLayout={(e) => {
@@ -2332,7 +2319,6 @@ export default function CheckoutScreen() {
               <View style={[styles.sectionAccent, styles.sectionAccentInk]} />
               <View style={styles.sectionHeadText}>
                 <Text style={styles.sectionTitle}>Order Summary</Text>
-                <Text style={styles.sectionSubtitle}>Review your bill breakdown</Text>
               </View>
             </View>
 
@@ -2408,7 +2394,10 @@ export default function CheckoutScreen() {
                       </View>
                     );
                   }
-                  if (bill.deliveryMessage || bill.requiresLocation || !bill.deliveryWithinRange || isFreeDeliveryApplied) {
+                  // The plain "Add ₹X more for free delivery" / "₹Y delivery
+                  // applied." hint is not shown — only problems and the
+                  // free-delivery win are.
+                  if (bill.requiresLocation || !bill.deliveryWithinRange || isFreeDeliveryApplied) {
                     return (
                       <View style={[
                         styles.summaryStatusNote,
@@ -2776,11 +2765,6 @@ const styles = StyleSheet.create({
     ...typography.h4,
     color: colors.textPrimary,
     fontWeight: '800',
-  },
-  sectionSubtitle: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginTop: 2,
   },
   deliveryInputWrap: {
     marginTop: spacing.sm,
@@ -3173,13 +3157,6 @@ const styles = StyleSheet.create({
     color: colors.textTertiary,
     fontWeight: '600',
     textAlign: 'center',
-  },
-  paymentMethodNote: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginTop: spacing.sm,
-    fontWeight: '500',
-    textAlign: 'left',
   },
 
   deliverySpeedSection: {

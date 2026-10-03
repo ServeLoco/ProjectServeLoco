@@ -24,6 +24,7 @@ export { default as DayHistoryPicker } from './DayHistoryPicker';
 export { default as AnimatedFadeSlide } from './AnimatedFadeSlide';
 export { default as StaggeredList } from './StaggeredList';
 export { default as PressableScale } from './PressableScale';
+export { default as SpeedStreaks } from './SpeedStreaks';
 export { default as AnimatedCartBadge } from './AnimatedCartBadge';
 export { default as AnimatedStickyMiniCart } from './AnimatedStickyMiniCart';
 export { default as AnimatedQuantitySwitcher } from './AnimatedQuantitySwitcher';

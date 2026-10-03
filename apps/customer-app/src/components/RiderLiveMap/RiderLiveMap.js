@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Animated,
+  Dimensions,
   Easing,
   StyleSheet,
   Text,
@@ -35,6 +36,17 @@ const RIDER_GLOW = 'rgba(37, 99, 235, 0.35)';
 const CUSTOMER_COLOR = '#FF7A3A'; // saffron — delivery pin / you
 const CUSTOMER_DARK = '#E05A1A';
 const SMOOTH_MOVE_MS = 900;
+
+// Immersive camera framing (dp). Top: status chips + a pin's height above its
+// point. Bottom: the zoom hint that sits on top of the sheet.
+const WIN_H = Dimensions.get('window').height;
+const IMMERSIVE_TOP_CLEARANCE = 130;
+const IMMERSIVE_BOTTOM_CLEARANCE = 56;
+const MIN_FRAME_HEIGHT = 160;
+// Pins close together (shop round the corner) would otherwise zoom the map
+// in to street level; always show at least this much ground around them.
+const MIN_FRAME_SPAN_METERS = 800;
+const METERS_PER_DEG_LAT = 111_320;
 const raf = global.requestAnimationFrame?.bind(global) || ((cb) => setTimeout(cb, 16));
 const caf = global.cancelAnimationFrame?.bind(global) || clearTimeout;
 
@@ -59,6 +71,30 @@ function minDistanceToRouteMeters(lat, lng, routeCoords) {
     if (d < min) min = d;
   }
   return min;
+}
+
+/**
+ * [ne, sw] around the points for fitBounds, widened about their centre to at
+ * least MIN_FRAME_SPAN_METERS each way.
+ */
+function framingBounds(points) {
+  let north = Math.max(...points.map((p) => p.latitude));
+  let south = Math.min(...points.map((p) => p.latitude));
+  let east = Math.max(...points.map((p) => p.longitude));
+  let west = Math.min(...points.map((p) => p.longitude));
+  const midLat = (north + south) / 2;
+  const midLng = (east + west) / 2;
+  const minLatSpan = MIN_FRAME_SPAN_METERS / METERS_PER_DEG_LAT;
+  const minLngSpan = minLatSpan / Math.max(0.2, Math.cos((midLat * Math.PI) / 180));
+  if (north - south < minLatSpan) {
+    north = midLat + minLatSpan / 2;
+    south = midLat - minLatSpan / 2;
+  }
+  if (east - west < minLngSpan) {
+    east = midLng + minLngSpan / 2;
+    west = midLng - minLngSpan / 2;
+  }
+  return [[east, north], [west, south]];
 }
 
 function numOrNull(v) {
@@ -206,8 +242,11 @@ function LiveStatusPill() {
   );
 }
 
-/** Shop / store marker — home only, soft pulse + bounce. */
-function ShopMarker({ name }) {
+/**
+ * Shop / store marker — home only, soft pulse + bounce. `preparing` adds a
+ * "Preparing…" tag above it (shop has accepted, rider has not picked up).
+ */
+function ShopMarker({ name, preparing = false }) {
   const pulse = useRef(new Animated.Value(0)).current;
   const bounce = useRef(new Animated.Value(0)).current;
 
@@ -265,6 +304,12 @@ function ShopMarker({ name }) {
 
   return (
     <View style={styles.shopWrap} pointerEvents="none">
+      {preparing ? (
+        <View style={styles.shopPreparingTag}>
+          <Animated.View style={[styles.shopPreparingDot, { opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 0.35] }) }]} />
+          <Text style={styles.shopPreparingText} numberOfLines={1}>Preparing…</Text>
+        </View>
+      ) : null}
       <View style={styles.shopIconStage}>
         <Animated.View
           style={[
@@ -403,6 +448,8 @@ export default function RiderLiveMap({
   // Route (driving directions) only makes sense once the rider is actually
   // en route — before that, just show shop + customer pins.
   const isOutForDelivery = liveStatus === 'Out for Delivery';
+  // Shop has accepted and is getting the order ready (before the rider picks up).
+  const isShopPreparing = liveStatus === 'Accepted' || liveStatus === 'Preparing';
 
   // Continuous “live” pulse on the rider pin while tracking is active.
   useEffect(() => {
@@ -465,12 +512,15 @@ export default function RiderLiveMap({
     }
   }, []);
 
-  // Extra bottom padding shifts pin framing upward into free map above the sheet.
+  // Immersive: frame the pins in the map strip that is actually visible —
+  // below the status chips (plus a pin's own height, since pins hang above
+  // their point) and above the sheet and its zoom hint.
   const cameraPadding = useMemo(() => {
-    const bottomPad = immersive
-      ? Math.max(200, Math.round((sheetReserve || 0) * 0.72) + 80)
-      : 130;
-    const topPad = immersive ? Math.max(90, Math.round(insets.top) + 56) : 90;
+    if (!immersive) return { top: 90, right: 70, bottom: 130, left: 70 };
+    const topPad = Math.round(insets.top) + IMMERSIVE_TOP_CLEARANCE;
+    const wanted = Math.round(sheetReserve || 0) + IMMERSIVE_BOTTOM_CLEARANCE;
+    // Never squeeze the strip below MIN_FRAME_HEIGHT (an open sheet can be most of the screen).
+    const bottomPad = Math.max(130, Math.min(wanted, WIN_H - topPad - MIN_FRAME_HEIGHT));
     return { top: topPad, right: 70, bottom: bottomPad, left: 70 };
   }, [immersive, sheetReserve, insets.top]);
 
@@ -501,14 +551,7 @@ export default function RiderLiveMap({
         });
         return;
       }
-      const ne = [
-        Math.max(...pts.map((p) => p.longitude)),
-        Math.max(...pts.map((p) => p.latitude)),
-      ];
-      const sw = [
-        Math.min(...pts.map((p) => p.longitude)),
-        Math.min(...pts.map((p) => p.latitude)),
-      ];
+      const [ne, sw] = framingBounds(pts);
       // Flat top-down for multi-pin framing — tilted bounds distort badly.
       cameraRef.current.setCamera({ pitch: 0, animationDuration: 0 });
       cameraRef.current.fitBounds(ne, sw, pad, 500);
@@ -602,6 +645,8 @@ export default function RiderLiveMap({
 
   // Stage-based camera: re-frame when shops appear, rider appears, or OFD starts.
   // Stages: dest | shops | rider | ofd
+  // Also re-frames when the parent sheet changes height (its first measured
+  // layout, open / closed), so the pins stay in the strip left above it.
   useEffect(() => {
     if (loading) return;
     if (!shopCoords.length && !destination && !riderCoord) return;
@@ -609,10 +654,11 @@ export default function RiderLiveMap({
     if (isOutForDelivery && riderCoord) stage = 'ofd';
     else if (riderCoord) stage = 'rider';
     else if (shopCoords.length > 0) stage = 'shops';
-    if (cameraStageRef.current === stage) return;
-    cameraStageRef.current = stage;
+    const frameKey = `${stage}|${cameraPadding.top}|${cameraPadding.bottom}`;
+    if (cameraStageRef.current === frameKey) return;
+    cameraStageRef.current = frameKey;
     fitCamera(...shopCoords, riderCoord, destination);
-  }, [loading, shopCoords, destination, riderCoord, isOutForDelivery, fitCamera]);
+  }, [loading, shopCoords, destination, riderCoord, isOutForDelivery, fitCamera, cameraPadding]);
 
   // Draw the route the moment status flips to Out for Delivery mid-session.
   useEffect(() => {
@@ -649,14 +695,7 @@ export default function RiderLiveMap({
       // Gently keep both pins in view as the rider moves (no hard jump).
       if (destination) {
         try {
-          const ne = [
-            Math.max(lng, destination.longitude),
-            Math.max(lat, destination.latitude),
-          ];
-          const sw = [
-            Math.min(lng, destination.longitude),
-            Math.min(lat, destination.latitude),
-          ];
+          const [ne, sw] = framingBounds([next, destination]);
           cameraRef.current?.fitBounds?.(
             ne,
             sw,
@@ -811,7 +850,7 @@ export default function RiderLiveMap({
               allowOverlap
               anchor={{ x: 0.5, y: 1 }}
             >
-              <ShopMarker name={shop.name} />
+              <ShopMarker name={shop.name} preparing={isShopPreparing} />
             </Mapbox.MarkerView>
           ))}
 
@@ -1131,6 +1170,31 @@ const styles = StyleSheet.create({
   shopWrap: {
     alignItems: 'center',
     maxWidth: 90,
+  },
+  shopPreparingTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 2,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: radius.circle,
+    backgroundColor: '#fff',
+    borderWidth: 1.5,
+    borderColor: 'rgba(22, 163, 74, 0.75)',
+    ...shadows.sm,
+  },
+  shopPreparingDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#16A34A',
+  },
+  shopPreparingText: {
+    fontSize: 10,
+    lineHeight: 13,
+    fontWeight: '800',
+    color: '#15803D',
   },
   shopIconStage: {
     width: 44,
