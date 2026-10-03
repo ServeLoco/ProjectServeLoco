@@ -99,6 +99,9 @@ const TOP_BAR_FADE_LOCATIONS = TOP_BAR_FADE_ALPHAS.map((_, i) => i / (TOP_BAR_FA
 // unavailable ones still leaves a full row.
 // Left/right space between the screen edge and the Home content.
 const PAGE_GUTTER = 10;
+// How far the Common sections (offer cards first) sit up into the fade under
+// the top bar, so the first one starts closer to the bar's cloud edge.
+const COMMON_PULL_UP = spacing.md;
 
 // Product rows are short (the admin caps how many cards they show), so every
 // card is drawn up front and stays attached: a swipe then only moves pixels,
@@ -2210,15 +2213,17 @@ export default function HomeScreen() {
         >
           {/* Offers and shop modes share one backdrop, fading into the catalog. */}
           <View
-            style={styles.commonSections}
+            style={[styles.commonSections, commonUnits.length > 0 && { marginTop: -COMMON_PULL_UP }]}
             onLayout={(e) => setCommonAreaHeight(Math.round(e.nativeEvent.layout.height))}
           >
-            {/* Reaches up behind the top group and continues under the modes. */}
+            {/* Reaches up behind the top group and continues under the modes.
+                It still starts at the very top of the page: the pull-up is
+                taken back off its offset. */}
             {commonUnits.length > 0 ? (
-              <View pointerEvents="none" style={[styles.commonBackdrop, { top: -fadeOverlap }]}>
+              <View pointerEvents="none" style={[styles.commonBackdrop, { top: -(fadeOverlap - COMMON_PULL_UP) }]}>
                 <CommonBackdrop
                   width={windowWidth}
-                  height={commonAreaHeight + fadeOverlap}
+                  height={commonAreaHeight + fadeOverlap - COMMON_PULL_UP}
                   barColor={barColor}
                   barShadow={isLightBar ? '#5B7A99' : '#1F2329'}
                   barBottom={fadeOverlap - topFadeHeight}
