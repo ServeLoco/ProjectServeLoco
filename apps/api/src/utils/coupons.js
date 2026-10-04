@@ -1146,15 +1146,15 @@ const applyBestDeal = async ({
      ORDER BY priority DESC, id DESC`,
     [areaId, dealIds]
   );
-  if (coupons.length === 0) return none;
 
-  const [itemRows] = await conn.query(
-    `SELECT coupon_id, product_id, variant_id, deal_price
-     FROM coupon_deal_items
-     WHERE area_id = ? AND active = 1 AND coupon_id IN (?) AND product_id IN (?)`,
-    [areaId, coupons.map((c) => c.id), productIds]
-  );
-  if (itemRows.length === 0) return none;
+  const [itemRows] = coupons.length > 0
+    ? await conn.query(
+      `SELECT coupon_id, product_id, variant_id, deal_price
+       FROM coupon_deal_items
+       WHERE area_id = ? AND active = 1 AND coupon_id IN (?) AND product_id IN (?)`,
+      [areaId, coupons.map((c) => c.id), productIds]
+    )
+    : [[]];
 
   const pricesByCoupon = new Map();
   for (const row of itemRows) {
@@ -1163,11 +1163,27 @@ const applyBestDeal = async ({
     pricesByCoupon.set(row.coupon_id, map);
   }
 
+  const held = [];
+  let othersTotal = toMoney(subtotal);
+
+  // A line picked from a deal that no longer sells it (the admin removed the
+  // item, or the whole deal) is held too, every unit of it — not billed at
+  // the full price.
+  lines.forEach((line, index) => {
+    if (line.type && line.type !== 'product') return;
+    const couponId = dealCouponIdOf(line);
+    if (couponId === null) return;
+    if (pricesByCoupon.get(couponId)?.has(dealLineKey(line.productId, line.variantId))) return;
+    const qty = Number(line.quantity) || 0;
+    if (qty <= 0) return;
+    held.push({ index, qty, reason: 'unavailable', couponId, dealPrice: null, amountRemaining: 0 });
+    othersTotal = roundMoney(othersTotal - toMoney(line.unitPrice) * qty);
+  });
+
   // Each deal's units. Units picked from any deal are never "other items" —
   // they either sell at a deal price or are held — so the minimum of every
   // deal is checked against the rest of the cart.
   const perDeal = [];
-  let othersTotal = toMoney(subtotal);
   for (const coupon of coupons) {
     const dealPrices = pricesByCoupon.get(coupon.id);
     if (!dealPrices) continue;
@@ -1176,9 +1192,8 @@ const applyBestDeal = async ({
     perDeal.push({ coupon, dealPrices, units: unitsByLine(units) });
     othersTotal = units.reduce((sum, u) => roundMoney(sum - u.unitPrice), othersTotal);
   }
-  if (perDeal.length === 0) return none;
+  if (perDeal.length === 0) return { deal: null, held };
 
-  const held = [];
   const results = [];
   for (const { coupon, dealPrices, units } of perDeal) {
     const eligibility = await checkEligibility({

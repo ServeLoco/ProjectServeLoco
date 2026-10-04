@@ -244,12 +244,38 @@ describe('applyBestDeal', () => {
     expect(pool.query).not.toHaveBeenCalled();
   });
 
-  it('sells the product at its normal price when it is no longer in the deal', async () => {
+  it('holds the item when it is no longer in the deal, instead of billing the full price', async () => {
     pool.query
       .mockResolvedValueOnce([[dealCoupon()]])
       .mockResolvedValueOnce([[]]);
     const result = await applyBestDeal({ lines: [line(1, 300), deal(2, 30)], subtotal: 330, areaId: 4 });
-    expect(result).toEqual({ deal: null, held: [] });
+    expect(result).toEqual({
+      deal: null,
+      held: [{ index: 1, qty: 1, reason: 'unavailable', couponId: 50, dealPrice: null, amountRemaining: 0 }],
+    });
+  });
+
+  it('holds every unit of a line whose deal was deleted', async () => {
+    pool.query.mockResolvedValueOnce([[]]);
+    const result = await applyBestDeal({ lines: [line(1, 300), { ...deal(2, 30), quantity: 2 }], subtotal: 360, areaId: 4 });
+    expect(result).toEqual({
+      deal: null,
+      held: [{ index: 1, qty: 2, reason: 'unavailable', couponId: 50, dealPrice: null, amountRemaining: 0 }],
+    });
+    expect(pool.query).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not count a held removed item toward another deal\'s minimum', async () => {
+    pool.query
+      .mockResolvedValueOnce([[dealCoupon({ id: 50, min_order_amount: 199 }), dealCoupon({ id: 51, min_order_amount: 199 })]])
+      .mockResolvedValueOnce([[{ coupon_id: 51, product_id: 3, variant_id: null, deal_price: 9 }]]);
+    const lines = [line(1, 150), { ...deal(2, 100), dealCouponId: 50 }, { ...deal(3, 30), dealCouponId: 51 }];
+    const result = await applyBestDeal({ lines, subtotal: 280, areaId: 4 });
+    expect(result.deal).toMatchObject({ couponId: 51, unlocked: false, amountRemaining: 49 });
+    expect(result.held).toEqual([
+      { index: 1, qty: 1, reason: 'unavailable', couponId: 50, dealPrice: null, amountRemaining: 0 },
+      { index: 2, qty: 1, reason: 'locked', couponId: 51, dealPrice: 9, amountRemaining: 49 },
+    ]);
   });
 
   it('holds the item of a deal the customer has used up', async () => {
