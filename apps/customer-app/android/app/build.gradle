@@ -112,7 +112,7 @@ packagingOptions {
         // app.json, so only local builds were affected — but a local .aab would
         // have been rejected by Play for reusing a versionCode.
         versionCode 45
-        versionName "1.9.8"
+        versionName "1.9.9"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
