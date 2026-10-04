@@ -453,6 +453,10 @@ const catalogETag = async (req, res, next) => {
 function _resetCachesForTests() {
   areasCache.del();
   areaZonesCache.del();
+  // A pending trailing catalog.updated emit would fire after the test file's
+  // environment is torn down and fail the run (see tests/helpers/serialRunner.js).
+  for (const { timer } of catalogEmitTimers.values()) clearTimeout(timer);
+  catalogEmitTimers.clear();
 }
 
 module.exports = {

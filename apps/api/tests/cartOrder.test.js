@@ -25,6 +25,7 @@ jest.mock('../src/utils/coupons', () => ({
   validateCoupon: jest.fn().mockResolvedValue({ ok: false, reason: 'No coupon' }),
   validateCouponById: jest.fn().mockResolvedValue({ ok: false, reason: 'Coupon not found' }),
   pickBestAutoApply: jest.fn().mockResolvedValue(null),
+  applyBestDeal: jest.fn().mockResolvedValue({ deal: null, held: [] }),
   findApplicableCoupons: jest.fn().mockResolvedValue([]),
   getNextFreeDeliveryThreshold: jest.fn().mockResolvedValue(null),
   getNearestUnlockableCoupon: jest.fn().mockResolvedValue(null),
@@ -32,7 +33,7 @@ jest.mock('../src/utils/coupons', () => ({
   checkEligibility: jest.fn().mockResolvedValue({ ok: false, reason: 'No coupon' }),
 }));
 
-const { pickBestAutoApply, validateCouponById, getNextFreeDeliveryThreshold, getNearestUnlockableCoupon } = require('../src/utils/coupons');
+const { pickBestAutoApply, validateCouponById, getNextFreeDeliveryThreshold, getNearestUnlockableCoupon, applyBestDeal } = require('../src/utils/coupons');
 const areaScope = require('../src/utils/areaScope');
 
 const app = express();
@@ -78,6 +79,141 @@ describe('Cart and Order Tests', () => {
     expect(res.body.deliveryCharge).toEqual(10);
     expect(res.body.total).toEqual(210);
     expect(res.body.valid).toEqual(true);
+  });
+
+  it('takes the deal saving off the bill and runs the coupon on the subtotal after it', async () => {
+    pool.query.mockResolvedValueOnce([[{ shop_open: 1, delivery_charge: 10, night_charge: 0 }]]); // settings
+    pool.query.mockResolvedValueOnce([[
+      { id: 1, name: 'Rice', price: 300 },
+      { id: 2, name: 'Potato', price: 30 },
+    ]]); // products
+    applyBestDeal.mockResolvedValueOnce({
+      deal: {
+        couponId: 50,
+        title: '₹9ryday',
+        dealDiscount: 21,
+        unlocked: true,
+        amountRemaining: 0,
+        minOrder: 299,
+        maxItems: 1,
+        lines: [{ index: 1, dealPrice: 9, dealQty: 1 }],
+        bestCandidate: { index: 1, dealPrice: 9, unitPrice: 30, saving: 21 },
+      },
+      held: [],
+    });
+    pickBestAutoApply.mockResolvedValueOnce({
+      coupon: { id: 5, code: null, title: 'Free Delivery', discount_type: 'free_delivery' },
+      discount: 10,
+      itemDiscount: 0,
+      freeDeliveryWaiver: 10,
+    });
+
+    const res = await request(app)
+      .post('/api/cart/calculate')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ items: [{ productId: 1, quantity: 1 }, { productId: 2, quantity: 1, dealCouponId: 50 }] });
+
+    expect(res.statusCode).toEqual(200);
+    // Only the line picked from the deal carries its id.
+    expect(applyBestDeal).toHaveBeenCalledWith(expect.objectContaining({
+      subtotal: 330,
+      lines: [
+        { productId: 1, variantId: null, type: 'product', unitPrice: 300, quantity: 1, dealCouponId: null },
+        { productId: 2, variantId: null, type: 'product', unitPrice: 30, quantity: 1, dealCouponId: 50 },
+      ],
+    }));
+    // The coupon sees what the customer really pays for items.
+    expect(pickBestAutoApply).toHaveBeenCalledWith(expect.objectContaining({ subtotal: 309 }));
+    expect(res.body.subtotal).toEqual(330);
+    expect(res.body.dealDiscount).toEqual(21);
+    expect(res.body.deal_discount).toEqual(21);
+    expect(res.body.couponDiscount).toEqual(10);
+    expect(res.body.discount).toEqual(31);
+    // Free delivery shows as FREE; the Discount line carries the deal.
+    expect(res.body.itemDiscount).toEqual(21);
+    expect(res.body.total).toEqual(309);
+    expect(res.body.items[0]).toMatchObject({ unitPrice: 300, lineTotal: 300, dealPrice: null, dealQty: 0 });
+    expect(res.body.items[1]).toMatchObject({ unitPrice: 30, lineTotal: 30, dealPrice: 9, deal_price: 9, dealQty: 1, deal_qty: 1 });
+    expect(res.body.deal).toMatchObject({ id: 50, title: '₹9ryday', discount: 21, unlocked: true, hintItem: null });
+  });
+
+  it('holds a locked deal item out of the bill, with its hint item', async () => {
+    pool.query.mockResolvedValueOnce([[{ shop_open: 1, delivery_charge: 10, night_charge: 0 }]]);
+    pool.query.mockResolvedValueOnce([[
+      { id: 1, name: 'Rice', price: 40 },
+      { id: 2, name: 'Potato', price: 30 },
+    ]]);
+    applyBestDeal.mockResolvedValueOnce({
+      deal: {
+        couponId: 50,
+        title: '₹9ryday',
+        dealDiscount: 0,
+        unlocked: false,
+        amountRemaining: 259,
+        minOrder: 299,
+        maxItems: 1,
+        lines: [],
+        bestCandidate: { index: 1, dealPrice: 9, unitPrice: 30, saving: 21 },
+      },
+      held: [{ index: 1, qty: 1, reason: 'locked', couponId: 50, dealPrice: 9, amountRemaining: 259 }],
+    });
+
+    const res = await request(app)
+      .post('/api/cart/calculate')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ items: [{ productId: 1, quantity: 1 }, { productId: 2, quantity: 1, dealCouponId: 50 }] });
+
+    expect(res.statusCode).toEqual(200);
+    // The potato is not charged at all while the deal is locked.
+    expect(res.body.subtotal).toEqual(40);
+    expect(res.body.discount).toEqual(0);
+    expect(res.body.total).toEqual(50);
+    expect(res.body.items[0]).toMatchObject({ lineTotal: 40, heldQty: 0, heldReason: null });
+    expect(res.body.items[1]).toMatchObject({
+      quantity: 1,
+      unitPrice: 30,
+      lineTotal: 0,
+      dealPrice: null,
+      dealQty: 0,
+      heldQty: 1,
+      held_qty: 1,
+      heldReason: 'locked',
+      held_reason: 'locked',
+      heldDealPrice: 9,
+      held_deal_price: 9,
+      unlockAmount: 259,
+      unlock_amount: 259,
+    });
+    // Thresholds see only what is billed.
+    expect(getNextFreeDeliveryThreshold).toHaveBeenCalledWith(expect.objectContaining({ subtotal: 40, itemCount: 1 }));
+    expect(res.body.deal).toMatchObject({
+      unlocked: false,
+      amountRemaining: 259,
+      amount_remaining: 259,
+      hintItem: { productId: 2, name: 'Potato', dealPrice: 9 },
+    });
+  });
+
+  it('bills the units of a held line that were added normally', async () => {
+    pool.query.mockResolvedValueOnce([[{ shop_open: 1, delivery_charge: 10, night_charge: 0 }]]);
+    pool.query.mockResolvedValueOnce([[
+      { id: 1, name: 'Rice', price: 40 },
+      { id: 2, name: 'Potato', price: 30 },
+    ]]);
+    applyBestDeal.mockResolvedValueOnce({
+      deal: null,
+      held: [{ index: 1, qty: 1, reason: 'unavailable', couponId: 50, dealPrice: 9, amountRemaining: 0 }],
+    });
+
+    const res = await request(app)
+      .post('/api/cart/calculate')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ items: [{ productId: 1, quantity: 1 }, { productId: 2, quantity: 3, dealCouponId: 50 }] });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.subtotal).toEqual(100);
+    expect(res.body.items[1]).toMatchObject({ quantity: 3, lineTotal: 60, heldQty: 1, heldReason: 'unavailable' });
+    expect(res.body.deal).toBeNull();
   });
 
   it('adds the fast delivery fee on top of the standard delivery charge instead of replacing it', async () => {

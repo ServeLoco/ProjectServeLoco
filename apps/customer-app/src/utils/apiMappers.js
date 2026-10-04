@@ -321,7 +321,45 @@ function normalizeCartCalculation(payload = {}) {
         return raw == null || raw === '' ? null : raw;
       })(),
       variantLabel: pickFirst(item.variantLabel, item.variant_label) ?? null,
+      // Units of this line sold at a deal price (₹9 / ₹29 offers), if any.
+      dealPrice: (() => {
+        const raw = pickFirst(item.dealPrice, item.deal_price, null);
+        return raw == null ? null : Number(raw);
+      })(),
+      dealQty: numberOrZero(pickFirst(item.dealQty, item.deal_qty, 0)),
+      // Units picked from a deal that are not billed: the deal is still
+      // locked ('locked', unlockAmount = ₹ still missing), another deal took
+      // the order ('one_deal'), or the deal is off ('unavailable').
+      heldQty: numberOrZero(pickFirst(item.heldQty, item.held_qty, 0)),
+      heldReason: pickFirst(item.heldReason, item.held_reason) ?? null,
+      heldDealPrice: (() => {
+        const raw = pickFirst(item.heldDealPrice, item.held_deal_price, null);
+        return raw == null ? null : Number(raw);
+      })(),
+      unlockAmount: numberOrZero(pickFirst(item.unlockAmount, item.unlock_amount, 0)),
     })),
+    // `discount` / `itemDiscount` include the deal saving; these split it.
+    // couponDiscount falls back to the whole discount on servers without deals.
+    dealDiscount: numberOrZero(pickFirst(bill.dealDiscount, bill.deal_discount, 0)),
+    couponDiscount: numberOrZero(pickFirst(bill.couponDiscount, bill.coupon_discount, bill.discount, 0)),
+    deal: (() => {
+      const deal = bill.deal || null;
+      if (!deal) return null;
+      const hint = pickFirst(deal.hintItem, deal.hint_item, null);
+      return {
+        id: deal.id,
+        title: pickFirst(deal.title, ''),
+        discount: numberOrZero(deal.discount),
+        unlocked: asBoolean(deal.unlocked, false),
+        amountRemaining: numberOrZero(pickFirst(deal.amountRemaining, deal.amount_remaining)),
+        minOrder: numberOrZero(pickFirst(deal.minOrder, deal.min_order)),
+        maxItems: numberOrZero(pickFirst(deal.maxItems, deal.max_items, 1)) || 1,
+        hintItem: hint ? {
+          name: pickFirst(hint.name, ''),
+          dealPrice: numberOrZero(pickFirst(hint.dealPrice, hint.deal_price)),
+        } : null,
+      };
+    })(),
     // Soft-dropped OOS / deleted / closed-shop lines — client removes matching
     // cart rows so the cart never shows "something went wrong" for dead items.
     unavailableItems: asArray(
@@ -486,6 +524,10 @@ function normalizeOrder(order = {}) {
   const itemDiscount = numberOrZero(pickFirst(
     bill.itemDiscount, order.itemDiscount, Math.max(0, discount - freeDeliveryWaiver),
   ));
+  // The deal price share of `discount` (which is coupon + deal).
+  const dealDiscount = numberOrZero(pickFirst(
+    bill.dealDiscount, bill.deal_discount, order.dealDiscount, order.deal_discount, order.deal_discount_amount,
+  ));
   const grandTotal = numberOrZero(pickFirst(
     bill.grandTotal,
     bill.grand_total,
@@ -552,6 +594,8 @@ function normalizeOrder(order = {}) {
       discount,
       freeDeliveryWaiver,
       itemDiscount,
+      dealDiscount,
+      dealTitle: pickFirst(bill.dealTitle, order.dealTitle, order.deal_title, null),
       freeDeliveryApplied: freeDeliveryWaiver > 0,
       grandTotal,
       deliveryType: pickFirst(order.deliveryType, order.delivery_type, 'standard'),

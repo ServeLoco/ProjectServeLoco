@@ -7,7 +7,9 @@
  * down to a cheaper product can drop the new subtotal below the applied
  * coupon's min_order_amount. The order must still surface that to the
  * admin (response field + admin notification) rather than silently
- * shipping an order that violates its own coupon terms.
+ * shipping an order that violates its own coupon terms. The same goes for a
+ * deal's minimum, and a deal item can only become another item of its deal
+ * (tests/integration/dealOrder.test.js covers that swap on a real MySQL).
  */
 const request = require('supertest');
 const express = require('express');
@@ -161,6 +163,59 @@ describe('PATCH /orders/:id/items/:itemId/replace — coupon terms warning', () 
         areaId: 1,
       })
     );
+  });
+
+  it("warns when a swap drops the other items below the deal's minimum", async () => {
+    // A ₹9 deal (saving ₹21) whose minimum counts only the other items; the
+    // swapped line is an ordinary one.
+    const order = { ...BASE_ORDER, deal_coupon_id: 50, deal_title: '₹9ryday', deal_discount_amount: 21, discount_amount: 21 };
+    mockHappyPathConnection({
+      order,
+      item: BASE_ITEM,
+      newProduct: { id: 21, name: 'Cheap Substitute', price: 20, shop_price: null, shop_id: null, area_id: 1, available: 1, deleted: 0 },
+      newSubtotal: 70, // others 40 + the deal item at its full ₹30
+      couponRow: { min_order_amount: 299 }, // the deal's coupon row
+    });
+    pool.query.mockResolvedValueOnce([[{ ...order, subtotal: 70 }]])
+      .mockResolvedValueOnce([[{ ...BASE_ITEM, product_id: 21 }]]);
+
+    const res = await request(app)
+      .patch('/api/admin/orders/501/items/9001/replace')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ expectedProductId: 10, expectedUnitPrice: 100, newProductId: 21 });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.couponWarning).toMatch(/₹9ryday/);
+    expect(res.body.couponWarning).toMatch(/299/);
+    expect(adminInbox.createAdminNotification).toHaveBeenCalled();
+  });
+
+  it('refuses to swap a deal item for a product outside the deal', async () => {
+    const order = { ...BASE_ORDER, deal_coupon_id: 50, deal_title: '₹9ryday', deal_discount_amount: 21, discount_amount: 21 };
+    const mockConnection = mockHappyPathConnection({
+      order,
+      item: { ...BASE_ITEM, unit_price: 30, deal_price: 9, deal_qty: 1 },
+      newProduct: { id: 21, name: 'Carrot', price: 25, shop_price: null, shop_id: null, area_id: 1, available: 1, deleted: 0 },
+      newSubtotal: 0,
+    });
+    // The 4th query is the deal item lookup here: no row, not in the deal.
+    const calls = mockConnection.query.getMockImplementation();
+    let n = 0;
+    mockConnection.query.mockImplementation((sql, params) => {
+      n += 1;
+      if (n === 4) return Promise.resolve([[]]);
+      return calls(sql, params);
+    });
+
+    const res = await request(app)
+      .patch('/api/admin/orders/501/items/9001/replace')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ expectedProductId: 10, expectedUnitPrice: 30, newProductId: 21 });
+
+    expect(res.statusCode).toEqual(400);
+    expect(res.body.message).toMatch(/same deal/);
+    expect(mockConnection.rollback).toHaveBeenCalled();
+    expect(mockConnection.query.mock.calls.some(([sql]) => /UPDATE order_items/.test(sql))).toBe(false);
   });
 
   it('does not warn when the coupon row no longer exists (deleted) — best-effort, never blocks the swap', async () => {

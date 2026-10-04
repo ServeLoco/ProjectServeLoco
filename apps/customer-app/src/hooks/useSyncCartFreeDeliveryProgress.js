@@ -92,6 +92,7 @@ export function useSyncCartFreeDeliveryProgress({ enabled = true, debounceMs = 3
           items: lines.map((item) => ({
             productId: item.product.id,
             variantId: item.variant?.id ?? null,
+            dealCouponId: item.dealCouponId ?? null,
             quantity: item.quantity,
             type: item.type || (item.product?.isCombo || item.product?.is_combo ? 'combo' : 'product'),
             isCombo: (item.type || (item.product?.isCombo || item.product?.is_combo ? 'combo' : 'product')) === 'combo',

@@ -4,7 +4,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   Animated,
   TouchableOpacity,
   LayoutAnimation,
@@ -12,7 +11,6 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import {
   AppScreen,
@@ -35,15 +33,15 @@ import {
   mergeOrderRealtimePatch,
 } from '../../../utils/realtimeOrder';
 
-const FILTER_CHIPS = [
-  { label: 'All', value: 'All' },
-  { label: 'Order Placed', value: 'Pending' },
-  { label: 'Accepted', value: 'Accepted' },
-  { label: 'Preparing/Packing', value: 'Preparing' },
-  { label: 'Out for Delivery', value: 'Out for Delivery' },
+// Two tabs: orders still in progress, and finished ones. Cancelled orders
+// sit with Delivered so a cancel never makes an order vanish from the page.
+const ORDER_TABS = [
+  { label: 'Live orders', value: 'Live' },
   { label: 'Delivered', value: 'Delivered' },
-  { label: 'Cancelled', value: 'Cancelled' },
 ];
+const DONE_STATUSES = ['Delivered', 'Cancelled'];
+// Item lines shown on a card before folding the rest into "+N more".
+const MAX_PREVIEW_ITEMS = 3;
 const STATUS_CODE_LABELS = {
   0: 'Pending',
   1: 'Accepted',
@@ -91,8 +89,8 @@ const getCancelledPaymentStatus = (paymentMethod) => (
   paymentMethod === 'UPI' ? 'Refunded' : 'Failed'
 );
 
-// Per-status visual tokens. Kept in one map so the chip / accent bar /
-// status icon all stay in sync.
+// Per-status visual tokens. Kept in one map so the status pill / icon /
+// stepper / Details button all stay in sync.
 const STATUS_VISUALS = {
   Pending: {
     color: '#0E1116',
@@ -100,9 +98,6 @@ const STATUS_VISUALS = {
     bg: '#F3F4F6',
     iconBg: '#E5E7EB',
     icon: 'orders',
-    gradientStart: '#2A303D',
-    gradientEnd: '#0E1116',
-    glowColor: 'rgba(14,17,22,0.28)',
     step: 0,
   },
   Accepted: {
@@ -111,9 +106,6 @@ const STATUS_VISUALS = {
     bg: '#EFF6FF',
     iconBg: '#DBEAFE',
     icon: 'check',
-    gradientStart: '#3B82F6',
-    gradientEnd: '#1D4ED8',
-    glowColor: 'rgba(59,130,246,0.30)',
     step: 1,
   },
   Preparing: {
@@ -122,9 +114,6 @@ const STATUS_VISUALS = {
     bg: '#FFF2EB',
     iconBg: '#FFE0CC',
     icon: 'box',
-    gradientStart: '#FF9A66',
-    gradientEnd: '#E05A1A',
-    glowColor: 'rgba(224,90,26,0.30)',
     step: 2,
   },
   'Out for Delivery': {
@@ -133,9 +122,6 @@ const STATUS_VISUALS = {
     bg: '#FFFBEB',
     iconBg: '#FEF3C7',
     icon: 'navigation',
-    gradientStart: '#FBBF24',
-    gradientEnd: '#D97706',
-    glowColor: 'rgba(245,158,11,0.30)',
     step: 3,
   },
   Delivered: {
@@ -144,9 +130,6 @@ const STATUS_VISUALS = {
     bg: '#EAFDF5',
     iconBg: '#C6F4DF',
     icon: 'check',
-    gradientStart: '#3FE09D',
-    gradientEnd: '#179E62',
-    glowColor: 'rgba(31,181,116,0.28)',
     step: 4,
   },
   Cancelled: {
@@ -155,9 +138,6 @@ const STATUS_VISUALS = {
     bg: '#FFF0F0',
     iconBg: '#FCA5A5',
     icon: 'close',
-    gradientStart: '#F87171',
-    gradientEnd: '#C93B40',
-    glowColor: 'rgba(229,72,77,0.28)',
     step: -1,
   },
 };
@@ -168,9 +148,6 @@ const getStatusVisual = (statusLabel) => STATUS_VISUALS[statusLabel] || {
   bg: colors.bgApp,
   iconBg: colors.bgApp,
   icon: 'orders',
-  gradientStart: '#6B7280',
-  gradientEnd: '#374151',
-  glowColor: 'rgba(107,114,128,0.20)',
   step: 0,
 };
 
@@ -191,7 +168,7 @@ const ORDER_STEPS = [
 // (backgroundColor) on the SAME Animated.View crashes React Native, so the
 // JS-driven backgroundColor lives on the outer Animated.View and the native
 // opacity/transform on an inner Animated.View.
-const FadeInItem = ({ children, index, status }) => {
+const FadeInItem = ({ children, index, status, glowColor = colors.primary }) => {
   const anim = useRef(new Animated.Value(0)).current;
   const highlightAnim = useRef(new Animated.Value(0)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
@@ -272,9 +249,10 @@ const FadeInItem = ({ children, index, status }) => {
               style={[
                 styles.glowBorder,
                 {
+                  borderColor: glowColor,
                   opacity: glowAnim.interpolate({
                     inputRange: [0, 1],
-                    outputRange: [0.15, 0.65],
+                    outputRange: [0.2, 0.7],
                   }),
                 },
               ]}
@@ -290,7 +268,7 @@ export default function OrdersScreen() {
   const navigation = useNavigation();
   const isFocused = useIsFocused();
 
-  const [activeFilter, setActiveFilter] = useState('All');
+  const [activeFilter, setActiveFilter] = useState('Live');
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -308,6 +286,10 @@ export default function OrdersScreen() {
   const listOpacity = useRef(new Animated.Value(1)).current;
   const realtimeFetchTimer = useRef(null);
   const recentRealtimeEvents = useRef({});
+  // Set when the screen is opened (or another day is picked): the next fetch
+  // then picks the tab — Live if any order is still in progress, else
+  // Delivered. Realtime refreshes and the user's own tab taps don't re-pick.
+  const autoPickTab = useRef(true);
 
   const fetchOrders = useCallback((refresh = false) => {
     const isLoadMore = !refresh && pagination.offset > 0;
@@ -325,10 +307,10 @@ export default function OrdersScreen() {
     ordersApi.getOrders({ limit: pagination.limit, offset, date: selectedDate })
       .then(response => {
         const meta = response?.meta || { total: 0, limit: 20, offset: 0, hasMore: false };
-        // Store the RAW page — the status-chip filter is applied at render
+        // Store the RAW page — the Live/Delivered tab filter is applied at render
         // time (displayOrders below). Filtering here would bake the filter
         // that was active at fetch time into the paginated list, so pages
-        // fetched under different chips would mix and chip taps would do
+        // fetched under different tabs would mix and tab taps would do
         // nothing until the next fetch.
         const fetched = asArray(response, ['orders']).map(normalizeOrder);
 
@@ -345,6 +327,12 @@ export default function OrdersScreen() {
         });
 
         setOrders(prev => (refresh ? fetched : [...prev, ...fetched]));
+
+        if (refresh && autoPickTab.current) {
+          autoPickTab.current = false;
+          const hasLive = fetched.some(o => !DONE_STATUSES.includes(formatStatus(o.status)));
+          setActiveFilter(hasLive ? 'Live' : 'Delivered');
+        }
       })
       .catch((err) => {
         setIsError(true);
@@ -399,6 +387,7 @@ export default function OrdersScreen() {
 
   useEffect(() => {
     if (isFocused) {
+      autoPickTab.current = true;
       // Always a full refresh: fetchOrders(false) at offset > 0 is a
       // load-more and would silently APPEND the next page every time the
       // user tabs back to this screen. isLoading starts true, so the very
@@ -420,8 +409,8 @@ export default function OrdersScreen() {
       const eventOrderId = getRealtimeOrderId(payload);
       if (!eventOrderId) return;
 
-      // The chip filter is applied at render time, so patching an order in
-      // place moves it between chips automatically. A refetch is only needed
+      // The tab filter is applied at render time, so patching an order in
+      // place moves it between tabs automatically. A refetch is only needed
       // when the order isn't in the loaded pages at all.
       let shouldRefresh = false;
 
@@ -484,92 +473,51 @@ export default function OrdersScreen() {
       .finally(() => setCancellingId(null));
   };
 
-  const getPaymentStatusColor = (status) => {
-    switch (status) {
-      case 'Paid':
-      case 'Success':
-      case 'Refunded':
-        return colors.success;
-      case 'Failed':
-        return colors.error;
-      case 'Pending':
-      default:
-        return '#F59E0B';
-    }
-  };
-
-  // Chip filtering happens here — over the raw paginated list — so tapping a
-  // chip refilters the already-loaded pages instantly and load-more keeps
-  // appending to one consistent list regardless of the active chip.
+  // Tab filtering happens here — over the raw paginated list — so tapping a
+  // tab refilters the already-loaded pages instantly and load-more keeps
+  // appending to one consistent list regardless of the active tab.
   const displayOrders = useMemo(() => (
-    activeFilter === 'All'
-      ? orders
-      : orders.filter(o => formatStatus(o.status) === activeFilter)
+    orders.filter((o) => {
+      const isDone = DONE_STATUSES.includes(formatStatus(o.status));
+      return activeFilter === 'Delivered' ? isDone : !isDone;
+    })
   ), [orders, activeFilter]);
-
-  const summary = useMemo(() => {
-    const total = orders.length;
-    let active = 0;
-    let delivered = 0;
-    let cancelled = 0;
-    orders.forEach((o) => {
-      const s = formatStatus(o.status);
-      if (s === 'Delivered') delivered += 1;
-      else if (s === 'Cancelled') cancelled += 1;
-      else active += 1;
-    });
-    return { total, active, delivered, cancelled };
-  }, [orders]);
 
   const renderItem = ({ item, index }) => {
     const statusLabel = formatStatus(item.status);
     const displayStatus = STATUS_DISPLAY_LABELS[statusLabel] || statusLabel;
     const orderLabel = item.orderNumber || item.order_number || item.id;
-    const paymentStatus = statusLabel === 'Cancelled'
-      ? getCancelledPaymentStatus(item.paymentMethod)
-      : item.paymentStatus;
+    const previewItems = Array.isArray(item.items_preview) ? item.items_preview : [];
     const visual = getStatusVisual(statusLabel);
-    const payColor = getPaymentStatusColor(paymentStatus);
     const isCancelled = statusLabel === 'Cancelled';
     const activeStep = visual.step;
 
     return (
-    <FadeInItem index={index} status={statusLabel}>
-      <View style={[
-        styles.card,
-        { shadowColor: visual.glowColor, borderColor: visual.colorAlt + '33' },
-      ]}>
+    <FadeInItem index={index} status={statusLabel} glowColor={visual.colorAlt}>
+      <View style={styles.card}>
 
-        {/* ── Gradient Header ── */}
-        <LinearGradient
-          colors={[visual.gradientStart, visual.gradientEnd]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.cardHeader}
-        >
-          {/* Decorative blob */}
-          <View style={styles.cardHeaderBlob} pointerEvents="none" />
-          <View style={styles.cardHeaderBlob2} pointerEvents="none" />
-
-          {/* Order ID + Date */}
-          <View style={styles.cardHeaderLeft}>
-            <View style={[styles.cardIconBubble, styles.cardIconBubbleGlass]}>
-              <AppIcon name={visual.icon} size={16} color={'#FFFFFF'} strokeWidth={2.6} />
-            </View>
-            <View style={styles.cardMeta}>
-              <Text style={styles.orderId} numberOfLines={1}>#{orderLabel}</Text>
-              <Text style={styles.orderDate} numberOfLines={1}>{formatDate(item.date)}</Text>
-            </View>
+        {/* ── Header: order id + date, status pill ── */}
+        <View style={styles.cardHeader}>
+          <View style={styles.cardMeta}>
+            <Text
+              style={styles.orderId}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
+            >
+              #{orderLabel}
+            </Text>
+            <Text style={styles.orderDate} numberOfLines={1}>{formatDate(item.date)}</Text>
           </View>
 
           {/* Status pill */}
-          <View style={styles.statusPillGlass}>
-            <View style={styles.statusPillGlassDot} />
-            <Text style={styles.statusPillGlassText} numberOfLines={1}>
+          <View style={[styles.statusPill, { backgroundColor: visual.bg, borderColor: visual.colorAlt + '40' }]}>
+            <View style={[styles.statusPillDot, { backgroundColor: visual.colorAlt }]} />
+            <Text style={[styles.statusPillText, { color: visual.color }]} numberOfLines={1}>
               {displayStatus}
             </Text>
           </View>
-        </LinearGradient>
+        </View>
 
         {/* ── Card Body ── */}
         <View style={styles.cardBody}>
@@ -625,20 +573,22 @@ export default function OrdersScreen() {
             </View>
           )}
 
-          {/* Info tags row */}
-          <View style={styles.tagsRow}>
-            <View style={styles.tag}>
-              <Text style={styles.tagText}>
+          {/* Items in the order */}
+          <View style={styles.itemsList}>
+            {previewItems.slice(0, MAX_PREVIEW_ITEMS).map((it, ii) => (
+              <Text key={`${it.name}-${ii}`} style={styles.itemLine} numberOfLines={1}>
+                <Text style={styles.itemQty}>{it.quantity} × </Text>
+                {it.name}{it.variant_label ? ` (${it.variant_label})` : ''}
+              </Text>
+            ))}
+            {previewItems.length > MAX_PREVIEW_ITEMS && (
+              <Text style={styles.itemMore}>+{previewItems.length - MAX_PREVIEW_ITEMS} more</Text>
+            )}
+            {previewItems.length === 0 && (
+              <Text style={styles.itemLine}>
                 {item.itemCount} Item{item.itemCount > 1 ? 's' : ''}
               </Text>
-            </View>
-            <View style={styles.tag}>
-              <Text style={styles.tagText}>{item.paymentMethod}</Text>
-            </View>
-            <View style={[styles.tag, { backgroundColor: payColor + '18', borderColor: payColor + '40' }]}>
-              <View style={[styles.payDot, { backgroundColor: payColor }]} />
-              <Text style={[styles.tagText, { color: payColor, fontWeight: '800' }]}>{paymentStatus}</Text>
-            </View>
+            )}
           </View>
 
           {/* Bottom row: price + actions */}
@@ -658,23 +608,16 @@ export default function OrdersScreen() {
                   style={styles.cancelBtn}
                 />
               )}
-              <LinearGradient
-                colors={[visual.gradientStart, visual.gradientEnd]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.detailsBtnGradient}
+              <TouchableOpacity
+                onPress={() => navigation.navigate('OrderDetail', { orderId: item.id })}
+                style={[styles.detailsBtn, { backgroundColor: visual.color }]}
+                activeOpacity={0.80}
+                accessibilityRole="button"
+                accessibilityLabel="View order details"
               >
-                <TouchableOpacity
-                  onPress={() => navigation.navigate('OrderDetail', { orderId: item.id })}
-                  style={styles.detailsBtn}
-                  activeOpacity={0.80}
-                  accessibilityRole="button"
-                  accessibilityLabel="View order details"
-                >
-                  <Text style={styles.detailsBtnText}>Details</Text>
-                  <AppIcon name="chevronRight" size={13} color={'#FFF'} strokeWidth={2.8} />
-                </TouchableOpacity>
-              </LinearGradient>
+                <Text style={styles.detailsBtnText}>Details</Text>
+                <AppIcon name="chevronRight" size={13} color={'#FFF'} strokeWidth={2.8} />
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -705,10 +648,10 @@ export default function OrdersScreen() {
   const renderEmptyState = () => (
     <EmptyState
       icon={<AppIcon name="orders" size={56} color={colors.textTertiary} />}
-      title="No orders found"
-      subtitle={activeFilter === 'All'
-        ? "You haven't placed any orders yet. Start exploring our delicious menu!"
-        : `You don't have any ${(STATUS_DISPLAY_LABELS[activeFilter] || activeFilter).toLowerCase()} orders.`}
+      title={activeFilter === 'Live' ? 'No live orders' : 'No delivered orders'}
+      subtitle={activeFilter === 'Live'
+        ? "You don't have any orders on the way right now."
+        : 'Your delivered and cancelled orders will show here.'}
       actionLabel="Start Shopping"
       onAction={() => navigation.navigate('MainTabs', { screen: 'Home' })}
       style={styles.emptyState}
@@ -735,8 +678,8 @@ export default function OrdersScreen() {
   };
 
   return (
-    <AppScreen style={styles.container} safeAreaBottom={false}>
-      <AppHeader title="My Orders" />
+    <AppScreen style={styles.container} bg={colors.bgSurface} safeAreaBottom={false}>
+      <AppHeader title="My Orders" bordered />
 
       <View style={styles.dateRow}>
         <Text style={styles.dateRowText}>
@@ -744,7 +687,7 @@ export default function OrdersScreen() {
         </Text>
         {isToday ? (
           <TouchableOpacity style={styles.historyBtn} onPress={() => setPickerVisible(true)}>
-            <AppIcon name="orders" size={14} color={colors.saffronDark} />
+            <AppIcon name="clock" size={14} color={colors.textPrimary} strokeWidth={2.4} />
             <Text style={styles.historyBtnText}>History</Text>
           </TouchableOpacity>
         ) : (
@@ -754,60 +697,33 @@ export default function OrdersScreen() {
         )}
       </View>
 
-      {/* Summary hero (only shown when we actually have orders) */}
-      {!isLoading && !isError && orders.length > 0 && (
-        <View style={styles.summaryWrap}>
-          <LinearGradient
-            colors={[colors.brandGradientStart, colors.brandGradientEnd]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.summaryGradient}
-          >
-            <View style={styles.summaryBlob} pointerEvents="none" />
-            <View style={styles.summaryContent}>
-              <View>
-                <Text style={styles.summaryLabel}>Total orders</Text>
-                <Text style={styles.summaryValue}>{summary.total}</Text>
-              </View>
-              <View style={styles.summaryStatsRow}>
-                <SummaryStat label="Active" value={summary.active} color="#FFFFFF" bg="rgba(255,255,255,0.25)" />
-                <SummaryStat label="Delivered" value={summary.delivered} color="#FFFFFF" bg="rgba(255,255,255,0.25)" />
-                <SummaryStat label="Cancelled" value={summary.cancelled} color="#FFFFFF" bg="rgba(255,255,255,0.25)" />
-              </View>
-            </View>
-          </LinearGradient>
-        </View>
-      )}
-
-      {/* Filter Chips */}
-      <View style={styles.filterArea}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterScroll}
-        >
-          {FILTER_CHIPS.map(chip => {
-            const isActive = activeFilter === chip.value;
+      {/* Live / Delivered tabs */}
+      <View style={styles.tabsArea}>
+        <View style={styles.tabsTrack}>
+          {ORDER_TABS.map(tab => {
+            const isActive = activeFilter === tab.value;
             return (
               <TouchableOpacity
-                key={chip.value}
-                style={[styles.chip, isActive && styles.chipActive]}
+                key={tab.value}
+                style={[styles.tab, isActive && styles.tabActive]}
                 onPress={() => {
                   LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                  setActiveFilter(chip.value);
+                  autoPickTab.current = false;
+                  setActiveFilter(tab.value);
                 }}
                 activeOpacity={0.8}
-                accessibilityRole="button"
-                accessibilityLabel={chip.label}
+                accessibilityRole="tab"
+                accessibilityLabel={tab.label}
                 accessibilityState={{ selected: isActive }}
               >
-                <Text style={[styles.chipText, isActive && styles.chipTextActive]}>
-                  {chip.label}
+                {tab.value === 'Live' && <View style={styles.liveDot} />}
+                <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+                  {tab.label}
                 </Text>
               </TouchableOpacity>
             );
           })}
-        </ScrollView>
+        </View>
       </View>
 
       <View style={styles.listContainer}>
@@ -858,21 +774,15 @@ export default function OrdersScreen() {
   );
 }
 
-function SummaryStat({ label, value, color, bg }) {
-  return (
-    <View style={styles.summaryStat}>
-      <View style={[styles.summaryStatBubble, { backgroundColor: bg }]}>
-        <Text style={[styles.summaryStatValue, { color }]}>{value}</Text>
-      </View>
-      <Text style={[styles.summaryStatLabel, { color }]}>{label}</Text>
-    </View>
-  );
-}
+// Light grey used for card borders, dividers and the tab track — the page
+// is plain white, so these carry the structure.
+const LINE = '#ECEEF2';
+const MUTED_BG = '#F5F6F8';
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.bgApp,
+    backgroundColor: colors.bgSurface,
   },
 
   /* ----- Date row (today / history) ----- */
@@ -881,123 +791,63 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.md,
   },
   dateRowText: {
-    ...typography.bodySmall,
-    color: colors.textSecondary,
-    fontWeight: '600',
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    letterSpacing: -0.2,
   },
   historyBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: colors.saffronLight, borderRadius: radius.pill,
-    paddingHorizontal: 12, paddingVertical: 8,
+    backgroundColor: colors.bgSurface, borderRadius: radius.pill,
+    borderWidth: 1, borderColor: LINE,
+    paddingHorizontal: 12, paddingVertical: 7,
   },
-  historyBtnText: { color: colors.saffronDark, fontWeight: '800', fontSize: 13 },
+  historyBtnText: { color: colors.textPrimary, fontWeight: '700', fontSize: 13 },
 
-  /* ----- Summary hero ----- */
-  summaryWrap: {
+  /* ----- Live / Delivered tabs ----- */
+  tabsArea: {
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
+    paddingBottom: spacing.sm + 4,
+    borderBottomWidth: 1,
+    borderBottomColor: LINE,
   },
-  summaryGradient: {
-    borderRadius: radius.xxl,
-    padding: spacing.md,
-    overflow: 'hidden',
-    position: 'relative',
-    ...shadows.cardRaised,
-  },
-  summaryBlob: {
-    position: 'absolute',
-    top: -30,
-    right: -30,
-    width: 130,
-    height: 130,
-    borderRadius: 65,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-  },
-  summaryContent: {
+  tabsTrack: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-  },
-  summaryLabel: {
-    ...typography.captionMedium,
-    color: 'rgba(26,31,43,0.7)',
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-    marginBottom: 2,
-  },
-  summaryValue: {
-    ...typography.hero,
-    color: colors.brandInk,
-    fontWeight: '900',
-    letterSpacing: -0.5,
-    lineHeight: 32,
-  },
-  summaryStatsRow: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  summaryStat: {
-    alignItems: 'center',
-  },
-  summaryStatBubble: {
-    minWidth: 34,
-    height: 28,
-    paddingHorizontal: 8,
+    backgroundColor: MUTED_BG,
     borderRadius: radius.pill,
+    padding: 4,
+  },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 3,
-  },
-  summaryStatValue: {
-    ...typography.labelLarge,
-    fontWeight: '900',
-  },
-  summaryStatLabel: {
-    ...typography.caption,
-    fontSize: 9,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-    opacity: 0.85,
-  },
-
-  /* ----- Filter chips ----- */
-  filterArea: {
-    backgroundColor: colors.bgSurface,
-    paddingBottom: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    marginTop: spacing.md,
-  },
-  filterScroll: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    gap: spacing.sm,
-  },
-  chip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: 8,
+    gap: 6,
+    paddingVertical: 10,
     borderRadius: radius.pill,
-    backgroundColor: colors.bgApp,
-    borderWidth: 1,
-    borderColor: colors.border,
   },
-  chipActive: {
+  tabActive: {
     backgroundColor: colors.primary,
-    borderColor: colors.primary,
     ...shadows.sm,
   },
-  chipText: {
+  liveDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: STATUS_VISUALS.Delivered.colorAlt,
+  },
+  tabText: {
     ...typography.labelSmall,
+    fontSize: 14,
     color: colors.textSecondary,
     fontWeight: '700',
   },
-  chipTextActive: {
+  tabTextActive: {
     color: colors.textInverse,
     fontWeight: '800',
   },
@@ -1005,6 +855,7 @@ const styles = StyleSheet.create({
   /* ----- List ----- */
   listContainer: {
     flex: 1,
+    backgroundColor: colors.bgSurface,
   },
   flatListContent: {
     paddingHorizontal: spacing.md,
@@ -1018,106 +869,65 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
 
-  /* ----- Card (redesigned) ----- */
+  /* ----- Card ----- */
   card: {
     backgroundColor: colors.bgSurface,
     borderRadius: radius.xl,
     borderWidth: 1,
+    borderColor: LINE,
     overflow: 'hidden',
-    ...shadows.cardRaised,
+    ...shadows.sm,
   },
 
-  /* Gradient header */
+  /* Header */
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: spacing.sm,
     paddingHorizontal: spacing.md,
-    paddingVertical: 14,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  cardHeaderBlob: {
-    position: 'absolute',
-    top: -20,
-    right: -20,
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.14)',
-    pointerEvents: 'none',
-  },
-  cardHeaderBlob2: {
-    position: 'absolute',
-    bottom: -15,
-    right: 70,
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(255,255,255,0.09)',
-    pointerEvents: 'none',
-  },
-  cardHeaderLeft: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    minWidth: 0,
-  },
-  cardIconBubble: {
-    width: 34,
-    height: 34,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  cardIconBubbleGlass: {
-    backgroundColor: 'rgba(255,255,255,0.22)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.35)',
+    paddingTop: 14,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: LINE,
   },
   cardMeta: {
     flex: 1,
     minWidth: 0,
   },
   orderId: {
-    color: '#FFFFFF',
-    fontWeight: '900',
-    fontSize: 15,
-    lineHeight: 19,
-    letterSpacing: -0.2,
+    color: colors.textPrimary,
+    fontWeight: '800',
+    fontSize: 13,
+    lineHeight: 17,
+    letterSpacing: -0.1,
   },
   orderDate: {
-    color: 'rgba(255,255,255,0.72)',
+    color: colors.textSecondary,
     fontSize: 11,
     fontWeight: '600',
     lineHeight: 14,
-    marginTop: 1,
+    marginTop: 2,
   },
-  statusPillGlass: {
+  statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: radius.pill,
-    backgroundColor: 'rgba(255,255,255,0.22)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.35)',
     flexShrink: 0,
   },
-  statusPillGlassDot: {
+  statusPillDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#FFFFFF',
   },
-  statusPillGlassText: {
+  statusPillText: {
     fontSize: 10,
     fontWeight: '900',
     letterSpacing: 0.3,
     textTransform: 'uppercase',
-    color: '#FFFFFF',
     lineHeight: 13,
   },
 
@@ -1147,18 +957,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   stepDotInactive: {
-    backgroundColor: colors.bgSkeletonBase,
+    backgroundColor: colors.bgSurface,
     borderWidth: 1.5,
-    borderColor: colors.border,
+    borderColor: colors.grey100,
   },
   stepDotActive: {
     width: 26,
     height: 26,
     borderRadius: 13,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    elevation: 3,
   },
   stepLabel: {
     fontSize: 9,
@@ -1170,7 +980,7 @@ const styles = StyleSheet.create({
   stepLine: {
     flex: 1,
     height: 2.5,
-    backgroundColor: colors.border,
+    backgroundColor: LINE,
     borderRadius: 2,
     marginBottom: 14,
     marginHorizontal: 2,
@@ -1195,33 +1005,25 @@ const styles = StyleSheet.create({
     letterSpacing: 0.1,
   },
 
-  /* Info tag chips */
-  tagsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
+  /* Items in the order */
+  itemsList: {
+    gap: 3,
   },
-  tag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surfaceMuted,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  tagText: {
-    fontSize: 11,
-    fontWeight: '700',
+  itemLine: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '500',
     color: colors.textSecondary,
-    letterSpacing: 0.1,
   },
-  payDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+  itemQty: {
+    fontWeight: '800',
+    color: colors.textPrimary,
+  },
+  itemMore: {
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '700',
+    color: colors.textTertiary,
   },
 
   /* Bottom row */
@@ -1230,9 +1032,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.sm,
-    paddingTop: 2,
+    paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: LINE,
   },
   totalLabel: {
     fontSize: 10,
@@ -1258,16 +1060,13 @@ const styles = StyleSheet.create({
     height: 36,
     paddingHorizontal: spacing.md,
   },
-  detailsBtnGradient: {
-    borderRadius: radius.md,
-    overflow: 'hidden',
-  },
   detailsBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     height: 36,
     paddingHorizontal: 14,
+    borderRadius: radius.md,
   },
   detailsBtnText: {
     fontWeight: '800',
@@ -1283,11 +1082,8 @@ const styles = StyleSheet.create({
     bottom: -2,
     borderRadius: radius.xl + 2,
     borderWidth: 2,
-    borderColor: '#FFEA00',
-    ...shadows.md,
-    shadowColor: '#FFEA00',
-    shadowOpacity: 0.8,
-    shadowRadius: 8,
+    // No shadow/elevation here: on Android the shadow of this see-through
+    // layer tints the whole white card with the status colour.
   },
 
   /* ----- Empty / error ----- */

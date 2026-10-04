@@ -37,6 +37,7 @@ const getUsedImageIds = async () => {
   const [productLibrary] = await pool.query('SELECT DISTINCT image_id FROM product_library WHERE image_id IS NOT NULL');
   const [categoryLibrary] = await pool.query('SELECT DISTINCT image_id FROM category_library WHERE image_id IS NOT NULL');
   const [storeModeLibrary] = await pool.query('SELECT DISTINCT icon_image_id FROM store_mode_library WHERE icon_image_id IS NOT NULL');
+  const [offerCards] = await pool.query('SELECT DISTINCT image_id FROM offer_cards WHERE image_id IS NOT NULL AND deleted_at IS NULL');
 
   const used = new Set();
   const usageMap = {};
@@ -62,6 +63,7 @@ const getUsedImageIds = async () => {
   addUsage(productLibrary, 'Product Library');
   addUsage(categoryLibrary, 'Category Library');
   addUsage(storeModeLibrary, 'Store Mode Library', 'icon_image_id');
+  addUsage(offerCards || [], 'Offer Card');
 
   return { used, usageMap };
 };

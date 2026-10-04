@@ -64,13 +64,15 @@ const buildOrderRows = (n, startId = 1) => {
   return rows;
 };
 
-// Queue the two pool.query responses that getOrders issues:
+// Queue the pool.query responses that getOrders issues:
 //   1) SELECT ... LIMIT ? OFFSET ?  -> rows
 //   2) SELECT COUNT(*) ...         -> [{ total }]
-const mockGetOrdersQuery = (pageRows, total) => {
+//   3) SELECT ... FROM order_items  -> item previews (only when rows exist)
+const mockGetOrdersQuery = (pageRows, total, itemRows = []) => {
   pool.query
     .mockResolvedValueOnce([pageRows])
     .mockResolvedValueOnce([[{ total }]]);
+  if (pageRows.length > 0) pool.query.mockResolvedValueOnce([itemRows]);
 };
 
 describe('GET /api/orders pagination', () => {
@@ -98,7 +100,7 @@ describe('GET /api/orders pagination', () => {
 
     // Verify the controller clamped nothing (defaults applied) and
     // pushed those values through to MySQL.
-    expect(pool.query).toHaveBeenCalledTimes(2);
+    expect(pool.query).toHaveBeenCalledTimes(3);
     const rowsCallArgs = pool.query.mock.calls[0];
     expect(rowsCallArgs[1]).toEqual([CUSTOMER_ID, 20, 0]);
     expect(rowsCallArgs[0]).toMatch(/LIMIT \? OFFSET \?/);
@@ -208,8 +210,40 @@ describe('GET /api/orders pagination', () => {
     expect(overlap).toEqual([]);
 
     // Each request must pass the correct (limit, offset) to MySQL.
-    // mock.calls[0..1] are page 1's rows+count; [2..3] are page 2's.
+    // mock.calls[0..2] are page 1's rows+count+items; [3..5] are page 2's.
     expect(pool.query.mock.calls[0][1]).toEqual([CUSTOMER_ID, 5, 0]);
-    expect(pool.query.mock.calls[2][1]).toEqual([CUSTOMER_ID, 5, 5]);
+    expect(pool.query.mock.calls[3][1]).toEqual([CUSTOMER_ID, 5, 5]);
+  });
+
+  it('adds items_preview to each order from one order_items query', async () => {
+    const rows = buildOrderRows(2);
+    mockGetOrdersQuery(rows, 2, [
+      { order_id: rows[0].id, product_name: 'Paneer Tikka', variant_label: 'Half', quantity: 2 },
+      { order_id: rows[0].id, product_name: 'Butter Naan', variant_label: null, quantity: 3 },
+    ]);
+
+    const res = await request(app)
+      .get('/api/orders')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.data[0].items_preview).toEqual([
+      { name: 'Paneer Tikka', variant_label: 'Half', quantity: 2 },
+      { name: 'Butter Naan', variant_label: null, quantity: 3 },
+    ]);
+    expect(res.body.data[1].items_preview).toEqual([]);
+    expect(pool.query.mock.calls[2][1]).toEqual([rows.map((o) => o.id)]);
+  });
+
+  it('skips the order_items query when the page is empty', async () => {
+    mockGetOrdersQuery([], 0);
+
+    const res = await request(app)
+      .get('/api/orders')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.data).toEqual([]);
+    expect(pool.query).toHaveBeenCalledTimes(2);
   });
 });

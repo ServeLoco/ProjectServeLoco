@@ -27,6 +27,9 @@ export function isSectionAllUnavailable(section) {
   return items.length > 0 && items.every((raw) => isProductUnavailable(normalizeProductCached(raw)));
 }
 
+/** A section from the admin's "Common" tab: every mode, above the shop modes. */
+export const isCommonSection = (section) => section?.storeType === 'common' || section?.store_type === 'common';
+
 /**
  * The order Home draws its sections in, top to bottom.
  *
@@ -43,11 +46,15 @@ export function isSectionAllUnavailable(section) {
  * (`allUnavailable`), and a manual section's answer comes from its items in
  * the same payload — so the order is settled before anything is drawn and
  * never reshuffles while rows load.
+ *
+ * By default the Common sections are left out (Home draws them above the
+ * shop modes); `{ common: true }` orders only those.
  */
-export function orderHomeUnits(sections) {
+export function orderHomeUnits(sections, { common = false } = {}) {
   const available = [];
   const unavailable = [];
   for (const section of sections || []) {
+    if (isCommonSection(section) !== common) continue;
     const isAuto = Boolean(section.auto);
     const allUnavailable = isAuto
       ? Boolean(section.allUnavailable)

@@ -92,6 +92,13 @@ describe('orderHomeUnits', () => {
     expect(ids(orderHomeUnits(sections))).toEqual([2, 11, 1, 10]);
   });
 
+  it('leaves Common sections out of a mode, and orders only them with { common: true }', () => {
+    const common = { ...manual(1, [sellable(1)], 'offer_cards'), storeType: 'common' };
+    const sections = [common, manual(2, [sellable(2)], 'offer_cards'), auto(10)];
+    expect(ids(orderHomeUnits(sections))).toEqual([2, 10]);
+    expect(ids(orderHomeUnits(sections, { common: true }))).toEqual([1]);
+  });
+
   it('handles no sections', () => {
     expect(orderHomeUnits([])).toEqual([]);
     expect(orderHomeUnits(undefined)).toEqual([]);

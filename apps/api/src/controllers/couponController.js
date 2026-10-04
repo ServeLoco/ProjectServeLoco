@@ -3,6 +3,11 @@ const { storedWallClock, istInstantFromWallClock } = require('../utils/businessT
 const { roundMoney } = require('../utils/money');
 const { getActiveStoreModeSlugs, isSystemModeSlug } = require('../utils/storeMode');
 const { requestAreaId, bustAreaCaches } = require('../utils/areaScope');
+const { reorderDisplayOrder } = require('../utils/reorder');
+const { resolveImageUrls } = require('./dashboardController');
+
+const DISCOUNT_TYPES = ['flat', 'percent', 'free_delivery', 'deal_price'];
+const DISCOUNT_TYPES_MESSAGE = 'discount_type must be flat, percent, free_delivery or deal_price';
 
 // Coupon admin endpoints always target exactly one area — rejects null
 // (super_admin, no X-Area-Id) and 'all'.
@@ -47,7 +52,8 @@ const toMoneyOrNull = (val) => {
 // result at subtotal either way, but an out-of-range value is always an admin
 // mistake (a 500% coupon or a negative flat amount), so reject it up front.
 const validateDiscountValue = (discountType, discountValue) => {
-  if (discountType === 'free_delivery') return null;
+  // free_delivery has no amount; a deal's prices live on its deal items.
+  if (discountType === 'free_delivery' || discountType === 'deal_price') return null;
   const value = Number(discountValue);
   if (!Number.isFinite(value) || value < 0) {
     return 'discount_value must be a non-negative number';
@@ -81,8 +87,17 @@ const enrichCoupon = async (coupon) => {
     [coupon.id]
   );
   const stats = redeemRows[0] || {};
+  let dealItemCount;
+  if (coupon.discount_type === 'deal_price') {
+    const [countRows] = await pool.query(
+      'SELECT COUNT(*) AS total FROM coupon_deal_items WHERE coupon_id = ? AND area_id = ? AND active = 1',
+      [coupon.id, coupon.area_id]
+    );
+    dealItemCount = Number(countRows[0]?.total) || 0;
+  }
   return {
     ...coupon,
+    ...(dealItemCount !== undefined ? { dealItemCount, deal_item_count: dealItemCount } : {}),
     // Hand the admin form back the exact wall clock that was saved. Serialised
     // as a Date these became UTC ISO strings, so the edit form re-displayed a
     // coupon set to end 23:59 as 18:29 and silently saved that back on the next
@@ -195,10 +210,11 @@ const createCoupon = async (req, res) => {
   if (!b.title || typeof b.title !== 'string') {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Title is required' });
   }
-  if (!b.discount_type || !['flat', 'percent', 'free_delivery'].includes(b.discount_type)) {
-    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'discount_type must be flat, percent, or free_delivery' });
+  if (!b.discount_type || !DISCOUNT_TYPES.includes(b.discount_type)) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: DISCOUNT_TYPES_MESSAGE });
   }
-  if (b.discount_type !== 'free_delivery' && (b.discount_value === undefined || b.discount_value === null)) {
+  const isDeal = b.discount_type === 'deal_price';
+  if (!['free_delivery', 'deal_price'].includes(b.discount_type) && (b.discount_value === undefined || b.discount_value === null)) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'discount_value must be a non-negative number' });
   }
   const discountValueError = validateDiscountValue(b.discount_type, b.discount_value);
@@ -206,7 +222,13 @@ const createCoupon = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: discountValueError });
   }
 
-  let code = toNullIfEmpty(b.code);
+  const dealMaxItems = isDeal ? toIntOrNull(b.deal_max_items) ?? 1 : 1;
+  if (isDeal && dealMaxItems < 1) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'deal_max_items must be at least 1' });
+  }
+
+  // A deal is always automatic: no code, never typed in.
+  let code = isDeal ? null : toNullIfEmpty(b.code);
   if (code) {
     code = String(code).trim().toUpperCase();
     // Scoped by area: the same code is allowed to exist independently in
@@ -217,12 +239,12 @@ const createCoupon = async (req, res) => {
     }
   }
 
-  const requiresCode = b.requires_code !== undefined ? toBool(b.requires_code) : true;
+  const requiresCode = isDeal ? false : (b.requires_code !== undefined ? toBool(b.requires_code) : true);
   if (requiresCode && !code) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Code is required when requires_code is true' });
   }
 
-  const autoApply = b.auto_apply !== undefined ? toBool(b.auto_apply) : false;
+  const autoApply = isDeal ? true : (b.auto_apply !== undefined ? toBool(b.auto_apply) : false);
   const targetAudience = b.target_audience === 'selected' ? 'selected' : 'all';
   const targetZones = b.target_zones === 'selected' ? 'selected' : 'all';
   let appliesTo = 'all';
@@ -243,20 +265,22 @@ const createCoupon = async (req, res) => {
         starts_at, ends_at, active_days_mask, active_time_start, active_time_end,
         total_usage_limit, per_user_usage_limit, first_order_only, first_n_orders,
         target_audience, target_zones, auto_apply, requires_code, priority,
-        active, created_by_admin_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+        active, created_by_admin_id, deal_max_items
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
       [
         areaId,
         code,
         b.title.trim(),
         toNullIfEmpty(b.description) || '',
         b.discount_type,
-        b.discount_type !== 'free_delivery' && toBool(b.also_free_delivery) ? 1 : 0,
-        b.discount_type === 'free_delivery' ? 0 : Number(b.discount_value),
-        toMoneyOrNull(b.max_discount_amount),
+        !['free_delivery', 'deal_price'].includes(b.discount_type) && toBool(b.also_free_delivery) ? 1 : 0,
+        ['free_delivery', 'deal_price'].includes(b.discount_type) ? 0 : Number(b.discount_value),
+        isDeal ? null : toMoneyOrNull(b.max_discount_amount),
         Number(b.min_order_amount) || 0,
-        toIntOrNull(b.min_item_count),
-        toMoneyOrNull(b.max_order_amount),
+        // The deal's minimum is checked against the other items only;
+        // item-count and max-order gates do not apply to deals.
+        isDeal ? null : toIntOrNull(b.min_item_count),
+        isDeal ? null : toMoneyOrNull(b.max_order_amount),
         appliesTo,
         toNullIfEmpty(b.starts_at),
         toNullIfEmpty(b.ends_at),
@@ -264,7 +288,8 @@ const createCoupon = async (req, res) => {
         toNullIfEmpty(b.active_time_start),
         toNullIfEmpty(b.active_time_end),
         toIntOrNull(b.total_usage_limit),
-        toIntOrNull(b.per_user_usage_limit) !== null ? toIntOrNull(b.per_user_usage_limit) : 1,
+        // A deal is an every-order offer unless the admin limits it.
+        toIntOrNull(b.per_user_usage_limit) !== null ? toIntOrNull(b.per_user_usage_limit) : (isDeal ? null : 1),
         toBool(b.first_order_only) ? 1 : 0,
         toIntOrNull(b.first_n_orders),
         targetAudience,
@@ -273,6 +298,7 @@ const createCoupon = async (req, res) => {
         requiresCode ? 1 : 0,
         Number(b.priority) || 0,
         adminId,
+        dealMaxItems,
       ]
     );
   } catch (err) {
@@ -322,6 +348,14 @@ const updateCoupon = async (req, res) => {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Coupon not found' });
   }
   const existing = existingRows[0];
+  const isDeal = existing.discount_type === 'deal_price';
+
+  // A deal's items and an ordinary coupon's amount don't translate into each
+  // other, so the type can't switch across that line — make a new one.
+  if (b.discount_type !== undefined && b.discount_type !== existing.discount_type
+    && (isDeal || b.discount_type === 'deal_price')) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'A deal price offer cannot be turned into a coupon (or back). Create a new one instead.' });
+  }
 
   // Validate the EFFECTIVE discount type/value combination — either side may
   // be unchanged in this request (e.g. editing only discount_value on a
@@ -338,7 +372,7 @@ const updateCoupon = async (req, res) => {
   const updates = [];
   const params = [];
 
-  if (b.code !== undefined) {
+  if (b.code !== undefined && !isDeal) {
     let code = toNullIfEmpty(b.code);
     if (code) {
       code = String(code).trim().toUpperCase();
@@ -354,8 +388,8 @@ const updateCoupon = async (req, res) => {
   if (b.title !== undefined) { updates.push('title = ?'); params.push(String(b.title).trim()); }
   if (b.description !== undefined) { updates.push('description = ?'); params.push(toNullIfEmpty(b.description) || ''); }
   if (b.discount_type !== undefined) {
-    if (!['flat', 'percent', 'free_delivery'].includes(b.discount_type)) {
-      return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'discount_type must be flat, percent, or free_delivery' });
+    if (!DISCOUNT_TYPES.includes(b.discount_type)) {
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: DISCOUNT_TYPES_MESSAGE });
     }
     updates.push('discount_type = ?');
     params.push(b.discount_type);
@@ -395,8 +429,17 @@ const updateCoupon = async (req, res) => {
     updates.push('target_zones = ?');
     params.push(b.target_zones === 'selected' ? 'selected' : 'all');
   }
-  if (b.auto_apply !== undefined) { updates.push('auto_apply = ?'); params.push(toBool(b.auto_apply) ? 1 : 0); }
-  if (b.requires_code !== undefined) { updates.push('requires_code = ?'); params.push(toBool(b.requires_code) ? 1 : 0); }
+  // A deal stays automatic and code-less whatever the form sends.
+  if (b.auto_apply !== undefined && !isDeal) { updates.push('auto_apply = ?'); params.push(toBool(b.auto_apply) ? 1 : 0); }
+  if (b.requires_code !== undefined && !isDeal) { updates.push('requires_code = ?'); params.push(toBool(b.requires_code) ? 1 : 0); }
+  if (b.deal_max_items !== undefined && isDeal) {
+    const n = toIntOrNull(b.deal_max_items);
+    if (n === null || n < 1) {
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'deal_max_items must be at least 1' });
+    }
+    updates.push('deal_max_items = ?');
+    params.push(n);
+  }
   if (b.priority !== undefined) { updates.push('priority = ?'); params.push(Number(b.priority) || 0); }
   if (b.active !== undefined) { updates.push('active = ?'); params.push(toBool(b.active) ? 1 : 0); }
 
@@ -482,8 +525,8 @@ const duplicateCoupon = async (req, res) => {
         starts_at, ends_at, active_days_mask, active_time_start, active_time_end,
         total_usage_limit, per_user_usage_limit, first_order_only, first_n_orders,
         target_audience, target_zones, auto_apply, requires_code, priority,
-        active, created_by_admin_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
+        active, created_by_admin_id, deal_max_items
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
       [
         areaId,
         c.code ? `${c.code}-COPY` : null,
@@ -512,6 +555,7 @@ const duplicateCoupon = async (req, res) => {
         c.requires_code,
         c.priority,
         req.admin?.id || null,
+        c.deal_max_items || 1,
       ]
     );
   } catch (err) {
@@ -532,6 +576,15 @@ const duplicateCoupon = async (req, res) => {
     await pool.query(
       'INSERT INTO coupon_zones (coupon_id, delivery_zone_id) SELECT ?, delivery_zone_id FROM coupon_zones WHERE coupon_id = ?',
       [result.insertId, id]
+    );
+  }
+
+  if (c.discount_type === 'deal_price') {
+    await pool.query(
+      `INSERT INTO coupon_deal_items (area_id, coupon_id, product_id, variant_id, deal_price, display_order, active)
+       SELECT area_id, ?, product_id, variant_id, deal_price, display_order, active
+       FROM coupon_deal_items WHERE coupon_id = ? AND area_id = ?`,
+      [result.insertId, id, areaId]
     );
   }
 
@@ -579,7 +632,200 @@ const getCouponRedemptions = async (req, res) => {
   });
 };
 
+// ─────────────────────────────────────────────────────────────────────────
+// Deal items: the products a deal price offer sells, each at its deal price.
+// /api/admin/coupons/:id/deal-items
+// ─────────────────────────────────────────────────────────────────────────
+
+// Resolves the area and the deal coupon, or answers the request itself.
+const loadDealCoupon = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return null;
+  const [rows] = await pool.query(
+    'SELECT id, discount_type FROM coupons WHERE id = ? AND deleted = 0 AND area_id = ?',
+    [req.params.id, areaId]
+  );
+  if (rows.length === 0) {
+    res.status(404).json({ code: 'NOT_FOUND', message: 'Coupon not found' });
+    return null;
+  }
+  if (rows[0].discount_type !== 'deal_price') {
+    res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Only deal price offers have deal items' });
+    return null;
+  }
+  return { areaId, couponId: rows[0].id };
+};
+
+// The price a deal item is compared against: its variant's when it names one.
+// Returns { price } or { error }.
+const regularPriceFor = async (productId, variantId, areaId) => {
+  const [products] = await pool.query(
+    'SELECT id, price, is_combo FROM products WHERE id = ? AND deleted = 0 AND area_id = ?',
+    [productId, areaId]
+  );
+  if (products.length === 0) return { error: 'Product does not exist in this area' };
+  if (products[0].is_combo) return { error: 'Combos cannot be deal items' };
+  const [variants] = await pool.query(
+    'SELECT id, price FROM product_variants WHERE product_id = ? AND deleted = 0',
+    [productId]
+  );
+  if (variants.length > 0) {
+    // Cart lines of a product with options always name the option, so the
+    // deal has to name it too or it would never match.
+    const variant = variants.find((v) => Number(v.id) === Number(variantId));
+    if (!variant) return { error: 'This product has options — pick the option the deal price is for' };
+    return { price: Number(variant.price), variantId: variant.id };
+  }
+  if (variantId) return { error: 'This product has no options' };
+  return { price: Number(products[0].price), variantId: null };
+};
+
+const checkDealPrice = (dealPrice, regularPrice) => {
+  const value = Number(dealPrice);
+  if (!Number.isFinite(value) || value < 0) return 'Deal price must be 0 or more';
+  if (value >= regularPrice) return `Deal price must be below the normal price (₹${regularPrice})`;
+  return null;
+};
+
+const getDealItems = async (req, res) => {
+  const ctx = await loadDealCoupon(req, res);
+  if (!ctx) return;
+  const [rows] = await pool.query(
+    `SELECT cdi.id, cdi.product_id, cdi.variant_id, cdi.deal_price, cdi.display_order, cdi.active,
+            p.name AS product_name, p.unit, p.image_id, p.price AS product_price,
+            p.available AS product_available, p.deleted AS product_deleted,
+            pv.label AS variant_label, pv.price AS variant_price
+     FROM coupon_deal_items cdi
+     JOIN products p ON p.id = cdi.product_id
+     LEFT JOIN product_variants pv ON pv.id = cdi.variant_id
+     WHERE cdi.coupon_id = ? AND cdi.area_id = ?
+     ORDER BY cdi.deal_price ASC, cdi.display_order ASC, cdi.id ASC`,
+    [ctx.couponId, ctx.areaId]
+  );
+  await resolveImageUrls(rows);
+  res.status(200).json({
+    data: rows.map((r) => {
+      const regularPrice = Number(r.variant_id ? r.variant_price : r.product_price);
+      const dealPrice = Number(r.deal_price);
+      return {
+        id: r.id,
+        productId: r.product_id, product_id: r.product_id,
+        variantId: r.variant_id, variant_id: r.variant_id,
+        variantLabel: r.variant_label || null, variant_label: r.variant_label || null,
+        name: r.product_name,
+        unit: r.unit,
+        imageUrl: r.imageUrl || null, image_url: r.imageUrl || null,
+        dealPrice, deal_price: dealPrice,
+        regularPrice, regular_price: regularPrice,
+        displayOrder: r.display_order, display_order: r.display_order,
+        active: Boolean(r.active),
+        // Shown as a warning in the admin: the app quietly hides these.
+        productUnavailable: !r.product_available || Boolean(r.product_deleted),
+        priceNotBelow: !(dealPrice < regularPrice),
+      };
+    }),
+  });
+};
+
+const addDealItem = async (req, res) => {
+  const ctx = await loadDealCoupon(req, res);
+  if (!ctx) return;
+  const b = req.body || {};
+  const productId = Number(b.product_id);
+  const variantId = b.variant_id ? Number(b.variant_id) : null;
+  if (!Number.isInteger(productId) || productId <= 0) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'product_id is required' });
+  }
+  const regular = await regularPriceFor(productId, variantId, ctx.areaId);
+  if (regular.error) return res.status(400).json({ code: 'VALIDATION_ERROR', message: regular.error });
+  const priceError = checkDealPrice(b.deal_price, regular.price);
+  if (priceError) return res.status(400).json({ code: 'VALIDATION_ERROR', message: priceError });
+
+  const [orderRows] = await pool.query(
+    'SELECT COALESCE(MAX(display_order), -1) + 1 AS next FROM coupon_deal_items WHERE coupon_id = ? AND area_id = ?',
+    [ctx.couponId, ctx.areaId]
+  );
+  // Adding the same product (and option) again just sets its new price.
+  const [result] = await pool.query(
+    `INSERT INTO coupon_deal_items (area_id, coupon_id, product_id, variant_id, deal_price, display_order, active)
+     VALUES (?, ?, ?, ?, ?, ?, 1)
+     ON DUPLICATE KEY UPDATE deal_price = VALUES(deal_price), active = 1, id = LAST_INSERT_ID(id)`,
+    [ctx.areaId, ctx.couponId, productId, regular.variantId, Number(b.deal_price), Number(orderRows[0]?.next) || 0]
+  );
+  bustAreaCaches(ctx.areaId);
+  res.status(201).json({ message: 'Deal item saved', id: result.insertId });
+};
+
+const updateDealItem = async (req, res) => {
+  const ctx = await loadDealCoupon(req, res);
+  if (!ctx) return;
+  const b = req.body || {};
+  const [rows] = await pool.query(
+    'SELECT id, product_id, variant_id FROM coupon_deal_items WHERE id = ? AND coupon_id = ? AND area_id = ?',
+    [req.params.itemId, ctx.couponId, ctx.areaId]
+  );
+  if (rows.length === 0) return res.status(404).json({ code: 'NOT_FOUND', message: 'Deal item not found' });
+
+  const updates = [];
+  const params = [];
+  if (b.deal_price !== undefined) {
+    const regular = await regularPriceFor(rows[0].product_id, rows[0].variant_id, ctx.areaId);
+    if (regular.error) return res.status(400).json({ code: 'VALIDATION_ERROR', message: regular.error });
+    const priceError = checkDealPrice(b.deal_price, regular.price);
+    if (priceError) return res.status(400).json({ code: 'VALIDATION_ERROR', message: priceError });
+    updates.push('deal_price = ?');
+    params.push(Number(b.deal_price));
+  }
+  if (b.active !== undefined) {
+    updates.push('active = ?');
+    params.push(toBool(b.active) ? 1 : 0);
+  }
+  if (updates.length === 0) return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'No valid fields provided' });
+
+  await pool.query(
+    `UPDATE coupon_deal_items SET ${updates.join(', ')} WHERE id = ? AND coupon_id = ? AND area_id = ?`,
+    [...params, rows[0].id, ctx.couponId, ctx.areaId]
+  );
+  bustAreaCaches(ctx.areaId);
+  res.status(200).json({ message: 'Deal item updated' });
+};
+
+const deleteDealItem = async (req, res) => {
+  const ctx = await loadDealCoupon(req, res);
+  if (!ctx) return;
+  // A plain config row: orders keep their own deal_price snapshot.
+  const [result] = await pool.query(
+    'DELETE FROM coupon_deal_items WHERE id = ? AND coupon_id = ? AND area_id = ?',
+    [req.params.itemId, ctx.couponId, ctx.areaId]
+  );
+  if (result.affectedRows === 0) return res.status(404).json({ code: 'NOT_FOUND', message: 'Deal item not found' });
+  bustAreaCaches(ctx.areaId);
+  res.status(200).json({ message: 'Deal item removed' });
+};
+
+const reorderDealItems = async (req, res) => {
+  const ctx = await loadDealCoupon(req, res);
+  if (!ctx) return;
+  const ids = req.body?.itemIds;
+  if (!Array.isArray(ids) || ids.length === 0 || ids.some((id) => !Number.isInteger(Number(id)) || Number(id) <= 0)) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'itemIds must be a list of deal item ids' });
+  }
+  await reorderDisplayOrder(pool, {
+    table: 'coupon_deal_items',
+    ids: ids.map(Number),
+    where: ' AND coupon_id = ? AND area_id = ?',
+    whereParams: [ctx.couponId, ctx.areaId],
+  });
+  bustAreaCaches(ctx.areaId);
+  res.status(200).json({ message: 'Deal items reordered' });
+};
+
 module.exports = {
+  getDealItems,
+  addDealItem,
+  updateDealItem,
+  deleteDealItem,
+  reorderDealItems,
   getAdminCoupons,
   getAdminCouponById,
   createCoupon,

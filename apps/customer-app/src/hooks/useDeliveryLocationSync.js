@@ -165,6 +165,7 @@ async function revalidateCartForZoneChange(lat, lng) {
         return {
           productId: item.product.id,
           variantId: item.variant?.id ?? null,
+          dealCouponId: item.dealCouponId ?? null,
           quantity: item.quantity,
           type,
           isCombo: type === 'combo',

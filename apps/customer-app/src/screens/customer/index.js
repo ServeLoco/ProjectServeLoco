@@ -1,6 +1,8 @@
 export { default as HomeScreen } from './HomeScreen';
 export { default as CategoriesScreen } from './CategoriesScreen';
 export { default as ProductListScreen } from './ProductListScreen';
+export { default as DealScreen } from './DealScreen';
+export { default as OfferCardScreen } from './OfferCardScreen';
 export { default as ProductDetailScreen } from './ProductDetailScreen';
 export { default as CartScreen } from './CartScreen';
 export { default as CheckoutScreen } from './CheckoutScreen';

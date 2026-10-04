@@ -292,8 +292,8 @@ export default function CartSuggestions() {
 // Same outline and shadow as the cart's other cards, so the page reads as one.
 const styles = StyleSheet.create({
   section: {
-    marginBottom: 12,
-    borderRadius: 16,
+    marginBottom: 8,
+    borderRadius: 14,
     backgroundColor: colors.bgSurface,
     shadowColor: '#101828',
     shadowOffset: { width: 0, height: 2 },
@@ -302,24 +302,24 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   panel: {
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: '#F7E1D3',
     overflow: 'hidden',
-    paddingTop: 14,
-    paddingBottom: 14,
+    paddingTop: 10,
+    paddingBottom: 10,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 14,
-    marginBottom: 12,
+    gap: 8,
+    paddingHorizontal: 12,
+    marginBottom: 8,
   },
   badge: {
-    width: 34,
-    height: 34,
-    borderRadius: 11,
+    width: 28,
+    height: 28,
+    borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -328,13 +328,13 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   title: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
     color: colors.textPrimary,
     letterSpacing: -0.2,
   },
   subtitle: {
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '600',
     color: colors.textSecondary,
     marginTop: 1,
@@ -351,12 +351,12 @@ const styles = StyleSheet.create({
     color: colors.successDark,
   },
   rowContent: {
-    paddingLeft: 14,
+    paddingLeft: 12,
     paddingRight: 0, // the last card's own margin closes the row
     paddingBottom: 2,
   },
   skeletonRow: {
     flexDirection: 'row',
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
   },
 });

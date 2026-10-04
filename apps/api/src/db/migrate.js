@@ -2638,6 +2638,123 @@ const migrate = async () => {
     `);
     logger.info('Suggestion pair tables ready.');
 
+    // ---------------------------------------------------------
+    // DEAL PRICE COUPONS + HOME OFFER CARDS
+    // A 'deal_price' coupon sells chosen products at a fixed deal price
+    // (₹9 / ₹29 / ₹49 ...) once the cart's OTHER items reach the coupon's
+    // min_order_amount, for up to deal_max_items units. It stacks with one
+    // normal coupon (utils/coupons.js applyBestDeal). offer_cards are the
+    // admin-built cards of the Home "offer_cards" section; `design` is a
+    // VARCHAR so a new card design never needs a migration.
+    // ---------------------------------------------------------
+
+    // Appends values to an ENUM column only when missing. Existing values
+    // keep their order, so MySQL 8 treats it as a metadata-only change.
+    const ensureEnumValues = async (tableName, columnName, values, definitionTail) => {
+      const [rows] = await connection.query(`
+        SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?
+      `, [config.MYSQL_DATABASE, tableName, columnName]);
+      const columnType = rows[0] && String(rows[0].COLUMN_TYPE || '');
+      if (!columnType.startsWith('enum(')) return;
+      const existing = columnType.slice(5, -1).split(',').map((v) => v.trim().replace(/^'|'$/g, ''));
+      const missing = values.filter((v) => !existing.includes(v));
+      if (missing.length === 0) return;
+      const list = [...existing, ...missing].map((v) => `'${v}'`).join(', ');
+      await connection.query(`ALTER TABLE ${tableName} MODIFY COLUMN ${columnName} ENUM(${list}) ${definitionTail}`);
+    };
+
+    await ensureEnumValues('coupons', 'discount_type', ['deal_price'], "NOT NULL DEFAULT 'flat'");
+    await ensureColumnAtEnd('coupons', 'deal_max_items', 'deal_max_items INT NOT NULL DEFAULT 1');
+    await ensureEnumValues('dashboard_sections', 'section_type', ['offer_cards'], 'NOT NULL');
+    await ensureEnumValues('dashboard_section_items', 'item_type', ['offer_card'], 'NOT NULL');
+
+    // One row per product (and variant, when the product has variants) the
+    // deal sells, with its deal price. Price tiers (the ₹9 / ₹29 tabs) are
+    // just the distinct deal_price values. variant_key folds NULL into 0 so
+    // the unique key really holds for products without variants.
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS coupon_deal_items (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        area_id INT NOT NULL,
+        coupon_id INT NOT NULL,
+        product_id INT NOT NULL,
+        variant_id INT NULL,
+        variant_key INT AS (COALESCE(variant_id, 0)) STORED,
+        deal_price DECIMAL(10,2) NOT NULL,
+        display_order INT NOT NULL DEFAULT 0,
+        active TINYINT(1) NOT NULL DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_coupon_deal_item (coupon_id, product_id, variant_key),
+        INDEX idx_coupon_deal_items_area_coupon (area_id, coupon_id, active),
+        CONSTRAINT fk_coupon_deal_items_area FOREIGN KEY (area_id) REFERENCES areas(id) ON DELETE RESTRICT,
+        CONSTRAINT fk_coupon_deal_items_coupon FOREIGN KEY (coupon_id) REFERENCES coupons(id) ON DELETE CASCADE,
+        CONSTRAINT fk_coupon_deal_items_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+      );
+    `);
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS offer_cards (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        area_id INT NOT NULL,
+        store_type VARCHAR(50) NOT NULL DEFAULT 'all',
+        design VARCHAR(32) NOT NULL DEFAULT 'deal_tabs',
+        title VARCHAR(120) NOT NULL,
+        subtitle VARCHAR(255) NULL,
+        image_id VARCHAR(255) NULL,
+        style_json JSON NULL,
+        deal_coupon_id INT NULL,
+        link_type VARCHAR(20) NULL,
+        link_id INT NULL,
+        active TINYINT(1) NOT NULL DEFAULT 1,
+        starts_at TIMESTAMP NULL DEFAULT NULL,
+        ends_at TIMESTAMP NULL DEFAULT NULL,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_offer_cards_area_deleted_active (area_id, deleted_at, active),
+        CONSTRAINT fk_offer_cards_area FOREIGN KEY (area_id) REFERENCES areas(id) ON DELETE RESTRICT,
+        CONSTRAINT fk_offer_cards_deal_coupon FOREIGN KEY (deal_coupon_id) REFERENCES coupons(id) ON DELETE SET NULL
+      );
+    `);
+
+    // The products a "Deals of the day" card (design 'deals_of_day') shows,
+    // in the admin's order. They sell at their own price and MRP — the card
+    // only picks and orders them. variant_key folds NULL into 0 so the
+    // unique key really holds for products without options.
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS offer_card_products (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        area_id INT NOT NULL,
+        offer_card_id INT NOT NULL,
+        product_id INT NOT NULL,
+        variant_id INT NULL,
+        variant_key INT AS (COALESCE(variant_id, 0)) STORED,
+        display_order INT NOT NULL DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_offer_card_product (offer_card_id, product_id, variant_key),
+        INDEX idx_offer_card_products_area_card (area_id, offer_card_id),
+        CONSTRAINT fk_offer_card_products_area FOREIGN KEY (area_id) REFERENCES areas(id) ON DELETE RESTRICT,
+        CONSTRAINT fk_offer_card_products_card FOREIGN KEY (offer_card_id) REFERENCES offer_cards(id) ON DELETE CASCADE,
+        CONSTRAINT fk_offer_card_products_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+      );
+    `);
+
+    // Order snapshots of the deal. orders.discount_amount carries coupon +
+    // deal together (so every report and the frozen-total maths stay right);
+    // deal_discount_amount is the deal's share of it. order_items keep the
+    // normal unit_price / shop_unit_price (the platform pays the deal), and
+    // record how many units were sold at which deal price. Appended at the
+    // end: INSTANT on MySQL 8, no rebuild of orders / order_items.
+    await ensureColumnAtEnd('orders', 'deal_coupon_id', 'deal_coupon_id INT NULL DEFAULT NULL');
+    await ensureColumnAtEnd('orders', 'deal_title', 'deal_title VARCHAR(120) NULL DEFAULT NULL');
+    await ensureColumnAtEnd('orders', 'deal_discount_amount', 'deal_discount_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00');
+    await ensureColumnAtEnd('order_items', 'deal_price', 'deal_price DECIMAL(10,2) NULL DEFAULT NULL');
+    await ensureColumnAtEnd('order_items', 'deal_qty', 'deal_qty INT NOT NULL DEFAULT 0');
+    logger.info('Deal price coupons and offer cards ready.');
+
     logger.info('Migration and seeding completed successfully!');
   } catch (error) {
     logger.error('Migration failed:', error);

@@ -49,7 +49,23 @@ const {
   deleteCoupon,
   duplicateCoupon,
   getCouponRedemptions,
+  getDealItems,
+  addDealItem,
+  updateDealItem,
+  deleteDealItem,
+  reorderDealItems,
 } = require('../controllers/couponController');
+const {
+  getAdminOfferCards,
+  getAdminOfferCardById,
+  createOfferCard,
+  updateOfferCard,
+  deleteOfferCard,
+  getCardProducts,
+  addCardProduct,
+  deleteCardProduct,
+  reorderCardProducts,
+} = require('../controllers/offerCardController');
 const {
   getAdminSections,
   getAdminSectionById,
@@ -528,13 +544,15 @@ const productImageSchema = (req) => {
   return { errors, data: { id: req.params.id, image_id: imageId } };
 };
 
+const TITLE_OPTIONAL_SECTION_TYPES = ['category_grid', 'offer_cards'];
+
 const dashboardSectionSchema = (req) => {
   const errors = [];
   const data = {};
   const body = req.body || {};
-  // Category grid cards already show their own names — the section title
-  // above the grid is the only block type where it's optional.
-  const titleOptional = body.section_type === 'category_grid';
+  // Category grid cards and offer cards already show their own names, so
+  // the section title above them is optional.
+  const titleOptional = TITLE_OPTIONAL_SECTION_TYPES.includes(body.section_type);
   const titleBlank = !body.title || typeof body.title !== 'string' || body.title.trim() === '';
   if (titleBlank && !titleOptional) {
     errors.push('title is required');
@@ -570,9 +588,9 @@ const dashboardSectionUpdateSchema = (req) => {
   const body = req.body || {};
   if (body.title !== undefined) {
     const titleBlank = typeof body.title !== 'string' || body.title.trim() === '';
-    // Same category_grid exemption as create — an admin clearing the title
-    // on an existing category grid section must not be blocked.
-    if (titleBlank && body.section_type !== 'category_grid') {
+    // Same exemption as create — an admin clearing the title on an existing
+    // category grid / offer cards section must not be blocked.
+    if (titleBlank && !TITLE_OPTIONAL_SECTION_TYPES.includes(body.section_type)) {
       errors.push('title must be a non-empty string');
     } else {
       data.title = titleBlank ? '' : body.title.trim();
@@ -593,9 +611,9 @@ const dashboardSectionItemSchema = (req) => {
   const errors = [];
   const data = {};
   const body = req.body || {};
-  const validItemTypes = ['offer', 'category', 'product', 'combo'];
+  const validItemTypes = ['offer', 'category', 'product', 'combo', 'offer_card'];
   if (!body.item_type || typeof body.item_type !== 'string' || !validItemTypes.includes(body.item_type)) {
-    errors.push('item_type is required and must be one of: offer, category, product, combo');
+    errors.push('item_type is required and must be one of: offer, category, product, combo, offer_card');
   } else {
     data.item_type = body.item_type;
   }
@@ -628,10 +646,10 @@ const dashboardSectionItemUpdateSchema = (req) => {
   const errors = [];
   const data = {};
   const body = req.body || {};
-  const validItemTypes = ['offer', 'category', 'product', 'combo'];
+  const validItemTypes = ['offer', 'category', 'product', 'combo', 'offer_card'];
   if (body.item_type !== undefined) {
     if (typeof body.item_type !== 'string' || !validItemTypes.includes(body.item_type)) {
-      errors.push('item_type must be one of: offer, category, product, combo');
+      errors.push('item_type must be one of: offer, category, product, combo, offer_card');
     } else {
       data.item_type = body.item_type;
     }
@@ -717,8 +735,11 @@ const couponSchema = (req) => {
   } else if (body.title !== undefined && typeof body.title !== 'string') {
     errors.push('title must be a string');
   }
-  if (body.discount_type !== undefined && !['flat', 'percent', 'free_delivery'].includes(body.discount_type)) {
-    errors.push('discount_type must be one of: flat, percent, free_delivery');
+  if (body.discount_type !== undefined && !['flat', 'percent', 'free_delivery', 'deal_price'].includes(body.discount_type)) {
+    errors.push('discount_type must be one of: flat, percent, free_delivery, deal_price');
+  }
+  if (!isEmptyish(body.deal_max_items) && (!Number.isInteger(Number(body.deal_max_items)) || Number(body.deal_max_items) < 1)) {
+    errors.push('deal_max_items must be a whole number of at least 1');
   }
   for (const field of ['discount_value', 'min_order_amount', 'priority']) {
     if (!isEmptyish(body[field]) && !Number.isFinite(Number(body[field]))) {
@@ -963,6 +984,24 @@ router.patch('/coupons/:id', requireAdmin, validate(couponSchema), asyncHandler(
 router.delete('/coupons/:id', requireAdmin, asyncHandler(deleteCoupon));
 router.post('/coupons/:id/duplicate', requireAdmin, validate(couponDuplicateSchema), asyncHandler(duplicateCoupon));
 router.get('/coupons/:id/redemptions', requireAdmin, asyncHandler(getCouponRedemptions));
+// Deal price offers: the products each one sells and their deal prices.
+router.get('/coupons/:id/deal-items', requireAdmin, asyncHandler(getDealItems));
+router.post('/coupons/:id/deal-items', requireAdmin, asyncHandler(addDealItem));
+router.patch('/coupons/:id/deal-items/reorder', requireAdmin, asyncHandler(reorderDealItems));
+router.patch('/coupons/:id/deal-items/:itemId', requireAdmin, asyncHandler(updateDealItem));
+router.delete('/coupons/:id/deal-items/:itemId', requireAdmin, asyncHandler(deleteDealItem));
+
+// Home offer cards (the cards of an 'offer_cards' Home row).
+router.get('/offer-cards', requireAdmin, asyncHandler(getAdminOfferCards));
+router.post('/offer-cards', requireAdmin, asyncHandler(createOfferCard));
+router.get('/offer-cards/:id', requireAdmin, asyncHandler(getAdminOfferCardById));
+router.patch('/offer-cards/:id', requireAdmin, asyncHandler(updateOfferCard));
+router.delete('/offer-cards/:id', requireAdmin, asyncHandler(deleteOfferCard));
+// The products of a "Deals of the day" card (template 2).
+router.get('/offer-cards/:id/products', requireAdmin, asyncHandler(getCardProducts));
+router.post('/offer-cards/:id/products', requireAdmin, asyncHandler(addCardProduct));
+router.patch('/offer-cards/:id/products/reorder', requireAdmin, asyncHandler(reorderCardProducts));
+router.delete('/offer-cards/:id/products/:itemId', requireAdmin, asyncHandler(deleteCardProduct));
 
 // Notifications
 router.get('/notifications', requireAdmin, asyncHandler(getAdminNotifications));

@@ -20,8 +20,9 @@ describe('Home store-mode switching', () => {
   it('crossfades the sections block, not the mode capsule', () => {
     expect(homeSource).toMatch(/const sectionsFade = useRef\(new Animated\.Value\(1\)\)\.current;/);
     // The capsule lives above this wrapper, so it must not be inside it.
-    const wrapperIndex = homeSource.indexOf('<Animated.View style={{ opacity: sectionsFade }}>');
-    const capsuleIndex = homeSource.indexOf('<SegmentedControl');
+    // (The fade is skipped where the native glass effect draws the bar.)
+    const wrapperIndex = homeSource.search(/<Animated\.View style=\{\{ opacity: [^}]*sectionsFade \}\}>/);
+    const capsuleIndex = homeSource.indexOf('<ShopModeSelector');
     expect(wrapperIndex).toBeGreaterThan(-1);
     expect(capsuleIndex).toBeGreaterThan(-1);
     expect(capsuleIndex).toBeLessThan(wrapperIndex);
@@ -51,10 +52,10 @@ describe('Home store-mode switching', () => {
 
   it('draws Home sections a few at a time, lower ones only as the customer nears them', () => {
     expect(homeSource).toMatch(/const SECTIONS_INITIAL = 2;/);
-    expect(homeSource).toMatch(/orderedUnits\.slice\(0, renderedSectionCount\)\.map\(/);
-    // The next section is drawn once the drawn ones end within a screen of the view's bottom.
-    expect(homeSource).toMatch(/offset \+ viewport \* 2 < content/);
-    expect(homeSource).toMatch(/count \+ 1/);
+    expect(homeSource).toMatch(/renderHomeUnits\(orderedUnits\.slice\(0, renderedSectionCount\)\)/);
+    // The next section is drawn once the drawn ones end within two screens of the view's bottom.
+    expect(homeSource).toMatch(/offset \+ viewport \* 3 < content/);
+    expect(homeSource).toMatch(/drawnCountRef\.current \+ 1/); // one more section at a time
     // A new mode starts from the top again.
     const handler = homeSource.slice(homeSource.indexOf('const selectStoreType = useCallback'));
     expect(handler.slice(0, 900)).toMatch(/setRenderedSectionCount\(SECTIONS_INITIAL\)/);
@@ -148,7 +149,7 @@ describe('Home automatic rows (shops, then categories)', () => {
     expect(homeSource).toMatch(/const limit = Number\(auto\.maxVisibleItems\) > 0/);
     // A shop row loads by shop, a category row by category.
     expect(homeSource).toMatch(/auto\.autoKind === 'shop' \? \{ shopId: auto\.sourceId \} : \{ categoryId: auto\.sourceId \}/);
-    expect(homeSource).toMatch(/orderedUnits\.slice\(0, renderedSectionCount\)\.map\(unit => \{/);
+    expect(homeSource).toMatch(/renderHomeUnits\(orderedUnits\.slice\(0, renderedSectionCount\)\)/);
     expect(homeSource).toMatch(/onSeeAll=\{handleAutoSeeAll\}/);
     expect(homeSource).toMatch(/shopId: auto\.sourceId, sectionTitle: auto\.title/);
     expect(homeSource).not.toMatch(/seeAllCategoriesRow/);

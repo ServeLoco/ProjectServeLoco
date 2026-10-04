@@ -7,6 +7,7 @@ const { reorderDisplayOrder } = require('../utils/reorder');
 const { requestAreaId, bustAreaCaches } = require('../utils/areaScope');
 const logger = require('../utils/logger');
 const { syncAutoSections, isAutoRowVisible, autoRowKey } = require('../utils/autoSections');
+const { istInstantFromWallClock } = require('../utils/businessTime');
 // 30s meant a low-traffic area re-ran the whole multi-query dashboard build on
 // almost every request. Every mutation that can change this payload already
 // calls bustAreaCaches (which clears the 'dashboard' namespace for that area),
@@ -30,13 +31,23 @@ const requireOneArea = (req, res) => {
   return areaId;
 };
 
-const SECTION_TYPES = ['offer_banner', 'category_grid', 'product_block', 'combo_block'];
+const SECTION_TYPES = ['offer_banner', 'category_grid', 'product_block', 'combo_block', 'offer_cards'];
+const TITLE_OPTIONAL_SECTION_TYPES = ['category_grid', 'offer_cards'];
+// store_type of the "Common" sections: shown in every shop mode, above the
+// mode switch on Home, with their items not limited to one mode.
+// Reserved, so no store mode can take this slug.
+const COMMON_STORE_TYPE = 'common';
 const SECTION_ITEM_TYPES = {
   offer_banner: 'offer',
   category_grid: 'category',
   product_block: 'product',
   combo_block: 'combo',
+  offer_cards: 'offer_card',
 };
+
+// offerCardController requires this file (for resolveImageUrls /
+// mapProductRows), so it is required lazily here to keep the import acyclic.
+const offerCards = () => require('./offerCardController');
 // Slug suffix must be URL-hyphenated; mode slugs use underscores (e.g. fast_food).
 const offerBannerSlugSuffix = (storeType) => storeType.replace(/_/g, '-');
 
@@ -59,11 +70,21 @@ const getStoredImageUrl = (image) => image?.url ||
 
 const isInvalidDateValue = (value) => value && Number.isNaN(new Date(value).getTime());
 
+// Section and item schedules are stored as instants (a Date, which mysql2
+// writes in the session zone), because Home compares them with NOW(). The raw
+// ISO string the admin sends ("...T08:04:35.953Z") is not a datetime MySQL
+// accepts in strict mode. A time that names its zone ("...Z") is taken as is;
+// a bare wall clock is IST. Empty means no bound.
+const scheduleInstant = (value) => (value ? istInstantFromWallClock(String(value)) : null);
+
 const validateVisibilityWindow = (startsAt, endsAt) => {
   if (isInvalidDateValue(startsAt) || isInvalidDateValue(endsAt)) {
     return 'Schedule dates must be valid date/time values';
   }
-  if (startsAt && endsAt && new Date(endsAt) < new Date(startsAt)) {
+  if ((startsAt && !scheduleInstant(startsAt)) || (endsAt && !scheduleInstant(endsAt))) {
+    return 'Schedule dates must be valid date/time values';
+  }
+  if (startsAt && endsAt && scheduleInstant(endsAt) < scheduleInstant(startsAt)) {
     return 'End time must be after start time';
   }
   return null;
@@ -85,16 +106,16 @@ const validateSectionPayload = async ({ title, slug, section_type, store_type, d
   if (!partial && (!slug || !section_type)) {
     return 'Slug and section type are required';
   }
-  // Category grid cards carry their own name — the section title above the
-  // grid is purely optional real estate, unlike other block types where it's
-  // the only label the customer sees.
-  if (!partial && !title && section_type !== 'category_grid') {
+  // Category grid cards and offer cards carry their own names — the section
+  // title above them is purely optional real estate, unlike other block types
+  // where it's the only label the customer sees.
+  if (!partial && !title && !TITLE_OPTIONAL_SECTION_TYPES.includes(section_type)) {
     return 'Title, slug, and section type are required';
   }
   if (section_type !== undefined && !SECTION_TYPES.includes(section_type)) {
     return 'Invalid dashboard section type';
   }
-  if (store_type !== undefined && store_type !== 'all' && !isSystemModeSlug(store_type)) {
+  if (store_type !== undefined && store_type !== 'all' && store_type !== COMMON_STORE_TYPE && !isSystemModeSlug(store_type)) {
     // areaId threaded from the caller (requireOneArea) — every other
     // getActiveStoreModeSlugs call site in this file already does this;
     // this one defaulted to STORE_MODE_AREA_ID_STOPGAP (area 1) and
@@ -175,6 +196,13 @@ const getLinkedItemInfo = async (itemType, itemId, areaId) => {
     if (rows.length === 0) return { error: 'Offer does not exist' };
     if (rows[0].active !== undefined && !rows[0].active) return { error: 'Only active offers can be added to dashboard banners.' };
     return { storeType: rows[0].store_type };
+  }
+
+  if (itemType === 'offer_card') {
+    const [rows] = await pool.query('SELECT id, active, store_type FROM offer_cards WHERE id = ? AND deleted_at IS NULL AND area_id = ?', [itemId, areaId]);
+    if (rows.length === 0) return { error: 'Offer card does not exist' };
+    // A card for every store mode fits any section.
+    return { storeType: rows[0].store_type === 'all' ? null : rows[0].store_type };
   }
 
   return { error: 'Invalid item type' };
@@ -505,9 +533,10 @@ const getDashboard = async (req, res) => {
     `;
     const params = [areaId];
 
+    // The mode's own sections plus the Common ones (every mode).
     if (expectedStoreType && expectedStoreType !== 'all') {
-      query += ' AND store_type = ?';
-      params.push(expectedStoreType);
+      query += ' AND (store_type = ? OR store_type = ?)';
+      params.push(expectedStoreType, COMMON_STORE_TYPE);
     }
 
     query += ' ORDER BY display_order ASC, id ASC';
@@ -518,6 +547,8 @@ const getDashboard = async (req, res) => {
     // Build each section's items in parallel (Promise.all preserves input order).
     const buildSection = async (section) => {
       let items = [];
+      // A Common section's items are not limited to the mode being viewed.
+      const modeType = section.store_type === COMMON_STORE_TYPE ? 'all' : expectedStoreType;
 
       // An automatic shop/category row: no items here — the app loads the
       // row's first items itself when it is scrolled to. Not hidden when
@@ -550,8 +581,8 @@ const getDashboard = async (req, res) => {
       }
 
       if (section.section_type === 'offer_banner') {
-        const offerStoreFilter = (expectedStoreType && expectedStoreType !== 'all') ? 'AND o.store_type = ?' : '';
-        const itemParams = (expectedStoreType && expectedStoreType !== 'all') ? [section.id, areaId, expectedStoreType] : [section.id, areaId];
+        const offerStoreFilter = (modeType && modeType !== 'all') ? 'AND o.store_type = ?' : '';
+        const itemParams = (modeType && modeType !== 'all') ? [section.id, areaId, modeType] : [section.id, areaId];
         const [rows] = await pool.query(
           `SELECT dsi.id as section_item_id, dsi.display_order, o.*
            FROM dashboard_section_items dsi
@@ -582,8 +613,8 @@ const getDashboard = async (req, res) => {
         await resolveImageUrls(rows);
 
         let filteredRows = rows;
-        if (expectedStoreType && expectedStoreType !== 'all') {
-          filteredRows = rows.filter(r => r.type === expectedStoreType);
+        if (modeType && modeType !== 'all') {
+          filteredRows = rows.filter(r => r.type === modeType);
         }
 
         items = mapCategoryRows(filteredRows);
@@ -608,14 +639,14 @@ const getDashboard = async (req, res) => {
         await Promise.all([resolveImageUrls(rows), attachComboItems(rows), attachVariants(rows)]);
 
         let filteredRows = rows;
-        if (expectedStoreType && expectedStoreType !== 'all') {
-          filteredRows = rows.filter(r => r.category_type === expectedStoreType);
+        if (modeType && modeType !== 'all') {
+          filteredRows = rows.filter(r => r.category_type === modeType);
         }
 
         items = mapProductRows(filteredRows);
       } else if (section.section_type === 'combo_block') {
-        const comboStoreFilter = (expectedStoreType && expectedStoreType !== 'all') ? 'AND p.store_type = ?' : '';
-        const itemParams = (expectedStoreType && expectedStoreType !== 'all') ? [section.id, areaId, expectedStoreType] : [section.id, areaId];
+        const comboStoreFilter = (modeType && modeType !== 'all') ? 'AND p.store_type = ?' : '';
+        const itemParams = (modeType && modeType !== 'all') ? [section.id, areaId, modeType] : [section.id, areaId];
         const [rows] = await pool.query(
           `SELECT dsi.id as section_item_id, dsi.display_order, p.*, 1 as is_combo, p.store_type as category_type
            FROM dashboard_section_items dsi
@@ -632,6 +663,13 @@ const getDashboard = async (req, res) => {
 
         let filteredRows = rows;
         items = mapProductRows(filteredRows);
+      } else if (section.section_type === 'offer_cards') {
+        items = await offerCards().loadSectionOfferCards({
+          sectionId: section.id,
+          areaId,
+          storeType: modeType,
+          includeClosedShops,
+        });
       }
 
       const maxVisible = section.section_type === 'offer_banner'
@@ -716,8 +754,8 @@ const getSectionItems = async (req, res) => {
     `;
     const sectionParams = [slug, areaId];
     if (expectedStoreType && expectedStoreType !== 'all') {
-      sectionQuery += ' AND store_type = ?';
-      sectionParams.push(expectedStoreType);
+      sectionQuery += ' AND (store_type = ? OR store_type = ?)';
+      sectionParams.push(expectedStoreType, COMMON_STORE_TYPE);
     }
     sectionQuery += ' ORDER BY id DESC LIMIT 1';
 
@@ -729,10 +767,11 @@ const getSectionItems = async (req, res) => {
 
     const section = sections[0];
     let items = [];
+    const modeType = section.store_type === COMMON_STORE_TYPE ? 'all' : expectedStoreType;
 
     if (section.section_type === 'offer_banner') {
-      const offerStoreFilter = (expectedStoreType && expectedStoreType !== 'all') ? 'AND o.store_type = ?' : '';
-      const params = (expectedStoreType && expectedStoreType !== 'all') ? [section.id, areaId, expectedStoreType, limitNumber, offset] : [section.id, areaId, limitNumber, offset];
+      const offerStoreFilter = (modeType && modeType !== 'all') ? 'AND o.store_type = ?' : '';
+      const params = (modeType && modeType !== 'all') ? [section.id, areaId, modeType, limitNumber, offset] : [section.id, areaId, limitNumber, offset];
       const [rows] = await pool.query(
         `SELECT dsi.id as section_item_id, dsi.display_order, o.*
          FROM dashboard_section_items dsi
@@ -764,14 +803,14 @@ const getSectionItems = async (req, res) => {
       await resolveImageUrls(rows);
 
       let filteredRows = rows;
-      if (expectedStoreType && expectedStoreType !== 'all') {
-        filteredRows = rows.filter(r => r.type === expectedStoreType);
+      if (modeType && modeType !== 'all') {
+        filteredRows = rows.filter(r => r.type === modeType);
       }
 
       items = mapCategoryRows(filteredRows);
     } else if (section.section_type === 'product_block') {
-      const productStoreFilter = (expectedStoreType && expectedStoreType !== 'all') ? 'AND cat.type = ?' : '';
-      const params = (expectedStoreType && expectedStoreType !== 'all') ? [section.id, areaId, expectedStoreType, limitNumber, offset] : [section.id, areaId, limitNumber, offset];
+      const productStoreFilter = (modeType && modeType !== 'all') ? 'AND cat.type = ?' : '';
+      const params = (modeType && modeType !== 'all') ? [section.id, areaId, modeType, limitNumber, offset] : [section.id, areaId, limitNumber, offset];
       const [rows] = await pool.query(
         `SELECT dsi.id as section_item_id, dsi.display_order, p.*, cat.name as category_name, cat.type as category_type, ${shopIsOpenSelect}
          FROM dashboard_section_items dsi
@@ -819,8 +858,8 @@ const getSectionItems = async (req, res) => {
         shop_is_open: r.shop_is_open === undefined ? 1 : r.shop_is_open,
       }));
     } else if (section.section_type === 'combo_block') {
-      const comboStoreFilter = (expectedStoreType && expectedStoreType !== 'all') ? 'AND p.store_type = ?' : '';
-      const params = (expectedStoreType && expectedStoreType !== 'all') ? [section.id, areaId, expectedStoreType, limitNumber, offset] : [section.id, areaId, limitNumber, offset];
+      const comboStoreFilter = (modeType && modeType !== 'all') ? 'AND p.store_type = ?' : '';
+      const params = (modeType && modeType !== 'all') ? [section.id, areaId, modeType, limitNumber, offset] : [section.id, areaId, limitNumber, offset];
       const [rows] = await pool.query(
         `SELECT dsi.id as section_item_id, dsi.display_order, p.*, 1 as is_combo, p.store_type as category_type
          FROM dashboard_section_items dsi
@@ -857,6 +896,15 @@ const getSectionItems = async (req, res) => {
         categoryType: r.category_type,
         comboItems: r.combo_items || []
       }));
+    } else if (section.section_type === 'offer_cards') {
+      items = await offerCards().loadSectionOfferCards({
+        sectionId: section.id,
+        areaId,
+        storeType: modeType,
+        includeClosedShops,
+        limit: limitNumber,
+        offset,
+      });
     }
 
     res.status(200).json({
@@ -887,19 +935,23 @@ const getAdminSections = async (req, res) => {
 
   const { store_type } = req.query;
   try {
-    if (store_type && store_type !== 'all') {
+    const isModeList = Boolean(store_type) && store_type !== 'all' && store_type !== COMMON_STORE_TYPE;
+    if (isModeList) {
       await ensureModeSpecificOfferBannerSections(areaId);
     }
 
     // Make sure the rows Home creates by itself (per shop, per category) exist,
     // so this list matches the app. They are ordinary rows from here on.
-    const { valid: validAutoKeys } = (store_type && store_type !== 'all')
+    const { valid: validAutoKeys } = isModeList
       ? await syncAutoSections(areaId, store_type)
       : { valid: new Set() };
 
     let query = 'SELECT id, title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, auto_kind, auto_source_id, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at FROM dashboard_sections WHERE deleted_at IS NULL AND area_id = ?';
     const params = [areaId];
-    if (store_type) {
+    if (store_type === COMMON_STORE_TYPE) {
+      query += ' AND store_type = ?';
+      params.push(COMMON_STORE_TYPE);
+    } else if (store_type) {
       query += ' AND (store_type = ? OR (store_type = "all" AND section_type != "offer_banner"))';
       params.push(store_type);
     }
@@ -945,6 +997,17 @@ const hydrateSectionItem = async (item, areaId) => {
     const [offers] = await pool.query('SELECT * FROM offers WHERE id = ? AND area_id = ?', [item.item_id, areaId]);
     if (offers.length > 0) {
       details = offers[0];
+      await resolveImageUrls([details]);
+    }
+  } else if (item.item_type === 'offer_card') {
+    const [cards] = await pool.query(
+      `SELECT oc.*, c.title AS deal_title FROM offer_cards oc
+       LEFT JOIN coupons c ON c.id = oc.deal_coupon_id AND c.area_id = oc.area_id
+       WHERE oc.id = ? AND oc.area_id = ?`,
+      [item.item_id, areaId]
+    );
+    if (cards.length > 0) {
+      details = cards[0];
       await resolveImageUrls([details]);
     }
   }
@@ -1046,8 +1109,8 @@ const createAdminSection = async (req, res) => {
         section_icon || null,
         linked_category_id || null,
         linked_offer_id || null,
-        starts_at || null,
-        ends_at || null
+        scheduleInstant(starts_at),
+        scheduleInstant(ends_at)
       ]
     );
 
@@ -1147,8 +1210,8 @@ const updateAdminSection = async (req, res) => {
         section_icon !== undefined ? section_icon : existingSection.section_icon,
         linked_category_id !== undefined ? linked_category_id : existingSection.linked_category_id,
         linked_offer_id !== undefined ? linked_offer_id : existingSection.linked_offer_id,
-        starts_at !== undefined ? starts_at : existingSection.starts_at,
-        ends_at !== undefined ? ends_at : existingSection.ends_at,
+        starts_at !== undefined ? scheduleInstant(starts_at) : existingSection.starts_at,
+        ends_at !== undefined ? scheduleInstant(ends_at) : existingSection.ends_at,
         nextVersion,
         id, areaId
       ]
@@ -1243,7 +1306,7 @@ const addAdminSectionItem = async (req, res) => {
       return res.status(400).json({ code: 'VALIDATION_ERROR', message: itemInfo.error });
     }
 
-    if (section.store_type !== 'all' && itemInfo.storeType && itemInfo.storeType !== section.store_type) {
+    if (section.store_type !== 'all' && section.store_type !== COMMON_STORE_TYPE && itemInfo.storeType && itemInfo.storeType !== section.store_type) {
       return res.status(400).json({
         code: 'VALIDATION_ERROR',
         message: `This item belongs to "${itemInfo.storeType}" and cannot be added to a "${section.store_type}" section.`
@@ -1276,8 +1339,8 @@ const addAdminSectionItem = async (req, res) => {
         id, item_type, item_id,
         finalDisplayOrder,
         active !== undefined ? active : 1,
-        starts_at || null,
-        ends_at || null,
+        scheduleInstant(starts_at),
+        scheduleInstant(ends_at),
         areaId
       ]
     );
@@ -1300,8 +1363,8 @@ const addAdminSectionItem = async (req, res) => {
         item_id,
         display_order: finalDisplayOrder,
         active: active !== undefined ? active : 1,
-        starts_at: starts_at || null,
-        ends_at: ends_at || null
+        starts_at: scheduleInstant(starts_at),
+        ends_at: scheduleInstant(ends_at)
       }, areaId);
     } catch (hydrateError) {
       logger.error('[dashboard] hydrate after add failed for item', result.insertId, hydrateError.message);
@@ -1369,8 +1432,8 @@ const updateAdminSectionItem = async (req, res) => {
       [
         finalDisplayOrder,
         active !== undefined ? active : existingItem.active,
-        starts_at !== undefined ? starts_at : existingItem.starts_at,
-        ends_at !== undefined ? ends_at : existingItem.ends_at,
+        starts_at !== undefined ? scheduleInstant(starts_at) : existingItem.starts_at,
+        ends_at !== undefined ? scheduleInstant(ends_at) : existingItem.ends_at,
         itemId
       ]
     );

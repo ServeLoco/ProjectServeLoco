@@ -9,12 +9,14 @@ const { isCodBlockedDuringNight } = require('../utils/nightDelivery');
 const { calculateRainCharge } = require('../utils/rainCharge');
 const { resolveDeliveryPricing, loadActiveZones, loadActiveExclusionZones } = require('../utils/deliveryPricing');
 const { resolveAreaIdForPricing, getAreaById } = require('../utils/areaScope');
-const { validateCoupon, validateCouponById, pickBestAutoApply } = require('../utils/coupons');
+const { validateCoupon, validateCouponById, pickBestAutoApply, applyBestDeal } = require('../utils/coupons');
+const { cartItemCount, cartStoreType } = require('../utils/cartCouponContext');
 const { ACTIVE_ORDER_STATUSES } = require('../utils/riders');
 const { bustUserState } = require('../utils/userState');
 const config = require('../config/env');
 const { istDateOf } = require('../utils/businessTime');
 const logger = require('../utils/logger');
+const { idOrNull } = require('../validators');
 
 // Expected business failures → 400. clientCode lets specific failures carry a
 // distinct machine-readable code (e.g. OUT_OF_DELIVERY_RANGE) while everything
@@ -83,6 +85,14 @@ const buildReplayOrderJson = (existing, itemsRows, couponSnap, req) => {
     discount: Number(couponSnap.discount_amount) || 0,
     freeDeliveryWaiver: Number(couponSnap.free_delivery_waiver_amount) || 0,
     itemDiscount: roundMoney((Number(couponSnap.discount_amount) || 0) - (Number(couponSnap.free_delivery_waiver_amount) || 0)),
+    // discount_amount is coupon + deal; these carry the split.
+    couponDiscount: roundMoney((Number(couponSnap.discount_amount) || 0) - (Number(couponSnap.deal_discount_amount) || 0)),
+    coupon_discount: roundMoney((Number(couponSnap.discount_amount) || 0) - (Number(couponSnap.deal_discount_amount) || 0)),
+    dealDiscount: Number(couponSnap.deal_discount_amount) || 0,
+    deal_discount: Number(couponSnap.deal_discount_amount) || 0,
+    dealId: couponSnap.deal_coupon_id || null,
+    dealTitle: couponSnap.deal_title || null,
+    deal_title: couponSnap.deal_title || null,
     total: Number(existing.total),
     paymentMethod: paymentMethod,
     payment_method: paymentMethod,
@@ -106,6 +116,8 @@ const buildReplayOrderJson = (existing, itemsRows, couponSnap, req) => {
       quantity: item.quantity,
       unitPrice: item.unit_price,
       lineTotal: item.line_total,
+      dealPrice: item.deal_price ?? null, deal_price: item.deal_price ?? null,
+      dealQty: Number(item.deal_qty) || 0, deal_qty: Number(item.deal_qty) || 0,
       type: item.item_type
     }))
   };
@@ -203,11 +215,11 @@ const createOrder = async (req, res) => {
       if (Array.isArray(existingRows) && existingRows.length > 0) {
         const existing = existingRows[0];
         const [itemsRows] = await connection.query(
-          'SELECT product_id, variant_id, variant_label, item_type, product_name, quantity, unit_price, line_total FROM order_items WHERE order_id = ?',
+          'SELECT product_id, variant_id, variant_label, item_type, product_name, quantity, unit_price, line_total, deal_price, deal_qty FROM order_items WHERE order_id = ?',
           [existing.id]
         );
         const [couponRows] = await connection.query(
-          'SELECT coupon_id, coupon_code, coupon_title, discount_amount, free_delivery_waiver_amount FROM orders WHERE id = ?',
+          'SELECT coupon_id, coupon_code, coupon_title, discount_amount, free_delivery_waiver_amount, deal_coupon_id, deal_title, deal_discount_amount FROM orders WHERE id = ?',
           [existing.id]
         );
         const couponSnap = couponRows[0] || {};
@@ -330,6 +342,8 @@ const createOrder = async (req, res) => {
 
     let subtotal = 0;
     const orderItems = [];
+    // One entry per line, for cartStoreType below.
+    const lineStoreTypes = [];
 
     const productEntries = [];
     const comboEntries = [];
@@ -348,9 +362,11 @@ const createOrder = async (req, res) => {
       // area_id = ? so a stale/forged cart line referencing another area's
       // product id can't be checked out here — same OrderError below as
       // "does not exist" (§2.4: a customer in area 1 must never see area
-      // 2's products, including via a crafted product id).
+      // 2's products, including via a crafted product id). store_type is
+      // the category's type, for the coupon engine's applies_to check — read
+      // here rather than in a query of its own.
       const [prodRows] = await connection.query(
-        'SELECT id, name, price, shop_price, shop_id FROM products WHERE id IN (?) AND available = 1 AND deleted = 0 AND area_id = ? AND (shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = products.shop_id AND s.is_open = 1 AND s.active = 1)) AND (group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = products.group_id AND g.active = 1 AND g.area_id = products.area_id))',
+        'SELECT id, name, price, shop_price, shop_id, (SELECT c.type FROM categories c WHERE c.id = products.category_id) AS store_type FROM products WHERE id IN (?) AND available = 1 AND deleted = 0 AND area_id = ? AND (shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = products.shop_id AND s.is_open = 1 AND s.active = 1)) AND (group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = products.group_id AND g.active = 1 AND g.area_id = products.area_id))',
         [productIds, deliveryAreaId]
       );
       for (const row of prodRows) productById.set(Number(row.id), row);
@@ -359,7 +375,7 @@ const createOrder = async (req, res) => {
     if (comboEntries.length > 0) {
       const comboIds = comboEntries.map(e => e.productId);
       const [comboRows] = await connection.query(
-        'SELECT id, name, price FROM combos WHERE id IN (?) AND available = 1 AND deleted = 0 AND area_id = ?',
+        'SELECT id, name, price, store_type FROM combos WHERE id IN (?) AND available = 1 AND deleted = 0 AND area_id = ?',
         [comboIds, deliveryAreaId]
       );
       for (const row of comboRows) comboById.set(Number(row.id), row);
@@ -391,6 +407,7 @@ const createOrder = async (req, res) => {
       const product = isCombo ? comboById.get(Number(productId)) : productById.get(Number(productId));
 
       if (!product) throw new OrderError(`${isCombo ? 'Combo' : 'Product'} ID ${productId} is unavailable or does not exist`);
+      lineStoreTypes.push(product.store_type);
 
       const quantity = Number(item.quantity);
       const rawVariantId = item.variant_id || item.variantId || null;
@@ -438,11 +455,20 @@ const createOrder = async (req, res) => {
         line_total: lineTotal,
         shop_unit_price: shopUnitPrice,
         shop_line_total: shopLineTotal,
-        item_type: isCombo ? 'combo' : 'product'
+        item_type: isCombo ? 'combo' : 'product',
+        // The deal this line was picked from; only such lines can get a deal
+        // price. Not stored as its own column — deal_price/deal_qty are.
+        deal_coupon_id: isCombo ? null : idOrNull(item.deal_coupon_id ?? item.dealCouponId),
       });
     }
 
     subtotal = roundMoney(subtotal);
+    // The same two cart facts calculateCart hands the coupon engine, so a
+    // min_item_count or applies_to coupon is judged at checkout exactly as in
+    // the cart preview. Every line here is priced (an unavailable one threw
+    // above), matching the cart's post-drop lines. The item count is taken
+    // below, once held deal units are out, as the cart does.
+    const storeType = cartStoreType(lineStoreTypes);
 
     // Radius-zone pricing (server-authoritative — never trusts the preview the
     // client saw). Read + pure compute inside the existing transaction; the
@@ -531,10 +557,80 @@ const createOrder = async (req, res) => {
 
     const zoneId = pricing.zone ? pricing.zone.id : null;
 
+    // Deal price: same rule and order as the cart preview — the deal first,
+    // then the coupon on the subtotal after the deal saving (they stack).
+    // A deal is always auto-applied, so one that lapsed since the cart, or
+    // whose usage limit a concurrent order took under the lock below, never
+    // fails the order — the items picked from it are left out instead. The
+    // deal row is always locked before the coupon row, so two checkouts never
+    // lock in opposite order. The cart's store type goes in as in the cart
+    // preview, so a deal limited to one store type ("Applies To") is judged
+    // the same at checkout — otherwise an item the cart held out of the bill
+    // would be ordered and charged here.
+    const dealResult = await applyBestDeal({
+      lines: orderItems.map((oi) => ({
+        productId: oi.product_id, variantId: oi.variant_id, type: oi.item_type, unitPrice: oi.unit_price, quantity: oi.quantity, dealCouponId: oi.deal_coupon_id,
+      })),
+      subtotal,
+      storeType,
+      userId,
+      zoneId,
+      connection,
+      areaId: deliveryAreaId,
+    });
+    let { deal } = dealResult;
+    // Units picked from a deal that cannot sell at the deal price are not
+    // part of the order (see cartController): a locked deal, another deal on
+    // this order, an ended deal — or, below, a deal whose usage limit a
+    // concurrent order just took.
+    const heldUnits = [...dealResult.held];
+    if (deal && deal.unlocked) {
+      await connection.query('SELECT id FROM coupons WHERE id = ? FOR UPDATE', [deal.couponId]);
+      if (await recheckUsageUnderLock(connection, deal.coupon, userId)) {
+        deal.lines.forEach(({ index, dealQty }) => heldUnits.push({ index, qty: dealQty, reason: 'unavailable' }));
+        deal = null;
+      }
+    }
+    if (!deal || !deal.unlocked) deal = null;
+    const dealDiscount = deal ? roundMoney(deal.dealDiscount) : 0;
+    if (deal) {
+      deal.lines.forEach(({ index, dealPrice, dealQty }) => {
+        orderItems[index].deal_price = dealPrice;
+        orderItems[index].deal_qty = dealQty;
+      });
+    }
+    // Units left out, for the confirmation screen's notice.
+    let dealUnitsLeftOut = 0;
+    if (heldUnits.length > 0) {
+      for (const { index, qty } of heldUnits) {
+        const oi = orderItems[index];
+        const units = Math.min(qty, oi.quantity);
+        dealUnitsLeftOut += units;
+        oi.quantity -= units;
+        oi.line_total = roundMoney(oi.unit_price * oi.quantity);
+        if (oi.shop_unit_price !== null) oi.shop_line_total = roundMoney(oi.shop_unit_price * oi.quantity);
+      }
+      for (let i = orderItems.length - 1; i >= 0; i -= 1) {
+        if (orderItems[i].quantity <= 0) orderItems.splice(i, 1);
+      }
+      if (orderItems.length === 0) {
+        const locked = heldUnits.find((h) => h.reason === 'locked');
+        throw new OrderError(
+          locked
+            ? `Add items worth ₹${locked.amountRemaining} more to unlock your deal item.`
+            : 'Your deal item is not available right now. Remove it to place the order.',
+          'DEAL_ITEMS_ONLY'
+        );
+      }
+      subtotal = roundMoney(orderItems.reduce((sum, oi) => sum + oi.line_total, 0));
+    }
+    const couponSubtotal = roundMoney(subtotal - dealDiscount);
+    const itemCount = cartItemCount(orderItems);
+
     if (couponCode || couponId) {
       const result = couponCode
-        ? await validateCoupon({ code: couponCode, subtotal, deliveryCharge, standardDeliveryCharge, userId, zoneId, connection, areaId: deliveryAreaId })
-        : await validateCouponById({ couponId, subtotal, deliveryCharge, standardDeliveryCharge, userId, zoneId, connection, areaId: deliveryAreaId });
+        ? await validateCoupon({ code: couponCode, subtotal: couponSubtotal, deliveryCharge, standardDeliveryCharge, storeType, itemCount, userId, zoneId, connection, areaId: deliveryAreaId })
+        : await validateCouponById({ couponId, subtotal: couponSubtotal, deliveryCharge, standardDeliveryCharge, storeType, itemCount, userId, zoneId, connection, areaId: deliveryAreaId });
       let failReason = result.ok ? null : (result.reason || 'Coupon is not valid');
       if (!failReason) {
         await connection.query('SELECT id FROM coupons WHERE id = ? FOR UPDATE', [result.coupon.id]);
@@ -553,7 +649,7 @@ const createOrder = async (req, res) => {
         appliedCoupon = result.coupon;
       }
     } else if (!noAutoApply) {
-      let best = await pickBestAutoApply({ subtotal, deliveryCharge, standardDeliveryCharge, userId, zoneId, connection, areaId: deliveryAreaId });
+      let best = await pickBestAutoApply({ subtotal: couponSubtotal, deliveryCharge, standardDeliveryCharge, storeType, itemCount, userId, zoneId, connection, areaId: deliveryAreaId });
       if (best) {
         await connection.query('SELECT id FROM coupons WHERE id = ? FOR UPDATE', [best.coupon.id]);
         const failReason = await recheckUsageUnderLock(connection, best.coupon, userId);
@@ -570,7 +666,11 @@ const createOrder = async (req, res) => {
       }
     }
 
-    const total = roundMoney(Math.max(0, subtotal + standardDeliveryCharge + fastDeliveryFee + nightCharge + rainCharge - discount));
+    // orders.discount_amount carries coupon + deal together (reports and the
+    // frozen-total maths read it); deal_discount_amount is the deal's share.
+    const couponDiscount = discount;
+    const totalDiscount = roundMoney(couponDiscount + dealDiscount);
+    const total = roundMoney(Math.max(0, subtotal + standardDeliveryCharge + fastDeliveryFee + nightCharge + rainCharge - totalDiscount));
     const orderNumber = await generateOrderNumber(connection, deliveryAreaId, deliveryArea ? deliveryArea.code : 'A1');
 
     const finalAddress = address || user.address;
@@ -586,8 +686,9 @@ const createOrder = async (req, res) => {
           delivery_distance_km, delivery_radius_km_snapshot, delivery_cost_per_km_snapshot,
           free_delivery_offer_snapshot, delivery_zone_id, delivery_eta_minutes_snapshot, delivery_type,
           idempotency_key, idempotency_key_created_at,
-          coupon_id, coupon_code, coupon_title, discount_amount, free_delivery_waiver_amount
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', 'Pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          coupon_id, coupon_code, coupon_title, discount_amount, free_delivery_waiver_amount,
+          deal_coupon_id, deal_title, deal_discount_amount
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', 'Pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           deliveryAreaId, orderNumber, userId, user.name, user.phone, user.whatsapp_number, finalAddress,
           latitude || null, longitude || null, map_url || null,
@@ -602,8 +703,11 @@ const createOrder = async (req, res) => {
           appliedCoupon ? appliedCoupon.id : null,
           appliedCoupon ? appliedCoupon.code : null,
           appliedCoupon ? appliedCoupon.title : null,
-          discount,
+          totalDiscount,
           freeDeliveryWaiver,
+          deal ? deal.couponId : null,
+          deal ? deal.title : null,
+          dealDiscount,
         ]
       );
       orderId = orderResult.insertId;
@@ -639,11 +743,11 @@ const createOrder = async (req, res) => {
         }
         const existing2 = existingRows2[0];
         const [itemsRows2] = await pool.query(
-          'SELECT product_id, variant_id, variant_label, item_type, product_name, quantity, unit_price, line_total FROM order_items WHERE order_id = ?',
+          'SELECT product_id, variant_id, variant_label, item_type, product_name, quantity, unit_price, line_total, deal_price, deal_qty FROM order_items WHERE order_id = ?',
           [existing2.id]
         );
         const [couponRows2] = await pool.query(
-          'SELECT coupon_id, coupon_code, coupon_title, discount_amount, free_delivery_waiver_amount FROM orders WHERE id = ?',
+          'SELECT coupon_id, coupon_code, coupon_title, discount_amount, free_delivery_waiver_amount, deal_coupon_id, deal_title, deal_discount_amount FROM orders WHERE id = ?',
           [existing2.id]
         );
         const couponSnap2 = couponRows2[0] || {};
@@ -653,17 +757,18 @@ const createOrder = async (req, res) => {
     }
 
     if (orderItems.length > 0) {
-      const placeholders = orderItems.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
+      const placeholders = orderItems.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
       const values = [];
       for (const oi of orderItems) {
         values.push(
           deliveryAreaId, orderId, oi.product_id, oi.variant_id || null, oi.variant_label || null, oi.shop_id || null,
           oi.item_type || 'product', oi.product_name, oi.quantity, oi.unit_price, oi.line_total,
-          oi.shop_unit_price ?? null, oi.shop_line_total ?? null
+          oi.shop_unit_price ?? null, oi.shop_line_total ?? null,
+          oi.deal_price ?? null, oi.deal_qty || 0
         );
       }
       await connection.query(
-        `INSERT INTO order_items (area_id, order_id, product_id, variant_id, variant_label, shop_id, item_type, product_name, quantity, unit_price, line_total, shop_unit_price, shop_line_total) VALUES ${placeholders}`,
+        `INSERT INTO order_items (area_id, order_id, product_id, variant_id, variant_label, shop_id, item_type, product_name, quantity, unit_price, line_total, shop_unit_price, shop_line_total, deal_price, deal_qty) VALUES ${placeholders}`,
         values
       );
     }
@@ -672,6 +777,12 @@ const createOrder = async (req, res) => {
       await connection.query(
         'INSERT INTO coupon_redemptions (coupon_id, user_id, order_id, discount_amount) VALUES (?, ?, ?, ?)',
         [appliedCoupon.id, userId, orderId, discount]
+      );
+    }
+    if (deal && dealDiscount > 0) {
+      await connection.query(
+        'INSERT INTO coupon_redemptions (coupon_id, user_id, order_id, discount_amount) VALUES (?, ?, ?, ?)',
+        [deal.couponId, userId, orderId, dealDiscount]
       );
     }
 
@@ -715,9 +826,16 @@ const createOrder = async (req, res) => {
       nightCharge,
       rainCharge,
       fastDeliveryFee,
-      discount,
+      discount: totalDiscount,
       freeDeliveryWaiver,
-      itemDiscount: roundMoney(discount - freeDeliveryWaiver),
+      itemDiscount: roundMoney(totalDiscount - freeDeliveryWaiver),
+      couponDiscount,
+      coupon_discount: couponDiscount,
+      dealDiscount,
+      deal_discount: dealDiscount,
+      dealId: deal ? deal.couponId : null,
+      dealTitle: deal ? deal.title : null,
+      deal_title: deal ? deal.title : null,
       total,
       paymentMethod: payment_method,
       payment_method,
@@ -744,6 +862,10 @@ const createOrder = async (req, res) => {
       // True when an auto-applied offer lapsed between cart and checkout and
       // the order was placed at regular price instead (see coupon block above).
       couponDropped,
+      // Units picked from a deal that were left out of this order (the deal
+      // was locked, ended, or its last use went to another order).
+      dealItemsLeftOut: dealUnitsLeftOut,
+      deal_items_left_out: dealUnitsLeftOut,
       items: orderItems.map(item => ({
         productId: item.product_id,
         variantId: item.variant_id, variant_id: item.variant_id,
@@ -752,6 +874,8 @@ const createOrder = async (req, res) => {
         quantity: item.quantity,
         unitPrice: item.unit_price,
         lineTotal: item.line_total,
+        dealPrice: item.deal_price ?? null, deal_price: item.deal_price ?? null,
+        dealQty: item.deal_qty || 0, deal_qty: item.deal_qty || 0,
         type: item.item_type
       }))
     };
@@ -820,7 +944,29 @@ const getOrders = async (req, res) => {
     params
   );
   const total = Number(countRows[0].total);
-  const orders = rows.map(o => ({ ...o, canCancel: o.status === 'Pending' }));
+
+  // Additive: a short item list per order for the My Orders cards (name,
+  // variant, quantity only). One query for the whole page. Existing fields
+  // untouched.
+  const previewsByOrder = new Map();
+  if (rows.length > 0) {
+    const [itemRows] = await pool.query(
+      `SELECT order_id, product_name, variant_label, quantity
+       FROM order_items WHERE order_id IN (?) ORDER BY id`,
+      [rows.map(o => o.id)]
+    );
+    (itemRows || []).forEach((it) => {
+      const list = previewsByOrder.get(it.order_id) || [];
+      list.push({ name: it.product_name, variant_label: it.variant_label || null, quantity: Number(it.quantity) });
+      previewsByOrder.set(it.order_id, list);
+    });
+  }
+
+  const orders = rows.map(o => ({
+    ...o,
+    canCancel: o.status === 'Pending',
+    items_preview: previewsByOrder.get(o.id) || [],
+  }));
   res.status(200).json({
     data: orders,
     meta: {
@@ -951,6 +1097,13 @@ const cancelOrder = async (req, res) => {
     await pool.query(
       "UPDATE coupon_redemptions SET status = 'cancelled' WHERE order_id = ? AND coupon_id = ?",
       [id, order.coupon_id]
+    );
+  }
+  // The deal price (if any) was redeemed as its own row.
+  if (order.deal_coupon_id) {
+    await pool.query(
+      "UPDATE coupon_redemptions SET status = 'cancelled' WHERE order_id = ? AND coupon_id = ?",
+      [id, order.deal_coupon_id]
     );
   }
 

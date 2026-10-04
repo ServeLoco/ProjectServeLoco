@@ -51,7 +51,6 @@ const WIN_H = Dimensions.get('window').height;
 // Checkout-style sheet: collapsed = big map; expanded = order details.
 const SHEET_COLLAPSED = Math.round(WIN_H * 0.47);
 const SHEET_EXPANDED = Math.round(WIN_H * 0.78);
-const SHEET_MID = (SHEET_COLLAPSED + SHEET_EXPANDED) / 2;
 
 const STATUS_STEPS = [
   {
@@ -164,8 +163,34 @@ export default function OrderDetailScreen() {
   const scrollYRef = useRef(0);
   const [sheetReserve, setSheetReserve] = useState(SHEET_COLLAPSED);
 
+  // Collapsed sheet = header + tracking card (+ the footer buttons, when there
+  // are any) and nothing more, so the map gets the rest of the screen.
+  // Measured from layout because the card's height follows the font scale;
+  // SHEET_COLLAPSED is only the guess used until the first layout.
+  const collapsedRef = useRef(SHEET_COLLAPSED);
+  const [collapsedHeight, setCollapsedHeight] = useState(SHEET_COLLAPSED);
+  const sheetParts = useRef({ head: 0, card: 0, footer: 0 });
+  const updateCollapsedHeight = useCallback(() => {
+    const { head, card, footer } = sheetParts.current;
+    if (!head || !card) return;
+    // + a small gap so the card's shadow is not cut off.
+    const h = Math.min(SHEET_EXPANDED, Math.round(head + card + footer + spacing.sm));
+    if (h === collapsedRef.current) return;
+    collapsedRef.current = h;
+    setCollapsedHeight(h);
+  }, []);
+  const measureSheetPart = useCallback((part) => (e) => {
+    const { y, height } = e.nativeEvent.layout;
+    // The card's bottom inside the scroll content, so anything above it counts.
+    sheetParts.current[part] = part === 'card' ? y + height : height;
+    updateCollapsedHeight();
+  }, [updateCollapsedHeight]);
+
+  // Halfway between the two snap points — past it a released drag opens.
+  const sheetMid = () => (collapsedRef.current + SHEET_EXPANDED) / 2;
+
   const snapSheet = useCallback((expanded) => {
-    const h = expanded ? SHEET_EXPANDED : SHEET_COLLAPSED;
+    const h = expanded ? SHEET_EXPANDED : collapsedRef.current;
     sheetHeightNum.current = h;
     sheetExpandedRef.current = expanded;
     setSheetExpanded(expanded);
@@ -181,6 +206,20 @@ export default function OrderDetailScreen() {
       useNativeDriver: false,
     }).start();
   }, [sheetHeightAnim]);
+
+  // A new measurement moves the collapsed sheet to it (an open sheet keeps
+  // its height and picks the new value up on its next collapse).
+  useEffect(() => {
+    if (sheetExpandedRef.current) return;
+    sheetHeightNum.current = collapsedHeight;
+    setSheetReserve(collapsedHeight);
+    Animated.spring(sheetHeightAnim, {
+      toValue: collapsedHeight,
+      friction: 9,
+      tension: 80,
+      useNativeDriver: false,
+    }).start();
+  }, [collapsedHeight, sheetHeightAnim]);
 
   const sheetPanResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => false,
@@ -207,11 +246,11 @@ export default function OrderDetailScreen() {
     onPanResponderMove: (_, g) => {
       const next = Math.min(
         SHEET_EXPANDED,
-        Math.max(SHEET_COLLAPSED, sheetDragStart.current - g.dy),
+        Math.max(collapsedRef.current, sheetDragStart.current - g.dy),
       );
       sheetHeightAnim.setValue(next);
       sheetHeightNum.current = next;
-      sheetExpandedRef.current = next >= SHEET_MID;
+      sheetExpandedRef.current = next >= sheetMid();
     },
     onPanResponderRelease: (_, g) => {
       const current = sheetHeightNum.current;
@@ -219,10 +258,10 @@ export default function OrderDetailScreen() {
       const flingDown = g.vy > 0.55;
       if (flingUp) snapSheet(true);
       else if (flingDown) snapSheet(false);
-      else snapSheet(current >= SHEET_MID);
+      else snapSheet(current >= sheetMid());
     },
     onPanResponderTerminate: () => {
-      snapSheet(sheetHeightNum.current >= SHEET_MID);
+      snapSheet(sheetHeightNum.current >= sheetMid());
     },
   }), [sheetHeightAnim, snapSheet]);
 
@@ -502,6 +541,14 @@ export default function OrderDetailScreen() {
     }).start();
   }, [cardEntrance, order?.status]);
 
+  const hasSheetFooter = Boolean(order && (order.canCancel || showContactRider || showHelpSupport || showReorder));
+  // The footer's onLayout never fires once it is gone, so drop its height here.
+  useEffect(() => {
+    if (hasSheetFooter) return;
+    sheetParts.current.footer = 0;
+    updateCollapsedHeight();
+  }, [hasSheetFooter, updateCollapsedHeight]);
+
   if (isLoading) {
     return (
       <AppScreen style={styles.container}>
@@ -548,7 +595,8 @@ export default function OrderDetailScreen() {
   const deliveryChargeLabel = order.bill.belowThresholdDelivery
     ? 'Delivery (Below Minimum)'
     : 'Delivery Charge';
-  const billDiscount = order.bill.freeDeliveryApplied ? order.bill.itemDiscount : order.bill.discount;
+  // Both include the deal saving, which has its own row.
+  const billDiscount = Math.max(0, (order.bill.freeDeliveryApplied ? order.bill.itemDiscount : order.bill.discount) - (order.bill.dealDiscount || 0));
   // Hide map after delivery or cancel — full sheet only (no live tracking map).
   const mapMode = order.status !== 'Cancelled' && order.status !== 'Delivered';
   const orderNumberLabel = order.orderNumber || order.order_number || order.id || orderId;
@@ -582,7 +630,7 @@ export default function OrderDetailScreen() {
           style={styles.sheetSafe}
           edges={mapMode ? [] : ['top']}
         >
-          <View style={styles.sheetDragZone}>
+          <View style={styles.sheetDragZone} onLayout={measureSheetPart('head')}>
             {mapMode ? <View style={styles.sheetHandle} /> : null}
             <View style={[styles.sheetHeader, !mapMode && styles.sheetHeaderManual]}>
               <View style={styles.sheetHeaderText}>
@@ -633,6 +681,7 @@ export default function OrderDetailScreen() {
         {/* Status Timeline */}
         {order.status === 'Cancelled' ? (
           <Animated.View
+            onLayout={measureSheetPart('card')}
             style={[
               styles.trackingCard,
               {
@@ -669,6 +718,7 @@ export default function OrderDetailScreen() {
           </Animated.View>
         ) : (
           <Animated.View
+            onLayout={measureSheetPart('card')}
             style={[
               styles.trackingCard,
               {
@@ -887,6 +937,14 @@ export default function OrderDetailScreen() {
             />
           ) : null}
 
+          {order.bill.dealDiscount > 0 ? (
+            <BillLineRow
+              label="Deal savings"
+              value={`- ₹${order.bill.dealDiscount}`}
+              tone="success"
+            />
+          ) : null}
+
           {billDiscount > 0 ? (
             <BillLineRow
               label="Discount"
@@ -904,8 +962,9 @@ export default function OrderDetailScreen() {
           </ScrollView>
 
           {/* Sticky sheet footer — cancel / contact rider (with number) / help / reorder */}
-          {(order.canCancel || showContactRider || showHelpSupport || showReorder) ? (
+          {hasSheetFooter ? (
             <View
+              onLayout={measureSheetPart('footer')}
               style={[
                 styles.sheetFooter,
                 { paddingBottom: Math.max(insets.bottom, spacing.sm) },

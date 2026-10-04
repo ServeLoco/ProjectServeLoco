@@ -118,6 +118,28 @@ describe('Admin Validation — Dashboard Sections', () => {
     expect(res.body.message).toBe('Dashboard section created');
   });
 
+  it('POST /dashboard-sections accepts a blank title for section_type offer_cards', async () => {
+    pool.query
+      .mockResolvedValueOnce([[]]) // slug uniqueness check
+      .mockResolvedValueOnce([[]]) // display_order uniqueness check
+      .mockResolvedValueOnce([{ insertId: 44 }]); // INSERT
+
+    const res = await request(app)
+      .post('/api/admin/dashboard-sections')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        title: '',
+        slug: 'deal-cards',
+        section_type: 'offer_cards',
+        store_type: 'packed',
+        display_order: 4,
+        active: true
+      });
+
+    expect(res.statusCode).toEqual(201);
+    expect(res.body.message).toBe('Dashboard section created');
+  });
+
   it('POST /dashboard-sections still rejects a blank title for section_type product_block', async () => {
     const res = await request(app)
       .post('/api/admin/dashboard-sections')
@@ -155,6 +177,14 @@ describe('Admin Validation — Dashboard Sections', () => {
       .patch('/api/admin/dashboard-sections/1')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ title: '', section_type: 'category_grid' });
+    expect(res.statusCode).not.toBe(400);
+  });
+
+  it('PATCH /dashboard-sections/:id accepts empty title when section_type is offer_cards', async () => {
+    const res = await request(app)
+      .patch('/api/admin/dashboard-sections/1')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ title: '', section_type: 'offer_cards' });
     expect(res.statusCode).not.toBe(400);
   });
 

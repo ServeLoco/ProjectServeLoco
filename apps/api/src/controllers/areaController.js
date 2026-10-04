@@ -452,7 +452,8 @@ const cloneArea = async (req, res) => {
       for (const item of items) {
         // combo items are never cloned (combos aren't in this task's copy
         // scope) — skip rather than point at a combo id that doesn't exist
-        // in the target area.
+        // in the target area. Offer cards are skipped the same way: their
+        // deal price coupon is never cloned (coupons are out of scope).
         const map = idMapByItemType[item.item_type];
         const newItemId = map ? map.get(item.item_id) : null;
         if (!newItemId) continue;

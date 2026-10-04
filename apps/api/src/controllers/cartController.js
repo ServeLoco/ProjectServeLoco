@@ -1,10 +1,11 @@
 const { pool } = require('../db/mysql');
-const { isId, isPositiveInteger, validateCoordinates } = require('../validators');
+const { isId, idOrNull, isPositiveInteger, validateCoordinates } = require('../validators');
 const { resolveDeliveryPricing, loadActiveZones, loadActiveExclusionZones, parseBoundary, polygonAreaKm2 } = require('../utils/deliveryPricing');
 const { resolveAreaIdForPricing, getDefaultArea } = require('../utils/areaScope');
 const { roundMoney, toMoney } = require('../utils/money');
 const { calculateRainCharge } = require('../utils/rainCharge');
-const { validateCoupon, validateCouponById, pickBestAutoApply, findApplicableCoupons, getNextFreeDeliveryThreshold, getNearestUnlockableCoupon } = require('../utils/coupons');
+const { validateCoupon, validateCouponById, pickBestAutoApply, findApplicableCoupons, getNextFreeDeliveryThreshold, getNearestUnlockableCoupon, applyBestDeal } = require('../utils/coupons');
+const { cartItemCount, cartStoreType: resolveCartStoreType } = require('../utils/cartCouponContext');
 const logger = require('../utils/logger');
 
 // With no pin, the coupon endpoints use the area the customer's phone was
@@ -42,6 +43,36 @@ const areaOfCartItems = async (items) => {
   }
   const defaultArea = await getDefaultArea();
   return defaultArea ? defaultArea.id : 1;
+};
+
+// The cart's `deal` block: the deal being applied (or, while still locked,
+// the one closest to unlocking with the item it would cover). Both casings.
+const buildDealPayload = (deal, dealDiscount, processedItems) => {
+  if (!deal) return null;
+  const hintLine = !deal.unlocked && deal.bestCandidate ? processedItems[deal.bestCandidate.index] : null;
+  const hintItem = hintLine ? {
+    productId: hintLine.id,
+    product_id: hintLine.id,
+    variantId: hintLine.variantId,
+    variant_id: hintLine.variantId,
+    name: hintLine.name,
+    dealPrice: deal.bestCandidate.dealPrice,
+    deal_price: deal.bestCandidate.dealPrice,
+  } : null;
+  return {
+    id: deal.couponId,
+    title: deal.title,
+    discount: dealDiscount,
+    unlocked: deal.unlocked,
+    amountRemaining: deal.amountRemaining,
+    amount_remaining: deal.amountRemaining,
+    minOrder: deal.minOrder,
+    min_order: deal.minOrder,
+    maxItems: deal.maxItems,
+    max_items: deal.maxItems,
+    hintItem,
+    hint_item: hintItem,
+  };
 };
 
 const calculateCart = async (req, res) => {
@@ -128,7 +159,7 @@ const calculateCart = async (req, res) => {
     if (!isPositiveInteger(item.quantity)) {
       return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Item ${index + 1}: quantity must be a whole number between 1 and 999` });
     }
-    normalizedItems.push({ productId: Number(productId), variantId: rawVariantId !== null && rawVariantId !== undefined ? Number(rawVariantId) : null, quantity: Number(item.quantity), isCombo });
+    normalizedItems.push({ productId: Number(productId), variantId: rawVariantId !== null && rawVariantId !== undefined ? Number(rawVariantId) : null, quantity: Number(item.quantity), isCombo, dealCouponId: isCombo ? null : idOrNull(item.deal_coupon_id ?? item.dealCouponId) });
   }
   // Batch fetch products and combos in 2 queries instead of N queries
   const productIds = normalizedItems.filter(i => !i.isCombo).map(i => i.productId);
@@ -198,7 +229,8 @@ const calculateCart = async (req, res) => {
   const unavailableItems = [];
 
   for (let index = 0; index < normalizedItems.length; index++) {
-    const { productId, variantId, quantity, isCombo } = normalizedItems[index];
+    const normalizedItem = normalizedItems[index];
+    const { productId, variantId, quantity, isCombo } = normalizedItem;
     const product = isCombo ? comboMap[productId] : productMap[productId];
 
     if (!product) {
@@ -274,11 +306,15 @@ const calculateCart = async (req, res) => {
       variant_id: effectiveVariantId,
       variantLabel: effectiveVariantLabel,
       variant_label: effectiveVariantLabel,
+      // Echoes the deal this line was picked from (null for a normal add).
+      dealCouponId: normalizedItem.dealCouponId,
+      deal_coupon_id: normalizedItem.dealCouponId,
     });
   }
 
   // Free-delivery / coupon thresholds use remaining (available) lines only.
-  const totalItemCount = processedItems.reduce((sum, i) => sum + i.quantity, 0);
+  // Held deal units come off it below.
+  let totalItemCount = cartItemCount(processedItems);
 
   let deliveryDistanceKm = null;
   let deliveryWithinRange = true;
@@ -434,7 +470,7 @@ const calculateCart = async (req, res) => {
   try {
     const productIdsForStoreType = processedItems.filter(i => i.type !== 'combo').map(i => i.id);
     const comboIdsForStoreType = processedItems.filter(i => i.type === 'combo').map(i => i.id);
-    const storeTypes = new Set();
+    const storeTypes = [];
 
     if (productIdsForStoreType.length > 0) {
       const [rows] = await pool.query(
@@ -443,25 +479,94 @@ const calculateCart = async (req, res) => {
          WHERE p.id IN (?)`,
         [productIdsForStoreType]
       );
-      rows.forEach(r => { if (r.type) storeTypes.add(r.type); });
+      rows.forEach(r => storeTypes.push(r.type));
     }
     if (comboIdsForStoreType.length > 0) {
       const [rows] = await pool.query(
         'SELECT DISTINCT store_type FROM combos WHERE id IN (?)',
         [comboIdsForStoreType]
       );
-      rows.forEach(r => { if (r.store_type) storeTypes.add(r.store_type); });
+      rows.forEach(r => storeTypes.push(r.store_type));
     }
 
-    if (storeTypes.size === 1) {
-      cartStoreType = [...storeTypes][0];
-    } else if (storeTypes.size > 1) {
-      // Mixed cart — only 'all' coupons apply.
-      cartStoreType = 'mixed';
-    }
+    // Mixed cart — only 'all' coupons apply.
+    cartStoreType = resolveCartStoreType(storeTypes);
   } catch (_) {
     // Non-fatal: if store-type detection fails, just skip store-type filtering.
   }
+
+  // ───────────────────────────────────────────────────────────────────
+  // Deal price (₹9 / ₹29 ... items). Runs BEFORE the coupon and stacks with
+  // it: the coupon below sees the subtotal after the deal saving. Lines keep
+  // their normal unitPrice; the deal adds dealPrice/dealQty to the units it
+  // covers and its saving to the discount.
+  // ───────────────────────────────────────────────────────────────────
+  let dealResult = { deal: null, held: [] };
+  if (!noDeliveryArea) {
+    try {
+      dealResult = await applyBestDeal({
+        lines: processedItems.map((i) => ({
+          productId: i.id, variantId: i.variantId, type: i.type, unitPrice: i.unitPrice, quantity: i.quantity, dealCouponId: i.dealCouponId,
+        })),
+        subtotal,
+        storeType: cartStoreType,
+        userId,
+        zoneId,
+        areaId: deliveryAreaId,
+      });
+    } catch (err) {
+      // Non-fatal: the cart prices without the deal.
+      logger.error('[cart] applyBestDeal failed:', err.message);
+    }
+  }
+  const { deal, held: heldUnits } = dealResult;
+  const dealDiscount = deal && deal.unlocked ? roundMoney(deal.dealDiscount) : 0;
+  processedItems.forEach((item) => {
+    item.dealPrice = null;
+    item.deal_price = null;
+    item.dealQty = 0;
+    item.deal_qty = 0;
+    item.heldQty = 0;
+    item.held_qty = 0;
+    item.heldReason = null;
+    item.held_reason = null;
+    item.heldDealPrice = null;
+    item.held_deal_price = null;
+    item.unlockAmount = 0;
+    item.unlock_amount = 0;
+  });
+  if (deal && deal.unlocked) {
+    deal.lines.forEach(({ index, dealPrice, dealQty }) => {
+      const item = processedItems[index];
+      item.dealPrice = dealPrice;
+      item.deal_price = dealPrice;
+      item.dealQty = dealQty;
+      item.deal_qty = dealQty;
+    });
+  }
+  // Units picked from a deal that cannot sell at the deal price right now
+  // (still locked, another deal took this order, or the deal ended) are
+  // HELD: the cart shows them as locked, but they are not billed — they
+  // leave the line total, the subtotal and the item count — and createOrder
+  // leaves them out of the order. A customer is never charged the full price
+  // for an item picked at a deal price.
+  heldUnits.forEach(({ index, qty, reason, dealPrice, amountRemaining }) => {
+    const item = processedItems[index];
+    const units = Math.min(qty, item.quantity - item.heldQty);
+    if (units <= 0) return;
+    item.heldQty += units;
+    item.held_qty = item.heldQty;
+    item.heldReason = reason;
+    item.held_reason = reason;
+    item.heldDealPrice = dealPrice;
+    item.held_deal_price = dealPrice;
+    item.unlockAmount = amountRemaining;
+    item.unlock_amount = amountRemaining;
+    item.lineTotal = roundMoney(item.unitPrice * (item.quantity - item.heldQty));
+    subtotal = roundMoney(subtotal - item.unitPrice * units);
+    totalItemCount -= units;
+  });
+  const couponSubtotal = roundMoney(subtotal - dealDiscount);
 
   // Builds the appliedCoupon payload from a checkEligibility/pickBestAutoApply
   // result, carrying the itemDiscount / freeDeliveryWaiver split forward so
@@ -504,7 +609,7 @@ const calculateCart = async (req, res) => {
     // User entered a code — validate it. User's code always wins over auto-apply.
     const result = await validateCoupon({
       code: couponCode,
-      subtotal,
+      subtotal: couponSubtotal,
       deliveryCharge,
       standardDeliveryCharge,
       storeType: cartStoreType,
@@ -524,7 +629,7 @@ const calculateCart = async (req, res) => {
     // exact coupon rather than falling back to auto-picking the best one.
     const result = await validateCouponById({
       couponId,
-      subtotal,
+      subtotal: couponSubtotal,
       deliveryCharge,
       standardDeliveryCharge,
       storeType: cartStoreType,
@@ -543,7 +648,7 @@ const calculateCart = async (req, res) => {
     // No code entered and the user hasn't explicitly removed a coupon —
     // try auto-apply.
     const best = await pickBestAutoApply({
-      subtotal,
+      subtotal: couponSubtotal,
       deliveryCharge,
       standardDeliveryCharge,
       storeType: cartStoreType,
@@ -564,7 +669,7 @@ const calculateCart = async (req, res) => {
   // show "code invalid" alongside the still-applied auto discount.
   if (!appliedCoupon && couponError && !noAutoApply && !noDeliveryArea) {
     const best = await pickBestAutoApply({
-      subtotal,
+      subtotal: couponSubtotal,
       deliveryCharge,
       standardDeliveryCharge,
       storeType: cartStoreType,
@@ -584,7 +689,7 @@ const calculateCart = async (req, res) => {
   // alternatives and switch.
   try {
     if (!noDeliveryArea) availableCoupons = await findApplicableCoupons({
-      subtotal,
+      subtotal: couponSubtotal,
       deliveryCharge,
       standardDeliveryCharge,
       storeType: cartStoreType,
@@ -597,7 +702,11 @@ const calculateCart = async (req, res) => {
     // Non-fatal: empty list on error.
   }
 
-  discount = roundMoney(discount);
+  // `discount` so far is the coupon's alone; the deal saving joins it here so
+  // every reader of `discount` (and older app builds' bill maths) sees the
+  // full amount taken off. couponDiscount / dealDiscount carry the split.
+  const couponDiscount = roundMoney(discount);
+  discount = roundMoney(couponDiscount + dealDiscount);
   // Clamp grand total so it never goes negative (discount can't exceed the
   // sum of subtotal + delivery + night charge + rain charge). Bill delivery
   // is always the standard fee (free-delivery-eligible); the fast fee is a
@@ -613,7 +722,7 @@ const calculateCart = async (req, res) => {
   let freeDeliveryProgress = null;
   if (!isFreeDeliveryApplied && !noDeliveryArea) {
     try {
-      freeDeliveryProgress = await getNextFreeDeliveryThreshold({ subtotal, storeType: cartStoreType, userId, zoneId, itemCount: totalItemCount, areaId: deliveryAreaId });
+      freeDeliveryProgress = await getNextFreeDeliveryThreshold({ subtotal: couponSubtotal, storeType: cartStoreType, userId, zoneId, itemCount: totalItemCount, areaId: deliveryAreaId });
     } catch (err) {
       // Non-fatal: no progress hint on error, but log so a broken hint
       // (e.g. missing migration column) doesn't fail silently in prod.
@@ -628,7 +737,7 @@ const calculateCart = async (req, res) => {
   let nearestOfferProgress = null;
   try {
     if (!noDeliveryArea) nearestOfferProgress = await getNearestUnlockableCoupon({
-      subtotal,
+      subtotal: couponSubtotal,
       storeType: cartStoreType,
       userId,
       zoneId,
@@ -770,7 +879,15 @@ const calculateCart = async (req, res) => {
     // slice of a combined flat/percent + also_free_delivery coupon), and the
     // remaining item-level discount to show on the Discount line.
     isFreeDeliveryApplied,
-    itemDiscount: appliedCoupon ? appliedCoupon.itemDiscount : discount,
+    itemDiscount: roundMoney((appliedCoupon ? appliedCoupon.itemDiscount : couponDiscount) + dealDiscount),
+
+    // Deal price. `discount` and `itemDiscount` above already include the
+    // deal saving; these carry the split for builds that show it apart.
+    couponDiscount,
+    coupon_discount: couponDiscount,
+    dealDiscount,
+    deal_discount: dealDiscount,
+    deal: buildDealPayload(deal, dealDiscount, processedItems),
   };
 
   res.status(200).json({
@@ -844,7 +961,7 @@ const validateCouponHandler = async (req, res) => {
 
     const productIdsForStoreType = normalizedItems.filter(i => !i.isCombo).map(i => i.productId);
     const comboIdsForStoreType = normalizedItems.filter(i => i.isCombo).map(i => i.productId);
-    const storeTypes = new Set();
+    const storeTypes = [];
 
     // Without a pin there's no area to scope this lookup to (see above) —
     // stays a global lookup, same as before TASK 13, in that case only.
@@ -856,7 +973,7 @@ const validateCouponHandler = async (req, res) => {
          WHERE p.id IN (?)${areaClause}`,
         deliveryAreaId !== null ? [productIdsForStoreType, deliveryAreaId] : [productIdsForStoreType]
       );
-      rows.forEach(r => { if (r.type) storeTypes.add(r.type); });
+      rows.forEach(r => storeTypes.push(r.type));
     }
     if (comboIdsForStoreType.length > 0) {
       const areaClause = deliveryAreaId !== null ? ' AND area_id = ?' : '';
@@ -864,14 +981,10 @@ const validateCouponHandler = async (req, res) => {
         `SELECT DISTINCT store_type FROM combos WHERE id IN (?)${areaClause}`,
         deliveryAreaId !== null ? [comboIdsForStoreType, deliveryAreaId] : [comboIdsForStoreType]
       );
-      rows.forEach(r => { if (r.store_type) storeTypes.add(r.store_type); });
+      rows.forEach(r => storeTypes.push(r.store_type));
     }
 
-    if (storeTypes.size === 1) {
-      cartStoreType = [...storeTypes][0];
-    } else if (storeTypes.size > 1) {
-      cartStoreType = 'mixed';
-    }
+    cartStoreType = resolveCartStoreType(storeTypes);
   } catch (_) {
     // Non-fatal.
   }

@@ -1,6 +1,6 @@
 // MobileDashboard.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import { MobileDashboardApi, ProductsApi, CategoriesApi, OffersApi, CombosApi, ShopsApi } from '../api';
+import { MobileDashboardApi, ProductsApi, CategoriesApi, OffersApi, CombosApi, ShopsApi, OfferCardsApi } from '../api';
 import './MobileDashboard.css';
 import { GENERIC_ERROR } from '../utils/constants';
 import PickAreaNotice from '../components/PickAreaNotice';
@@ -10,11 +10,18 @@ import { readList } from '../utils/apiResponse';
 import { normalizeImageUrl, FALLBACK_IMAGE, handleImageError } from '../utils/imageUrl';
 import { useStoreModes, modeLabel } from '../hooks/useStoreModes';
 
+// Section types whose cards carry their own names, so the title above is optional.
+const TITLE_OPTIONAL_TYPES = ['category_grid', 'offer_cards'];
+// The "Common" tab: sections shown in every shop mode, at the top of Home
+// between the top bar and the shop modes. Their items are not tied to a mode.
+const COMMON_STORE_TYPE = 'common';
+
 const DEFAULT_MAX_VISIBLE_BY_SECTION = {
   offer_banner: 5,
   category_grid: 8,
   product_block: 6,
-  combo_block: 6
+  combo_block: 6,
+  offer_cards: 6
 };
 
 
@@ -25,6 +32,9 @@ export default function MobileDashboard() {
   const [sections, setSections] = useState([]);
   const [selectedSection, setSelectedSection] = useState(null);
   const [storeType, setStoreType] = useState('packed');
+  const isCommonTab = storeType === COMMON_STORE_TYPE;
+  // Items offered for a section: the tab's mode only, or every mode on Common.
+  const itemMode = isCommonTab ? undefined : storeType;
   
   // Loading states
   const [loadingSections, setLoadingSections] = useState(false);
@@ -162,19 +172,23 @@ export default function MobileDashboard() {
       setLoadingCandidates(true);
       setCandidates([]);
       if (sectionType === 'offer_banner') {
-        const res = await OffersApi.list({ store_type: storeType });
+        const res = await OffersApi.list({ store_type: itemMode });
         setCandidates(readList(res, 'offers'));
       } else if (sectionType === 'category_grid') {
-        const res = await CategoriesApi.list({ type: storeType });
+        const res = await CategoriesApi.list({ type: itemMode });
         setCandidates(readList(res, 'categories'));
       } else if (sectionType === 'product_block') {
         // Load only non-combos
-        const res = await ProductsApi.list({ limit: 100, is_combo: '0', available: '1', type: storeType });
+        const res = await ProductsApi.list({ limit: 100, is_combo: '0', available: '1', type: itemMode });
         setCandidates(readList(res, 'products'));
       } else if (sectionType === 'combo_block') {
         // Load only combos
-        const res = await CombosApi.list({ limit: 100, available: '1', store_type: storeType });
+        const res = await CombosApi.list({ limit: 100, available: '1', store_type: itemMode });
         setCandidates(readList(res, ['products', 'combos']));
+      } else if (sectionType === 'offer_cards') {
+        // Cards made on the Offer Cards page, for this mode or for every mode.
+        const res = await OfferCardsApi.list({ store_type: itemMode });
+        setCandidates(readList(res));
       }
     } catch (err) {
       console.error('Failed to load candidate items', err);
@@ -425,7 +439,8 @@ export default function MobileDashboard() {
         offer_banner: 'offer',
         category_grid: 'category',
         product_block: 'product',
-        combo_block: 'combo'
+        combo_block: 'combo',
+        offer_cards: 'offer_card'
       };
 
       const itemType = sectionTypeToItemType[selectedSection.section_type];
@@ -622,6 +637,18 @@ export default function MobileDashboard() {
         </header>
 
         <div style={{ display: 'flex', gap: '0.5rem', padding: '0 1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+        <button
+          className={`btn-secondary ${isCommonTab ? 'active' : ''}`}
+          style={isCommonTab ? { background: 'var(--primary-color)', color: 'white', borderColor: 'var(--primary-color)' } : {}}
+          title="Shown in every mode, at the top of Home between the top bar and the shop modes"
+          onClick={() => {
+            setStoreType(COMMON_STORE_TYPE);
+            setSelectedSection(null);
+            setEditForm(null);
+          }}
+        >
+          Common (top of Home)
+        </button>
         {modes.map(m => (
           <button
             key={m.slug}
@@ -636,6 +663,11 @@ export default function MobileDashboard() {
             {m.label} Layout
           </button>
         ))}
+        {isCommonTab && (
+          <div className="form-hint" style={{ width: '100%' }}>
+            These sections show in every shop mode, at the top of Home between the top bar and the shop modes.
+          </div>
+        )}
       </div>
 
         <div className="sections-list-container">
@@ -670,7 +702,7 @@ export default function MobileDashboard() {
                     <span className="badge badge-type">
                       {sec.auto_kind ? `${sec.auto_kind} row` : sec.section_type.replace('_', ' ')}
                     </span>
-                    <span className="badge badge-store">{sec.store_type}</span>
+                    <span className="badge badge-store">{sec.store_type === COMMON_STORE_TYPE ? 'Common' : sec.store_type}</span>
                     <span className={`badge ${sec.active ? 'badge-status-active' : 'badge-status-hidden'}`}>
                       {sec.active ? 'Active' : 'Hidden'}
                     </span>
@@ -714,13 +746,13 @@ export default function MobileDashboard() {
                 <div className="form-grid-2">
                   <div className="form-group">
                     <label className="form-label">
-                      Section Title{editForm.section_type === 'category_grid' ? ' (optional)' : ''}
+                      Section Title{TITLE_OPTIONAL_TYPES.includes(editForm.section_type) ? ' (optional)' : ''}
                     </label>
                     <input
                       type="text"
                       name="title"
-                      required={editForm.section_type !== 'category_grid'}
-                      placeholder={editForm.section_type === 'category_grid' ? 'Leave blank to hide the header' : ''}
+                      required={!TITLE_OPTIONAL_TYPES.includes(editForm.section_type)}
+                      placeholder={TITLE_OPTIONAL_TYPES.includes(editForm.section_type) ? 'Leave blank to hide the header' : ''}
                       className="form-input"
                       value={editForm.title}
                       onChange={handleEditFormChange}
@@ -755,6 +787,7 @@ export default function MobileDashboard() {
                       disabled={Boolean(selectedSection.auto_kind)}
                     >
                       <option value="all">All Stores (legacy)</option>
+                      <option value={COMMON_STORE_TYPE}>Common (every mode, top of Home)</option>
                       {modes.map(m => <option key={m.slug} value={m.slug}>{m.label} Only</option>)}
                     </select>
                   </div>
@@ -946,13 +979,15 @@ export default function MobileDashboard() {
                           <div className="item-details">
                             <div className="item-title-name">
                               <span className="item-name-text">{name}</span>
-                              <span className="item-shop-tag">{getShopLabel(details)}</span>
+                              {item.item_type !== 'offer_card' && <span className="item-shop-tag">{getShopLabel(details)}</span>}
                             </div>
                             <div className="item-subtitle-meta">
                               {item.item_type} • ID: {item.item_id}
                               {details.price && ` • ₹${details.price}`}
                               {(details.store_type || details.type) && ` • ${modeLabel(modes, details.store_type || details.type)}`}
                               {item.item_type === 'offer' && ` • ${details.active ? 'Active' : 'Inactive'}`}
+                              {item.item_type === 'offer_card' && (details.design === 'deals_of_day' ? ' • Deals of the day' : details.deal_title && ` • ${details.deal_title}`)}
+                              {item.item_type === 'offer_card' && ` • ${details.active ? 'Active' : 'Inactive'}`}
                             </div>
                           </div>
                           <div className="item-action-controls">
@@ -1019,13 +1054,13 @@ export default function MobileDashboard() {
               <div className="modal-body">
                 <div className="form-group">
                   <label className="form-label">
-                    Section Title{newSectionForm.section_type === 'category_grid' ? ' (optional)' : ''}
+                    Section Title{TITLE_OPTIONAL_TYPES.includes(newSectionForm.section_type) ? ' (optional)' : ''}
                   </label>
                   <input
                     type="text"
                     name="title"
-                    required={newSectionForm.section_type !== 'category_grid'}
-                    placeholder={newSectionForm.section_type === 'category_grid' ? 'Leave blank to hide the header' : 'e.g. Milk Products, Daily Banners'}
+                    required={!TITLE_OPTIONAL_TYPES.includes(newSectionForm.section_type)}
+                    placeholder={TITLE_OPTIONAL_TYPES.includes(newSectionForm.section_type) ? 'Leave blank to hide the header' : 'e.g. Milk Products, Daily Banners'}
                     className="form-input"
                     value={newSectionForm.title}
                     onChange={handleModalFormChange}
@@ -1056,6 +1091,7 @@ export default function MobileDashboard() {
                     <option value="category_grid">Category Grid</option>
                     <option value="product_block">Product Block</option>
                     <option value="combo_block">Combo Block</option>
+                    <option value="offer_cards">Offer Cards (deal tabs, deals of the day)</option>
                   </select>
                 </div>
 
@@ -1103,6 +1139,7 @@ export default function MobileDashboard() {
                     value={newSectionForm.store_type} 
                     onChange={handleModalFormChange}
                   >
+                    <option value={COMMON_STORE_TYPE}>Common (every mode, top of Home)</option>
                     {modes.map(m => <option key={m.slug} value={m.slug}>{m.label} Only</option>)}
                   </select>
                 </div>
@@ -1268,7 +1305,7 @@ export default function MobileDashboard() {
                     <select className="form-select" value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
                       <option value="">All Categories</option>
                       {allCategories
-                        .filter(c => !c.type || c.type === storeType)
+                        .filter(c => !c.type || !itemMode || c.type === itemMode)
                         .map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
                   </>
@@ -1293,6 +1330,7 @@ export default function MobileDashboard() {
                       const img = normalizeImageUrl(cand.imageUrl || cand.image_url);
 
                       const isOfferBanner = selectedSection.section_type === 'offer_banner';
+                      const isOfferCard = selectedSection.section_type === 'offer_cards';
                       const hasImage = !!img;
                       const isInactiveOffer = isOfferBanner && !(cand.active === 1 || cand.active === true);
                       const disabled = (isOfferBanner && (!hasImage || isInactiveOffer)) || addingItemId === cand.id;
@@ -1303,7 +1341,7 @@ export default function MobileDashboard() {
                           <div style={{ flex: 1, minWidth: 0, opacity: disabled ? 0.6 : 1 }}>
                             <div className="item-title-name">
                               <span className="item-name-text">{name}</span>
-                              {!isOfferBanner && <span className="item-shop-tag">{getShopLabel(cand)}</span>}
+                              {!isOfferBanner && !isOfferCard && <span className="item-shop-tag">{getShopLabel(cand)}</span>}
                             </div>
                             <div className="item-subtitle-meta">
                               ID: {cand.id}
@@ -1313,6 +1351,8 @@ export default function MobileDashboard() {
                               {isOfferBanner && ` • ${cand.active ? 'Active' : 'Inactive'}`}
                               {isOfferBanner && ` • ${cand.isClickable || cand.is_clickable ? 'Clickable' : 'Image only'}`}
                               {isOfferBanner && !hasImage && <span style={{color: 'var(--danger-color)'}}> • Missing image</span>}
+                              {isOfferCard && (cand.design === 'deals_of_day' ? ' • Deals of the day' : cand.dealTitle && ` • ${cand.dealTitle}`)}
+                              {isOfferCard && ` • ${cand.active ? 'Active' : 'Inactive'}`}
                               {isInactiveOffer && <span style={{color: 'var(--danger-color)'}}> • Activate offer first</span>}
                             </div>
                           </div>

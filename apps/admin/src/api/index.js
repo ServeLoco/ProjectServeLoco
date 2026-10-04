@@ -275,6 +275,26 @@ export const CouponsApi = {
   delete: (id) => apiClient(`/admin/coupons/${id}`, { method: 'DELETE' }),
   duplicate: (id) => apiClient(`/admin/coupons/${id}/duplicate`, { method: 'POST' }),
   redemptions: (id, params) => apiClient(withQuery(`/admin/coupons/${id}/redemptions`, params), { method: 'GET' }),
+  // Deal price offers: the products each sells and their deal prices.
+  dealItems: (id) => apiClient(`/admin/coupons/${id}/deal-items`, { method: 'GET' }),
+  addDealItem: (id, data) => apiClient(`/admin/coupons/${id}/deal-items`, { method: 'POST', body: data }),
+  updateDealItem: (id, itemId, data) => apiClient(`/admin/coupons/${id}/deal-items/${itemId}`, { method: 'PATCH', body: data }),
+  removeDealItem: (id, itemId) => apiClient(`/admin/coupons/${id}/deal-items/${itemId}`, { method: 'DELETE' }),
+  reorderDealItems: (id, itemIds) => apiClient(`/admin/coupons/${id}/deal-items/reorder`, { method: 'PATCH', body: { itemIds } }),
+};
+
+// Home offer cards — the cards of an "Offer Cards" row on App Home.
+export const OfferCardsApi = {
+  list: (params) => apiClient(withQuery('/admin/offer-cards', params), { method: 'GET' }),
+  get: (id) => apiClient(`/admin/offer-cards/${id}`, { method: 'GET' }),
+  create: (data) => apiClient('/admin/offer-cards', { method: 'POST', body: data }),
+  update: (id, data) => apiClient(`/admin/offer-cards/${id}`, { method: 'PATCH', body: data }),
+  delete: (id) => apiClient(`/admin/offer-cards/${id}`, { method: 'DELETE' }),
+  // The products of a "Deals of the day" card (template 2).
+  products: (id) => apiClient(`/admin/offer-cards/${id}/products`, { method: 'GET' }),
+  addProduct: (id, data) => apiClient(`/admin/offer-cards/${id}/products`, { method: 'POST', body: data }),
+  removeProduct: (id, itemId) => apiClient(`/admin/offer-cards/${id}/products/${itemId}`, { method: 'DELETE' }),
+  reorderProducts: (id, itemIds) => apiClient(`/admin/offer-cards/${id}/products/reorder`, { method: 'PATCH', body: { itemIds } }),
 };
 
 export const AnalyticsApi = {

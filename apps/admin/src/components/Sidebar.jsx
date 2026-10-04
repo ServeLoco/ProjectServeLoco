@@ -30,6 +30,7 @@ const NAV_GROUPS = [
     label: 'Engagement',
     items: [
       { path: '/mobile-dashboard', label: 'App Home', icon: '📱' },
+      { path: '/offer-cards', label: 'Offer Cards', icon: '🃏' },
       // Customers are one account nationwide — a super admin page.
       { path: '/customers', label: 'Customers', icon: '👥', superAdminOnly: true },
       { path: '/notifications', label: 'Notifications', icon: '🔔' },

@@ -66,9 +66,16 @@ export const useCartStore = create(
       // two items with the same product but different variants are SEPARATE
       // cart lines (e.g. 2× Veg + 1× Chicken). When no variant, matches the
       // legacy single-line behavior (variant === null matches null).
-      addItem: (product, quantity = 1, variant = null) => {
+      // options.dealCouponId marks the line as picked from that deal (Select
+      // on an offer card / the Deal page); only such lines get a deal price.
+      // options.dealPrice is the offer price shown on the card, kept for the
+      // cart's deal row until the server prices it.
+      addItem: (product, quantity = 1, variant = null, options = {}) => {
         const { items } = get();
         const variantId = variant?.id ?? null;
+        const dealMark = options.dealCouponId != null
+          ? { dealCouponId: options.dealCouponId, dealPrice: options.dealPrice ?? null }
+          : {};
         const existingItemIndex = items.findIndex((item) =>
           item.product.id === product.id &&
           item.type !== 'combo' &&
@@ -80,10 +87,11 @@ export const useCartStore = create(
           updatedItems[existingItemIndex] = {
             ...updatedItems[existingItemIndex],
             quantity: updatedItems[existingItemIndex].quantity + quantity,
+            ...dealMark,
           };
           set({ items: updatedItems });
         } else {
-          set({ items: [...items, { product, quantity, type: 'product', variant: variant || null }] });
+          set({ items: [...items, { product, quantity, type: 'product', variant: variant || null, ...dealMark }] });
         }
         trackEvent('cart_add', { productId: Number(product.id), qty: quantity, price: Number(variant?.price ?? product?.price) || 0 });
       },
@@ -122,6 +130,17 @@ export const useCartStore = create(
             (item.variant?.id ?? null) === (variantId ?? null))
         ) });
         trackEvent('cart_remove', { productId: Number(productId), qty: Number(removed?.quantity) || 0, price: Number(removed?.variant?.price ?? removed?.product?.price) || 0 });
+      },
+
+      // Sets (or, with null, clears) the deal a product line was picked from.
+      setLineDeal: (productId, variantId = null, dealCouponId = null, dealPrice = null) => {
+        set({ items: get().items.map((item) => (
+          String(item.product.id) === String(productId)
+          && (item.type || 'product') === 'product'
+          && (item.variant?.id ?? null) === (variantId ?? null)
+            ? { ...item, dealCouponId: dealCouponId ?? null, dealPrice: dealCouponId == null ? null : dealPrice }
+            : item
+        )) });
       },
 
       updateQuantity: (productId, quantity, type = 'product', variantId = null) => {
