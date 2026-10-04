@@ -65,6 +65,50 @@ describe('getSettings — per area', () => {
   });
 });
 
+describe('getSettings — force-update version per store', () => {
+  // Real User-Agents seen on /api/settings in production.
+  const ANDROID_UA = 'okhttp/4.12.0';
+  const IOS_UA = 'VillKro/16 CFNetwork/1568.300.101 Darwin/24.2.0';
+  const readAs = async (userAgent) => {
+    const req = { areaId: 71, get: (name) => (name.toLowerCase() === 'user-agent' ? userAgent : undefined) };
+    const res = mockRes();
+    await getSettings(req, res);
+    return res.json.mock.calls[0][0].data;
+  };
+
+  beforeAll(() => {
+    // Area 71 is unique to this block, so its row is fetched once and cached.
+    pool.query.mockResolvedValueOnce([[{
+      id: 71, area_id: 71,
+      minimum_version: '1.9.9', current_version: '1.9.9',
+      minimum_version_ios: null, current_version_ios: '1.9.8',
+    }]]);
+  });
+
+  it('Android gets the Play Store minimum', async () => {
+    const data = await readAs(ANDROID_UA);
+    expect(data.minimum_version).toBe('1.9.9');
+    expect(data.current_version).toBe('1.9.9');
+  });
+
+  it('iPhone gets the App Store values under the same field names', async () => {
+    const data = await readAs(IOS_UA);
+    expect(data.minimum_version).toBeNull();
+    expect(data.current_version).toBe('1.9.8');
+  });
+
+  it('an unknown client (no User-Agent) gets the Android values, as before', async () => {
+    const data = await readAs(undefined);
+    expect(data.minimum_version).toBe('1.9.9');
+  });
+
+  it('the iPhone swap does not leak into the cached row the next Android read sees', async () => {
+    await readAs(IOS_UA);
+    const data = await readAs(ANDROID_UA);
+    expect(data.minimum_version).toBe('1.9.9');
+  });
+});
+
 /**
  * Bug fix (found by live multi-area flow testing): GET /api/admin/settings
  * used to reuse the PUBLIC getSettings above, inheriting its deliberate

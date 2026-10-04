@@ -1140,6 +1140,22 @@ const migrate = async () => {
     // set minimum_version to. Admin-editable; not enforced anywhere.
     await ensureColumn('settings', 'current_version', 'current_version VARCHAR(20) NULL DEFAULT NULL AFTER minimum_version');
 
+    // iOS has its own pair: an App Store review can lag the Play Store by
+    // days, so the two stores need separate force-update gates. The two
+    // columns above are now the Android (Play Store) values; getSettings
+    // swaps these in for iPhone requests. Seeded from the shared values when
+    // first created so the iOS gate starts exactly where it was.
+    const [iosVersionColumn] = await connection.query(`
+      SELECT COLUMN_NAME
+      FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'settings' AND COLUMN_NAME = 'minimum_version_ios'
+    `, [config.MYSQL_DATABASE]);
+    await ensureColumn('settings', 'minimum_version_ios', 'minimum_version_ios VARCHAR(20) NULL DEFAULT NULL AFTER current_version');
+    await ensureColumn('settings', 'current_version_ios', 'current_version_ios VARCHAR(20) NULL DEFAULT NULL AFTER minimum_version_ios');
+    if (iosVersionColumn.length === 0) {
+      await connection.query('UPDATE settings SET minimum_version_ios = minimum_version, current_version_ios = current_version');
+    }
+
     // Rain charge: manual admin on/off surcharge (unlike night_charge, no time
     // window — just a flat amount added to the bill while enabled).
     await ensureColumn('settings', 'rain_charge_enabled', 'rain_charge_enabled BOOLEAN DEFAULT FALSE AFTER current_version');

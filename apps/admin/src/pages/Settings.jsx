@@ -39,9 +39,116 @@ const DEFAULT_SETTINGS = {
   nav_promo_link: '',
   minimum_version: '',
   current_version: '',
+  minimum_version_ios: '',
+  current_version_ios: '',
   rider_capacity_multiplier: 3
   // Location-based distance pricing is removed, so latitude/longitude/radius are obsolete.
 };
+
+// One force-update gate per store, so Android can be forced while an App
+// Store review is still pending. The API tells iPhone requests apart and
+// hands them the *_ios values.
+const STORE_VERSION_GATES = [
+  { key: 'android', title: 'Android', store: 'Play Store', current: 'current_version', minimum: 'minimum_version' },
+  { key: 'ios', title: 'iPhone', store: 'App Store', current: 'current_version_ios', minimum: 'minimum_version_ios' },
+];
+
+const fieldErrorStyle = { fontSize: '0.8rem', color: 'var(--danger-color)', marginTop: '4px' };
+const hintStyle = { fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' };
+
+function StoreVersionGate({ gate, settings, fieldErrors, onChange, onClear }) {
+  const minimum = settings[gate.minimum];
+  return (
+    <div style={{ marginBottom: '1.25rem' }}>
+      <h3 style={{ fontSize: '1rem', margin: '0 0 0.75rem' }}>{gate.title} ({gate.store})</h3>
+      <div className="settings-form-grid">
+        <div className="settings-form-group">
+          <label className="settings-label">Current App Version ({gate.store})</label>
+          <input
+            type="text"
+            name={gate.current}
+            className="settings-input"
+            placeholder="e.g. 1.1.1"
+            value={settings[gate.current] || ''}
+            onChange={onChange}
+            aria-invalid={Boolean(fieldErrors[gate.current])}
+            aria-errormessage={fieldErrors[gate.current] ? `${gate.current}-error` : undefined}
+          />
+          {fieldErrors[gate.current] && (
+            <span id={`${gate.current}-error`} className="field-error" style={fieldErrorStyle}>
+              {fieldErrors[gate.current]}
+            </span>
+          )}
+          <span style={hintStyle}>
+            The version currently live on the {gate.store}. Update this after each release so you know what to set the minimum version to.
+          </span>
+        </div>
+
+        <div className="settings-form-group">
+          <label className="settings-label">Minimum Required Version</label>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <input
+              type="text"
+              name={gate.minimum}
+              className="settings-input"
+              style={{ flex: 1 }}
+              placeholder="e.g. 1.1.0  (leave blank to disable)"
+              value={minimum || ''}
+              onChange={onChange}
+              aria-invalid={Boolean(fieldErrors[gate.minimum])}
+              aria-errormessage={fieldErrors[gate.minimum] ? `${gate.minimum}-error` : undefined}
+            />
+            {minimum && (
+              <button
+                type="button"
+                style={{
+                  padding: '0.5rem 0.75rem',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--overlay-dark)',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  fontSize: '0.85rem',
+                  whiteSpace: 'nowrap',
+                }}
+                onClick={onClear}
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          {fieldErrors[gate.minimum] && (
+            <span id={`${gate.minimum}-error`} className="field-error" style={fieldErrorStyle}>
+              {fieldErrors[gate.minimum]}
+            </span>
+          )}
+          <span style={hintStyle}>
+            {gate.title} users with an older version will see a <strong>blocking update prompt</strong> and cannot use the app until they update from the {gate.store}. Leave blank to disable.
+          </span>
+        </div>
+
+        <div className="settings-form-group full-width">
+          <div style={{
+            padding: '0.85rem 1rem',
+            borderRadius: 'var(--radius-md)',
+            border: `1px solid ${minimum ? 'var(--warning-border, #f59e0b)' : 'var(--border-color)'}`,
+            background: minimum ? 'var(--warning-bg, #fffbeb)' : 'var(--overlay-dark)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.6rem',
+            fontSize: '0.88rem',
+            color: minimum ? 'var(--warning-text, #92400e)' : 'var(--text-secondary)',
+          }}>
+            <span style={{ fontSize: '1rem' }}>{minimum ? '⚠️' : '✅'}</span>
+            {minimum
+              ? `${gate.title} force update is ACTIVE — ${gate.title} users on versions older than ${minimum} will be blocked.`
+              : `${gate.title} force update is OFF — all ${gate.title} app versions are allowed.`}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Settings() {
   const { areaId } = useAreaStore() || {};
@@ -254,24 +361,24 @@ export default function Settings() {
       }
 
       // Ensure numeric fields are numbers
-      // Validate minimum_version format if provided
-      const minVer = (settings.minimum_version || '').trim();
-      if (minVer && !/^\d+\.\d+\.\d+$/.test(minVer)) {
-        const msg = 'Minimum version must be in semver format: e.g. 1.2.0';
-        setFieldErrors({ minimum_version: msg });
-        setFormError(msg);
-        setSaving(false);
-        focusFirstInvalid();
-        return;
-      }
-      const curVer = (settings.current_version || '').trim();
-      if (curVer && !/^\d+\.\d+\.\d+$/.test(curVer)) {
-        const msg = 'Current version must be in semver format: e.g. 1.1.1';
-        setFieldErrors({ current_version: msg });
-        setFormError(msg);
-        setSaving(false);
-        focusFirstInvalid();
-        return;
+      // Version fields (both stores) must be semver if provided
+      const versions = {};
+      for (const gate of STORE_VERSION_GATES) {
+        for (const [field, label, example] of [
+          [gate.current, `${gate.title}: current version`, '1.1.1'],
+          [gate.minimum, `${gate.title}: minimum version`, '1.2.0'],
+        ]) {
+          const value = (settings[field] || '').trim();
+          if (value && !/^\d+\.\d+\.\d+$/.test(value)) {
+            const msg = `${label} must be in semver format: e.g. ${example}`;
+            setFieldErrors({ [field]: msg });
+            setFormError(msg);
+            setSaving(false);
+            focusFirstInvalid();
+            return;
+          }
+          versions[field] = value || null;
+        }
       }
 
       // Nav-bar image link: blank is fine (image just isn't clickable); otherwise
@@ -307,8 +414,7 @@ export default function Settings() {
         upi_qr_image_id: settings.upi_qr_image_id || null,
         nav_promo_image_id: settings.nav_promo_image_id || null,
         nav_promo_link: navLink || null,
-        minimum_version: minVer || null,
-        current_version: curVer || null,
+        ...versions,
         rider_capacity_multiplier: capacityMultiplier,
       };
       const response = await SettingsApi.update(payload);
@@ -788,94 +894,16 @@ export default function Settings() {
       {/* ── 7. App Version Control ──────────────────────────────────────── */}
       <section className="settings-section">
         <h2 className="settings-section-title">📱 App Version Control</h2>
-        <div className="settings-form-grid">
-          {/* Editable: current published version (stored in DB, not hardcoded) */}
-          <div className="settings-form-group">
-            <label className="settings-label">Current App Version (Play Store)</label>
-            <input
-              type="text"
-              name="current_version"
-              className="settings-input"
-              placeholder="e.g. 1.1.1"
-              value={settings.current_version || ''}
-              onChange={handleChange}
-              aria-invalid={Boolean(fieldErrors.current_version)}
-              aria-errormessage={fieldErrors.current_version ? 'current_version-error' : undefined}
-            />
-            {fieldErrors.current_version && (
-              <span id="current_version-error" className="field-error" style={{ fontSize: '0.8rem', color: 'var(--danger-color)', marginTop: '4px' }}>
-                {fieldErrors.current_version}
-              </span>
-            )}
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-              The version currently live on the Play Store. Update this after each release so you know what to set the minimum version to.
-            </span>
-          </div>
-
-          {/* Control: minimum_version input */}
-          <div className="settings-form-group">
-            <label className="settings-label">Minimum Required Version</label>
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <input
-                type="text"
-                name="minimum_version"
-                className="settings-input"
-                style={{ flex: 1 }}
-                placeholder="e.g. 1.1.0  (leave blank to disable)"
-                value={settings.minimum_version || ''}
-                onChange={handleChange}
-                aria-invalid={Boolean(fieldErrors.minimum_version)}
-                aria-errormessage={fieldErrors.minimum_version ? 'minimum_version-error' : undefined}
-              />
-              {fieldErrors.minimum_version && (
-                <span id="minimum_version-error" className="field-error" style={{ fontSize: '0.8rem', color: 'var(--danger-color)', marginTop: '4px' }}>
-                  {fieldErrors.minimum_version}
-                </span>
-              )}
-              {settings.minimum_version && (
-                <button
-                  type="button"
-                  style={{
-                    padding: '0.5rem 0.75rem',
-                    borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--border-color)',
-                    background: 'var(--overlay-dark)',
-                    color: 'var(--text-secondary)',
-                    cursor: 'pointer',
-                    fontSize: '0.85rem',
-                    whiteSpace: 'nowrap',
-                  }}
-                  onClick={() => setSettings(prev => ({ ...prev, minimum_version: '' }))}
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-              Users with an older version will see a <strong>blocking update prompt</strong> and cannot use the app until they update from the Play Store. Leave blank to disable.
-            </span>
-          </div>
-
-          {/* Live status badge */}
-          <div className="settings-form-group full-width">
-            <div style={{
-              padding: '0.85rem 1rem',
-              borderRadius: 'var(--radius-md)',
-              border: `1px solid ${settings.minimum_version ? 'var(--warning-border, #f59e0b)' : 'var(--border-color)'}`,
-              background: settings.minimum_version ? 'var(--warning-bg, #fffbeb)' : 'var(--overlay-dark)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.6rem',
-              fontSize: '0.88rem',
-              color: settings.minimum_version ? 'var(--warning-text, #92400e)' : 'var(--text-secondary)',
-            }}>
-              <span style={{ fontSize: '1rem' }}>{settings.minimum_version ? '⚠️' : '✅'}</span>
-              {settings.minimum_version
-                ? `Force update is ACTIVE — users on versions older than ${settings.minimum_version} will be blocked.`
-                : 'Force update is OFF — all app versions are allowed.'}
-            </div>
-          </div>
-        </div>
+        {STORE_VERSION_GATES.map((gate) => (
+          <StoreVersionGate
+            key={gate.key}
+            gate={gate}
+            settings={settings}
+            fieldErrors={fieldErrors}
+            onChange={handleChange}
+            onClear={() => setSettings(prev => ({ ...prev, [gate.minimum]: '' }))}
+          />
+        ))}
       </section>
 
       <div className="settings-footer">

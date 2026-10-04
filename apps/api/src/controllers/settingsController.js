@@ -171,11 +171,21 @@ const getSettingsForArea = async (areaId) => {
       nav_promo_link: null,
       minimum_version: null,
       current_version: null,
+      minimum_version_ios: null,
+      current_version_ios: null,
       rider_capacity_multiplier: 3,
     };
     return attachSettingsImageUrls(s);
   });
 };
+
+/**
+ * True when the request comes from the iPhone app. React Native's iOS
+ * networking sends "VillKro/<build> CFNetwork/<n> Darwin/<n>"; Android sends
+ * "okhttp/<n>". Anything else (Android, browsers, tools) gets the Android
+ * values, which were the only values before iOS got its own.
+ */
+const isIosRequest = (req) => /\bCFNetwork\/|\bDarwin\//.test(String(req.get?.('user-agent') || ''));
 
 const getSettings = async (req, res) => {
   // resolveCustomerArea (mounted on this route) resolves req.areaId: a real
@@ -203,6 +213,14 @@ const getSettings = async (req, res) => {
   // and mutating it would strip the field from the admin read too.
   const publicSettings = { ...settings };
   delete publicSettings.rider_capacity_multiplier;
+  // Version gate per store. Every installed build reads minimum_version /
+  // current_version, so iPhone requests get the iOS values under those names
+  // — that lets the Play Store force an update while App Store review is
+  // still pending, with no app release needed.
+  if (isIosRequest(req)) {
+    publicSettings.minimum_version = settings.minimum_version_ios ?? null;
+    publicSettings.current_version = settings.current_version_ios ?? null;
+  }
   res.status(200).json({ data: publicSettings });
 };
 
@@ -302,6 +320,8 @@ const updateSettings = async (req, res) => {
     'standard_delivery_minutes', 'fast_delivery_minutes',
     'minimum_version',
     'current_version',
+    'minimum_version_ios',
+    'current_version_ios',
     // Radius-zone pricing: master switch + center pin (revived for zone mode)
     'radius_pricing_active', 'shop_latitude', 'shop_longitude',
     'rider_capacity_multiplier',
@@ -419,7 +439,7 @@ const updateSettings = async (req, res) => {
 
   // App version strings — column is VARCHAR(20); reject anything that
   // wouldn't fit or isn't a plausible version (digits/dots, e.g. "1.2.3").
-  for (const field of ['minimum_version', 'current_version']) {
+  for (const field of ['minimum_version', 'current_version', 'minimum_version_ios', 'current_version_ios']) {
     if (hasValue(body[field]) && !/^[0-9]+(\.[0-9]+){0,3}$/.test(String(body[field]))) {
       return res.status(400).json({ code: 'VALIDATION_ERROR', message: `${field} must be a version string like 1.2.3 (max 20 characters)` });
     }
