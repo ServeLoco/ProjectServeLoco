@@ -254,4 +254,31 @@ describe('createOrder with a deal price', () => {
     expect(queries.some((q) => /INSERT INTO orders/.test(q.sql))).toBe(false);
   });
 
+  it("judges the deal on the cart's store type, like the cart preview", async () => {
+    const queries = [];
+    const connection = connectionFor(queries, 1205);
+    const baseQuery = connection.query;
+    connection.query = jest.fn(async (sql, params) => {
+      if (/FROM products/.test(sql)) {
+        queries.push({ sql: String(sql), params });
+        return [[{ id: 1, price: 300, name: 'Pizza', store_type: 'fast_food' }, { id: 2, price: 30, name: 'Potato', store_type: 'grocery' }]];
+      }
+      return baseQuery(sql, params);
+    });
+    pool.getConnection.mockResolvedValue(connection);
+
+    const res = await request(app)
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        address: '123 Test St',
+        paymentMethod: 'Cash',
+        items: [{ productId: 1, quantity: 1 }, { productId: 2, quantity: 1, dealCouponId: 50 }],
+      });
+
+    expect(res.statusCode).toEqual(201);
+    expect(applyBestDeal).toHaveBeenCalledWith(expect.objectContaining({ storeType: 'mixed' }));
+    expect(queries.find((q) => /FROM products/.test(q.sql)).sql).toContain('AS store_type');
+  });
+
 });

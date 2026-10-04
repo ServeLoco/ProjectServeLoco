@@ -263,6 +263,16 @@ describe('applyBestDeal', () => {
     expect(result.held).toEqual([{ index: 1, qty: 1, reason: 'unavailable', couponId: 50, dealPrice: 9, amountRemaining: 0 }]);
   });
 
+  it('holds the item of a deal limited to another store type (Applies To)', async () => {
+    pool.query
+      .mockResolvedValueOnce([[dealCoupon({ applies_to: 'grocery' })]])
+      .mockResolvedValueOnce([[{ coupon_id: 50, product_id: 2, variant_id: null, deal_price: 9 }]]);
+
+    const result = await applyBestDeal({ lines: [line(1, 300), deal(2, 30)], subtotal: 330, areaId: 4, storeType: 'mixed' });
+    expect(result.deal).toBeNull();
+    expect(result.held).toEqual([{ index: 1, qty: 1, reason: 'unavailable', couponId: 50, dealPrice: 9, amountRemaining: 0 }]);
+  });
+
   it('holds the item of a deal that was switched off or ended', async () => {
     pool.query
       .mockResolvedValueOnce([[dealCoupon({ active: 0 }), dealCoupon({ id: 51, ends_at: '2020-01-01 00:00:00' })]])

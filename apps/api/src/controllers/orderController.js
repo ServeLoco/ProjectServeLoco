@@ -10,6 +10,7 @@ const { calculateRainCharge } = require('../utils/rainCharge');
 const { resolveDeliveryPricing, loadActiveZones, loadActiveExclusionZones } = require('../utils/deliveryPricing');
 const { resolveAreaIdForPricing, getAreaById } = require('../utils/areaScope');
 const { validateCoupon, validateCouponById, pickBestAutoApply, applyBestDeal } = require('../utils/coupons');
+const { cartStoreType } = require('../utils/cartCouponContext');
 const { ACTIVE_ORDER_STATUSES } = require('../utils/riders');
 const { bustUserState } = require('../utils/userState');
 const config = require('../config/env');
@@ -341,6 +342,8 @@ const createOrder = async (req, res) => {
 
     let subtotal = 0;
     const orderItems = [];
+    // One entry per line, for cartStoreType below.
+    const lineStoreTypes = [];
 
     const productEntries = [];
     const comboEntries = [];
@@ -359,9 +362,11 @@ const createOrder = async (req, res) => {
       // area_id = ? so a stale/forged cart line referencing another area's
       // product id can't be checked out here — same OrderError below as
       // "does not exist" (§2.4: a customer in area 1 must never see area
-      // 2's products, including via a crafted product id).
+      // 2's products, including via a crafted product id). store_type is
+      // the category's type, for the coupon engine's applies_to check — read
+      // here rather than in a query of its own.
       const [prodRows] = await connection.query(
-        'SELECT id, name, price, shop_price, shop_id FROM products WHERE id IN (?) AND available = 1 AND deleted = 0 AND area_id = ? AND (shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = products.shop_id AND s.is_open = 1 AND s.active = 1)) AND (group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = products.group_id AND g.active = 1 AND g.area_id = products.area_id))',
+        'SELECT id, name, price, shop_price, shop_id, (SELECT c.type FROM categories c WHERE c.id = products.category_id) AS store_type FROM products WHERE id IN (?) AND available = 1 AND deleted = 0 AND area_id = ? AND (shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = products.shop_id AND s.is_open = 1 AND s.active = 1)) AND (group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = products.group_id AND g.active = 1 AND g.area_id = products.area_id))',
         [productIds, deliveryAreaId]
       );
       for (const row of prodRows) productById.set(Number(row.id), row);
@@ -370,7 +375,7 @@ const createOrder = async (req, res) => {
     if (comboEntries.length > 0) {
       const comboIds = comboEntries.map(e => e.productId);
       const [comboRows] = await connection.query(
-        'SELECT id, name, price FROM combos WHERE id IN (?) AND available = 1 AND deleted = 0 AND area_id = ?',
+        'SELECT id, name, price, store_type FROM combos WHERE id IN (?) AND available = 1 AND deleted = 0 AND area_id = ?',
         [comboIds, deliveryAreaId]
       );
       for (const row of comboRows) comboById.set(Number(row.id), row);
@@ -402,6 +407,7 @@ const createOrder = async (req, res) => {
       const product = isCombo ? comboById.get(Number(productId)) : productById.get(Number(productId));
 
       if (!product) throw new OrderError(`${isCombo ? 'Combo' : 'Product'} ID ${productId} is unavailable or does not exist`);
+      lineStoreTypes.push(product.store_type);
 
       const quantity = Number(item.quantity);
       const rawVariantId = item.variant_id || item.variantId || null;
@@ -551,12 +557,16 @@ const createOrder = async (req, res) => {
     // whose usage limit a concurrent order took under the lock below, never
     // fails the order — the items picked from it are left out instead. The
     // deal row is always locked before the coupon row, so two checkouts never
-    // lock in opposite order.
+    // lock in opposite order. The cart's store type goes in as in the cart
+    // preview, so a deal limited to one store type ("Applies To") is judged
+    // the same at checkout — otherwise an item the cart held out of the bill
+    // would be ordered and charged here.
     const dealResult = await applyBestDeal({
       lines: orderItems.map((oi) => ({
         productId: oi.product_id, variantId: oi.variant_id, type: oi.item_type, unitPrice: oi.unit_price, quantity: oi.quantity, dealCouponId: oi.deal_coupon_id,
       })),
       subtotal,
+      storeType: cartStoreType(lineStoreTypes),
       userId,
       zoneId,
       connection,
