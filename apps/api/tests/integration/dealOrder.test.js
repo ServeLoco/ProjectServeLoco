@@ -42,13 +42,20 @@ const {
 
 const cartRoutes = require('../../src/routes/cartRoutes');
 const orderRoutes = require('../../src/routes/orderRoutes');
+const adminRoutes = require('../../src/routes/adminRoutes');
 
 const app = express();
 app.use(express.json());
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/admin', adminRoutes);
 
 const tokenFor = (userId) => jwt.sign({ id: userId, role: 'customer' }, process.env.JWT_SECRET || 'secret');
+// Same complete area_admin session orderConcurrency.test.js uses.
+const adminToken = jwt.sign(
+  { id: 'admin', role: 'admin', adminRole: 'area_admin', areaId: 1 },
+  process.env.JWT_SECRET || 'secret'
+);
 
 describeWithMysql('deal price coupons (real MySQL)', () => {
   const ids = {};
@@ -70,6 +77,8 @@ describeWithMysql('deal price coupons (real MySQL)', () => {
     };
     ids.rice = await product('Rice', 300);
     ids.potato = await product('Potato', 30);
+    ids.onion = await product('Onion', 40); // in the deal too
+    ids.carrot = await product('Carrot', 25); // not in the deal
 
     // total_usage_limit 1: the second checkout must lose the deal.
     const [coupon] = await pool.query(
@@ -85,6 +94,10 @@ describeWithMysql('deal price coupons (real MySQL)', () => {
       'INSERT INTO coupon_deal_items (area_id, coupon_id, product_id, variant_id, deal_price) VALUES (1, ?, ?, NULL, 9)',
       [ids.deal, ids.potato]
     );
+    await pool.query(
+      'INSERT INTO coupon_deal_items (area_id, coupon_id, product_id, variant_id, deal_price) VALUES (1, ?, ?, NULL, 9)',
+      [ids.deal, ids.onion]
+    );
     ids.userA = await createUser('Deal A');
     ids.userB = await createUser('Deal B');
   });
@@ -93,7 +106,7 @@ describeWithMysql('deal price coupons (real MySQL)', () => {
     await pool.query('DELETE FROM coupon_redemptions WHERE coupon_id = ?', [ids.deal]);
     await pool.query('DELETE FROM orders WHERE customer_id IN (?)', [[ids.userA, ids.userB]]);
     await pool.query('DELETE FROM coupons WHERE id = ?', [ids.deal]); // cascades coupon_deal_items
-    await pool.query('DELETE FROM products WHERE id IN (?)', [[ids.rice, ids.potato]]);
+    await pool.query('DELETE FROM products WHERE id IN (?)', [[ids.rice, ids.potato, ids.onion, ids.carrot]]);
     await pool.query('DELETE FROM categories WHERE id = ?', [ids.category]);
     await pool.query('DELETE FROM users WHERE id IN (?)', [[ids.userA, ids.userB]]);
     await pool.end();
@@ -214,6 +227,37 @@ describeWithMysql('deal price coupons (real MySQL)', () => {
     expect(Number(order.subtotal)).toBe(330);
     const [lines] = await pool.query('SELECT product_id, quantity FROM order_items WHERE order_id = ? ORDER BY id', [res.body.orderId]);
     expect(lines.map((l) => [l.product_id, l.quantity])).toEqual([[ids.rice, 1], [ids.potato, 1]]);
+  });
+
+  it('admin swaps a deal item only for another item of the same deal, and the saving follows', async () => {
+    const [[line]] = await pool.query('SELECT id FROM order_items WHERE order_id = ? AND product_id = ?', [ids.orderA, ids.potato]);
+    const replace = (newProductId) => request(app)
+      .patch(`/api/admin/orders/${ids.orderA}/items/${line.id}/replace`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ expectedProductId: ids.potato, expectedUnitPrice: 30, newProductId });
+
+    let res = await replace(ids.carrot);
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toMatch(/same deal/);
+
+    res = await replace(ids.onion);
+    expect(res.statusCode).toBe(200);
+    // Two onions: one at the ₹9 deal price (saving ₹31 instead of ₹21), one at ₹40.
+    const [[order]] = await pool.query(
+      'SELECT subtotal, discount_amount, deal_discount_amount, total, delivery_charge FROM orders WHERE id = ?',
+      [ids.orderA]
+    );
+    expect(Number(order.subtotal)).toBe(380);
+    expect(Number(order.deal_discount_amount)).toBe(31);
+    expect(Number(order.discount_amount)).toBe(31);
+    expect(Number(order.total)).toBe(380 + Number(order.delivery_charge) - 31);
+    const [[item]] = await pool.query('SELECT product_id, unit_price, deal_price, deal_qty FROM order_items WHERE id = ?', [line.id]);
+    expect([item.product_id, Number(item.unit_price), Number(item.deal_price), item.deal_qty]).toEqual([ids.onion, 40, 9, 1]);
+    const [[redemption]] = await pool.query(
+      'SELECT discount_amount FROM coupon_redemptions WHERE order_id = ? AND coupon_id = ?',
+      [ids.orderA, ids.deal]
+    );
+    expect(Number(redemption.discount_amount)).toBe(31);
   });
 
   it('cancelling the order gives the deal redemption back', async () => {

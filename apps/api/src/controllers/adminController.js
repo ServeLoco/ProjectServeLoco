@@ -1941,10 +1941,12 @@ const ITEM_REPLACE_ALLOWED_STATUSES = ['Pending', 'Accepted', 'Preparing'];
 
 // Admin swaps one order_items row for a different product when the
 // original is out of stock — recomputes orders.subtotal/total (formula
-// mirrors orderController.js's createOrder) but never touches
-// discount_amount, which is a frozen checkout-time snapshot everywhere
-// else in this codebase. See plans note in PR: no refund automation, a
-// Paid order whose total shifts is reconciled by ops outside the app.
+// mirrors orderController.js's createOrder). The coupon's share of
+// discount_amount is a frozen checkout-time snapshot, as everywhere else in
+// this codebase; only a deal item swapped for another item of the same deal
+// moves the deal's share (deal_discount_amount) with its new deal price.
+// See plans note in PR: no refund automation, a Paid order whose total
+// shifts is reconciled by ops outside the app.
 const replaceOrderItem = async (req, res) => {
   const orderId = Number(req.params.id);
   const itemId = Number(req.params.itemId);
@@ -2066,14 +2068,50 @@ const replaceOrderItem = async (req, res) => {
     const newLineTotal = roundMoney(newUnitPrice * item.quantity);
     const newShopLineTotal = newShopUnitPrice != null ? roundMoney(newShopUnitPrice * item.quantity) : null;
 
+    // Units sold at a deal price can only become another item of the same
+    // deal (owner decision, 2026-10-04): they then sell at that item's own
+    // deal price and the order's deal saving follows the change. Any other
+    // product is refused — a deal price belongs to the deal's items only.
+    const dealQty = Number(item.deal_qty) || 0;
+    let newDealPrice = item.deal_price ?? null;
+    let dealSavingChange = 0;
+    if (dealQty > 0) {
+      const [dealRows] = order.deal_coupon_id
+        ? await connection.query(
+          `SELECT deal_price FROM coupon_deal_items
+           WHERE coupon_id = ? AND area_id = ? AND product_id = ? AND variant_key = ? AND active = 1`,
+          [order.deal_coupon_id, order.area_id, newProduct.id, normalizedNewVariantId || 0]
+        )
+        : [[]];
+      const dealName = order.deal_title ? ` "${order.deal_title}"` : '';
+      if (dealRows.length === 0) {
+        await connection.rollback();
+        return res.status(400).json({
+          code: 'VALIDATION_ERROR',
+          message: `This item was sold at the deal price of${dealName || ' a deal'}. Swap it only for another item of the same deal.`,
+        });
+      }
+      newDealPrice = toMoney(dealRows[0].deal_price);
+      if (!(newDealPrice < newUnitPrice)) {
+        await connection.rollback();
+        return res.status(400).json({
+          code: 'VALIDATION_ERROR',
+          message: `This item's deal price (₹${newDealPrice}) is not below its normal price (₹${newUnitPrice}), so it cannot replace a deal item.`,
+        });
+      }
+      const oldSaving = roundMoney((toMoney(item.unit_price) - toMoney(item.deal_price)) * dealQty);
+      const newSaving = roundMoney((newUnitPrice - newDealPrice) * dealQty);
+      dealSavingChange = roundMoney(newSaving - oldSaving);
+    }
+
     const [updateItemResult] = await connection.query(
       `UPDATE order_items
          SET product_id = ?, variant_id = ?, variant_label = ?, product_name = ?,
-             unit_price = ?, line_total = ?, shop_unit_price = ?, shop_line_total = ?
+             unit_price = ?, line_total = ?, shop_unit_price = ?, shop_line_total = ?, deal_price = ?
        WHERE id = ? AND order_id = ? AND product_id = ? AND unit_price = ?`,
       [
         newProduct.id, normalizedNewVariantId, newVariantLabel, newProductName,
-        newUnitPrice, newLineTotal, newShopUnitPrice, newShopLineTotal,
+        newUnitPrice, newLineTotal, newShopUnitPrice, newShopLineTotal, newDealPrice,
         itemId, orderId, item.product_id, item.unit_price,
       ]
     );
@@ -2083,46 +2121,74 @@ const replaceOrderItem = async (req, res) => {
       return res.status(409).json({ code: 'CONCURRENCY_CONFLICT', message: 'This item was already changed by someone else.', order, items: freshItems });
     }
 
-    const [[{ subtotal: recomputedSubtotal }]] = await connection.query(
-      'SELECT SUM(line_total) AS subtotal FROM order_items WHERE order_id = ?',
+    // deal_units is what the deal-priced units would cost at full price: the
+    // deal's minimum counts only the other items.
+    const [[{ subtotal: recomputedSubtotal, deal_units: recomputedDealUnits }]] = await connection.query(
+      'SELECT SUM(line_total) AS subtotal, SUM(unit_price * deal_qty) AS deal_units FROM order_items WHERE order_id = ?',
       [orderId]
     );
     const subtotal = roundMoney(Number(recomputedSubtotal) || 0);
+    // discount_amount is coupon + deal. Only the deal's share moves, and only
+    // when a deal item became another item of the same deal (above).
+    const dealDiscountAmount = roundMoney((Number(order.deal_discount_amount) || 0) + dealSavingChange);
+    const discountAmount = roundMoney(Number(order.discount_amount) + dealSavingChange);
     const total = roundMoney(Math.max(0, subtotal
       + Number(order.delivery_charge)
       + Number(order.fast_delivery_charge)
       + Number(order.night_charge)
       + Number(order.rain_charge)
-      - Number(order.discount_amount)));
+      - discountAmount));
 
-    // discount_amount stays frozen (see this function's own header comment —
-    // no refund/reconciliation automation), but a swap down to a cheaper
-    // product can drop the new subtotal below the applied coupon's own
-    // min_order_amount, silently shipping an order that violates the terms
-    // it was granted under. Surface it rather than auto-adjusting money on
-    // a payment-sensitive path — same "flag it, ops reconciles" pattern
-    // this function already uses for the total shift itself.
-    let couponWarning = null;
-    if (order.coupon_id && Number(order.discount_amount) > 0) {
+    // The coupon's share of discount_amount stays frozen (see this function's
+    // own header comment — no refund/reconciliation automation), but a swap
+    // down to a cheaper product can drop the new subtotal below the applied
+    // coupon's own min_order_amount (or the deal's, which counts only the
+    // other items), silently shipping an order that violates the terms it
+    // was granted under. Surface it rather than auto-adjusting money on a
+    // payment-sensitive path — same "flag it, ops reconciles" pattern this
+    // function already uses for the total shift itself.
+    const warnings = [];
+    if (order.coupon_id && Number(order.discount_amount) - dealDiscountAmount > 0) {
       const [couponRows] = await connection.query(
         'SELECT min_order_amount FROM coupons WHERE id = ?',
         [order.coupon_id]
       );
       const minOrderAmount = couponRows[0] ? Number(couponRows[0].min_order_amount) : null;
-      if (minOrderAmount !== null && subtotal < minOrderAmount) {
-        couponWarning = `Applied coupon "${order.coupon_code || order.coupon_title || order.coupon_id}" requires a minimum order of ₹${minOrderAmount}; the new subtotal is ₹${subtotal}. The ₹${order.discount_amount} discount was NOT auto-removed — review and adjust manually if needed.`;
+      // The coupon was judged on the subtotal after the deal saving.
+      const couponBasis = roundMoney(subtotal - dealDiscountAmount);
+      if (minOrderAmount !== null && couponBasis < minOrderAmount) {
+        warnings.push(`Applied coupon "${order.coupon_code || order.coupon_title || order.coupon_id}" requires a minimum order of ₹${minOrderAmount}; the new subtotal is ₹${couponBasis}. The ₹${roundMoney(discountAmount - dealDiscountAmount)} discount was NOT auto-removed — review and adjust manually if needed.`);
       }
     }
+    if (order.deal_coupon_id && dealDiscountAmount > 0) {
+      const [dealCouponRows] = await connection.query(
+        'SELECT min_order_amount FROM coupons WHERE id = ?',
+        [order.deal_coupon_id]
+      );
+      const dealMin = dealCouponRows[0] ? Number(dealCouponRows[0].min_order_amount) : null;
+      const othersTotal = roundMoney(subtotal - (Number(recomputedDealUnits) || 0));
+      if (dealMin !== null && othersTotal < dealMin) {
+        warnings.push(`Deal "${order.deal_title || order.deal_coupon_id}" requires other items worth ₹${dealMin}; they are now ₹${othersTotal}. The ₹${dealDiscountAmount} deal saving was NOT auto-removed — review and adjust manually if needed.`);
+      }
+    }
+    const couponWarning = warnings.length > 0 ? warnings.join(' ') : null;
 
     const [updateOrderResult] = await connection.query(
-      `UPDATE orders SET subtotal = ?, total = ? WHERE id = ?${scope.clause} AND status = ?`,
-      [subtotal, total, orderId, ...scope.params, order.status]
+      `UPDATE orders SET subtotal = ?, total = ?, discount_amount = ?, deal_discount_amount = ? WHERE id = ?${scope.clause} AND status = ?`,
+      [subtotal, total, discountAmount, dealDiscountAmount, orderId, ...scope.params, order.status]
     );
     if (updateOrderResult.affectedRows === 0) {
       await connection.rollback();
       const [freshOrderRows] = await pool.query(`SELECT * FROM orders WHERE id = ?${scope.clause}`, [orderId, ...scope.params]);
       const [freshItems] = await pool.query('SELECT * FROM order_items WHERE order_id = ? AND area_id = ?', [orderId, order.area_id]);
       return res.status(409).json({ code: 'CONCURRENCY_CONFLICT', message: 'Order was updated by someone else.', order: freshOrderRows[0], items: freshItems });
+    }
+    // The deal's redemption row records the saving the order got.
+    if (dealSavingChange !== 0) {
+      await connection.query(
+        'UPDATE coupon_redemptions SET discount_amount = ? WHERE order_id = ? AND coupon_id = ?',
+        [dealDiscountAmount, orderId, order.deal_coupon_id]
+      );
     }
 
     await connection.commit();
