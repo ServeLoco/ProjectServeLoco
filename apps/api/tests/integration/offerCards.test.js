@@ -174,6 +174,34 @@ describeWithMysql('offer cards + deal admin (real MySQL)', () => {
     expect(card.style).toMatchObject({ bgColor: '#FFF000', rowsPerTab: 1, buttonText: 'Add', footerText: 'View items at all prices' });
   });
 
+  it('stores a card schedule as a moment in time: a UTC time as is, a bare time as IST', async () => {
+    // The Home query compares these with NOW(), so a bare "12:30" must not be
+    // stored as 12:30 in the database's own zone (UTC on the live server).
+    const istWallClock = (ms) => new Date(ms + 330 * 60000).toISOString().slice(0, 16);
+    const hourAgo = Date.now() - 3600000;
+    const twoDaysOn = hourAgo + 2 * 86400000;
+    let res = await admin('post', '/offer-cards').send({
+      title: 'Scheduled',
+      deal_coupon_id: ids.deal,
+      starts_at: istWallClock(hourAgo),
+      ends_at: new Date(twoDaysOn).toISOString(),
+    });
+    expect(res.statusCode).toBe(201);
+    const id = res.body.id;
+    try {
+      res = await admin('get', `/offer-cards/${id}`);
+      expect(Math.abs(new Date(res.body.data.starts_at).getTime() - hourAgo)).toBeLessThan(60000);
+      expect(Math.abs(new Date(res.body.data.ends_at).getTime() - twoDaysOn)).toBeLessThan(1000);
+      const [[row]] = await pool.query(
+        'SELECT (starts_at <= NOW() AND ends_at >= NOW()) AS live FROM offer_cards WHERE id = ?',
+        [id]
+      );
+      expect(Number(row.live)).toBe(1);
+    } finally {
+      await pool.query('DELETE FROM offer_cards WHERE id = ?', [id]);
+    }
+  });
+
   it('shows the card on an offer_cards Home row with one product per tier', async () => {
     let res = await admin('post', '/dashboard-sections').send({
       title: 'Offers', slug, section_type: 'offer_cards', store_type: 'packed', display_order: 0,

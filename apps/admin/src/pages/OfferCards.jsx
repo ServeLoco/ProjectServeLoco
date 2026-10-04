@@ -375,7 +375,21 @@ const SAMPLE_TIERS = [9, 29, 49].map((price) => ({
   items: [{ id: price, name: 'Chips Pack', unit: '1 packet', regularPrice: price + 11, dealPrice: price }],
 }));
 
-const toLocalInput = (value) => (value ? String(value).replace(' ', 'T').slice(0, 16) : '');
+// <input type="datetime-local"> works in the admin's own clock, with no zone.
+// The API sends and takes absolute instants (UTC ISO), so convert both ways —
+// a bare "10:00" sent as is was read by the server in its own zone.
+const toLocalInput = (value) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+const localInputToIso = (local) => {
+  if (!local) return null;
+  const date = new Date(local); // read as the admin's local time
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+};
 
 function OfferCardDrawer({ card, deals, modes, onClose, onSaved, onCreated }) {
   const isEdit = Boolean(card);
@@ -442,8 +456,8 @@ function OfferCardDrawer({ card, deals, modes, onClose, onSaved, onCreated }) {
       store_type: form.store_type,
       image_id: form.image_id || null,
       active: form.active,
-      starts_at: form.starts_at || null,
-      ends_at: form.ends_at || null,
+      starts_at: localInputToIso(form.starts_at),
+      ends_at: localInputToIso(form.ends_at),
       style: { ...form.style, rowsPerTab: Number(form.style.rowsPerTab) || DEFAULT_STYLES[design].rowsPerTab },
     };
     try {

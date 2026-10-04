@@ -23,6 +23,7 @@ const { requestAreaId, bustAreaCaches } = require('../utils/areaScope');
 const { getActiveStoreModeSlugs, isSystemModeSlug } = require('../utils/storeMode');
 const { isWithinDateWindow, isWithinActiveDays, isWithinActiveTime } = require('../utils/coupons');
 const { toMoney } = require('../utils/money');
+const { istInstantFromWallClock } = require('../utils/businessTime');
 const { attachVariants } = require('./productController');
 const { resolveImageUrls, mapProductRows } = require('./dashboardController');
 const { reorderDisplayOrder } = require('../utils/reorder');
@@ -531,13 +532,22 @@ const readCardInput = async (body, areaId, { partial }) => {
   if (body.active !== undefined) {
     values.active = [true, 1, '1', 'true'].includes(body.active) ? 1 : 0;
   }
+  // Stored as an instant (a Date, which mysql2 writes in the session zone),
+  // because the app side compares them with NOW(). A time that names its
+  // zone ("...Z") is taken as is; a bare wall clock is IST.
   for (const key of ['starts_at', 'ends_at']) {
     if (body[key] !== undefined) {
       if (isInvalidDate(body[key])) return { error: 'Schedule dates must be valid date/time values' };
-      values[key] = body[key] || null;
+      if (!body[key]) {
+        values[key] = null;
+      } else {
+        const instant = istInstantFromWallClock(String(body[key]));
+        if (!instant) return { error: 'Schedule dates must be valid date/time values' };
+        values[key] = instant;
+      }
     }
   }
-  if (values.starts_at && values.ends_at && new Date(values.ends_at) < new Date(values.starts_at)) {
+  if (values.starts_at && values.ends_at && values.ends_at < values.starts_at) {
     return { error: 'End time must be after start time' };
   }
   return { values };
