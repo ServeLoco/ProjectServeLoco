@@ -593,10 +593,14 @@ const createOrder = async (req, res) => {
         orderItems[index].deal_qty = dealQty;
       });
     }
+    // Units left out, for the confirmation screen's notice.
+    let dealUnitsLeftOut = 0;
     if (heldUnits.length > 0) {
       for (const { index, qty } of heldUnits) {
         const oi = orderItems[index];
-        oi.quantity -= Math.min(qty, oi.quantity);
+        const units = Math.min(qty, oi.quantity);
+        dealUnitsLeftOut += units;
+        oi.quantity -= units;
         oi.line_total = roundMoney(oi.unit_price * oi.quantity);
         if (oi.shop_unit_price !== null) oi.shop_line_total = roundMoney(oi.shop_unit_price * oi.quantity);
       }
@@ -851,6 +855,10 @@ const createOrder = async (req, res) => {
       // True when an auto-applied offer lapsed between cart and checkout and
       // the order was placed at regular price instead (see coupon block above).
       couponDropped,
+      // Units picked from a deal that were left out of this order (the deal
+      // was locked, ended, or its last use went to another order).
+      dealItemsLeftOut: dealUnitsLeftOut,
+      deal_items_left_out: dealUnitsLeftOut,
       items: orderItems.map(item => ({
         productId: item.product_id,
         variantId: item.variant_id, variant_id: item.variant_id,

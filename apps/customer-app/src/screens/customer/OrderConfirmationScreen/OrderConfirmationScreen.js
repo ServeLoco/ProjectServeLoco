@@ -43,6 +43,9 @@ export default function OrderConfirmationScreen() {
   // Server sets this when an auto-applied offer lapsed between cart and
   // checkout and the order went through at regular price instead.
   const couponDropped = rawOrder?.couponDropped === true;
+  // Units picked from a deal that were left out of the order (the deal was
+  // locked, ended, or its last use went to another order) — never billed.
+  const dealItemsLeftOut = Number(rawOrder?.dealItemsLeftOut ?? rawOrder?.deal_items_left_out) || 0;
 
   // Animations
   const iconScale = useRef(new Animated.Value(0)).current;
@@ -181,6 +184,15 @@ export default function OrderConfirmationScreen() {
               <AppIcon name="ticket" size={16} color={colors.warning} />
               <Text style={styles.couponDroppedText}>
                 The offer was no longer available, so your order was placed at the regular price.
+              </Text>
+            </View>
+          )}
+
+          {dealItemsLeftOut > 0 && (
+            <View style={styles.couponDroppedBanner}>
+              <AppIcon name="lock" size={16} color={colors.warning} />
+              <Text style={styles.couponDroppedText}>
+                {dealItemsLeftOut === 1 ? 'Your deal item was' : `${dealItemsLeftOut} deal items were`} not available at the deal price, so {dealItemsLeftOut === 1 ? 'it was' : 'they were'} left out. You were not charged for {dealItemsLeftOut === 1 ? 'it' : 'them'}.
               </Text>
             </View>
           )}
