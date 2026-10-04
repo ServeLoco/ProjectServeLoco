@@ -7,6 +7,7 @@ const { reorderDisplayOrder } = require('../utils/reorder');
 const { requestAreaId, bustAreaCaches } = require('../utils/areaScope');
 const logger = require('../utils/logger');
 const { syncAutoSections, isAutoRowVisible, autoRowKey } = require('../utils/autoSections');
+const { istInstantFromWallClock } = require('../utils/businessTime');
 // 30s meant a low-traffic area re-ran the whole multi-query dashboard build on
 // almost every request. Every mutation that can change this payload already
 // calls bustAreaCaches (which clears the 'dashboard' namespace for that area),
@@ -69,11 +70,21 @@ const getStoredImageUrl = (image) => image?.url ||
 
 const isInvalidDateValue = (value) => value && Number.isNaN(new Date(value).getTime());
 
+// Section and item schedules are stored as instants (a Date, which mysql2
+// writes in the session zone), because Home compares them with NOW(). The raw
+// ISO string the admin sends ("...T08:04:35.953Z") is not a datetime MySQL
+// accepts in strict mode. A time that names its zone ("...Z") is taken as is;
+// a bare wall clock is IST. Empty means no bound.
+const scheduleInstant = (value) => (value ? istInstantFromWallClock(String(value)) : null);
+
 const validateVisibilityWindow = (startsAt, endsAt) => {
   if (isInvalidDateValue(startsAt) || isInvalidDateValue(endsAt)) {
     return 'Schedule dates must be valid date/time values';
   }
-  if (startsAt && endsAt && new Date(endsAt) < new Date(startsAt)) {
+  if ((startsAt && !scheduleInstant(startsAt)) || (endsAt && !scheduleInstant(endsAt))) {
+    return 'Schedule dates must be valid date/time values';
+  }
+  if (startsAt && endsAt && scheduleInstant(endsAt) < scheduleInstant(startsAt)) {
     return 'End time must be after start time';
   }
   return null;
@@ -1098,8 +1109,8 @@ const createAdminSection = async (req, res) => {
         section_icon || null,
         linked_category_id || null,
         linked_offer_id || null,
-        starts_at || null,
-        ends_at || null
+        scheduleInstant(starts_at),
+        scheduleInstant(ends_at)
       ]
     );
 
@@ -1199,8 +1210,8 @@ const updateAdminSection = async (req, res) => {
         section_icon !== undefined ? section_icon : existingSection.section_icon,
         linked_category_id !== undefined ? linked_category_id : existingSection.linked_category_id,
         linked_offer_id !== undefined ? linked_offer_id : existingSection.linked_offer_id,
-        starts_at !== undefined ? starts_at : existingSection.starts_at,
-        ends_at !== undefined ? ends_at : existingSection.ends_at,
+        starts_at !== undefined ? scheduleInstant(starts_at) : existingSection.starts_at,
+        ends_at !== undefined ? scheduleInstant(ends_at) : existingSection.ends_at,
         nextVersion,
         id, areaId
       ]
@@ -1328,8 +1339,8 @@ const addAdminSectionItem = async (req, res) => {
         id, item_type, item_id,
         finalDisplayOrder,
         active !== undefined ? active : 1,
-        starts_at || null,
-        ends_at || null,
+        scheduleInstant(starts_at),
+        scheduleInstant(ends_at),
         areaId
       ]
     );
@@ -1352,8 +1363,8 @@ const addAdminSectionItem = async (req, res) => {
         item_id,
         display_order: finalDisplayOrder,
         active: active !== undefined ? active : 1,
-        starts_at: starts_at || null,
-        ends_at: ends_at || null
+        starts_at: scheduleInstant(starts_at),
+        ends_at: scheduleInstant(ends_at)
       }, areaId);
     } catch (hydrateError) {
       logger.error('[dashboard] hydrate after add failed for item', result.insertId, hydrateError.message);
@@ -1421,8 +1432,8 @@ const updateAdminSectionItem = async (req, res) => {
       [
         finalDisplayOrder,
         active !== undefined ? active : existingItem.active,
-        starts_at !== undefined ? starts_at : existingItem.starts_at,
-        ends_at !== undefined ? ends_at : existingItem.ends_at,
+        starts_at !== undefined ? scheduleInstant(starts_at) : existingItem.starts_at,
+        ends_at !== undefined ? scheduleInstant(ends_at) : existingItem.ends_at,
         itemId
       ]
     );
