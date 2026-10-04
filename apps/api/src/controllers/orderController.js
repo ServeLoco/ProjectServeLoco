@@ -10,7 +10,7 @@ const { calculateRainCharge } = require('../utils/rainCharge');
 const { resolveDeliveryPricing, loadActiveZones, loadActiveExclusionZones } = require('../utils/deliveryPricing');
 const { resolveAreaIdForPricing, getAreaById } = require('../utils/areaScope');
 const { validateCoupon, validateCouponById, pickBestAutoApply, applyBestDeal } = require('../utils/coupons');
-const { cartStoreType } = require('../utils/cartCouponContext');
+const { cartItemCount, cartStoreType } = require('../utils/cartCouponContext');
 const { ACTIVE_ORDER_STATUSES } = require('../utils/riders');
 const { bustUserState } = require('../utils/userState');
 const config = require('../config/env');
@@ -463,6 +463,12 @@ const createOrder = async (req, res) => {
     }
 
     subtotal = roundMoney(subtotal);
+    // The same two cart facts calculateCart hands the coupon engine, so a
+    // min_item_count or applies_to coupon is judged at checkout exactly as in
+    // the cart preview. Every line here is priced (an unavailable one threw
+    // above), matching the cart's post-drop lines. The item count is taken
+    // below, once held deal units are out, as the cart does.
+    const storeType = cartStoreType(lineStoreTypes);
 
     // Radius-zone pricing (server-authoritative — never trusts the preview the
     // client saw). Read + pure compute inside the existing transaction; the
@@ -566,7 +572,7 @@ const createOrder = async (req, res) => {
         productId: oi.product_id, variantId: oi.variant_id, type: oi.item_type, unitPrice: oi.unit_price, quantity: oi.quantity, dealCouponId: oi.deal_coupon_id,
       })),
       subtotal,
-      storeType: cartStoreType(lineStoreTypes),
+      storeType,
       userId,
       zoneId,
       connection,
@@ -619,11 +625,12 @@ const createOrder = async (req, res) => {
       subtotal = roundMoney(orderItems.reduce((sum, oi) => sum + oi.line_total, 0));
     }
     const couponSubtotal = roundMoney(subtotal - dealDiscount);
+    const itemCount = cartItemCount(orderItems);
 
     if (couponCode || couponId) {
       const result = couponCode
-        ? await validateCoupon({ code: couponCode, subtotal: couponSubtotal, deliveryCharge, standardDeliveryCharge, userId, zoneId, connection, areaId: deliveryAreaId })
-        : await validateCouponById({ couponId, subtotal: couponSubtotal, deliveryCharge, standardDeliveryCharge, userId, zoneId, connection, areaId: deliveryAreaId });
+        ? await validateCoupon({ code: couponCode, subtotal: couponSubtotal, deliveryCharge, standardDeliveryCharge, storeType, itemCount, userId, zoneId, connection, areaId: deliveryAreaId })
+        : await validateCouponById({ couponId, subtotal: couponSubtotal, deliveryCharge, standardDeliveryCharge, storeType, itemCount, userId, zoneId, connection, areaId: deliveryAreaId });
       let failReason = result.ok ? null : (result.reason || 'Coupon is not valid');
       if (!failReason) {
         await connection.query('SELECT id FROM coupons WHERE id = ? FOR UPDATE', [result.coupon.id]);
@@ -642,7 +649,7 @@ const createOrder = async (req, res) => {
         appliedCoupon = result.coupon;
       }
     } else if (!noAutoApply) {
-      let best = await pickBestAutoApply({ subtotal: couponSubtotal, deliveryCharge, standardDeliveryCharge, userId, zoneId, connection, areaId: deliveryAreaId });
+      let best = await pickBestAutoApply({ subtotal: couponSubtotal, deliveryCharge, standardDeliveryCharge, storeType, itemCount, userId, zoneId, connection, areaId: deliveryAreaId });
       if (best) {
         await connection.query('SELECT id FROM coupons WHERE id = ? FOR UPDATE', [best.coupon.id]);
         const failReason = await recheckUsageUnderLock(connection, best.coupon, userId);

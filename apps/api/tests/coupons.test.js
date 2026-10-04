@@ -1851,6 +1851,176 @@ describe('createOrder auto-applied coupon lapse (coupon_auto_applied)', () => {
   });
 });
 
+// ─────────────────────────────────────────────────────────────────────────
+// createOrder hands the coupon engine the same itemCount and storeType as
+// the cart preview. Before, it passed neither: min_item_count was checked
+// against 0 (so every such coupon failed at checkout) and applies_to was
+// never enforced when the order was placed.
+// ─────────────────────────────────────────────────────────────────────────
+
+describe('createOrder coupon itemCount / storeType', () => {
+  let mockConnection;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockConnection = {
+      beginTransaction: jest.fn(),
+      query: jest.fn(),
+      commit: jest.fn(),
+      rollback: jest.fn(),
+      release: jest.fn(),
+    };
+    pool.getConnection.mockResolvedValue(mockConnection);
+  });
+
+  // user, settings, the catalog lookup(s), exclusion zones — every query
+  // createOrder makes before the coupon engine runs.
+  const mockOrderFlowUpToCoupon = (catalogRows) => {
+    mockConnection.query
+      .mockResolvedValueOnce([[{ id: 1, name: 'Test', phone: '123', whatsapp_number: '123', blocked: 0, address: 'Addr' }]])
+      .mockResolvedValueOnce([[{ shop_open: 1, delivery_available: 1, delivery_charge: 20, night_charge: 0 }]]);
+    for (const rows of catalogRows) mockConnection.query.mockResolvedValueOnce([rows]);
+    mockConnection.query.mockResolvedValueOnce([[]]);
+  };
+
+  // FOR UPDATE lock, INSERT orders, INSERT order_items, INSERT coupon_redemptions.
+  const mockAppliedCouponTail = (orderId) => {
+    mockConnection.query
+      .mockResolvedValueOnce([[{ id: 1 }]])
+      .mockResolvedValueOnce([{ insertId: orderId }])
+      .mockResolvedValueOnce([{ affectedRows: 2 }])
+      .mockResolvedValueOnce([{ insertId: 1 }]);
+  };
+
+  const placeOrder = (body) => request(app)
+    .post('/api/orders')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ address: '123 Count St', paymentMethod: 'Cash', ...body });
+
+  it('applies a min_item_count coupon when the cart meets the count (total quantity across lines)', async () => {
+    mockOrderFlowUpToCoupon([[
+      { id: 1, name: 'Chips', price: 50, store_type: 'packed' },
+      { id: 2, name: 'Soda', price: 40, store_type: 'packed' },
+    ]]);
+    mockConnection.query.mockResolvedValueOnce([[
+      buildCoupon({ id: 61, code: 'THREE', discount_value: 30, min_item_count: 3 }),
+    ]]);
+    mockAppliedCouponTail(800);
+
+    const res = await placeOrder({
+      coupon_code: 'THREE',
+      items: [{ productId: 1, quantity: 2 }, { productId: 2, quantity: 1 }],
+    });
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.order.discount).toBe(30);
+    // 2×50 + 40 + delivery 20 − 30
+    expect(res.body.order.total).toBe(130);
+    expect(res.body.order.couponDropped).toBe(false);
+  });
+
+  it('keeps an auto-applied min_item_count coupon instead of silently dropping it', async () => {
+    mockOrderFlowUpToCoupon([[{ id: 1, name: 'Chips', price: 50, store_type: 'packed' }]]);
+    mockConnection.query.mockResolvedValueOnce([[
+      buildCoupon({ id: 62, code: null, discount_value: 25, min_item_count: 4, auto_apply: 1, requires_code: 0 }),
+    ]]);
+    mockAppliedCouponTail(801);
+
+    const res = await placeOrder({
+      coupon_id: 62,
+      coupon_auto_applied: true,
+      items: [{ productId: 1, quantity: 4 }],
+    });
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.order.couponDropped).toBe(false);
+    expect(res.body.order.discount).toBe(25);
+  });
+
+  it('still refuses a min_item_count coupon when the cart is short of the count', async () => {
+    mockOrderFlowUpToCoupon([[{ id: 1, name: 'Chips', price: 50, store_type: 'packed' }]]);
+    mockConnection.query.mockResolvedValueOnce([[
+      buildCoupon({ id: 63, code: 'THREE', discount_value: 30, min_item_count: 3 }),
+    ]]);
+
+    const res = await placeOrder({ coupon_code: 'THREE', items: [{ productId: 1, quantity: 2 }] });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toMatch(/Add 1 more item/);
+  });
+
+  it("refuses an applies_to='fast_food' coupon for a packed-only cart", async () => {
+    mockOrderFlowUpToCoupon([[{ id: 1, name: 'Chips', price: 200, store_type: 'packed' }]]);
+    mockConnection.query.mockResolvedValueOnce([[
+      buildCoupon({ id: 64, code: 'FOODIE', discount_value: 40, applies_to: 'fast_food' }),
+    ]]);
+
+    const res = await placeOrder({ coupon_code: 'FOODIE', items: [{ productId: 1, quantity: 1 }] });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toMatch(/only valid for fast food orders/);
+    expect(mockConnection.rollback).toHaveBeenCalled();
+    const lockCall = mockConnection.query.mock.calls.find(([sql]) => /FOR UPDATE/.test(String(sql)) && /FROM coupons/i.test(String(sql)));
+    expect(lockCall).toBeUndefined();
+  });
+
+  it("drops an auto-applied applies_to='fast_food' coupon for a packed-only cart", async () => {
+    mockOrderFlowUpToCoupon([[{ id: 1, name: 'Chips', price: 200, store_type: 'packed' }]]);
+    mockConnection.query
+      .mockResolvedValueOnce([[
+        buildCoupon({ id: 65, code: null, discount_value: 40, applies_to: 'fast_food', auto_apply: 1, requires_code: 0 }),
+      ]])
+      .mockResolvedValueOnce([{ insertId: 802 }])
+      .mockResolvedValueOnce([{ affectedRows: 1 }]);
+
+    const res = await placeOrder({
+      coupon_id: 65,
+      coupon_auto_applied: true,
+      items: [{ productId: 1, quantity: 1 }],
+    });
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.order.couponDropped).toBe(true);
+    expect(res.body.order.discount).toBe(0);
+  });
+
+  it("refuses an applies_to='fast_food' coupon for a mixed cart", async () => {
+    mockOrderFlowUpToCoupon([
+      [{ id: 1, name: 'Chips', price: 200, store_type: 'packed' }],
+      [{ id: 9, name: 'Burger meal', price: 150, store_type: 'fast_food' }],
+    ]);
+    mockConnection.query.mockResolvedValueOnce([[
+      buildCoupon({ id: 66, code: 'FOODIE', discount_value: 40, applies_to: 'fast_food' }),
+    ]]);
+
+    const res = await placeOrder({
+      coupon_code: 'FOODIE',
+      items: [{ productId: 1, quantity: 1 }, { productId: 9, quantity: 1, type: 'combo' }],
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toMatch(/only valid for fast food orders/);
+  });
+
+  it("applies an applies_to='fast_food' coupon to a fast-food combo cart", async () => {
+    mockOrderFlowUpToCoupon([[{ id: 9, name: 'Burger meal', price: 150, store_type: 'fast_food' }]]);
+    mockConnection.query.mockResolvedValueOnce([[
+      buildCoupon({ id: 67, code: 'FOODIE', discount_value: 40, applies_to: 'fast_food' }),
+    ]]);
+    mockAppliedCouponTail(803);
+
+    const res = await placeOrder({
+      coupon_code: 'FOODIE',
+      items: [{ productId: 9, quantity: 1, type: 'combo' }],
+    });
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.order.discount).toBe(40);
+    const comboLookup = mockConnection.query.mock.calls.find(([sql]) => /FROM combos/.test(String(sql)));
+    expect(String(comboLookup[0])).toMatch(/store_type/);
+  });
+});
+
 describe('cancelOrder coupon redemption rollback', () => {
   beforeEach(() => {
     pool.query.mockReset();
