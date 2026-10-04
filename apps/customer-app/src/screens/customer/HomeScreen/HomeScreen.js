@@ -1958,8 +1958,8 @@ export default function HomeScreen() {
               page scrolls. Rain charge on: grey clouds and falling rain, whatever the
               time. Otherwise, day (7 AM – 6 PM IST): a sun in the top-right corner
               (reaching up behind the status bar) with thin beams across the bar,
-              one small cloud drifting across the top row, and black birds gliding
-              under the search bar. Night: a slowly turning moon and twinkling stars. */}
+              one small cloud and black birds drifting across the top row, behind
+              the delivery location. Night: a slowly turning moon and twinkling stars. */}
           <Animated.View pointerEvents="none" style={[styles.topBarDecor, { opacity: topRowOpacity }]}>
             {isRainy ? (
               <RainSky
@@ -1975,7 +1975,7 @@ export default function HomeScreen() {
                   height={topRowHeight + searchBarBottom + insets.top - 8}
                 />
                 <SkyCloud top={4} width={windowWidth} />
-                <SkyBirds top={topRowHeight + searchBarBottom + 4} width={windowWidth} />
+                <SkyBirds top={4} width={windowWidth} />
               </>
             ) : (
               <NightSky
