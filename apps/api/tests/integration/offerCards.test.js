@@ -86,6 +86,8 @@ describeWithMysql('offer cards + deal admin (real MySQL)', () => {
     await pool.query('DELETE FROM products WHERE id IN (?)', [[ids.potato, ids.chips, ids.onion]]);
     await pool.query('DELETE FROM categories WHERE id = ?', [ids.category]);
     await pool.query('DELETE FROM dashboard_sections WHERE slug = ?', [slug]);
+    // Admin writes leave a trailing catalog.updated emit pending.
+    require('../../src/utils/areaScope')._resetCachesForTests();
     await pool.end();
   });
 
