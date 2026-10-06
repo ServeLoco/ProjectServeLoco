@@ -175,6 +175,9 @@ const config = {
   // Customer notifications older than this many days are deleted for good,
   // nightly (services/notificationRetention.js).
   NOTIFICATION_RETENTION_DAYS: Number(process.env.NOTIFICATION_RETENTION_DAYS) || 5,
+  // Minutes after delivery before the one "How was your food?" push
+  // (services/ratingPrompts.js). Set low (e.g. 1) only for local testing.
+  RATING_PROMPT_DELAY_MINUTES: Number(process.env.RATING_PROMPT_DELAY_MINUTES) || 30,
 };
 
 // Validation

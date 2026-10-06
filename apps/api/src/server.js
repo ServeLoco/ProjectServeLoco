@@ -12,6 +12,7 @@ const { startShopScheduleSweeper, stopShopScheduleSweeper } = require('./realtim
 const { startRollupScheduler, stopRollupScheduler } = require('./services/analytics/rollup');
 const { startSuggestionScheduler, stopSuggestionScheduler } = require('./services/suggestions/buildPairs');
 const { startNotificationRetentionScheduler, stopNotificationRetentionScheduler } = require('./services/notificationRetention');
+const { startRatingPromptScheduler, stopRatingPromptScheduler } = require('./services/ratingPrompts');
 
 const PORT = config.PORT;
 let server;
@@ -111,6 +112,8 @@ const startServer = async () => {
     startSuggestionScheduler();
     // Delete customer notifications older than 5 days — nightly at 03:30.
     startNotificationRetentionScheduler();
+    // "How was your food?" push, 30 min after delivery — polled every 5 min.
+    startRatingPromptScheduler();
     // Auto-accept any orders that were Pending before this restart.
     orderAutoAccept.rehydratePendingOrders().catch(() => {});
     // Expire due rider offers and continue assignment chains after restarts.
@@ -147,6 +150,7 @@ const shutdown = async () => {
   stopRollupScheduler();
   stopSuggestionScheduler();
   stopNotificationRetentionScheduler();
+  stopRatingPromptScheduler();
   if (global.__purgeTimer) clearInterval(global.__purgeTimer);
   await closeRealtime();
 

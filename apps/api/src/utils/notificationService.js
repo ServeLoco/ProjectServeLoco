@@ -14,7 +14,7 @@ const firstQueryResult = (queryResult) => (
  * Device push for inbox rows. Uses the main pool (not a caller transaction)
  * so token lookup never rolls back with the outer TX.
  */
-const sendDevicePush = async (userId, { title, body, type, sourceType, sourceId, actionPayload, notificationId }) => {
+const sendDevicePush = async (userId, { title, body, type, sourceType, sourceId, actionType, actionPayload, notificationId }) => {
   const pushData = { type: type || 'info' };
   if (notificationId) {
     pushData.notificationId = String(notificationId);
@@ -28,6 +28,13 @@ const sendDevicePush = async (userId, { title, body, type, sourceType, sourceId,
   }
   if (actionPayload && (actionPayload.orderNumber || actionPayload.order_number)) {
     pushData.orderNumber = String(actionPayload.orderNumber || actionPayload.order_number);
+  }
+  // The "How was your food?" prompt opens the Orders page, not Order Detail,
+  // so the app needs to tell it apart. Only this action adds fields — every
+  // other push keeps exactly the data it always had.
+  if (actionType === 'rate_order') {
+    pushData.action = actionType;
+    if (actionPayload?.orderDate) pushData.orderDate = String(actionPayload.orderDate);
   }
 
   // Await so admin status updates actually finish the Expo HTTP call (and
@@ -73,7 +80,7 @@ const createNotification = async ({
     // call) already pushed once for this row; re-pushing is the duplicate-
     // notification bug, not a safety net.
     if (result?.affectedRows > 0) {
-      await sendDevicePush(userId, { title, body, type, sourceType, sourceId, actionPayload, notificationId: result.insertId });
+      await sendDevicePush(userId, { title, body, type, sourceType, sourceId, actionType, actionPayload, notificationId: result.insertId });
     }
 
     return result;
@@ -82,7 +89,7 @@ const createNotification = async ({
     // Still attempt device push — inbox insert failed but the user should
     // still hear about order status changes when the app is closed.
     try {
-      await sendDevicePush(userId, { title, body, type, sourceType, sourceId, actionPayload });
+      await sendDevicePush(userId, { title, body, type, sourceType, sourceId, actionType, actionPayload });
     } catch (_) { /* already logged */ }
     return null;
   }
