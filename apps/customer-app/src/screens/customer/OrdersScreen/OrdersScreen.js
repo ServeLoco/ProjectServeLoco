@@ -10,8 +10,9 @@ import {
   RefreshControl,
   Alert,
   ActivityIndicator,
+  AppState,
 } from 'react-native';
-import { useNavigation, useIsFocused } from '@react-navigation/native';
+import { useNavigation, useIsFocused, useRoute } from '@react-navigation/native';
 import {
   AppScreen,
   AppHeader,
@@ -21,7 +22,9 @@ import {
   EmptyState,
   ErrorState,
   DayHistoryPicker,
+  StarRating,
 } from '../../../components';
+import { showToast } from '../../../components/Toast';
 import { colors, typography, spacing, radius, shadows, layout } from '../../../theme';
 import { ordersApi, subscribeOrderEvents, subscribeRealtimeLifecycle } from '../../../api';
 import { asArray, normalizeOrder } from '../../../utils';
@@ -42,6 +45,27 @@ const ORDER_TABS = [
 const DONE_STATUSES = ['Delivered', 'Cancelled'];
 // Item lines shown on a card before folding the rest into "+N more".
 const MAX_PREVIEW_ITEMS = 3;
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+// How long the card a "Rate your food" notification opened stays outlined.
+const RATE_HIGHLIGHT_MS = 6000;
+
+// One Orders-page visit. A rating can be changed only during the visit that
+// saved it: the id goes to the server with every rating, and `rated` holds
+// the items rated in this visit (still editable here). A new visit starts on
+// every focus and when the app goes to the background, which locks them.
+const newRatingVisit = () => ({
+  id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`,
+  rated: new Set(),
+});
+
+const setItemRating = (orders, orderId, itemId, stars) => orders.map((o) => (
+  String(o.id) !== String(orderId) ? o : {
+    ...o,
+    items_preview: (o.items_preview || []).map((it) => (
+      String(it.id) !== String(itemId) ? it : { ...it, myRating: stars, my_rating: stars }
+    )),
+  }
+));
 const STATUS_CODE_LABELS = {
   0: 'Pending',
   1: 'Accepted',
@@ -266,7 +290,12 @@ const FadeInItem = ({ children, index, status, glowColor = colors.primary }) => 
 
 export default function OrdersScreen() {
   const navigation = useNavigation();
+  const route = useRoute();
   const isFocused = useIsFocused();
+  // Set by the "How was your food?" notification: open this order on the
+  // Delivered tab of the day it was placed.
+  const rateOrderId = route.params?.rateOrderId;
+  const rateDate = route.params?.date;
 
   const [activeFilter, setActiveFilter] = useState('Live');
   const [orders, setOrders] = useState([]);
@@ -290,6 +319,16 @@ export default function OrdersScreen() {
   // then picks the tab — Live if any order is still in progress, else
   // Delivered. Realtime refreshes and the user's own tab taps don't re-pick.
   const autoPickTab = useRef(true);
+  // While true, the auto-pick lands on Delivered (a rating notification
+  // opened this page). Cleared on blur and on a manual tab tap.
+  const forceDelivered = useRef(false);
+  const [highlightOrderId, setHighlightOrderId] = useState(null);
+  const listRef = useRef(null);
+
+  const [ratingVisit, setRatingVisit] = useState(newRatingVisit);
+  // Ratings for one item are sent one after another, so a quick 5 -> 3
+  // change can never reach the server in the wrong order.
+  const ratingQueue = useRef(new Map());
 
   const fetchOrders = useCallback((refresh = false) => {
     const isLoadMore = !refresh && pagination.offset > 0;
@@ -331,7 +370,7 @@ export default function OrdersScreen() {
         if (refresh && autoPickTab.current) {
           autoPickTab.current = false;
           const hasLive = fetched.some(o => !DONE_STATUSES.includes(formatStatus(o.status)));
-          setActiveFilter(hasLive ? 'Live' : 'Delivered');
+          setActiveFilter(hasLive && !forceDelivered.current ? 'Live' : 'Delivered');
         }
       })
       .catch((err) => {
@@ -395,6 +434,67 @@ export default function OrdersScreen() {
       fetchOrders(true);
     }
   }, [isFocused, selectedDate]); // Re-fetch on focus, or when browsing a different day
+
+  // Each focus is a new visit (ratings from earlier visits are locked);
+  // leaving the page drops the notification's tab/highlight override.
+  useEffect(() => {
+    if (isFocused) {
+      setRatingVisit(newRatingVisit());
+    } else {
+      forceDelivered.current = false;
+      setHighlightOrderId(null);
+    }
+  }, [isFocused]);
+
+  // Sending the app to the background (or closing it) ends the visit too.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'background') setRatingVisit(newRatingVisit());
+    });
+    return () => sub.remove();
+  }, []);
+
+  // Opened from a "How was your food?" notification.
+  useEffect(() => {
+    if (!rateOrderId) return;
+    forceDelivered.current = true;
+    setActiveFilter('Delivered');
+    setHighlightOrderId(String(rateOrderId));
+    if (rateDate && ISO_DATE.test(rateDate)) setSelectedDate(rateDate);
+    navigation.setParams({ rateOrderId: undefined, date: undefined });
+  }, [rateOrderId, rateDate]);
+
+  useEffect(() => {
+    if (!highlightOrderId) return undefined;
+    const timer = setTimeout(() => setHighlightOrderId(null), RATE_HIGHLIGHT_MS);
+    return () => clearTimeout(timer);
+  }, [highlightOrderId]);
+
+  const handleRateItem = useCallback((orderId, item, stars) => {
+    const itemKey = String(item.id);
+    const visit = ratingVisit;
+    const before = item.myRating ?? null;
+    visit.rated.add(itemKey);
+    setOrders(prev => setItemRating(prev, orderId, item.id, stars));
+
+    const previous = ratingQueue.current.get(itemKey) || Promise.resolve();
+    const request = previous
+      .then(() => ordersApi.rateItem(orderId, item.id, stars, visit.id))
+      .catch((err) => {
+        if (err?.code === 'RATING_LOCKED') {
+          // Saved in an earlier visit: show what is saved, read-only.
+          // ApiError.response is the JSON body.
+          const saved = err.response?.data?.stars ?? before;
+          visit.rated.delete(itemKey);
+          setOrders(prev => setItemRating(prev, orderId, item.id, saved));
+          return;
+        }
+        if (before == null) visit.rated.delete(itemKey);
+        setOrders(prev => setItemRating(prev, orderId, item.id, before));
+        showToast('Could not save your rating. Please try again.', { type: 'error' });
+      });
+    ratingQueue.current.set(itemKey, request);
+  }, [ratingVisit]);
 
   useEffect(() => {
     const unsubscribeOrders = subscribeOrderEvents(({ eventName, payload }) => {
@@ -483,6 +583,24 @@ export default function OrdersScreen() {
     })
   ), [orders, activeFilter]);
 
+  // The FlatList only re-renders rows when `data` changes; the star lock and
+  // the highlight live outside it.
+  const listExtraData = useMemo(
+    () => ({ ratingVisit, highlightOrderId }),
+    [ratingVisit, highlightOrderId],
+  );
+
+  // Bring the notification's order into view once it is loaded.
+  useEffect(() => {
+    if (!highlightOrderId || isLoading) return undefined;
+    const index = displayOrders.findIndex((o) => String(o.id) === highlightOrderId);
+    if (index <= 0) return undefined;
+    const timer = setTimeout(() => {
+      listRef.current?.scrollToIndex?.({ index, viewPosition: 0.1, animated: true });
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [highlightOrderId, isLoading, displayOrders]);
+
   const renderItem = ({ item, index }) => {
     const statusLabel = formatStatus(item.status);
     const displayStatus = STATUS_DISPLAY_LABELS[statusLabel] || statusLabel;
@@ -491,10 +609,17 @@ export default function OrdersScreen() {
     const visual = getStatusVisual(statusLabel);
     const isCancelled = statusLabel === 'Cancelled';
     const activeStep = visual.step;
+    // Delivered cards list every item with 5 stars. Needs each line's id,
+    // which an older API build does not send — then the card stays as before.
+    const canRate = statusLabel === 'Delivered'
+      && previewItems.length > 0
+      && previewItems.every((it) => it.id != null);
+    const hasUnrated = canRate && previewItems.some((it) => it.myRating == null);
+    const isHighlighted = highlightOrderId === String(item.id);
 
     return (
     <FadeInItem index={index} status={statusLabel} glowColor={visual.colorAlt}>
-      <View style={styles.card}>
+      <View style={[styles.card, isHighlighted && styles.cardHighlighted]}>
 
         {/* ── Header: order id + date, status pill ── */}
         <View style={styles.cardHeader}>
@@ -573,7 +698,27 @@ export default function OrdersScreen() {
             </View>
           )}
 
-          {/* Items in the order */}
+          {/* Items in the order — with stars once delivered */}
+          {canRate ? (
+            <View style={styles.itemsList}>
+              <Text style={styles.rateTitle}>
+                {hasUnrated ? 'Rate your food' : 'Your ratings'}
+              </Text>
+              {previewItems.map((it) => (
+                <View key={String(it.id)} style={styles.rateRow}>
+                  <Text style={[styles.itemLine, styles.rateItemName]} numberOfLines={1}>
+                    <Text style={styles.itemQty}>{it.quantity} × </Text>
+                    {it.name}{it.variant_label ? ` (${it.variant_label})` : ''}
+                  </Text>
+                  <StarRating
+                    value={it.myRating}
+                    onChange={(stars) => handleRateItem(item.id, it, stars)}
+                    disabled={it.myRating != null && !ratingVisit.rated.has(String(it.id))}
+                  />
+                </View>
+              ))}
+            </View>
+          ) : (
           <View style={styles.itemsList}>
             {previewItems.slice(0, MAX_PREVIEW_ITEMS).map((it, ii) => (
               <Text key={`${it.name}-${ii}`} style={styles.itemLine} numberOfLines={1}>
@@ -590,6 +735,7 @@ export default function OrdersScreen() {
               </Text>
             )}
           </View>
+          )}
 
           {/* Bottom row: price + actions */}
           <View style={styles.cardRowBottom}>
@@ -709,6 +855,7 @@ export default function OrdersScreen() {
                 onPress={() => {
                   LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                   autoPickTab.current = false;
+                  forceDelivered.current = false;
                   setActiveFilter(tab.value);
                 }}
                 activeOpacity={0.8}
@@ -735,7 +882,9 @@ export default function OrdersScreen() {
           renderEmptyState()
         ) : (
           <Animated.FlatList
+            ref={listRef}
             data={displayOrders}
+            extraData={listExtraData}
             keyExtractor={item => item.id}
             renderItem={renderItem}
             contentContainerStyle={styles.flatListContent}
@@ -747,6 +896,13 @@ export default function OrdersScreen() {
             initialNumToRender={6}
             maxToRenderPerBatch={6}
             windowSize={7}
+            onScrollToIndexFailed={({ index }) => {
+              // Row not measured yet — jump near it, then aim again.
+              listRef.current?.scrollToOffset?.({ offset: index * 260, animated: false });
+              setTimeout(() => {
+                listRef.current?.scrollToIndex?.({ index, viewPosition: 0.1, animated: true });
+              }, 250);
+            }}
             onEndReached={handleLoadMore}
             onEndReachedThreshold={0.5}
             ListFooterComponent={renderFooter}
@@ -877,6 +1033,10 @@ const styles = StyleSheet.create({
     borderColor: LINE,
     overflow: 'hidden',
     ...shadows.sm,
+  },
+  cardHighlighted: {
+    borderWidth: 2,
+    borderColor: colors.saffron,
   },
 
   /* Header */
@@ -1018,6 +1178,24 @@ const styles = StyleSheet.create({
   itemQty: {
     fontWeight: '800',
     color: colors.textPrimary,
+  },
+  rateTitle: {
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+    marginBottom: 2,
+  },
+  rateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  rateItemName: {
+    flex: 1,
+    minWidth: 0,
   },
   itemMore: {
     fontSize: 11,

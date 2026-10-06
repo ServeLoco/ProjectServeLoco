@@ -21,6 +21,7 @@ export { default as ErrorState } from './ErrorState';
 export { default as LoadingSkeleton, SkeletonCard, SkeletonRow } from './LoadingSkeleton';
 export { default as ConfirmModal } from './ConfirmModal';
 export { default as DayHistoryPicker } from './DayHistoryPicker';
+export { default as StarRating } from './StarRating';
 export { default as AnimatedFadeSlide } from './AnimatedFadeSlide';
 export { default as StaggeredList } from './StaggeredList';
 export { default as PressableScale } from './PressableScale';

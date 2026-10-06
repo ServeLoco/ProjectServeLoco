@@ -415,6 +415,23 @@ function parseActionPayload(value) {
   }
 }
 
+// The "How was your food?" prompt (API services/ratingPrompts.js). It opens
+// the Orders page with stars, not Order Detail.
+export const RATE_ORDER_ACTION = 'rate_order';
+
+/**
+ * Extra local-notification data for a rating prompt, so a tap on the
+ * socket / catch-up banner routes like the remote push does. Empty for
+ * every other notification.
+ */
+function rateActionData(payload) {
+  const actionType = payload?.actionType ?? payload?.action_type;
+  if (actionType !== RATE_ORDER_ACTION) return {};
+  const actionPayload = parseActionPayload(payload?.actionPayload ?? payload?.action_payload);
+  const orderDate = actionPayload?.orderDate || actionPayload?.order_date;
+  return { action: RATE_ORDER_ACTION, ...(orderDate ? { orderDate: String(orderDate) } : {}) };
+}
+
 function extractOrderId(payload) {
   const actionPayload = parseActionPayload(
     payload?.actionPayload ?? payload?.action_payload,
@@ -538,7 +555,7 @@ async function catchUpMissedOrderNotifications() {
           title: n.title || 'VillKro',
           body: n.body || n.message || '',
           sound: 'default',
-          data: orderId ? { orderId: String(orderId) } : {},
+          data: orderId ? { orderId: String(orderId), ...rateActionData(n) } : {},
         },
         trigger: Platform.OS === 'android'
           ? { channelId: ORDER_NOTIFICATION_CHANNEL_ID }
@@ -600,8 +617,9 @@ function navigateWhenRouteExists(navigationRef, routeName, params) {
 
 /**
  * Navigate from a notification tap (foreground, background, or cold start).
+ * Exported for tests.
  */
-function navigateFromNotificationData(data, navigationRef) {
+export function navigateFromNotificationData(data, navigationRef) {
   if (!data || typeof data !== 'object') return;
 
   // Shop-owner order notification → Dashboard tab (new-order popup lives there).
@@ -646,6 +664,15 @@ function navigateFromNotificationData(data, navigationRef) {
 
   const orderId = data.orderId;
   if (!orderId) return;
+
+  // "How was your food?" → Orders page, Delivered tab, that order's day.
+  if (data.action === RATE_ORDER_ACTION) {
+    navigateWhenRouteExists(navigationRef, 'MainTabs', {
+      screen: 'Orders',
+      params: { rateOrderId: String(orderId), date: data.orderDate },
+    });
+    return;
+  }
 
   navigateWhenRouteExists(navigationRef, 'OrderDetail', { orderId });
 }
@@ -760,7 +787,7 @@ export function useLocalNotifications(navigationRef) {
           title,
           body,
           sound: 'default',
-          data: { orderId },
+          data: { orderId, ...(orderId ? rateActionData(payload) : {}) },
           // Show "View Order" action button in the expanded notification
           // when the notification relates to an order.
           ...(orderId ? { categoryIdentifier: 'order_update' } : {}),

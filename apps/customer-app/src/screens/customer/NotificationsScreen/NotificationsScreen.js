@@ -352,6 +352,15 @@ export default function NotificationsScreen({ navigation }) {
       ));
       notificationsApi.markRead(n.id).catch(() => {});
     }
+    // "How was your food?" opens the Orders page with stars for that order.
+    if (n.actionType === 'rate_order') {
+      const payload = parseActionPayload(n.actionPayload);
+      navigation.navigate('MainTabs', {
+        screen: 'Orders',
+        params: { rateOrderId: orderId, date: payload?.orderDate },
+      });
+      return;
+    }
     navigation.navigate('OrderDetail', { orderId });
   }, [navigation]);
 
