@@ -1,6 +1,6 @@
 const express = require('express');
 const multer = require('multer');
-const { login, me, revokeSessions, getAdminCustomers, getAdminCustomerById, setBlockStatus, setTrustStatus, getDashboard, getSalesReport, getTopProductsReport, getCustomersReport, getShopsReport, getProfitSummary, getProfitOrders, getAdminOrders, getAdminOrderById, updateOrderStatus, updateOrderPayment, updateOrderRemark, replaceOrderItem, extendAutoAccept, adminCalculateOrder, adminCreateOrder, getAdminNotifications, createAdminNotification, getAdminNotificationById, deleteAdminNotification, getInbox, getInboxUnreadCount, markInboxRead, markAllInboxRead, dismissInbox } = require('../controllers/adminController');
+const { login, me, revokeSessions, getAdminCustomers, getAdminCustomerById, setBlockStatus, setTrustStatus, getDashboard, getSalesReport, getTopProductsReport, getFoodRatingsReport, getCustomersReport, getShopsReport, getProfitSummary, getProfitOrders, getAdminOrders, getAdminOrderById, updateOrderStatus, updateOrderPayment, updateOrderRemark, replaceOrderItem, extendAutoAccept, adminCalculateOrder, adminCreateOrder, getAdminNotifications, createAdminNotification, getAdminNotificationById, deleteAdminNotification, getInbox, getInboxUnreadCount, markInboxRead, markAllInboxRead, dismissInbox } = require('../controllers/adminController');
 const { createOrderSchema, expressValidatorChecks: orderExpressValidatorChecks, validateExpress: validateOrderExpress } = require('./orderRoutes');
 const { getAdminSettings, updateSettings, getActiveOffer, createOffer, updateOffer, getAdminOffers, deleteOffer, getOfferProducts, addOfferProduct, removeOfferProduct, reorderOfferProducts } = require('../controllers/settingsController');
 const { listZones, createZone, updateZone, deleteZone } = require('../controllers/deliveryZonesController');
@@ -935,6 +935,7 @@ router.get('/reports/sales', requireAdmin, asyncHandler(getSalesReport));
 router.get('/reports/customers', requireAdmin, asyncHandler(getCustomersReport));
 router.get('/reports/shops', requireAdmin, asyncHandler(getShopsReport));
 router.get('/reports/top-products', requireAdmin, asyncHandler(getTopProductsReport));
+router.get('/reports/ratings', requireAdmin, asyncHandler(getFoodRatingsReport));
 router.get('/reports/profit/summary', requireAdmin, asyncHandler(getProfitSummary));
 router.get('/reports/profit/orders', requireAdmin, asyncHandler(getProfitOrders));
 

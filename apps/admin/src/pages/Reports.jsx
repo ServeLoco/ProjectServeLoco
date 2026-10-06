@@ -97,6 +97,7 @@ export default function Reports() {
   const [overviewPeriod, setOverviewPeriod] = useState('today'); // today, week, month, all
   const [salesData, setSalesData] = useState(null);
   const [topProducts, setTopProducts] = useState([]);
+  const [foodRatings, setFoodRatings] = useState([]);
   const [customerData, setCustomerData] = useState(null);
   const [shopsData, setShopsData] = useState([]);
   const [overviewLoading, setOverviewLoading] = useState(false);
@@ -110,11 +111,12 @@ export default function Reports() {
       setOverviewError(null);
       const params = { period: overviewPeriodRef.current };
 
-      const [salesRes, productsRes, custRes, shopsRes] = await Promise.all([
+      const [salesRes, productsRes, custRes, shopsRes, ratingsRes] = await Promise.all([
         ReportsApi.getSales(params).catch(() => ({ data: {} })),
         ReportsApi.getTopProducts(params).catch(() => ({ data: [] })),
         ReportsApi.getCustomers(params).catch(() => ({ data: {} })),
         ReportsApi.getShops(params).catch(() => ({ data: [] })),
+        ReportsApi.getFoodRatings(params).catch(() => ({ data: [] })),
       ]);
 
       const rawSales = salesRes.data || salesRes || {};
@@ -133,6 +135,7 @@ export default function Reports() {
         payment_status: rawSales.payment_status || {},
       });
       setTopProducts(productsRes.data || []);
+      setFoodRatings(ratingsRes.data || []);
       const rawCustomers = custRes.data || {};
       setCustomerData({
         ...rawCustomers,
@@ -750,6 +753,36 @@ export default function Reports() {
                           </span>
                           <span className="top-items-units">{p.total_quantity}</span>
                           <span className="top-items-price">₹{p.total_sales}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="report-section">
+                  <h3 className="report-section-title">Food Ratings</h3>
+                  {foodRatings.length === 0 ? (
+                    <p style={{ color: 'var(--text-secondary)' }}>No ratings for this period.</p>
+                  ) : (
+                    <div className="top-items-table">
+                      <div className="top-items-row food-ratings-row top-items-head">
+                        <span>Item (lowest first)</span>
+                        <span>Avg ★</span>
+                        <span>Ratings</span>
+                        <span>1–2 ★</span>
+                      </div>
+                      {foodRatings.map((r) => (
+                        <div key={`${r.area_id ?? ''}-${r.product_id}-${r.item_type}`} className="top-items-row food-ratings-row">
+                          <span className="top-items-name">
+                            {r.product_name}
+                            {r.item_type === 'combo' && <span className="top-items-combo-tag">Combo</span>}
+                            {r.area_code && <span className="top-items-combo-tag">{r.area_code}</span>}
+                          </span>
+                          <span className={`food-ratings-avg${r.avg_stars < 3 ? ' food-ratings-avg-low' : ''}`}>
+                            {Number(r.avg_stars).toFixed(1)} ★
+                          </span>
+                          <span className="top-items-units">{r.ratings_count}</span>
+                          <span className="top-items-units">{r.low_ratings}</span>
                         </div>
                       ))}
                     </div>

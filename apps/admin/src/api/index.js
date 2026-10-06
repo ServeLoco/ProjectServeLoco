@@ -224,6 +224,7 @@ export const ReportsApi = {
   getSales: (params) => apiClient(withQuery('/admin/reports/sales', params), { method: 'GET' }),
   getCustomers: (params) => apiClient(withQuery('/admin/reports/customers', params), { method: 'GET' }),
   getTopProducts: (params) => apiClient(withQuery('/admin/reports/top-products', params), { method: 'GET' }),
+  getFoodRatings: (params) => apiClient(withQuery('/admin/reports/ratings', params), { method: 'GET' }),
   getShops: (params) => apiClient(withQuery('/admin/reports/shops', params), { method: 'GET' }),
   getProfitSummary: (params) => apiClient(withQuery('/admin/reports/profit/summary', params), { method: 'GET' }),
   getProfitOrders: (params) => apiClient(withQuery('/admin/reports/profit/orders', params), { method: 'GET' }),

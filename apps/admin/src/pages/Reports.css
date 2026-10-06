@@ -674,6 +674,22 @@
   white-space: nowrap;
 }
 
+.food-ratings-row {
+  grid-template-columns: minmax(0, 1fr) 70px 64px 56px;
+}
+
+.food-ratings-avg {
+  text-align: right;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.food-ratings-avg-low {
+  color: var(--danger-color);
+}
+
 .top-items-combo-tag {
   margin-left: 0.5rem;
   font-size: 0.7rem;

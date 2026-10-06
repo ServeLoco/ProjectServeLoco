@@ -754,6 +754,71 @@ const getTopProductsReport = async (req, res) => {
   res.status(200).json({ data });
 };
 
+// Food ratings (order_item_ratings) per item, lowest average first so the
+// food customers liked least sits on top. Same period and area rules as
+// getTopProductsReport; the period is when the rating was given.
+const getFoodRatingsReport = async (req, res) => {
+  const areaId = resolveAreaOrAll(req, res);
+  if (areaId === undefined) return;
+  const { period } = req.query;
+  const allowedPeriods = ['today', 'week', 'month', 'all'];
+  if (period && !allowedPeriods.includes(period)) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid period parameter' });
+  }
+
+  let dateFilter = '1=1';
+  if (period === 'today') {
+    dateFilter = istIsToday('r.created_at');
+  } else if (period === 'week') {
+    dateFilter = istIsThisWeek('r.created_at');
+  } else if (period === 'month') {
+    dateFilter = istIsThisMonth('r.created_at');
+  }
+
+  const areaParams = [];
+  let groupBy = 'r.item_type, r.product_id';
+  if (areaId === 'all') {
+    groupBy = 'r.area_id, ' + groupBy;
+  } else {
+    dateFilter += ' AND r.area_id = ?';
+    areaParams.push(areaId);
+  }
+
+  const [rows] = await pool.query(`
+    SELECT ${areaId === 'all' ? 'r.area_id,' : ''} r.item_type, r.product_id,
+           MAX(oi.product_name) AS product_name,
+           ROUND(AVG(r.stars), 1) AS avg_stars,
+           COUNT(*) AS ratings_count,
+           SUM(r.stars <= 2) AS low_ratings
+    FROM order_item_ratings r
+    JOIN order_items oi ON oi.id = r.order_item_id
+    WHERE ${dateFilter}
+    GROUP BY ${groupBy}
+    ORDER BY avg_stars ASC, ratings_count DESC
+    LIMIT 200
+  `, areaParams);
+
+  const shaped = rows.map((row) => {
+    const avgStars = Number(row.avg_stars);
+    const ratingsCount = Number(row.ratings_count);
+    const lowRatings = Number(row.low_ratings);
+    return {
+      ...row,
+      itemType: row.item_type,
+      productId: row.product_id,
+      productName: row.product_name,
+      avgStars,
+      avg_stars: avgStars,
+      ratingsCount,
+      ratings_count: ratingsCount,
+      lowRatings,
+      low_ratings: lowRatings,
+    };
+  });
+  const data = areaId === 'all' ? await withAreaCodes(shaped) : shaped;
+  res.status(200).json({ data });
+};
+
 // Deliberately NOT area-scoped: customers are a global identity (§2.2), not
 // owned by an area — the same reasoning TASK 13 applied to a customer's own
 // order history. total/trusted/blocked customer counts are platform-wide by
@@ -2564,6 +2629,7 @@ module.exports = {
   replaceOrderItem,
   getAdminCustomerById,
   getTopProductsReport,
+  getFoodRatingsReport,
   getCustomersReport,
   getShopsReport,
   getProfitSummary,
