@@ -7,9 +7,14 @@ import { radius } from '../../theme';
 import { useReducedMotion } from '../../utils/motionPreferences';
 
 /**
- * The rating box of a top-rated product (above 4.8): the rating sits in a
- * hot orange box and flames burn up out of its top edge, flickering, with a
+ * The rating box of a top-rated product (above 4.8) — design 10, "fire runs
+ * the edge": a dark box with the rating in warm gold, a band of fire racing
+ * round its border, and three flames burning up out of its top edge with a
  * couple of embers drifting up.
+ *
+ * The racing border is a fire gradient spinning behind a 1.5px window (the
+ * box's padding): RN has no conic gradient, and a spinning linear one sweeps
+ * the bright part round the edge the same way.
  *
  * One clock drives every chip on screen: a single native-driver loop runs
  * while at least one chip is mounted, so a screen full of cards costs one
@@ -123,6 +128,27 @@ const Ember = React.memo(function Ember({ ember }) {
   return <Animated.View style={[styles.ember, { left: `${ember.left}%` }, motion]} />;
 });
 
+const GOLD = '#FFD24A';
+const RING_COLORS = ['#3A0A03', '#C81E0A', '#FF6A12', '#FFD24A', '#FF6A12', '#3A0A03'];
+const RING_LOCATIONS = [0, 0.25, 0.42, 0.5, 0.58, 1];
+
+const BorderFire = React.memo(function BorderFire({ still }) {
+  const spin = useMemo(() => (still ? null : {
+    transform: [{ rotate: fireClock.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }],
+  }), [still]);
+  return (
+    <Animated.View pointerEvents="none" style={[styles.ringSpinner, spin]}>
+      <LinearGradient
+        colors={RING_COLORS}
+        locations={RING_LOCATIONS}
+        start={{ x: 0, y: 0.5 }}
+        end={{ x: 1, y: 0.5 }}
+        style={StyleSheet.absoluteFillObject}
+      />
+    </Animated.View>
+  );
+});
+
 function FireRatingChip({ rating, compact = false }) {
   const reducedMotion = useReducedMotion();
   const still = reducedMotion;
@@ -149,16 +175,12 @@ function FireRatingChip({ rating, compact = false }) {
         {still ? null : EMBERS.map((ember) => <Ember key={ember.left} ember={ember} />)}
       </View>
 
-      <View style={[styles.chip, compact && styles.chipCompact]}>
-        <LinearGradient
-          colors={['#FFB547', '#FF6A1A', '#D9230F']}
-          locations={[0, 0.5, 1]}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          style={StyleSheet.absoluteFillObject}
-        />
-        <AppIcon name="star" size={compact ? 9 : 10} color="#FFFFFF" fill="#FFFFFF" strokeWidth={2} />
-        <Text style={[styles.text, compact && styles.textCompact]}>{label}</Text>
+      <View style={styles.ring}>
+        <BorderFire still={still} />
+        <View style={[styles.chip, compact && styles.chipCompact]}>
+          <AppIcon name="star" size={compact ? 9 : 10} color={GOLD} fill={GOLD} strokeWidth={2} />
+          <Text style={[styles.text, compact && styles.textCompact]}>{label}</Text>
+        </View>
       </View>
     </View>
   );
@@ -193,6 +215,27 @@ const styles = StyleSheet.create({
     borderRadius: 1.5,
     backgroundColor: '#FFD180',
   },
+  // The 1.5px padding is the window the spinning fire shows through.
+  ring: {
+    borderRadius: radius.pill,
+    padding: 1.5,
+    overflow: 'hidden',
+    backgroundColor: '#3A0A03',
+    shadowColor: '#FF5A1F',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  ringSpinner: {
+    position: 'absolute',
+    left: '50%',
+    top: '50%',
+    width: 90,
+    height: 90,
+    marginLeft: -45,
+    marginTop: -45,
+  },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -200,15 +243,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: radius.pill,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255,226,170,0.9)',
-    backgroundColor: '#E8410F',
-    shadowColor: '#FF5A1F',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.55,
-    shadowRadius: 6,
-    elevation: 4,
+    backgroundColor: '#2A120A',
   },
   chipCompact: {
     paddingHorizontal: 7,
@@ -216,13 +251,10 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   text: {
-    color: '#FFFFFF',
+    color: '#FFD9A8',
     fontSize: 11,
     fontWeight: '900',
     letterSpacing: 0.2,
-    textShadowColor: 'rgba(120,20,0,0.6)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
   },
   textCompact: {
     fontSize: 10,
