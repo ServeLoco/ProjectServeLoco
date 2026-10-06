@@ -39,14 +39,15 @@ const SCAN_DIRS = ['controllers', 'services', 'utils'].map((d) => path.join(__di
 // column to (TASK 3). Child/junction tables (coupon_zones, order_items'
 // siblings like rider_order_offers, product_variants, combo_items, etc.)
 // are deliberately NOT here unless they themselves carry area_id.
-// coupon_deal_items / offer_cards / offer_card_products are created with
-// area_id NOT NULL directly (end of migrate.js), so they are here too.
+// coupon_deal_items / offer_cards / offer_card_products / order_item_ratings
+// are created with area_id NOT NULL directly (end of migrate.js), so they
+// are here too.
 const SCOPED_TABLES = [
   'shops', 'riders', 'mobile_admins', 'delivery_zones', 'delivery_exclusion_zones',
   'settings', 'orders', 'order_items', 'coupons', 'offers',
   'dashboard_sections', 'dashboard_section_items', 'categories', 'products', 'combos',
   'product_groups', 'store_modes', 'admin_notifications', 'notification_batches',
-  'coupon_deal_items', 'offer_cards', 'offer_card_products',
+  'coupon_deal_items', 'offer_cards', 'offer_card_products', 'order_item_ratings',
 ];
 
 // Tables where EVERY current .query() site has been verified to carry an
@@ -59,6 +60,7 @@ const SWEPT_TABLES = [
   'coupon_deal_items', // deal price coupons: created area-scoped from day one
   'offer_cards', // Home offer cards: created area-scoped from day one
   'offer_card_products', // "Deals of the day" card products: area-scoped from day one
+  'order_item_ratings', // food ratings: created area-scoped from day one
   // categories/products/combos/store_modes/product_groups are NOT here yet
   // even though TASK 11 fully scoped its own file list — cartController.js,
   // orderController.js, dashboardController.js, analyticsController.js and

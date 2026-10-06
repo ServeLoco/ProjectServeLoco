@@ -2771,6 +2771,38 @@ const migrate = async () => {
     await ensureColumnAtEnd('order_items', 'deal_qty', 'deal_qty INT NOT NULL DEFAULT 0');
     logger.info('Deal price coupons and offer cards ready.');
 
+    // ---------------------------------------------------------
+    // FOOD RATINGS
+    // A customer's 1-5 stars for one line of a Delivered order. A new table
+    // only: order_items/orders are referenced, never altered. area_id is
+    // copied from order_items so ratings stay area-scoped (§2.8).
+    // edit_session is the Orders-page visit that saved the rating; only that
+    // same visit may change it, so a rating locks once the customer leaves
+    // the page or closes the app (controllers/ratingController.js).
+    // ---------------------------------------------------------
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS order_item_ratings (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        area_id INT NOT NULL,
+        order_id INT NOT NULL,
+        order_item_id INT NOT NULL,
+        customer_id INT NOT NULL,
+        item_type VARCHAR(20) NOT NULL DEFAULT 'product',
+        product_id INT NULL,
+        stars TINYINT UNSIGNED NOT NULL,
+        edit_session VARCHAR(64) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_order_item_rating (order_item_id),
+        INDEX idx_order_item_ratings_area_product (area_id, item_type, product_id),
+        INDEX idx_order_item_ratings_order (order_id),
+        CONSTRAINT chk_order_item_ratings_stars CHECK (stars BETWEEN 1 AND 5),
+        CONSTRAINT fk_order_item_ratings_area FOREIGN KEY (area_id) REFERENCES areas(id) ON DELETE RESTRICT,
+        CONSTRAINT fk_order_item_ratings_item FOREIGN KEY (order_item_id) REFERENCES order_items(id) ON DELETE CASCADE
+      );
+    `);
+    logger.info('Food ratings table ready.');
+
     logger.info('Migration and seeding completed successfully!');
   } catch (error) {
     logger.error('Migration failed:', error);
