@@ -8,7 +8,8 @@ const { createTtlCache } = require('./ttlCache');
  *
  *  - Every delivered order line of the product counts. A line the customer
  *    never rated counts as 5 stars: 400 orders with two 1-star ratings is
- *    (398 x 5 + 1 + 1) / 400 = 4.98.
+ *    (398 x 5 + 1 + 1) / 400 = 4.98. A line its shop rejected (or never
+ *    accepted after a resend) was not delivered, so it does not count.
  *  - The shown rating never goes below RATING_FLOOR (3.5).
  *  - Above FIRE_ABOVE (4.8, compared on the rounded value the card shows)
  *    the card adds a fire badge.
@@ -40,6 +41,7 @@ const loadAreaProductRatings = async (areaId) => {
        JOIN order_items oi ON oi.order_id = o.id
        LEFT JOIN order_item_ratings r ON r.order_item_id = oi.id AND r.area_id = oi.area_id
       WHERE o.area_id = ? AND o.status = 'Delivered'
+        AND oi.shop_rejected_at IS NULL AND oi.shop_billable = 1
       GROUP BY oi.item_type, oi.product_id`,
     [areaId]
   );

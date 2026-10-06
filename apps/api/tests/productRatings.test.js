@@ -87,6 +87,8 @@ describe('GET /api/products/ratings', () => {
     const [sql, params] = pool.query.mock.calls[0];
     expect(sql).toMatch(/WHERE o\.area_id = \? AND o\.status = 'Delivered'/);
     expect(sql).toMatch(/LEFT JOIN order_item_ratings r ON r\.order_item_id = oi\.id AND r\.area_id = oi\.area_id/);
+    // Same lines as the admin Food Ratings report: a rejected or never-accepted line was not delivered.
+    expect(sql).toMatch(/AND oi\.shop_rejected_at IS NULL AND oi\.shop_billable = 1/);
     expect(params).toEqual([1]);
   });
 

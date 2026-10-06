@@ -2,13 +2,14 @@
 // decision or an aggregate that counts rejected sales.
 const { describeWithMysql, assertMysqlReady, pool, FIXTURE_TAG, createUser, createOrderRow, cleanupFixtures } = require('../helpers/realMysql');
 
-jest.mock('../../src/services/riderAssignment', () => ({ maybeStartRiderAssignment: jest.fn().mockResolvedValue({ started: false }) }));
+jest.mock('../../src/services/riderAssignment', () => ({ maybeStartRiderAssignment: jest.fn().mockResolvedValue({ started: false }), revokeOffersForOrder: jest.fn().mockResolvedValue(null) }));
 jest.mock('../../src/utils/shops', () => ({ ...jest.requireActual('../../src/utils/shops'), maybeAutoCancelOrderWhenAllShopsRejected: jest.fn().mockResolvedValue(null) }));
 jest.mock('../../src/realtime/socket', () => ({ emitToAdmins: jest.fn(), emitToCustomer: jest.fn() }));
 jest.mock('../../src/realtime/orderEvents', () => ({ emitOrderStatusUpdated: jest.fn(), emitNotificationCreated: jest.fn() }));
 jest.mock('../../src/utils/notificationService', () => ({ createOrderNotification: jest.fn().mockResolvedValue(null) }));
 jest.mock('../../src/utils/adminNotifications', () => ({ TYPES: { SHOP_REJECTED: 'shop_rejected' }, createAdminNotification: jest.fn().mockResolvedValue(null) }));
-const { confirmShopOrder, rejectShopOrder, resendShopOrder } = require('../../src/services/shopOrderActions');
+const { confirmShopOrder, rejectShopOrder, resendShopOrder, listShopActiveOrders } = require('../../src/services/shopOrderActions');
+const { getShopPayableTotal, getShopPayableTotals } = require('../../src/utils/shops');
 const reports = require('../../src/controllers/adminController');
 const { saveOrderBilling } = require('../../src/services/orderBilling');
 
@@ -134,5 +135,46 @@ describeWithMysql('shop billing and reports (real MySQL)', () => {
     expect(Number((await bill(id)).total)).toBe(120);
     await confirmShopOrder(shops[1], id);
     expect(Number((await bill(id)).total)).toBe(170);
+  });
+
+  it('reopening an order every shop rejected restores the full bill and a fresh shop window', async () => {
+    const id = await newOrder();
+    // Shop B was resent once a day ago, then both shops rejected.
+    await rejectShopOrder(shops[1], id);
+    await resendShopOrder(shops[1], id);
+    await pool.query('UPDATE order_items SET shop_requested_at = NOW() - INTERVAL 1 DAY WHERE order_id = ? AND shop_id = ?', [id, shops[1]]);
+    await rejectShopOrder(shops[0], id);
+    await rejectShopOrder(shops[1], id);
+    expect(Number((await bill(id)).total)).toBe(0);
+    // maybeAutoCancelOrderWhenAllShopsRejected is mocked here; cancel as it would.
+    await pool.query("UPDATE orders SET status = 'Cancelled' WHERE id = ?", [id]);
+
+    const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+    await reports.updateOrderStatus({ params: { id: String(id) }, body: { status: 'Pending' }, areaId: 1, admin: { adminRole: 'area_admin', areaId: 1 } }, res);
+    expect(res.status).toHaveBeenCalledWith(200);
+
+    const reopened = await bill(id);
+    expect(reopened.status).toBe('Pending');
+    expect(Number(reopened.subtotal)).toBe(300);
+    expect(Number(reopened.delivery_charge)).toBe(20);
+    expect(Number(reopened.total)).toBe(320);
+    const [items] = await pool.query('SELECT shop_billable, shop_requested_at, shop_rejected_at FROM order_items WHERE order_id = ? ORDER BY id', [id]);
+    expect(items).toEqual([
+      { shop_billable: 1, shop_requested_at: null, shop_rejected_at: null },
+      { shop_billable: 1, shop_requested_at: null, shop_rejected_at: null },
+    ]);
+  });
+
+  it('a resent shop is shown the amount it is deciding on, though the customer is not charged yet', async () => {
+    const id = await newOrder();
+    await rejectShopOrder(shops[1], id);
+    await resendShopOrder(shops[1], id);
+    expect(Number((await bill(id)).total)).toBe(120);
+    const active = await listShopActiveOrders(shops[1]);
+    expect(active.find(o => o.id === id)).toMatchObject({ shopTotal: 140, rejected: false });
+    expect(await getShopPayableTotal(id, shops[1])).toBe('140');
+    expect((await getShopPayableTotals(id)).get(shops[1])).toBe('140');
+    await rejectShopOrder(shops[1], id);
+    expect(await getShopPayableTotal(id, shops[1])).toBe('');
   });
 });

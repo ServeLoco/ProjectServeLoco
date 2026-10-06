@@ -24,7 +24,9 @@ const getShopForUser = async (userId) => {
 // push so the owner's floating offer card can show the amount without the app
 // being awake to look it up. Unpriced items carry a NULL shop_line_total and
 // simply don't count yet; '' (not '0') when there is nothing to show, so the
-// card renders no amount rather than "₹0".
+// card renders no amount rather than "₹0". A resent shop's lines are not
+// billable until it accepts, but the alarm shows what it is deciding on, so
+// shop_billable is deliberately not filtered here.
 // Batch form of getShopPayableTotal: every shop on the order in ONE round trip.
 // notifyShopsForOrder used to run getShopPayableTotal per shop, serially, and
 // each of those is a full trip to the DB (which lives in another region in
@@ -40,7 +42,7 @@ const getShopPayableTotals = async (orderId) => {
     const [rows] = await pool.query(
       `SELECT shop_id, COALESCE(SUM(shop_line_total), 0) AS total
        FROM order_items
-       WHERE order_id = ? AND shop_id IS NOT NULL AND shop_rejected_at IS NULL AND shop_billable = 1
+       WHERE order_id = ? AND shop_id IS NOT NULL AND shop_rejected_at IS NULL
        GROUP BY shop_id`,
       [orderId]
     );
@@ -60,7 +62,7 @@ const getShopPayableTotal = async (orderId, shopId) => {
     const [rows] = await pool.query(
       `SELECT COALESCE(SUM(shop_line_total), 0) AS total
        FROM order_items
-       WHERE order_id = ? AND shop_id = ? AND shop_rejected_at IS NULL AND shop_billable = 1`,
+       WHERE order_id = ? AND shop_id = ? AND shop_rejected_at IS NULL`,
       [orderId, shopId]
     );
     const total = Number(rows[0]?.total) || 0;
@@ -644,6 +646,8 @@ const maybeAutoCancelOrderWhenAllShopsRejected = async (orderId) => {
 
 module.exports = {
   getShopForUser,
+  getShopPayableTotal,
+  getShopPayableTotals,
   notifyShopsForOrder,
   remindShopOrderOwner,
   resendPendingShopAlerts,

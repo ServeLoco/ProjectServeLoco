@@ -14,7 +14,7 @@ const realtimeEvents = require('../realtime/orderEvents');
 const logger = require('../utils/logger');
 const { shopAlerts: shopAlertGate } = require('../realtime/sweepGates');
 
-const { saveOrderBilling, isBillableItem } = require('./orderBilling');
+const { saveOrderBilling } = require('./orderBilling');
 const config = require('../config/env');
 
 const ACTIVE_ORDER_STATUSES = ['Accepted', 'Preparing'];
@@ -169,8 +169,10 @@ async function listShopActiveOrders(shopId) {
     // rejected don't count (they were never fulfilled). Sums only lines with
     // a configured shop price; unconfigured lines are silently excluded
     // rather than treated as free, same NULL-means-unset rule as the column.
+    // A resent shop's lines are not billable until it accepts, but this is
+    // the amount it is deciding on, so they count here.
     const shopTotal = myItems
-      .filter((it) => isBillableItem(it) && it.shop_line_total !== null && it.shop_line_total !== undefined)
+      .filter((it) => it.shop_rejected_at === null && it.shop_line_total !== null && it.shop_line_total !== undefined)
       .reduce((sum, it) => sum + Number(it.shop_line_total), 0);
     return {
       id: o.id,

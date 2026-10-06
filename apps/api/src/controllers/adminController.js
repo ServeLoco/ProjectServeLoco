@@ -1746,13 +1746,20 @@ const updateOrderStatus = async (req, res) => {
         // auto-cancel stays flagged rejected forever and never sees the
         // reopened order again (listShopActiveOrders derives `rejected` from
         // shop_rejected_at).
+        // Every line is a fresh checkout line again: billable (an all-shops
+        // reject left the bill at ₹0) and timed from the new accept, not from
+        // an old resend.
         await connection.query(
           `UPDATE order_items
            SET shop_confirmed_at = NULL, shop_rejected_at = NULL, shop_ready_at = NULL,
-               shop_last_notified_at = NULL, shop_notify_count = 0, shop_alert_acked_at = NULL
+               shop_last_notified_at = NULL, shop_notify_count = 0, shop_alert_acked_at = NULL,
+               shop_billable = 1, shop_requested_at = NULL
            WHERE order_id = ?`,
           [id]
         );
+        const { saveOrderBilling } = require('../services/orderBilling');
+        const [[reopenedOrder]] = await connection.query('SELECT * FROM orders WHERE id = ? FOR UPDATE', [id]);
+        await saveOrderBilling(connection, reopenedOrder);
         await connection.commit();
       }
     } catch (err) {
