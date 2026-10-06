@@ -464,11 +464,13 @@ export default function OrdersScreen() {
     navigation.setParams({ rateOrderId: undefined, date: undefined });
   }, [rateOrderId, rateDate]);
 
+  // The outline's time starts once the list is on screen — counting through
+  // the fetch let it fade before the customer ever saw it.
   useEffect(() => {
-    if (!highlightOrderId) return undefined;
+    if (!highlightOrderId || isLoading || isRefreshing) return undefined;
     const timer = setTimeout(() => setHighlightOrderId(null), RATE_HIGHLIGHT_MS);
     return () => clearTimeout(timer);
-  }, [highlightOrderId]);
+  }, [highlightOrderId, isLoading, isRefreshing]);
 
   const handleRateItem = useCallback((orderId, item, stars) => {
     const itemKey = String(item.id);
