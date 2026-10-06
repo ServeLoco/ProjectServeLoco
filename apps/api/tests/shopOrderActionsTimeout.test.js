@@ -6,7 +6,7 @@
  */
 
 jest.mock('../src/db/mysql', () => ({
-  pool: { query: jest.fn() },
+  pool: { query: jest.fn(), getConnection: jest.fn() },
 }));
 
 jest.mock('../src/utils/shops', () => ({
@@ -37,6 +37,7 @@ jest.mock('../src/services/riderAssignment', () => ({
 }));
 
 const { pool } = require('../src/db/mysql');
+const { shopDecisionConnection } = require('./helpers/shopDecisionConnection');
 const adminInbox = require('../src/utils/adminNotifications');
 const { maybeStartRiderAssignment } = require('../src/services/riderAssignment');
 const { rejectShopOrder } = require('../src/services/shopOrderActions');
@@ -44,14 +45,13 @@ const { rejectShopOrder } = require('../src/services/shopOrderActions');
 const queueRejectCalls = () => {
   pool.query.mockReset();
   pool.query
-    .mockResolvedValueOnce([[{ cnt: 1, area_id: 7 }]]) // guard SELECT
-    .mockResolvedValueOnce([{ affectedRows: 1 }]) // UPDATE shop_rejected_at
     .mockResolvedValueOnce([[{ owner_user_id: 999 }]]); // notifyShopOwnerOrderUpdated lookup
 };
 
 describe('rejectShopOrder source copy', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    pool.getConnection.mockResolvedValue(shopDecisionConnection({ shopId: 2, rejected: false }));
   });
 
   it('defaults to owner-rejected copy when source is omitted (existing shop/admin routes)', async () => {
@@ -87,10 +87,48 @@ describe('rejectShopOrder source copy', () => {
 
     await rejectShopOrder(1, 52, { shopName: 'X', source: 'timeout' });
 
-    expect(pool.query).toHaveBeenCalledWith(
-      'UPDATE order_items SET shop_rejected_at = NOW() WHERE order_id = ? AND shop_id = ? AND shop_rejected_at IS NULL',
-      [52, 1]
-    );
+    const connection = await pool.getConnection.mock.results[0].value;
+    expect(connection.query).toHaveBeenCalledWith(expect.stringContaining('shop_billable = 0'), [52, 1]);
+  });
+
+  it('does not let a stale timeout reject newly confirmed items', async () => {
+    const connection = shopDecisionConnection();
+    const originalQuery = connection.query.getMockImplementation();
+    connection.query.mockImplementation(async (sql, params) => {
+      const result = await originalQuery(sql, params);
+      if (sql.includes('SELECT * FROM order_items')) result[0][0].shop_confirmed_at = new Date();
+      return result;
+    });
+    pool.getConnection.mockResolvedValueOnce(connection);
+    expect((await rejectShopOrder(1, 50, { source: 'timeout' })).status).toBe(409);
+    expect(connection.rollback).toHaveBeenCalled();
+    expect(connection.query.mock.calls.some(([sql]) => sql.startsWith('UPDATE order_items'))).toBe(false);
+    expect(adminInbox.createAdminNotification).not.toHaveBeenCalled();
+  });
+
+  it('rechecks the deadline so a stale timeout cannot reject a fresh resend', async () => {
+    const connection = shopDecisionConnection();
+    const originalQuery = connection.query.getMockImplementation();
+    connection.query.mockImplementation((sql, params) => sql.startsWith('SELECT COUNT(*)')
+      ? Promise.resolve([[{ cnt: 0 }]]) : originalQuery(sql, params));
+    pool.getConnection.mockResolvedValueOnce(connection);
+    expect((await rejectShopOrder(1, 50, { source: 'timeout' })).status).toBe(409);
+    expect(connection.rollback).toHaveBeenCalled();
+    expect(connection.commit).not.toHaveBeenCalled();
+  });
+
+  it('rolls back the decision when bill persistence fails and emits no notification', async () => {
+    const connection = shopDecisionConnection();
+    const originalQuery = connection.query.getMockImplementation();
+    connection.query.mockImplementation((sql, params) => {
+      if (sql.startsWith('UPDATE orders SET subtotal')) throw new Error('billing failed');
+      return originalQuery(sql, params);
+    });
+    pool.getConnection.mockResolvedValueOnce(connection);
+    await expect(rejectShopOrder(1, 50)).rejects.toThrow('billing failed');
+    expect(connection.rollback).toHaveBeenCalled();
+    expect(connection.commit).not.toHaveBeenCalled();
+    expect(adminInbox.createAdminNotification).not.toHaveBeenCalled();
   });
 
   // A reject can be the LAST decision on a multi-shop order whose other shops

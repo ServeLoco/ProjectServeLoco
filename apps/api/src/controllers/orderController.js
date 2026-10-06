@@ -687,8 +687,8 @@ const createOrder = async (req, res) => {
           free_delivery_offer_snapshot, delivery_zone_id, delivery_eta_minutes_snapshot, delivery_type,
           idempotency_key, idempotency_key_created_at,
           coupon_id, coupon_code, coupon_title, discount_amount, free_delivery_waiver_amount,
-          deal_coupon_id, deal_title, deal_discount_amount
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', 'Pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          deal_coupon_id, deal_title, deal_discount_amount, billing_snapshot
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', 'Pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           deliveryAreaId, orderNumber, userId, user.name, user.phone, user.whatsapp_number, finalAddress,
           latitude || null, longitude || null, map_url || null,
@@ -708,6 +708,13 @@ const createOrder = async (req, res) => {
           deal ? deal.couponId : null,
           deal ? deal.title : null,
           dealDiscount,
+          JSON.stringify({
+            couponBasis: couponSubtotal,
+            couponItemsDiscount: roundMoney(couponDiscount - freeDeliveryWaiver),
+            deliveryWaiver: freeDeliveryWaiver,
+            charges: { delivery_charge: standardDeliveryCharge, fast_delivery_charge: fastDeliveryFee,
+              night_charge: nightCharge, rain_charge: rainCharge },
+          }),
         ]
       );
       orderId = orderResult.insertId;
@@ -1013,7 +1020,7 @@ const getOrderById = async (req, res) => {
     const [shopRows] = await pool.query(
       `SELECT DISTINCT s.id, s.name, s.latitude, s.longitude
        FROM order_items oi JOIN shops s ON s.id = oi.shop_id
-       WHERE oi.order_id = ? AND s.active = 1`,
+       WHERE oi.order_id = ? AND s.active = 1 AND oi.shop_rejected_at IS NULL AND oi.shop_billable = 1`,
       [id]
     );
     order.shops = shopRows.map((s) => ({

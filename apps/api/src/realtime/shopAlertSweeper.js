@@ -80,10 +80,10 @@ const remindPendingShopOrders = async () => {
        AND oi.shop_rejected_at IS NULL
        AND s.owner_user_id IS NOT NULL
        AND o.accepted_at IS NOT NULL
-       AND o.accepted_at > (NOW() - INTERVAL ? SECOND)
-     GROUP BY oi.order_id, oi.shop_id, o.order_number, o.accepted_at,
+       AND COALESCE(oi.shop_requested_at, o.accepted_at) > (NOW() - INTERVAL ? SECOND)
+     GROUP BY oi.order_id, oi.shop_id, o.order_number, o.accepted_at, oi.shop_requested_at,
               s.owner_user_id, s.name, u.fcm_token
-     HAVING COALESCE(MIN(oi.shop_last_notified_at), o.accepted_at)
+     HAVING COALESCE(MIN(oi.shop_last_notified_at), oi.shop_requested_at, o.accepted_at)
               <= NOW() - INTERVAL (CEIL(
               CASE
                 WHEN MIN(oi.shop_alert_acked_at) IS NOT NULL THEN ?
@@ -158,7 +158,7 @@ const timeoutRejectStaleShopOrders = async () => {
        AND oi.shop_confirmed_at IS NULL
        AND oi.shop_rejected_at IS NULL
        AND o.accepted_at IS NOT NULL
-       AND o.accepted_at <= (NOW() - INTERVAL ? SECOND)`,
+       AND COALESCE(oi.shop_requested_at, o.accepted_at) <= (NOW() - INTERVAL ? SECOND)`,
     [timeoutSec]
   );
 

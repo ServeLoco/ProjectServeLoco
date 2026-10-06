@@ -14,6 +14,9 @@ const realtimeEvents = require('../realtime/orderEvents');
 const logger = require('../utils/logger');
 const { shopAlerts: shopAlertGate } = require('../realtime/sweepGates');
 
+const { saveOrderBilling, isBillableItem } = require('./orderBilling');
+const config = require('../config/env');
+
 const ACTIVE_ORDER_STATUSES = ['Accepted', 'Preparing'];
 
 /** Notify the shop owner (if any) so their app can refresh queue/popup. */
@@ -62,6 +65,59 @@ async function notifyAssignedRiderShopChanged(shopId, orderId, action) {
   }
 }
 
+// Serialise every shop decision with payment/status edits on the order row.
+async function changeShopDecision(shopId, orderId, action, { source } = {}) {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const [[order]] = await connection.query('SELECT * FROM orders WHERE id = ? FOR UPDATE', [orderId]);
+    if (!order || !ACTIVE_ORDER_STATUSES.includes(order.status)) {
+      await connection.rollback();
+      return { ok: false, status: 404, code: 'NOT_FOUND', message: 'Order is no longer awaiting shop decisions' };
+    }
+    const [items] = await connection.query('SELECT * FROM order_items WHERE order_id = ? AND shop_id = ? FOR UPDATE', [orderId, shopId]);
+    if (!items.length || (action === 'resent' && !items.some(it => it.shop_rejected_at != null))) {
+      await connection.rollback();
+      return { ok: false, status: 404, code: 'NOT_FOUND', message: 'No matching items for this shop on this order' };
+    }
+    if (action === 'confirmed' && items.some(it => it.shop_rejected_at != null)) {
+      await connection.rollback();
+      return { ok: false, status: 409, code: 'CONCURRENCY_CONFLICT', message: 'Resend this rejected shop before accepting it' };
+    }
+    // A sweeper candidate can be stale by the time it obtains this lock.
+    // Recheck both the decision and the current resend deadline in MySQL.
+    if (source === 'timeout') {
+      const [[eligible]] = await connection.query(`SELECT COUNT(*) AS cnt FROM order_items
+        WHERE order_id = ? AND shop_id = ? AND shop_confirmed_at IS NULL AND shop_rejected_at IS NULL
+          AND COALESCE(shop_requested_at, ?) <= NOW() - INTERVAL ? SECOND`,
+      [orderId, shopId, order.accepted_at, Math.ceil((config.SHOP_RESPONSE_TIMEOUT_MS || 600000) / 1000)]);
+      if (Number(eligible.cnt) !== items.length) {
+        await connection.rollback();
+        return { ok: false, status: 409, code: 'CONCURRENCY_CONFLICT', message: 'Shop decision or response deadline has changed' };
+      }
+    }
+    const decisionSql = {
+      confirmed: 'shop_confirmed_at = COALESCE(shop_confirmed_at, NOW()), shop_billable = 1',
+      rejected: 'shop_rejected_at = COALESCE(shop_rejected_at, NOW()), shop_billable = 0',
+      resent: 'shop_confirmed_at = NULL, shop_rejected_at = NULL, shop_ready_at = NULL, shop_alert_acked_at = NULL, shop_requested_at = NOW(), shop_last_notified_at = NULL, shop_notify_count = 0, shop_billable = 0',
+    }[action];
+    await connection.query(`UPDATE order_items SET ${decisionSql} WHERE order_id = ? AND shop_id = ?`, [orderId, shopId]);
+    const updatedOrder = await saveOrderBilling(connection, order);
+    const enteredPreparing = action === 'confirmed' && order.status === 'Accepted';
+    if (enteredPreparing) {
+      await connection.query("UPDATE orders SET status = 'Preparing' WHERE id = ? AND status = 'Accepted'", [orderId]);
+      updatedOrder.status = 'Preparing';
+    }
+    await connection.commit();
+    return { ok: true, enteredPreparing, order: { ...updatedOrder, action, shopId: Number(shopId) } };
+  } catch (err) {
+    await connection.rollback();
+    throw err;
+  } finally {
+    connection.release();
+  }
+}
+
 /** List Accepted/Preparing orders that include items for this shop. */
 async function listShopActiveOrders(shopId) {
   const [orders] = await pool.query(
@@ -90,7 +146,7 @@ async function listShopActiveOrders(shopId) {
   const orderIds = orders.map((o) => o.id);
   const [items] = await pool.query(
     `SELECT id, order_id, product_name, quantity, variant_label, shop_line_total,
-            shop_confirmed_at, shop_rejected_at, shop_ready_at
+            shop_confirmed_at, shop_rejected_at, shop_ready_at, shop_billable
      FROM order_items WHERE shop_id = ? AND order_id IN (?)`,
     [shopId, orderIds]
   );
@@ -114,7 +170,7 @@ async function listShopActiveOrders(shopId) {
     // a configured shop price; unconfigured lines are silently excluded
     // rather than treated as free, same NULL-means-unset rule as the column.
     const shopTotal = myItems
-      .filter((it) => it.shop_rejected_at === null && it.shop_line_total !== null && it.shop_line_total !== undefined)
+      .filter((it) => isBillableItem(it) && it.shop_line_total !== null && it.shop_line_total !== undefined)
       .reduce((sum, it) => sum + Number(it.shop_line_total), 0);
     return {
       id: o.id,
@@ -152,25 +208,10 @@ async function listShopActiveOrders(shopId) {
  * @returns {{ ok: true } | { ok: false, status: number, code: string, message: string }}
  */
 async function confirmShopOrder(shopId, orderId, { shopName } = {}) {
-  const [countRows] = await pool.query(
-    `SELECT COUNT(*) as cnt, MAX(o.status) as order_status, MAX(o.area_id) as area_id FROM order_items oi
-     JOIN orders o ON o.id = oi.order_id
-     WHERE oi.order_id = ? AND oi.shop_id = ? AND o.status IN ('Accepted', 'Preparing')`,
-    [orderId, shopId]
-  );
-  if (countRows[0].cnt === 0) {
-    return {
-      ok: false,
-      status: 404,
-      code: 'NOT_FOUND',
-      message: 'Order has no items for this shop',
-    };
-  }
-
-  await pool.query(
-    'UPDATE order_items SET shop_confirmed_at = NOW() WHERE order_id = ? AND shop_id = ? AND shop_confirmed_at IS NULL',
-    [orderId, shopId]
-  );
+  const decision = await changeShopDecision(shopId, orderId, 'confirmed');
+  if (!decision.ok) return decision;
+  realtimeEvents.emitOrderStatusUpdated(decision.order);
+  const countRows = [{ order_status: decision.order.status, area_id: decision.order.area_id }];
 
   emitToAdmins(countRows[0].area_id, 'admin.order.shop_confirmed', {
     orderId: Number(orderId),
@@ -180,22 +221,11 @@ async function confirmShopOrder(shopId, orderId, { shopName } = {}) {
     confirmed: true,
   });
 
-  if (countRows[0].order_status === 'Accepted') {
-    const [upd] = await pool.query(
-      "UPDATE orders SET status = 'Preparing' WHERE id = ? AND status = 'Accepted'",
-      [orderId]
-    );
-    if (upd.affectedRows > 0) {
-      const [freshRows] = await pool.query('SELECT * FROM orders WHERE id = ?', [orderId]);
-      const updatedOrder = freshRows[0];
-      notificationService.createOrderNotification({
-        userId: updatedOrder.customer_id,
-        order: updatedOrder,
-        event: 'status_preparing',
-      }).then((result) => realtimeEvents.emitNotificationCreated(updatedOrder.customer_id, result))
-        .catch((e) => logger.error('[notify]', e.message));
-      realtimeEvents.emitOrderStatusUpdated(updatedOrder);
-    }
+  if (decision.enteredPreparing) {
+    notificationService.createOrderNotification({
+      userId: decision.order.customer_id, order: decision.order, event: 'status_preparing',
+    }).then(result => realtimeEvents.emitNotificationCreated(decision.order.customer_id, result))
+      .catch(e => logger.error('[notify]', e.message));
   }
 
   const { maybeStartRiderAssignment } = require('./riderAssignment');
@@ -204,36 +234,22 @@ async function confirmShopOrder(shopId, orderId, { shopName } = {}) {
   );
 
   await notifyShopOwnerOrderUpdated(shopId, orderId, 'confirmed');
+  await notifyAssignedRiderShopChanged(shopId, orderId, 'confirmed');
 
   return { ok: true, message: 'Order confirmed' };
 }
 
 /**
- * Reject / cancel this shop's items (informational; may auto-cancel order).
+ * Reject this shop's items and remove them from the bill (may auto-cancel order).
  * @param {{shopName?: string, source?: 'owner'|'timeout'}} [opts] - source
  *   distinguishes an owner-pressed Reject from shopAlertSweeper's auto-reject
- *   after SHOP_RESPONSE_TIMEOUT_MS of silence, for admin-notification copy only.
+ *   after SHOP_RESPONSE_TIMEOUT_MS of silence; eligibility is checked under lock.
  */
 async function rejectShopOrder(shopId, orderId, { shopName, source = 'owner' } = {}) {
-  const [countRows] = await pool.query(
-    `SELECT COUNT(*) as cnt, MAX(o.area_id) as area_id FROM order_items oi
-     JOIN orders o ON o.id = oi.order_id
-     WHERE oi.order_id = ? AND oi.shop_id = ? AND o.status IN ('Accepted', 'Preparing')`,
-    [orderId, shopId]
-  );
-  if (countRows[0].cnt === 0) {
-    return {
-      ok: false,
-      status: 404,
-      code: 'NOT_FOUND',
-      message: 'Order has no items for this shop',
-    };
-  }
-
-  await pool.query(
-    'UPDATE order_items SET shop_rejected_at = NOW() WHERE order_id = ? AND shop_id = ? AND shop_rejected_at IS NULL',
-    [orderId, shopId]
-  );
+  const decision = await changeShopDecision(shopId, orderId, 'rejected', { source });
+  if (!decision.ok) return decision;
+  realtimeEvents.emitOrderStatusUpdated(decision.order);
+  const countRows = [{ area_id: decision.order.area_id }];
 
   emitToAdmins(countRows[0].area_id, 'admin.order.updated', {
     orderId: Number(orderId),
@@ -258,7 +274,8 @@ async function rejectShopOrder(shopId, orderId, { shopName, source = 'owner' } =
     areaId: countRows[0].area_id,
   });
 
-  await maybeAutoCancelOrderWhenAllShopsRejected(orderId);
+  const cancelledOrder = await maybeAutoCancelOrderWhenAllShopsRejected(orderId);
+  if (cancelledOrder) Object.assign(decision.order, cancelledOrder);
 
   // A reject can be the LAST decision on a multi-shop order whose other
   // shops already confirmed. Without this the order stalls forever:
@@ -288,26 +305,10 @@ async function rejectShopOrder(shopId, orderId, { shopName, source = 'owner' } =
  * (coupon redemption, rider assignment, payment state) out of scope here.
  */
 async function resendShopOrder(shopId, orderId, { shopName } = {}) {
-  const [countRows] = await pool.query(
-    `SELECT COUNT(*) as cnt, MAX(o.area_id) as area_id FROM order_items oi
-     JOIN orders o ON o.id = oi.order_id
-     WHERE oi.order_id = ? AND oi.shop_id = ? AND oi.shop_rejected_at IS NOT NULL
-       AND o.status IN ('Accepted', 'Preparing')`,
-    [orderId, shopId]
-  );
-  if (countRows[0].cnt === 0) {
-    return {
-      ok: false,
-      status: 404,
-      code: 'NOT_FOUND',
-      message: 'No rejected items for this shop on this order',
-    };
-  }
-
-  await pool.query(
-    'UPDATE order_items SET shop_rejected_at = NULL WHERE order_id = ? AND shop_id = ? AND shop_rejected_at IS NOT NULL',
-    [orderId, shopId]
-  );
+  const decision = await changeShopDecision(shopId, orderId, 'resent');
+  if (!decision.ok) return decision;
+  realtimeEvents.emitOrderStatusUpdated(decision.order);
+  const countRows = [{ area_id: decision.order.area_id }];
   // The shop is waiting again, which is the shop-alert sweeper's work.
   shopAlertGate.wake();
 

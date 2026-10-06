@@ -13,6 +13,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const shopRoutes = require('../src/routes/shopRoutes');
 const { pool } = require('../src/db/mysql');
+const { shopDecisionConnection } = require('./helpers/shopDecisionConnection');
 const { emitToAdmins } = require('../src/realtime/socket');
 
 jest.mock('../src/db/mysql', () => ({
@@ -37,6 +38,7 @@ const SHOP_ROW = [{ id: 1, name: 'Burger Point', is_open: 1, active: 1 }];
 describe('Shop-owner API - /api/shop', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    pool.getConnection.mockResolvedValue(shopDecisionConnection({ orderId: 10, areaId: 1 }));
   });
 
   it("non-owner customer -> 403 FORBIDDEN", async () => {
@@ -223,11 +225,9 @@ describe('Shop-owner API - /api/shop', () => {
   });
 
   it('confirmMyOrder is idempotent - second call still 200, no error', async () => {
-    // First confirm: COUNT > 0, UPDATE confirms 2 rows.
+    // First confirm persists the decision and its bill in one transaction.
     pool.query
-      .mockResolvedValueOnce([SHOP_ROW])             // requireShopOwner lookup
-      .mockResolvedValueOnce([[{ cnt: 2, area_id: 1 }]])           // COUNT items for this shop
-      .mockResolvedValueOnce([{ affectedRows: 2 }]); // UPDATE (2 newly confirmed)
+      .mockResolvedValueOnce([SHOP_ROW]); // requireShopOwner lookup
 
     const res1 = await request(app)
       .patch('/api/shop/orders/10/confirm')
@@ -243,12 +243,9 @@ describe('Shop-owner API - /api/shop', () => {
 
     // Second confirm: same COUNT (items still exist), but UPDATE matches 0 rows
     // because shop_confirmed_at IS NULL no longer matches (already confirmed).
-    // The handler still returns 200 - idempotent. The SQL's IS NULL guard is
-    // what keeps timestamps unchanged on repeat calls.
+    // The handler still returns 200; COALESCE preserves the first timestamp.
     pool.query
-      .mockResolvedValueOnce([SHOP_ROW])             // requireShopOwner lookup
-      .mockResolvedValueOnce([[{ cnt: 2 }]])           // COUNT items (still present)
-      .mockResolvedValueOnce([{ affectedRows: 0 }]); // UPDATE (0 newly confirmed - idempotent)
+      .mockResolvedValueOnce([SHOP_ROW]); // requireShopOwner lookup
 
     const res2 = await request(app)
       .patch('/api/shop/orders/10/confirm')
@@ -259,9 +256,9 @@ describe('Shop-owner API - /api/shop', () => {
   });
 
   it("confirmMyOrder -> 404 when the order has none of this shop's items", async () => {
+    pool.getConnection.mockResolvedValue(shopDecisionConnection({ missing: true }));
     pool.query
-      .mockResolvedValueOnce([SHOP_ROW])   // requireShopOwner lookup
-      .mockResolvedValueOnce([[{ cnt: 0 }]]); // COUNT -> no items for this shop
+      .mockResolvedValueOnce([SHOP_ROW]); // requireShopOwner lookup
 
     const res = await request(app)
       .patch('/api/shop/orders/999/confirm')
@@ -273,9 +270,7 @@ describe('Shop-owner API - /api/shop', () => {
 
   it('rejectMyOrder is idempotent - second call still 200', async () => {
     pool.query
-      .mockResolvedValueOnce([SHOP_ROW])             // requireShopOwner lookup
-      .mockResolvedValueOnce([[{ cnt: 1 }]])           // COUNT items for this shop
-      .mockResolvedValueOnce([{ affectedRows: 1 }]); // UPDATE (1 newly rejected)
+      .mockResolvedValueOnce([SHOP_ROW]); // requireShopOwner lookup
 
     const res1 = await request(app)
       .patch('/api/shop/orders/10/reject')
@@ -285,9 +280,7 @@ describe('Shop-owner API - /api/shop', () => {
     expect(res1.body.message).toBe('Order rejected');
 
     pool.query
-      .mockResolvedValueOnce([SHOP_ROW])             // requireShopOwner lookup
-      .mockResolvedValueOnce([[{ cnt: 1 }]])           // COUNT (still present)
-      .mockResolvedValueOnce([{ affectedRows: 0 }]); // UPDATE (0 newly rejected - idempotent)
+      .mockResolvedValueOnce([SHOP_ROW]); // requireShopOwner lookup
 
     const res2 = await request(app)
       .patch('/api/shop/orders/10/reject')
@@ -298,9 +291,9 @@ describe('Shop-owner API - /api/shop', () => {
   });
 
   it("rejectMyOrder -> 404 when the order has none of this shop's items", async () => {
+    pool.getConnection.mockResolvedValue(shopDecisionConnection({ missing: true }));
     pool.query
-      .mockResolvedValueOnce([SHOP_ROW])   // requireShopOwner lookup
-      .mockResolvedValueOnce([[{ cnt: 0 }]]); // COUNT -> no items for this shop
+      .mockResolvedValueOnce([SHOP_ROW]); // requireShopOwner lookup
 
     const res = await request(app)
       .patch('/api/shop/orders/999/reject')

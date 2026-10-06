@@ -1,3 +1,4 @@
+import { isOrderItemBillable, excludedItemLabel } from '../../utils/orderBilling';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator, Alert, Dimensions, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View,
@@ -421,8 +422,8 @@ export default function AdminOrderDetailScreen() {
           ) : null}
           {(order.items || []).map((item, idx) => (
             <View key={idx} style={styles.itemRow}>
-              <Text style={styles.itemText}>{item.quantity}x {item.product_name}</Text>
-              <Text style={styles.itemTotal}>₹{formatMoney(item.line_total)}</Text>
+              <Text style={styles.itemText}>{item.quantity}x {item.product_name}{!isOrderItemBillable(item) ? ` · ${excludedItemLabel(item)}` : ''}</Text>
+              <Text style={styles.itemTotal}>₹{formatMoney(isOrderItemBillable(item) ? item.line_total : 0)}</Text>
             </View>
           ))}
           <View style={styles.totalsBlock}>

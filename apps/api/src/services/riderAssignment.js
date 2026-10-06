@@ -120,7 +120,7 @@ const getOrderPickupPoints = async (orderId) => {
        JOIN shops s ON s.id = oi.shop_id
        WHERE oi.order_id = ?
          AND oi.shop_id IS NOT NULL
-         AND oi.shop_rejected_at IS NULL
+         AND oi.shop_rejected_at IS NULL AND oi.shop_billable = 1
          AND s.latitude IS NOT NULL
          AND s.longitude IS NOT NULL`,
       [orderId]

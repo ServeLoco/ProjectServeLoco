@@ -129,7 +129,7 @@ describe('createOrder with a deal price', () => {
 
     const orderInsert = queries.find((q) => /INSERT INTO orders/.test(q.sql));
     // ..., discount_amount (coupon + deal), free_delivery_waiver_amount, deal_coupon_id, deal_title, deal_discount_amount
-    expect(orderInsert.params.slice(-5)).toEqual([31, 10, 50, '₹9ryday', 21]);
+    expect(orderInsert.params.slice(-6, -1)).toEqual([31, 10, 50, '₹9ryday', 21]);
 
     const itemsInsert = queries.find((q) => /INSERT INTO order_items/.test(q.sql));
     expect(itemsInsert.sql).toContain('deal_price, deal_qty');

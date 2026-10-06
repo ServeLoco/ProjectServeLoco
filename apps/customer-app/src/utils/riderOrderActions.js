@@ -80,3 +80,8 @@ export function mergeRiderOrder(prev, next) {
     status: next.status ?? prev.status,
   };
 }
+
+/** Rejected or resent items stay out of pickup routing until accepted. */
+export function isShopExcluded(shop) {
+  return isShopRejected(shop) || shop?.billable === false;
+}

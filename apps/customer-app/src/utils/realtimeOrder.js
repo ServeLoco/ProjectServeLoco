@@ -10,6 +10,9 @@ function getRealtimeOrderKey(eventName, payload = {}) {
     payload.status || '',
     payload.paymentStatus || payload.payment_status || '',
     payload.updatedAt || payload.updated_at || '',
+    payload.total ?? '',
+    payload.action || '',
+    payload.billingRevision ?? payload.billing_revision ?? '',
   ].join(':');
 }
 
@@ -19,8 +22,11 @@ function getCancelledPaymentStatus(paymentMethod) {
 
 function mergeOrderRealtimePatch(order, payload = {}) {
   if (!order) return order;
+  const revision = payload.billingRevision ?? payload.billing_revision;
+  if (revision != null && Number(revision) < Number(order.billingRevision ?? order.billing_revision ?? 0)) return order;
 
   const next = { ...order };
+  if (revision != null) { next.billingRevision = revision; next.billing_revision = revision; }
   const status = payload.status;
   const paymentStatus = payload.paymentStatus || payload.payment_status;
   const updatedAt = payload.updatedAt || payload.updated_at;
@@ -38,6 +44,24 @@ function mergeOrderRealtimePatch(order, payload = {}) {
   if (paymentStatus !== undefined && paymentStatus !== null) {
     next.paymentStatus = paymentStatus;
     next.payment_status = paymentStatus;
+  }
+
+  if (payload.total != null) {
+    next.total = Number(payload.total);
+    next.bill = { ...next.bill, grandTotal: Number(payload.total) };
+  }
+  if (payload.items) next.items = payload.items.map(item => ({ ...item, name: item.name || item.product_name || item.productName, price: Number(item.unit_price ?? item.unitPrice ?? item.price ?? 0) }));
+  const billFields = { subtotal: 'subtotal', delivery_charge: 'delivery', fast_delivery_charge: 'fastDeliveryFee',
+    night_charge: 'nightCharge', rain_charge: 'rainCharge', discount_amount: 'discount',
+    deal_discount_amount: 'dealDiscount', free_delivery_waiver_amount: 'freeDeliveryWaiver' };
+  for (const [source, target] of Object.entries(billFields)) {
+    if (payload[source] != null) next.bill = { ...next.bill, [target]: Number(payload[source]) };
+  }
+  if (payload.discount_amount != null || payload.free_delivery_waiver_amount != null) {
+    next.bill.itemDiscount = Math.max(0, (next.bill.discount || 0) - (next.bill.freeDeliveryWaiver || 0));
+  }
+  if (payload.free_delivery_waiver_amount != null) {
+    next.bill.freeDeliveryApplied = Number(payload.free_delivery_waiver_amount) > 0;
   }
 
   const cancelReason = payload.cancelReason ?? payload.cancel_reason;
@@ -82,8 +106,11 @@ function isRecentRealtimeEvent(cacheRef, key, windowMs = 500) {
 // patches identically to the web admin panel.
 function mergeAdminOrderPatch(order, payload = {}) {
   if (!order) return order;
+  const revision = payload.billingRevision ?? payload.billing_revision;
+  if (revision != null && Number(revision) < Number(order.billingRevision ?? order.billing_revision ?? 0)) return order;
 
   const next = { ...order };
+  if (revision != null) { next.billingRevision = revision; next.billing_revision = revision; }
   const status = payload.status;
   const paymentStatus = payload.paymentStatus || payload.payment_status;
   const updatedAt = payload.updatedAt || payload.updated_at;
@@ -104,6 +131,15 @@ function mergeAdminOrderPatch(order, payload = {}) {
   if (payload.subtotal !== undefined && payload.subtotal !== null) {
     next.subtotal = payload.subtotal;
   }
+
+  for (const key of ['delivery_charge', 'fast_delivery_charge', 'night_charge', 'rain_charge',
+    'discount_amount', 'deal_discount_amount', 'free_delivery_waiver_amount']) {
+    const alias = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+    const value = payload[key] ?? payload[alias];
+    if (value != null) { next[key] = value; next[alias] = value; }
+  }
+
+  if (payload.items) next.items = payload.items;
 
   // admin.order.item_replaced — swap the matching order_items row in place,
   // same as the web admin panel's mergeAdminOrderPatch.

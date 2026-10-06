@@ -164,7 +164,7 @@ const loadAssignmentExtrasBatch = async (orderRows) => {
     [orderIds]
   );
   const [itemRows] = await pool.query(
-    `SELECT id, order_id, product_name, quantity, variant_label, shop_id, shop_line_total, shop_rejected_at
+    `SELECT id, order_id, product_name, quantity, variant_label, shop_id, shop_line_total, shop_rejected_at, shop_billable
      FROM order_items WHERE order_id IN (?)`,
     [orderIds]
   );
@@ -197,6 +197,8 @@ const loadAssignmentExtrasBatch = async (orderRows) => {
       shop_line_total: row.shop_line_total !== null ? Number(row.shop_line_total) : null,
       shopRejectedAt: row.shop_rejected_at,
       shop_rejected_at: row.shop_rejected_at,
+      shopBillable: row.shop_billable,
+      shop_billable: row.shop_billable,
     });
   }
 
@@ -211,7 +213,7 @@ const loadAssignmentExtrasBatch = async (orderRows) => {
     // dispatcher can see it at pickup time without opening the order drawer.
     order.shops = (shopsByOrder.get(orderRow.id) || []).map((shop) => {
       const shopTotal = orderCancelled ? 0 : orderItems
-        .filter((it) => it.shop_id === shop.id && it.shop_rejected_at === null && it.shop_line_total !== null)
+        .filter((it) => it.shop_id === shop.id && it.shop_rejected_at === null && Number(it.shop_billable ?? 1) === 1 && it.shop_line_total !== null)
         .reduce((sum, it) => sum + it.shop_line_total, 0);
       return { ...shop, shopTotal, shop_total: shopTotal };
     });

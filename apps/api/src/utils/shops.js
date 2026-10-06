@@ -40,7 +40,7 @@ const getShopPayableTotals = async (orderId) => {
     const [rows] = await pool.query(
       `SELECT shop_id, COALESCE(SUM(shop_line_total), 0) AS total
        FROM order_items
-       WHERE order_id = ? AND shop_id IS NOT NULL AND shop_rejected_at IS NULL
+       WHERE order_id = ? AND shop_id IS NOT NULL AND shop_rejected_at IS NULL AND shop_billable = 1
        GROUP BY shop_id`,
       [orderId]
     );
@@ -60,7 +60,7 @@ const getShopPayableTotal = async (orderId, shopId) => {
     const [rows] = await pool.query(
       `SELECT COALESCE(SUM(shop_line_total), 0) AS total
        FROM order_items
-       WHERE order_id = ? AND shop_id = ? AND shop_rejected_at IS NULL`,
+       WHERE order_id = ? AND shop_id = ? AND shop_rejected_at IS NULL AND shop_billable = 1`,
       [orderId, shopId]
     );
     const total = Number(rows[0]?.total) || 0;
@@ -536,7 +536,6 @@ const maybeAutoCancelOrderWhenAllShopsRejected = async (orderId) => {
       if (!shopItems.every(it => it.shop_rejected_at !== null)) return null;
     }
 
-    const cancelledPaymentStatus = getCancelledPaymentStatus(order.payment_method);
     const { resolveCancelReason } = require('./cancelReasons');
     const cancelReason = resolveCancelReason('shops');
 
@@ -544,25 +543,42 @@ const maybeAutoCancelOrderWhenAllShopsRejected = async (orderId) => {
     let cancelled = false;
     try {
       await connection.beginTransaction();
+      // Prechecks can go stale while a shop is resubmitted. Use the same
+      // order-first lock as shop decisions before deciding to cancel.
+      const [lockedOrderRows] = await connection.query('SELECT * FROM orders WHERE id = ? FOR UPDATE', [orderId]);
+      const lockedOrder = lockedOrderRows[0];
+      if (!lockedOrder || !['Accepted', 'Preparing'].includes(lockedOrder.status)) {
+        await connection.rollback();
+        return null;
+      }
+      const [lockedItems] = await connection.query(
+        'SELECT shop_id, shop_rejected_at FROM order_items WHERE order_id = ? AND shop_id IS NOT NULL FOR UPDATE',
+        [orderId]
+      );
+      if (lockedItems.length === 0 || lockedItems.some(it => it.shop_rejected_at == null)) {
+        await connection.rollback();
+        return null;
+      }
+      const cancelledPaymentStatus = getCancelledPaymentStatus(lockedOrder.payment_method);
       const [cancelResult] = await connection.query(
         'UPDATE orders SET status = ?, payment_status = ?, cancel_reason = ? WHERE id = ? AND status = ?',
-        ['Cancelled', cancelledPaymentStatus, cancelReason, orderId, currentStatus]
+        ['Cancelled', cancelledPaymentStatus, cancelReason, orderId, lockedOrder.status]
       );
       if (cancelResult.affectedRows === 0) {
         await connection.rollback();
         return null;
       }
-      if (order.coupon_id) {
+      if (lockedOrder.coupon_id) {
         await connection.query(
           "UPDATE coupon_redemptions SET status = 'cancelled' WHERE order_id = ? AND coupon_id = ?",
-          [orderId, order.coupon_id]
+          [orderId, lockedOrder.coupon_id]
         );
       }
       // The deal price (if any) was redeemed as its own row.
-      if (order.deal_coupon_id) {
+      if (lockedOrder.deal_coupon_id) {
         await connection.query(
           "UPDATE coupon_redemptions SET status = 'cancelled' WHERE order_id = ? AND coupon_id = ?",
-          [orderId, order.deal_coupon_id]
+          [orderId, lockedOrder.deal_coupon_id]
         );
       }
       await connection.commit();

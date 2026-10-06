@@ -282,7 +282,7 @@ const getMyOrderHistory = async (req, res) => {
      FROM orders o JOIN order_items oi ON oi.order_id = o.id
      ${where}
        AND o.status = 'Delivered'
-       AND oi.shop_rejected_at IS NULL
+       AND oi.shop_rejected_at IS NULL AND oi.shop_billable = 1
        AND oi.shop_line_total IS NOT NULL`,
     params
   );
@@ -298,7 +298,7 @@ const getMyOrderHistory = async (req, res) => {
 
   const orderIds = orders.map(o => o.id);
   const [items] = await pool.query(
-    'SELECT id, order_id, product_name, quantity, variant_label, shop_line_total, shop_confirmed_at, shop_rejected_at, shop_ready_at FROM order_items WHERE shop_id = ? AND order_id IN (?) ORDER BY id ASC',
+    'SELECT id, order_id, product_name, quantity, variant_label, shop_line_total, shop_confirmed_at, shop_rejected_at, shop_ready_at, shop_billable FROM order_items WHERE shop_id = ? AND order_id IN (?) ORDER BY id ASC',
     [req.shop.id, orderIds]
   );
 
@@ -315,7 +315,7 @@ const getMyOrderHistory = async (req, res) => {
     const ready = myItems.length > 0 && myItems.every(it => it.shop_ready_at !== null);
     const payableItems = o.status === 'Cancelled'
       ? []
-      : myItems.filter(it => it.shop_rejected_at === null && it.shop_line_total !== null && it.shop_line_total !== undefined);
+      : myItems.filter(it => it.shop_rejected_at === null && Number(it.shop_billable ?? 1) === 1 && it.shop_line_total !== null && it.shop_line_total !== undefined);
     const shopTotal = roundMoney(payableItems.reduce((sum, it) => sum + Number(it.shop_line_total), 0));
     return {
       id: o.id,

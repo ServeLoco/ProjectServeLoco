@@ -2802,6 +2802,31 @@ const migrate = async () => {
       );
     `);
     logger.info('Food ratings table ready.');
+    // Remember a rejected/resubmitted line separately from its latest decision.
+    // Initial pending checkout lines count; resubmitted lines count only on accept.
+    await ensureColumnAtEnd('order_items', 'shop_billable', 'shop_billable TINYINT(1) NOT NULL DEFAULT 1');
+    await ensureColumnAtEnd('orders', 'billing_snapshot', 'billing_snapshot JSON NULL DEFAULT NULL');
+    await ensureColumnAtEnd('orders', 'billing_revision', 'billing_revision BIGINT UNSIGNED NOT NULL DEFAULT 0');
+    await ensureColumnAtEnd('order_items', 'shop_requested_at', 'shop_requested_at DATETIME NULL DEFAULT NULL');
+    const { saveOrderBilling } = require('../services/orderBilling');
+    // Only pre-fix rejected orders need repair. The snapshot is the durable
+    // marker: repeat runs neither apply the reduction twice nor rewrite new bills.
+    const [billingRepairs] = await connection.query(`SELECT DISTINCT o.id FROM orders o
+      JOIN order_items oi ON oi.order_id = o.id
+      WHERE o.billing_snapshot IS NULL AND oi.shop_rejected_at IS NOT NULL`);
+    for (const { id } of billingRepairs) {
+      await connection.beginTransaction();
+      try {
+        const [[order]] = await connection.query('SELECT * FROM orders WHERE id = ? FOR UPDATE', [id]);
+        await connection.query('UPDATE order_items SET shop_billable = 0 WHERE order_id = ? AND shop_rejected_at IS NOT NULL', [id]);
+        await saveOrderBilling(connection, order);
+        await connection.commit();
+      } catch (err) {
+        await connection.rollback();
+        throw err;
+      }
+    }
+
 
     logger.info('Migration and seeding completed successfully!');
   } catch (error) {

@@ -467,7 +467,7 @@ const getAllAreasDashboard = async (req, res) => {
       SELECT o.area_id, oi.product_id, oi.item_type, oi.product_name, SUM(oi.quantity) as total_quantity, SUM(oi.line_total) as total_sales
       FROM order_items oi
       JOIN orders o ON oi.order_id = o.id
-      WHERE o.status != 'Cancelled'
+      WHERE o.status != 'Cancelled' AND oi.shop_rejected_at IS NULL AND oi.shop_billable = 1
       GROUP BY o.area_id, oi.product_id, oi.item_type, oi.product_name
       ORDER BY total_sales DESC
       LIMIT 5
@@ -570,7 +570,7 @@ const getDashboard = async (req, res) => {
     SELECT oi.product_id, oi.item_type, oi.product_name, SUM(oi.quantity) as total_quantity, SUM(oi.line_total) as total_sales
     FROM order_items oi
     JOIN orders o ON oi.order_id = o.id
-    WHERE o.status != 'Cancelled' AND o.area_id = ?
+    WHERE o.status != 'Cancelled' AND oi.shop_rejected_at IS NULL AND oi.shop_billable = 1 AND o.area_id = ?
     GROUP BY oi.product_id, oi.item_type, oi.product_name
     ORDER BY total_sales DESC
     LIMIT 5
@@ -747,7 +747,7 @@ const getTopProductsReport = async (req, res) => {
     SELECT ${areaId === 'all' ? 'oi.area_id,' : ''} oi.product_id, oi.item_type, oi.product_name, SUM(oi.quantity) as total_quantity, SUM(oi.line_total) as total_sales
     FROM order_items oi
     JOIN orders o ON oi.order_id = o.id
-    WHERE o.status != 'Cancelled' AND ${dateFilter}
+    WHERE o.status != 'Cancelled' AND oi.shop_rejected_at IS NULL AND oi.shop_billable = 1 AND ${dateFilter}
     GROUP BY ${groupBy}
     ORDER BY total_quantity DESC
   `, areaParams);
@@ -800,6 +800,7 @@ const getFoodRatingsReport = async (req, res) => {
     JOIN order_items oi ON oi.order_id = o.id
     LEFT JOIN order_item_ratings r ON r.order_item_id = oi.id AND r.area_id = oi.area_id
     WHERE o.status = 'Delivered' AND ${dateFilter}
+      AND oi.shop_rejected_at IS NULL AND oi.shop_billable = 1
     GROUP BY ${groupBy}
   `, areaParams);
 
@@ -919,7 +920,7 @@ const getShopsReport = async (req, res) => {
     FROM order_items oi
     JOIN orders o ON oi.order_id = o.id
     LEFT JOIN shops s ON s.id = oi.shop_id
-    WHERE o.status != 'Cancelled' AND ${dateFilter}
+    WHERE o.status != 'Cancelled' AND oi.shop_rejected_at IS NULL AND oi.shop_billable = 1 AND ${dateFilter}
     GROUP BY oi.shop_id, s.name, oi.area_id
     ORDER BY total_amount DESC
   `, areaParams);
@@ -930,7 +931,7 @@ const getShopsReport = async (req, res) => {
       SUM(oi.line_total) AS total_sales
     FROM order_items oi
     JOIN orders o ON oi.order_id = o.id
-    WHERE o.status != 'Cancelled' AND ${dateFilter}
+    WHERE o.status != 'Cancelled' AND oi.shop_rejected_at IS NULL AND oi.shop_billable = 1 AND ${dateFilter}
     GROUP BY oi.shop_id, oi.product_id, oi.item_type, oi.product_name
     ORDER BY quantity DESC
   `, areaParams);
@@ -1029,15 +1030,15 @@ const getProfitSummary = async (req, res) => {
     FROM order_items oi
     JOIN orders o ON oi.order_id = o.id
     WHERE o.status = 'Delivered' AND ${dateFilter}
-      AND oi.shop_rejected_at IS NULL AND oi.shop_line_total IS NOT NULL
+      AND oi.shop_rejected_at IS NULL AND oi.shop_billable = 1 AND oi.shop_line_total IS NOT NULL
   `, dateParams);
 
   // unpriced = a real shop item (shop_id set) missing shop_price at purchase time.
   // House items and combos always have shop_id NULL by design and are not "unpriced".
   const [[warningsRow]] = await pool.query(`
     SELECT
-      COUNT(CASE WHEN oi.shop_id IS NOT NULL AND oi.shop_rejected_at IS NULL AND oi.shop_line_total IS NULL THEN 1 END) AS unpriced_items_count,
-      COALESCE(SUM(CASE WHEN oi.shop_id IS NOT NULL AND oi.shop_rejected_at IS NULL AND oi.shop_line_total IS NULL THEN oi.line_total ELSE 0 END), 0) AS unpriced_items_app_total,
+      COUNT(CASE WHEN oi.shop_id IS NOT NULL AND oi.shop_rejected_at IS NULL AND oi.shop_billable = 1 AND oi.shop_line_total IS NULL THEN 1 END) AS unpriced_items_count,
+      COALESCE(SUM(CASE WHEN oi.shop_id IS NOT NULL AND oi.shop_rejected_at IS NULL AND oi.shop_billable = 1 AND oi.shop_line_total IS NULL THEN oi.line_total ELSE 0 END), 0) AS unpriced_items_app_total,
       COUNT(CASE WHEN oi.shop_rejected_at IS NOT NULL THEN 1 END) AS rejected_items_count
     FROM order_items oi
     JOIN orders o ON oi.order_id = o.id
@@ -1049,12 +1050,13 @@ const getProfitSummary = async (req, res) => {
       COUNT(DISTINCT oi.order_id) AS delivered_orders,
       COALESCE(SUM(oi.quantity), 0) AS items_sold,
       COALESCE(SUM(oi.line_total), 0) AS app_sales,
-      COALESCE(SUM(CASE WHEN oi.shop_rejected_at IS NULL THEN oi.shop_line_total ELSE 0 END), 0) AS shop_cost,
-      COUNT(CASE WHEN oi.shop_id IS NOT NULL AND oi.shop_rejected_at IS NULL AND oi.shop_line_total IS NULL THEN 1 END) AS unpriced_items
+      COALESCE(SUM(CASE WHEN oi.shop_rejected_at IS NULL AND oi.shop_billable = 1 THEN oi.shop_line_total ELSE 0 END), 0) AS shop_cost,
+      COUNT(CASE WHEN oi.shop_id IS NOT NULL AND oi.shop_rejected_at IS NULL AND oi.shop_billable = 1 AND oi.shop_line_total IS NULL THEN 1 END) AS unpriced_items
     FROM order_items oi
     JOIN orders o ON oi.order_id = o.id
     LEFT JOIN shops s ON s.id = oi.shop_id
     WHERE o.status = 'Delivered' AND ${dateFilter}
+      AND oi.shop_rejected_at IS NULL AND oi.shop_billable = 1
     GROUP BY oi.shop_id, s.name, oi.area_id
     ORDER BY shop_cost DESC
   `, dateParams);
@@ -1185,7 +1187,7 @@ const getProfitOrders = async (req, res) => {
     if (!Number.isInteger(shopIdNum) || shopIdNum <= 0) {
       return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid shopId parameter' });
     }
-    shopFilterClause = ' AND EXISTS (SELECT 1 FROM order_items soi WHERE soi.order_id = o.id AND soi.shop_id = ? AND soi.shop_rejected_at IS NULL)';
+    shopFilterClause = ' AND EXISTS (SELECT 1 FROM order_items soi WHERE soi.order_id = o.id AND soi.shop_id = ? AND soi.shop_rejected_at IS NULL AND soi.shop_billable = 1)';
     shopFilterParams.push(shopIdNum);
   }
 
@@ -1201,11 +1203,11 @@ const getProfitOrders = async (req, res) => {
       o.subtotal AS app_items_total, o.delivery_charge, o.night_charge, o.rain_charge, o.fast_delivery_charge,
       o.discount_amount, o.total AS customer_paid,
       COALESCE((SELECT SUM(oi.shop_line_total) FROM order_items oi
-                WHERE oi.order_id = o.id AND oi.shop_rejected_at IS NULL AND oi.shop_line_total IS NOT NULL), 0) AS shop_cost,
+                WHERE oi.order_id = o.id AND oi.shop_rejected_at IS NULL AND oi.shop_billable = 1 AND oi.shop_line_total IS NOT NULL), 0) AS shop_cost,
       EXISTS (SELECT 1 FROM order_items oi2 WHERE oi2.order_id = o.id AND oi2.shop_id IS NOT NULL
-              AND oi2.shop_rejected_at IS NULL AND oi2.shop_line_total IS NULL) AS has_unpriced_items,
+              AND oi2.shop_rejected_at IS NULL AND oi2.shop_billable = 1 AND oi2.shop_line_total IS NULL) AS has_unpriced_items,
       (o.total - COALESCE((SELECT SUM(oi3.shop_line_total) FROM order_items oi3
-                WHERE oi3.order_id = o.id AND oi3.shop_rejected_at IS NULL AND oi3.shop_line_total IS NOT NULL), 0)) AS net_profit
+                WHERE oi3.order_id = o.id AND oi3.shop_rejected_at IS NULL AND oi3.shop_billable = 1 AND oi3.shop_line_total IS NOT NULL), 0)) AS net_profit
     FROM orders o
     WHERE ${baseWhere}
     ORDER BY ${sortClause}
@@ -1217,7 +1219,7 @@ const getProfitOrders = async (req, res) => {
   if (orderIds.length > 0) {
     const [shopLineRows] = await pool.query(`
       SELECT oi.order_id, oi.shop_id, s.name AS shop_name,
-        SUM(CASE WHEN oi.shop_rejected_at IS NULL THEN oi.shop_line_total ELSE 0 END) AS shop_cost
+        SUM(CASE WHEN oi.shop_rejected_at IS NULL AND oi.shop_billable = 1 THEN oi.shop_line_total ELSE 0 END) AS shop_cost
       FROM order_items oi
       LEFT JOIN shops s ON s.id = oi.shop_id
       WHERE oi.order_id IN (?) AND oi.shop_id IS NOT NULL
@@ -1294,7 +1296,7 @@ const getAdminOrders = async (req, res) => {
   if (areaId === undefined) return;
 
   let query = `SELECT o.id, o.order_number, o.customer_id, o.customer_name, o.phone, o.whatsapp_number, o.address,
-    o.latitude, o.longitude, o.map_url, o.subtotal, o.delivery_charge, o.night_charge, o.rain_charge, o.fast_delivery_charge, o.total, o.delivery_type,
+    o.latitude, o.longitude, o.map_url, o.subtotal, o.billing_revision, o.delivery_charge, o.night_charge, o.rain_charge, o.fast_delivery_charge, o.total, o.delivery_type,
     o.coupon_id, o.coupon_code, o.coupon_title, o.discount_amount, o.free_delivery_waiver_amount,
     o.deal_coupon_id, o.deal_title, o.deal_discount_amount,
     o.payment_method, o.payment_status, o.status, o.note, o.admin_remark, o.cancel_reason, o.created_at, o.updated_at,
@@ -1401,7 +1403,7 @@ const getAdminOrders = async (req, res) => {
   const itemsByOrderId = {};
   if (rows.length > 0) {
     const [itemRows] = await pool.query(
-      'SELECT order_id, product_name, variant_label, quantity, unit_price, line_total FROM order_items WHERE order_id IN (?) ORDER BY id ASC',
+      'SELECT order_id, product_name, variant_label, quantity, unit_price, line_total, shop_rejected_at, shop_billable FROM order_items WHERE order_id IN (?) ORDER BY id ASC',
       [rows.map((row) => row.id)]
     );
     for (const item of itemRows) {
@@ -1453,7 +1455,7 @@ const getAdminOrderById = async (req, res) => {
 
   const [orderRows] = await pool.query(
     `SELECT o.id, o.order_number, o.customer_id, o.customer_name, o.phone, o.whatsapp_number, o.address,
-      o.latitude, o.longitude, o.map_url, o.subtotal, o.delivery_charge, o.night_charge, o.rain_charge, o.fast_delivery_charge, o.total, o.delivery_type,
+      o.latitude, o.longitude, o.map_url, o.subtotal, o.billing_revision, o.delivery_charge, o.night_charge, o.rain_charge, o.fast_delivery_charge, o.total, o.delivery_type,
       o.coupon_id, o.coupon_code, o.coupon_title, o.discount_amount, o.free_delivery_waiver_amount,
       o.deal_coupon_id, o.deal_title, o.deal_discount_amount,
       o.payment_method, o.payment_status, o.status, o.note, o.admin_remark, o.cancel_reason, o.created_at, o.updated_at,
@@ -1546,7 +1548,7 @@ const getAdminOrderById = async (req, res) => {
     // never counts (never fulfilled either way). Lines without a configured
     // shop_line_total (NULL) are silently excluded, not treated as free.
     const shopTotal = orderCancelled ? 0 : e.items
-      .filter(it => it.shop_rejected_at === null && it.shop_line_total !== null && it.shop_line_total !== undefined)
+      .filter(it => it.shop_rejected_at === null && Number(it.shop_billable ?? 1) === 1 && it.shop_line_total !== null && it.shop_line_total !== undefined)
       .reduce((sum, it) => sum + Number(it.shop_line_total), 0);
     return {
       shopId: e.shopId,
@@ -2276,6 +2278,12 @@ const replaceOrderItem = async (req, res) => {
         'UPDATE coupon_redemptions SET discount_amount = ? WHERE order_id = ? AND coupon_id = ?',
         [dealDiscountAmount, orderId, order.deal_coupon_id]
       );
+    }
+
+    // A price edit must respect rejected and resubmitted lines too.
+    const { saveOrderBilling } = require('../services/orderBilling');
+    if (order.billing_snapshot || item.shop_rejected_at != null || Number(item.shop_billable ?? 1) === 0) {
+      await saveOrderBilling(connection, { ...order, discount_amount: discountAmount, deal_discount_amount: dealDiscountAmount }, { priceEdit: true });
     }
 
     await connection.commit();

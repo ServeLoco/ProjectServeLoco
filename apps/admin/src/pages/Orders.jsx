@@ -271,6 +271,10 @@ export default function Orders() {
       const eventKey = getRealtimeOrderKey(eventName, payload);
       if (isRecentRealtimeEvent(recentRealtimeEvents, eventKey)) return;
 
+      if (payload.action && ['rejected', 'resent', 'confirmed'].includes(payload.action)
+        && String(selectedOrderRef.current?.id) === String(getRealtimeOrderId(payload))) {
+        queueSelectedRefresh(selectedOrderRef.current.id);
+      }
       const page = paginationRef.current.page || 1;
       const activeFilters = filtersRef.current;
 
@@ -678,7 +682,7 @@ export default function Orders() {
 
   const handlePrintInvoice = () => {
     if (!selectedOrder) return;
-    const itemsHtml = (selectedOrder.items || []).map(item => `
+    const itemsHtml = (selectedOrder.items || []).filter(item => item.shop_rejected_at == null && Number(item.shop_billable ?? 1) === 1).map(item => `
       <tr>
         <td>${escapeHtml(item.product_name)}</td>
         <td style="text-align: center;">${escapeHtml(item.quantity)}</td>
@@ -1000,9 +1004,10 @@ export default function Orders() {
                         <div className="item-line" key={idx}>
                           <span className="item-line-name">
                             {item.quantity}x {item.product_name}
+                            {(item.shop_rejected_at != null || Number(item.shop_billable ?? 1) === 0) && <span className="item-oos-flag">{item.shop_rejected_at != null ? 'Rejected · not charged' : 'Awaiting acceptance · not charged'}</span>}
                             {item.variant_label ? ` (${item.variant_label})` : ''}
                           </span>
-                          <span className="item-line-price">₹{formatMoney(item.line_total)}</span>
+                          <span className="item-line-price">₹{formatMoney(item.shop_rejected_at == null && Number(item.shop_billable ?? 1) === 1 ? item.line_total : 0)}</span>
                         </div>
                       ))
                     )}
@@ -1339,7 +1344,7 @@ export default function Orders() {
                         {outOfStock && <span className="item-oos-flag" title="Current product is marked unavailable">Out of stock</span>}
                       </span>
                       <span className="item-row-actions">
-                        <strong>₹{formatMoney(item.line_total)}</strong>
+                        <strong>₹{formatMoney(item.shop_rejected_at != null || Number(item.shop_billable ?? 1) === 0 ? 0 : item.line_total)}</strong>
                         {canReplace && (
                           <button
                             type="button"

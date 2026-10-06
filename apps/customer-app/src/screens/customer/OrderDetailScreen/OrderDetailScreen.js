@@ -1,3 +1,4 @@
+import { isOrderItemBillable, excludedItemLabel } from '../../../utils/orderBilling';
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
@@ -588,8 +589,8 @@ export default function OrderDetailScreen() {
   const progressPercent = STATUS_STEPS.length > 1
     ? (stepIndex / (STATUS_STEPS.length - 1)) * 100
     : 0;
-  const orderItemCount = order.items.reduce((sum, item) => sum + item.quantity, 0);
-  const orderItemsSubtotal = order.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const orderItemCount = order.items.filter(isOrderItemBillable).reduce((sum, item) => sum + item.quantity, 0);
+  const orderItemsSubtotal = order.bill.subtotal;
   // Delivery Charge is always the standard fee — Fast is a separate
   // additive line shown below, never discounted.
   const deliveryChargeLabel = order.bill.belowThresholdDelivery
@@ -1119,7 +1120,8 @@ function BillLineRow({ label, value, tone, showDivider = true }) {
 
 function OrderItemRow({ item, showDivider }) {
   const imageUri = normalizeImageUrl(item.imageUrl || item.image_url || item.imageUri || '');
-  const lineTotal = item.price * item.quantity;
+  const billable = isOrderItemBillable(item);
+  const lineTotal = billable ? item.price * item.quantity : 0;
 
   return (
     <View style={[styles.itemRow, showDivider && styles.itemRowDivider]}>
@@ -1138,6 +1140,7 @@ function OrderItemRow({ item, showDivider }) {
 
       <View style={styles.itemCardBody}>
         <Text style={styles.itemCardName} numberOfLines={2}>{item.name}</Text>
+        {!billable ? <Text style={[styles.itemCardUnit, { color: colors.error }]}>{excludedItemLabel(item)}</Text> : null}
         {item.unit ? (
           <Text style={styles.itemCardUnit} numberOfLines={1}>{item.unit}</Text>
         ) : null}

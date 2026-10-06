@@ -25,7 +25,7 @@ import {
   formatCountdown,
 } from '../../utils/riderOfferTime';
 import { Mapbox, mapboxAvailable } from '../../utils/mapbox';
-import { isShopRejected } from '../../utils/riderOrderActions';
+import { isShopExcluded, isShopRejected } from '../../utils/riderOrderActions';
 
 const numOrNull = (v) => {
   if (v === undefined || v === null || v === '') return null;
@@ -498,7 +498,7 @@ export default function RiderOfferPopup({
                 {shops.map((s) => {
                   // A shop that rejected stays on the card so the rider
                   // knows not to go there, but it is not a numbered stop.
-                  const rejected = isShopRejected(s);
+                  const rejected = isShopExcluded(s);
                   if (!rejected) pickupNo += 1;
                   return (
                     <View key={s.id} style={styles.routeRow}>
@@ -512,7 +512,7 @@ export default function RiderOfferPopup({
                       </View>
                       <View style={styles.routeTextCol}>
                         <Text style={[styles.routeLabel, rejected && styles.rejectedText]}>
-                          {rejected ? 'Rejected · do not go' : 'Pickup'}
+                          {rejected ? (isShopRejected(s) ? 'Rejected · do not go' : 'Awaiting acceptance · do not go') : 'Pickup'}
                         </Text>
                         <Text style={[styles.routeText, rejected && styles.rejectedStrike]}>{s.name}</Text>
                       </View>
@@ -548,7 +548,8 @@ export default function RiderOfferPopup({
                 <View style={styles.itemsCard}>
                   {items.map((it, idx) => {
                     const shopName = it.shopName || it.shop_name;
-                    const rejected = isShopRejected(it);
+                    const rejected = isShopExcluded(it);
+                    const excludedLabel = isShopRejected(it) ? 'Rejected' : 'Awaiting acceptance';
                     return (
                       <View
                         key={it.id ?? idx}
@@ -566,7 +567,7 @@ export default function RiderOfferPopup({
                             </Text>
                             {shopName ? (
                               <Text style={[styles.itemShopName, rejected && styles.rejectedText]}>
-                                {' '}· {shopName}{rejected ? ' · Rejected' : ''}
+                                {' '}· {shopName}{rejected ? ` · ${excludedLabel}` : ''}
                               </Text>
                             ) : null}
                           </Text>

@@ -6,7 +6,7 @@
  */
 
 jest.mock('../src/db/mysql', () => ({
-  pool: { query: jest.fn() },
+  pool: { query: jest.fn(), getConnection: jest.fn() },
 }));
 
 jest.mock('../src/utils/shops', () => ({
@@ -41,6 +41,7 @@ jest.mock('../src/services/riderAssignment', () => ({
 }));
 
 const { pool } = require('../src/db/mysql');
+const { shopDecisionConnection } = require('./helpers/shopDecisionConnection');
 const { emitToCustomer } = require('../src/realtime/socket');
 const { rejectShopOrder, resendShopOrder } = require('../src/services/shopOrderActions');
 
@@ -48,13 +49,11 @@ const riderEmits = () => emitToCustomer.mock.calls.filter(
   ([, event]) => event === 'rider.assignment.updated'
 );
 
-// guard SELECT, the shop_rejected_at UPDATE, the shop-owner lookup, then the
-// assigned-rider lookup — the same order for reject and resend.
+// Decision and billing SQL use the transactional fixture; these are the
+// post-commit shop-owner and assigned-rider lookups.
 const queueCalls = (riderRows) => {
   pool.query.mockReset();
   pool.query
-    .mockResolvedValueOnce([[{ cnt: 1, area_id: 7 }]])
-    .mockResolvedValueOnce([{ affectedRows: 1 }])
     .mockResolvedValueOnce([[{ owner_user_id: 999 }]])
     .mockResolvedValueOnce([riderRows]);
 };
@@ -62,6 +61,7 @@ const queueCalls = (riderRows) => {
 describe('shop changes reach the assigned rider', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    pool.getConnection.mockResolvedValue(shopDecisionConnection({ shopId: 2, rejected: false }));
   });
 
   it('tells the assigned rider when a shop rejects', async () => {
@@ -77,6 +77,7 @@ describe('shop changes reach the assigned rider', () => {
 
   it('tells the assigned rider when an admin re-sends to a shop', async () => {
     queueCalls([{ user_id: 42 }]);
+    pool.getConnection.mockResolvedValue(shopDecisionConnection({ rejected: true }));
 
     const result = await resendShopOrder(2, 139, { shopName: 'Hisar Corner Store' });
 
@@ -97,8 +98,6 @@ describe('shop changes reach the assigned rider', () => {
   it('does not fail the reject when the rider lookup fails', async () => {
     pool.query.mockReset();
     pool.query
-      .mockResolvedValueOnce([[{ cnt: 1, area_id: 7 }]])
-      .mockResolvedValueOnce([{ affectedRows: 1 }])
       .mockResolvedValueOnce([[{ owner_user_id: 999 }]])
       .mockRejectedValueOnce(new Error('db down'));
 

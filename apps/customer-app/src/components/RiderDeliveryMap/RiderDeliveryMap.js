@@ -21,7 +21,7 @@ import {
 } from '../../utils/mapbox';
 import AnimatedRouteLine from '../AnimatedRouteLine';
 import { RIDER_WATCH_OPTIONS, shouldSendPing } from '../../utils/riderTracking';
-import { isShopRejected } from '../../utils/riderOrderActions';
+import { isShopExcluded, isShopRejected } from '../../utils/riderOrderActions';
 
 const CUSTOMER_COLOR = '#FF7A3A';
 const OFF_ROUTE_METERS = 150;
@@ -310,7 +310,7 @@ export default function RiderDeliveryMap({ order, pickedUp, style, onRouteInfo, 
   const shops = useMemo(() => {
     const list = order?.shops || [];
     return list
-      .filter((s) => !isShopRejected(s))
+      .filter((s) => !isShopExcluded(s))
       .map((s) => {
         const lat = numOrNull(s.latitude ?? s.lat);
         const lng = numOrNull(s.longitude ?? s.lng);

@@ -14,6 +14,7 @@ const jwt = require('jsonwebtoken');
 const adminRoutes = require('../src/routes/adminRoutes');
 const { getShopForUser } = require('../src/utils/shops');
 const { pool } = require('../src/db/mysql');
+const { shopDecisionConnection } = require('./helpers/shopDecisionConnection');
 
 jest.mock('../src/db/mysql', () => ({
   pool: {
@@ -150,13 +151,10 @@ describe('Admin Shop CRUD — /api/admin/shops', () => {
   });
 
   it('PATCH /shops/:id/orders/:orderId/confirm confirms shop items (admin = shop-owner confirm)', async () => {
+    pool.getConnection.mockResolvedValue(shopDecisionConnection({ orderId: 10, areaId: 1 }));
     // loadShopOr404
     pool.query
       .mockResolvedValueOnce([[{ id: 1, name: 'Burger Point' }]])
-      // confirmShopOrder: COUNT items for shop on order
-      .mockResolvedValueOnce([[{ cnt: 2, order_status: 'Preparing' }]])
-      // UPDATE shop_confirmed_at
-      .mockResolvedValueOnce([{ affectedRows: 2 }])
       // notifyShopOwnerOrderUpdated: owner lookup
       .mockResolvedValueOnce([[{ owner_user_id: 7 }]]);
 

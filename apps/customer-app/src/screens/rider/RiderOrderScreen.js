@@ -22,6 +22,7 @@ import RiderDeliveryMap from '../../components/RiderDeliveryMap';
 import {
   getRiderActionFlags,
   isShopRejected,
+  isShopExcluded,
   mergeRiderOrder,
 } from '../../utils/riderOrderActions';
 import { elapsedSecondsFromStart, formatElapsed } from '../../utils/riderOfferTime';
@@ -162,8 +163,9 @@ export default function RiderOrderScreen({ route, navigation }) {
 
   // A shop that rejected is listed so the rider knows, but never routed to.
   const orderShops = Array.isArray(order?.shops) ? order.shops : [];
-  const pickupShops = orderShops.filter((s) => !isShopRejected(s));
+  const pickupShops = orderShops.filter((s) => !isShopExcluded(s));
   const rejectedShops = orderShops.filter(isShopRejected);
+  const pendingShops = orderShops.filter(s => isShopExcluded(s) && !isShopRejected(s));
   const navShops = pickupShops
     .map((s) => {
       const lat = numOrNull(s?.latitude ?? s?.lat);
@@ -261,6 +263,10 @@ export default function RiderOrderScreen({ route, navigation }) {
             <Text style={[styles.shopsLine, styles.rejectedShopsLine]} numberOfLines={2}>
               Rejected · do not go: {rejectedShops.map((s) => s.name).filter(Boolean).join(' · ') || 'Shop'}
             </Text>
+          ) : null}
+
+          {pendingShops.length > 0 ? (
+            <Text style={styles.shopsLine}>Awaiting shop acceptance: {pendingShops.map(s => s.name).join(' · ')}</Text>
           ) : null}
 
           {order.total != null ? (

@@ -48,9 +48,15 @@ const ORDER_ROW = {
   coupon_id: null,
 };
 
-const makeConnection = (cancelAffectedRows = 1) => ({
+const makeConnection = (cancelAffectedRows = 1, {
+  order = ORDER_ROW,
+  items = [{ shop_id: 1, shop_rejected_at: '2026-07-10 10:00:00' }],
+} = {}) => ({
   beginTransaction: jest.fn().mockResolvedValue(undefined),
-  query: jest.fn().mockResolvedValue([{ affectedRows: cancelAffectedRows }]),
+  query: jest.fn()
+    .mockResolvedValue([{ affectedRows: cancelAffectedRows }])
+    .mockResolvedValueOnce([order ? [order] : []])
+    .mockResolvedValueOnce([items]),
   commit: jest.fn().mockResolvedValue(undefined),
   rollback: jest.fn().mockResolvedValue(undefined),
   release: jest.fn(),
@@ -141,7 +147,7 @@ describe('maybeAutoCancelOrderWhenAllShopsRejected', () => {
   });
 
   it('cancels Preparing orders when every shop has rejected', async () => {
-    const connection = makeConnection(1);
+    const connection = makeConnection(1, { order: { ...ORDER_ROW, status: 'Preparing' } });
     pool.getConnection.mockResolvedValue(connection);
 
     pool.query
@@ -163,7 +169,7 @@ describe('maybeAutoCancelOrderWhenAllShopsRejected', () => {
   });
 
   it('uses Refunded payment status for UPI orders', async () => {
-    const connection = makeConnection(1);
+    const connection = makeConnection(1, { order: { ...ORDER_ROW, payment_method: 'UPI' } });
     pool.getConnection.mockResolvedValue(connection);
 
     pool.query
@@ -181,7 +187,7 @@ describe('maybeAutoCancelOrderWhenAllShopsRejected', () => {
   });
 
   it('restores coupon redemption inside the cancel transaction', async () => {
-    const connection = makeConnection(1);
+    const connection = makeConnection(1, { order: { ...ORDER_ROW, coupon_id: 99 } });
     pool.getConnection.mockResolvedValue(connection);
 
     pool.query
@@ -236,6 +242,77 @@ describe('maybeAutoCancelOrderWhenAllShopsRejected', () => {
     expect(connection.rollback).toHaveBeenCalled();
     expect(adminInbox.createAdminNotification).not.toHaveBeenCalled();
     expect(realtimeEvents.emitOrderStatusUpdated).not.toHaveBeenCalled();
+  });
+
+  it('does not cancel a resubmitted shop after stale all-rejected prechecks', async () => {
+    const connection = makeConnection(1, {
+      items: [
+        { shop_id: 1, shop_rejected_at: '2026-07-10 10:00:00', shop_billable: 0 },
+        { shop_id: 2, shop_rejected_at: null, shop_billable: 0 },
+      ],
+    });
+    pool.getConnection.mockResolvedValue(connection);
+    pool.query
+      .mockResolvedValueOnce([[ORDER_ROW]])
+      .mockResolvedValueOnce([[
+        { shop_id: 1, shop_rejected_at: '2026-07-10 10:00:00' },
+        { shop_id: 2, shop_rejected_at: '2026-07-10 10:01:00' },
+      ]]);
+
+    const result = await maybeAutoCancelOrderWhenAllShopsRejected(42);
+
+    expect(result).toBeNull();
+    expect(connection.query).toHaveBeenNthCalledWith(1, 'SELECT * FROM orders WHERE id = ? FOR UPDATE', [42]);
+    expect(connection.query).toHaveBeenNthCalledWith(2,
+      'SELECT shop_id, shop_rejected_at FROM order_items WHERE order_id = ? AND shop_id IS NOT NULL FOR UPDATE', [42]);
+    expect(connection.query).toHaveBeenCalledTimes(2);
+    expect(connection.rollback).toHaveBeenCalledTimes(1);
+    expect(connection.commit).not.toHaveBeenCalled();
+    expect(connection.release).toHaveBeenCalledTimes(1);
+    expect(adminInbox.createAdminNotification).not.toHaveBeenCalled();
+    expect(notificationService.createOrderNotification).not.toHaveBeenCalled();
+    expect(realtimeEvents.emitOrderStatusUpdated).not.toHaveBeenCalled();
+  });
+
+  it('does not cancel when the order becomes terminal before the lock is acquired', async () => {
+    const connection = makeConnection(1, { order: { ...ORDER_ROW, status: 'Delivered' } });
+    pool.getConnection.mockResolvedValue(connection);
+    pool.query
+      .mockResolvedValueOnce([[ORDER_ROW]])
+      .mockResolvedValueOnce([[{ shop_id: 1, shop_rejected_at: '2026-07-10 10:00:00' }]]);
+
+    const result = await maybeAutoCancelOrderWhenAllShopsRejected(42);
+
+    expect(result).toBeNull();
+    expect(connection.query).toHaveBeenCalledTimes(1);
+    expect(connection.rollback).toHaveBeenCalledTimes(1);
+    expect(connection.commit).not.toHaveBeenCalled();
+    expect(connection.release).toHaveBeenCalledTimes(1);
+    expect(adminInbox.createAdminNotification).not.toHaveBeenCalled();
+  });
+
+  it('uses current order state for cancellation and both redemptions under the lock', async () => {
+    const lockedOrder = { ...ORDER_ROW, status: 'Preparing', payment_method: 'UPI', coupon_id: 99, deal_coupon_id: 100 };
+    const connection = makeConnection(1, { order: lockedOrder });
+    pool.getConnection.mockResolvedValue(connection);
+    pool.query
+      .mockResolvedValueOnce([[ORDER_ROW]])
+      .mockResolvedValueOnce([[{ shop_id: 1, shop_rejected_at: '2026-07-10 10:00:00' }]])
+      .mockResolvedValueOnce([[{ ...lockedOrder, status: 'Cancelled', payment_status: 'Refunded' }]])
+      .mockResolvedValueOnce([[{ name: 'Burger Point' }]]);
+
+    const result = await maybeAutoCancelOrderWhenAllShopsRejected(42);
+
+    expect(result.status).toBe('Cancelled');
+    expect(connection.query).toHaveBeenNthCalledWith(3,
+      'UPDATE orders SET status = ?, payment_status = ?, cancel_reason = ? WHERE id = ? AND status = ?',
+      ['Cancelled', 'Refunded', expect.any(String), 42, 'Preparing']);
+    expect(connection.query).toHaveBeenNthCalledWith(4,
+      "UPDATE coupon_redemptions SET status = 'cancelled' WHERE order_id = ? AND coupon_id = ?", [42, 99]);
+    expect(connection.query).toHaveBeenNthCalledWith(5,
+      "UPDATE coupon_redemptions SET status = 'cancelled' WHERE order_id = ? AND coupon_id = ?", [42, 100]);
+    expect(connection.commit).toHaveBeenCalledTimes(1);
+    expect(connection.release).toHaveBeenCalledTimes(1);
   });
 
   it('ignores house items and only requires every shop bucket to be rejected', async () => {

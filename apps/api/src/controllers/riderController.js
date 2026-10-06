@@ -79,6 +79,7 @@ const shapeItemRow = (it, shopName = it.shop_name || null) => ({
   // so these mirror straight off this item's own timestamps.
   accepted: Boolean(it.shop_confirmed_at),
   rejected: Boolean(it.shop_rejected_at),
+  billable: it.shop_rejected_at == null && Number(it.shop_billable ?? 1) === 1,
 });
 
 /**
@@ -94,6 +95,7 @@ const shopDecision = (rows) => {
     status: rejected ? 'rejected' : (accepted ? 'accepted' : 'pending'),
     accepted,
     rejected,
+    billable: !rejected && rows.every(it => Number(it.shop_billable ?? 1) === 1),
   };
 };
 
@@ -115,7 +117,7 @@ const loadAssignmentExtrasBatch = async (orderRows) => {
   );
   const [itemRows] = await pool.query(
     `SELECT id, order_id, product_name, quantity, variant_label, shop_id, unit_price, line_total,
-            shop_confirmed_at, shop_rejected_at
+            shop_confirmed_at, shop_rejected_at, shop_billable
      FROM order_items WHERE order_id IN (?)
      ORDER BY order_id, shop_id, id`,
     [orderIds]
@@ -408,7 +410,7 @@ const getActiveOffer = async (req, res) => {
     ),
     pool.query(
       `SELECT order_id, id, product_name, quantity, variant_label, shop_id, unit_price, line_total,
-              shop_confirmed_at, shop_rejected_at
+              shop_confirmed_at, shop_rejected_at, shop_billable
        FROM order_items WHERE order_id IN (?)
        ORDER BY order_id, shop_id, id`,
       [orderIds]

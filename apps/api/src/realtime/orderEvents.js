@@ -20,7 +20,18 @@ const toOrderEventPayload = (order = {}) => ({
   cancelReason: order.cancel_reason || order.cancelReason || null,
   cancel_reason: order.cancel_reason || order.cancelReason || null,
   total: order.total,
+  subtotal: order.subtotal,
+  billingRevision: order.billing_revision ?? order.billingRevision,
+  delivery_charge: order.delivery_charge,
+  fast_delivery_charge: order.fast_delivery_charge,
+  night_charge: order.night_charge,
+  rain_charge: order.rain_charge,
+  discount_amount: order.discount_amount,
+  deal_discount_amount: order.deal_discount_amount,
+  free_delivery_waiver_amount: order.free_delivery_waiver_amount,
   items: order.items,
+  action: order.action,
+  shopId: order.shopId,
   createdAt: order.created_at || order.createdAt || new Date().toISOString(),
   updatedAt: order.updated_at || order.updatedAt || new Date().toISOString(),
 });
@@ -103,13 +114,11 @@ const emitOrderPaymentUpdated = (order) => {
 
 const emitOrderItemReplaced = (order, itemId, oldProduct, newProduct) => {
   const payload = {
+    ...toOrderEventPayload(order),
     orderId: order.id,
     itemId,
     oldProduct,
     newProduct,
-    subtotal: order.subtotal,
-    total: order.total,
-    updatedAt: order.updated_at || order.updatedAt || new Date().toISOString(),
   };
   emitToCustomer(order.customer_id, 'order.item.replaced', payload);
   emitToCustomer(order.customer_id, 'order.updated', payload);

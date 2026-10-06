@@ -33,6 +33,7 @@ import {
   getRiderActionFlags,
   isOutForDelivery,
   isShopRejected,
+  isShopExcluded,
   mergeRiderOrder,
 } from '../../utils/riderOrderActions';
 import { elapsedSecondsFromStart, formatElapsed } from '../../utils/riderOfferTime';
@@ -799,7 +800,8 @@ export default function RiderDashboardScreen({ navigation }) {
                   <Text style={styles.itemsLabel}>Order items</Text>
                   {assignment.items.map((it, idx) => {
                     const shopName = it.shopName || it.shop_name;
-                    const rejected = isShopRejected(it);
+                    const rejected = isShopExcluded(it);
+                    const excludedLabel = isShopRejected(it) ? 'Rejected' : 'Awaiting acceptance';
                     return (
                       <View key={it.id ?? idx} style={styles.itemRow}>
                         <View style={{ flex: 1 }}>
@@ -813,7 +815,7 @@ export default function RiderDashboardScreen({ navigation }) {
                             </Text>
                             {shopName ? (
                               <Text style={[styles.itemShopName, rejected && styles.rejectedText]}>
-                                {' '}· {shopName}{rejected ? ' · Rejected' : ''}
+                                {' '}· {shopName}{rejected ? ` · ${excludedLabel}` : ''}
                               </Text>
                             ) : null}
                           </Text>

@@ -141,12 +141,12 @@ describe('remindPendingShopOrders', () => {
     expect(sql).toMatch(/status IN \('Accepted', 'Preparing'\)/);
     expect(sql).toMatch(/shop_confirmed_at IS NULL/);
     expect(sql).toMatch(/shop_rejected_at IS NULL/);
-    expect(sql).toMatch(/o\.accepted_at > \(NOW\(\) - INTERVAL \? SECOND\)/);
+    expect(sql).toMatch(/COALESCE\(oi\.shop_requested_at, o\.accepted_at\) > \(NOW\(\) - INTERVAL \? SECOND\)/);
     // Due-time basis falls back to accepted_at, never "NULL means due now" —
     // notifyShopsForOrder stamps shop_last_notified_at just *after* firing the
     // initial push, and treating that gap as due re-rang the owner immediately.
     expect(sql).toMatch(
-      /HAVING COALESCE\(MIN\(oi\.shop_last_notified_at\), o\.accepted_at\)/
+      /HAVING COALESCE\(MIN\(oi\.shop_last_notified_at\), oi\.shop_requested_at, o\.accepted_at\)/
     );
     expect(sql).not.toMatch(/HAVING MIN\(oi\.shop_last_notified_at\) IS NULL/);
     // Reminder cadence escalates: acked rows go slow; an unacked row doubles
@@ -281,7 +281,7 @@ describe('timeoutRejectStaleShopOrders', () => {
     expect(sql).toMatch(/status IN \('Accepted', 'Preparing'\)/);
     expect(sql).toMatch(/shop_confirmed_at IS NULL/);
     expect(sql).toMatch(/shop_rejected_at IS NULL/);
-    expect(sql).toMatch(/accepted_at <= \(NOW\(\) - INTERVAL \? SECOND\)/);
+    expect(sql).toMatch(/COALESCE\(oi\.shop_requested_at, o\.accepted_at\) <= \(NOW\(\) - INTERVAL \? SECOND\)/);
     expect(params).toEqual([Math.ceil(SHOP_RESPONSE_TIMEOUT_MS / 1000)]);
   });
 

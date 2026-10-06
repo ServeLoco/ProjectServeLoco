@@ -89,6 +89,24 @@ describe('Admin riders API', () => {
     expect(res.body.rider.id).toBe(3);
   });
 
+  it('dispatch excludes rejected and resent items from shop payout totals', async () => {
+    pool.query
+      .mockResolvedValueOnce([[{ id: 1, area_id: 1, user_id: 5, display_name: 'Ravi', active: 1 }]])
+      .mockResolvedValueOnce([[]])
+      .mockResolvedValueOnce([[{ id: 42, status: 'Preparing', total: 78, area_id: 1 }]])
+      .mockResolvedValueOnce([[{ order_id: 42, id: 1, name: 'Shop' }]])
+      .mockResolvedValueOnce([[
+        { id: 1, order_id: 42, shop_id: 1, shop_line_total: 20, shop_rejected_at: null, shop_billable: 1 },
+        { id: 2, order_id: 42, shop_id: 1, shop_line_total: 90, shop_rejected_at: null, shop_billable: 0 },
+        { id: 3, order_id: 42, shop_id: 1, shop_line_total: 50, shop_rejected_at: new Date(), shop_billable: 0 },
+      ]]);
+    const res = await request(app).get('/api/admin/riders/1/dispatch')
+      .set('Authorization', `Bearer ${adminToken()}`);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.orders[0].shops[0]).toMatchObject({ shopTotal: 20, shop_total: 20 });
+    expect(res.body.orders[0].items[1]).toMatchObject({ shopBillable: 0, shop_billable: 0 });
+  });
+
   it('create rider fails if user is an active mobile admin', async () => {
     pool.query
       .mockResolvedValueOnce([[{ id: 5, name: 'Ravi', phone: '9999999999' }]]) // user by phone

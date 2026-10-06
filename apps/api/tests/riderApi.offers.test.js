@@ -93,7 +93,7 @@ describe('Rider offers & assignments API', () => {
     expect(res.body.offer.id).toBe(9);
     expect(res.body.offer.secondsRemaining).toBeGreaterThan(0);
     expect(res.body.offer.shops).toEqual([
-      { id: 1, name: 'Shop A', status: 'pending', accepted: false, rejected: false },
+      { id: 1, name: 'Shop A', status: 'pending', accepted: false, rejected: false, billable: true },
     ]);
     expect(res.body.offer.items).toHaveLength(1);
     expect(res.body.offer.items[0].productName).toBe('Milk');

@@ -483,7 +483,7 @@ export default function Reports() {
                   )}
                   {warnings.rejectedItemsCount > 0 && (
                     <div>
-                      ⚠ {warnings.rejectedItemsCount} item{warnings.rejectedItemsCount === 1 ? '' : 's'} were rejected by their shop after ordering — excluded from shop cost, but the customer still paid for them.
+                      ⚠ {warnings.rejectedItemsCount} item{warnings.rejectedItemsCount === 1 ? '' : 's'} were rejected by their shop — removed from customer totals, sales and shop payouts.
                     </div>
                   )}
                 </section>
