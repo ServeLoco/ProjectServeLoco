@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from './AuthProvider';
 import { useLocation } from 'react-router-dom';
 import ThemeToggle from './ThemeToggle';
 import AdminNotificationsBell from './AdminNotificationsBell';
 import AreaSwitcher from './AreaSwitcher';
+import AdminIcon from './AdminIcon';
 import './Header.css';
 
 const PAGE_META = {
@@ -102,8 +103,9 @@ export default function Header() {
         <RefreshButton />
 
         {/* Logout */}
-        <button onClick={logout} className="btn-header-action logout">
-          Sign Out
+        <button type="button" onClick={logout} className="btn-header-action logout" title="Sign Out" aria-label="Sign Out">
+          <AdminIcon name="logout" size={17} />
+          <span>Sign Out</span>
         </button>
       </div>
     </header>
@@ -118,12 +120,13 @@ function RefreshButton() {
   };
   return (
     <button
+      type="button"
       onClick={handleClick}
       className="btn-header-icon"
       title="Refresh page"
       aria-label="Refresh"
     >
-      ↺
+      <AdminIcon name="refresh" size={18} />
     </button>
   );
 }

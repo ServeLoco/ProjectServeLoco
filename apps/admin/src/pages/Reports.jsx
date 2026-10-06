@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ReportsApi, subscribeAdminOrderEvents, subscribeRealtimeLifecycle } from '../api';
 import { useAdminRefresh } from '../hooks/useAdminRefresh';
+import AdminIcon from '../components/AdminIcon';
+import { ReportBars, ReportDonut } from '../components/ReportVisuals';
 import './Reports.css';
 
 import { GENERIC_ERROR } from '../utils/constants';
@@ -369,16 +371,24 @@ export default function Reports() {
   const shops = profitSummary?.shops || [];
   const pipeline = profitSummary?.pipeline || { orders: 0, value: 0 };
   const cancelled = profitSummary?.cancelled || { orders: 0, value: 0 };
+  const topQuantityScale = Math.max(0, ...topProducts.map(product => Number(product.total_quantity) || 0));
+  const shopSalesScale = Math.max(0, ...shopsData.map(shop => Number(shop.total_amount) || 0));
 
   return (
     <div className="reports-container">
       <header className="reports-header">
-        <h1 className="reports-title">Reports & Analytics</h1>
-        <div className="reports-tabs">
-          <button className={`reports-tab ${activeTab === 'profit' ? 'active' : ''}`} onClick={() => setActiveTab('profit')}>
+        <div className="reports-heading">
+          <span className="reports-eyebrow">Business performance</span>
+          <h1 className="reports-title">Reports &amp; Analytics</h1>
+          <p className="reports-description">A clear view of your sales, profit and shop payouts.</p>
+        </div>
+        <div className="reports-tabs" aria-label="Report views">
+          <button className={`reports-tab ${activeTab === 'profit' ? 'active' : ''}`} onClick={() => setActiveTab('profit')} aria-pressed={activeTab === 'profit'}>
+            <AdminIcon name="reports" size={16} />
             Profit &amp; Payouts
           </button>
-          <button className={`reports-tab ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>
+          <button className={`reports-tab ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')} aria-pressed={activeTab === 'overview'}>
+            <AdminIcon name="analytics" size={16} />
             Overview
           </button>
         </div>
@@ -393,6 +403,7 @@ export default function Reports() {
                   key={p.key}
                   className={`profit-filter-btn ${profitPeriodKey === p.key && !showCustomRange ? 'active' : ''}`}
                   onClick={() => handlePeriodPreset(p.key)}
+                  aria-pressed={profitPeriodKey === p.key && !showCustomRange}
                   disabled={profitLoading}
                 >
                   {p.label}
@@ -403,25 +414,27 @@ export default function Reports() {
                 onClick={() => setShowCustomRange(v => !v)}
                 disabled={profitLoading}
               >
-                Custom Range
+                <AdminIcon name="calendar" size={14} /> Custom Range
               </button>
             </div>
             {showCustomRange && (
               <div className="profit-custom-range">
-                <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} max={customTo || undefined} />
+                <input type="date" aria-label="Report start date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} max={customTo || undefined} />
                 <span>to</span>
-                <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} min={customFrom || undefined} />
+                <input type="date" aria-label="Report end date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} min={customFrom || undefined} />
                 <button className="btn-primary" onClick={handleApplyCustomRange} disabled={!customFrom || !customTo}>Apply</button>
               </div>
             )}
             <div className="profit-period-label">
+              <AdminIcon name="calendar" size={15} />
               {profitSummary ? formatPeriodLabel(profitSummary.period) : ''}
             </div>
             <div className="profit-export-actions">
               <button className="btn-secondary" onClick={handleExportProfitSummary} disabled={profitLoading || !profitSummary}>
-                Export Summary CSV
+                <AdminIcon name="download" size={16} /> Export Summary CSV
               </button>
               <button className="btn-secondary" onClick={handleExportOrdersCsv} disabled={ordersLoading || exportingOrders}>
+                <AdminIcon name="download" size={16} />
                 {exportingOrders ? 'Exporting…' : 'Export Orders CSV'}
               </button>
             </div>
@@ -430,11 +443,12 @@ export default function Reports() {
           {profitError && <div className="error-container" style={{ marginBottom: '1.25rem' }}>{profitError}</div>}
 
           {profitLoading && !profitSummary ? (
-            <div style={{ textAlign: 'center', padding: '4rem' }}>Crunching the numbers…</div>
+            <div className="reports-loading" role="status"><span className="global-spinner" />Crunching the numbers…</div>
           ) : (
             <>
               <section className="profit-kpi-grid">
                 <div className="profit-kpi-card highlight">
+                  <span className="report-kpi-icon"><AdminIcon name="analytics" size={18} /></span>
                   <div className="profit-kpi-label">Net Profit <span className="profit-kpi-note">before rider payouts</span></div>
                   <div className={`profit-kpi-value ${totals.netProfit >= 0 ? 'positive' : 'negative'}`}>
                     ₹{formatINR(totals.netProfit)}
@@ -442,21 +456,25 @@ export default function Reports() {
                   <div className="profit-kpi-subtext">Avg ₹{formatINR(totals.avgProfitPerOrder)} / order</div>
                 </div>
                 <div className="profit-kpi-card">
+                  <span className="report-kpi-icon"><AdminIcon name="products" size={18} /></span>
                   <div className="profit-kpi-label">App Sales</div>
                   <div className="profit-kpi-value">₹{formatINR(totals.appSales)}</div>
                   <div className="profit-kpi-subtext">Customer paid ₹{formatINR(totals.customerPaid)}</div>
                 </div>
                 <div className="profit-kpi-card">
+                  <span className="report-kpi-icon"><AdminIcon name="shops" size={18} /></span>
                   <div className="profit-kpi-label">Shop Payout Due</div>
                   <div className="profit-kpi-value">₹{formatINR(totals.shopCost)}</div>
-                  <div className="profit-kpi-subtext">What we owe shops today</div>
+                  <div className="profit-kpi-subtext">What we owe shops for this period</div>
                 </div>
                 <div className="profit-kpi-card">
+                  <span className="report-kpi-icon"><AdminIcon name="orders" size={18} /></span>
                   <div className="profit-kpi-label">Delivered Orders</div>
                   <div className="profit-kpi-value">{totals.deliveredOrders}</div>
                   <div className="profit-kpi-subtext">Avg ₹{formatINR(totals.avgOrderValue)} / order</div>
                 </div>
                 <div className="profit-kpi-card">
+                  <span className="report-kpi-icon"><AdminIcon name="percentage" size={18} /></span>
                   <div className="profit-kpi-label">Margin %</div>
                   <div className="profit-kpi-value">{formatMoney(totals.marginPercent)}%</div>
                   <div className="profit-kpi-subtext">Net profit / customer paid</div>
@@ -478,16 +496,47 @@ export default function Reports() {
                 <section className="profit-warning-note">
                   {warnings.unpricedItemsCount > 0 && (
                     <div>
-                      ⚠ {warnings.unpricedItemsCount} item{warnings.unpricedItemsCount === 1 ? '' : 's'} (₹{formatINR(warnings.unpricedItemsAppTotal)}) had no shop price set — counted as zero cost, so margin may read higher than actual.
+                      <AdminIcon name="warning" size={16} /> {warnings.unpricedItemsCount} item{warnings.unpricedItemsCount === 1 ? '' : 's'} (₹{formatINR(warnings.unpricedItemsAppTotal)}) had no shop price set — counted as zero cost, so margin may read higher than actual.
                     </div>
                   )}
                   {warnings.rejectedItemsCount > 0 && (
                     <div>
-                      ⚠ {warnings.rejectedItemsCount} item{warnings.rejectedItemsCount === 1 ? '' : 's'} were rejected by their shop — removed from customer totals, sales and shop payouts.
+                      <AdminIcon name="warning" size={16} /> {warnings.rejectedItemsCount} item{warnings.rejectedItemsCount === 1 ? '' : 's'} were rejected by their shop — removed from customer totals, sales and shop payouts.
                     </div>
                   )}
                 </section>
               )}
+
+              <section className="report-visual-grid" aria-label="Financial charts">
+                <article className="report-visual-card">
+                  <div className="report-card-heading">
+                    <div><span className="report-card-eyebrow">Revenue composition</span><h3>Where income comes from</h3></div>
+                    <AdminIcon name="analytics" />
+                  </div>
+                  <p className="report-card-description">App sales and charges before discounts. Delivered orders only.</p>
+                  <ReportDonut money centerLabel="Before discounts" rows={[
+                    { label: 'App sales', value: totals.appSales, color: 'var(--chart-green)' },
+                    { label: 'Charges income', value: totals.chargesIncome, color: 'var(--chart-blue)' },
+                  ]} />
+                  <div className="report-chart-footer">
+                    <span>Customer paid <strong>₹{formatINR(totals.customerPaid)}</strong></span>
+                    <span>Discounts <strong>₹{formatINR(totals.discount)}</strong></span>
+                  </div>
+                </article>
+                <article className="report-visual-card">
+                  <div className="report-card-heading">
+                    <div><span className="report-card-eyebrow">Financial comparison</span><h3>Sales, costs &amp; profit</h3></div>
+                    <AdminIcon name="reports" />
+                  </div>
+                  <p className="report-card-description">Net profit is before rider payouts.</p>
+                  <ReportBars rows={[
+                    { label: 'App sales', value: totals.appSales, color: 'var(--chart-green)' },
+                    { label: 'Shop cost', value: totals.shopCost, color: 'var(--chart-amber)' },
+                    { label: 'Charges income', value: totals.chargesIncome, color: 'var(--chart-blue)' },
+                    { label: 'Net profit', value: totals.netProfit, color: 'var(--chart-teal)' },
+                  ]} />
+                </article>
+              </section>
 
               <div className="profit-main-grid">
                 <section className="profit-breakdown-card">
@@ -534,6 +583,10 @@ export default function Reports() {
 
                 <section className="profit-shops-card">
                   <h3 className="report-section-title">Shop Payout Table</h3>
+                  {shops.length > 0 && <ReportBars rows={shops.map(shop => ({
+                    key: shop.shopId ?? 'house', label: shop.shopName, value: shop.shopCost,
+                    color: 'var(--chart-blue)',
+                  }))} />}
                   {shops.length === 0 ? (
                     <p style={{ color: 'var(--text-secondary)' }}>No shop activity for this period.</p>
                   ) : (
@@ -583,13 +636,13 @@ export default function Reports() {
                     Delivered Orders
                   </h3>
                   <div className="profit-orders-controls">
-                    <select value={ordersShopId} onChange={(e) => setOrdersShopId(e.target.value)} disabled={ordersLoading}>
+                    <select aria-label="Filter delivered orders by shop" value={ordersShopId} onChange={(e) => setOrdersShopId(e.target.value)} disabled={ordersLoading}>
                       <option value="">All shops</option>
                       {shops.filter(s => s.shopId).map(s => (
                         <option key={s.shopId} value={s.shopId}>{s.shopName}</option>
                       ))}
                     </select>
-                    <select value={ordersSort} onChange={(e) => setOrdersSort(e.target.value)} disabled={ordersLoading}>
+                    <select aria-label="Sort delivered orders" value={ordersSort} onChange={(e) => setOrdersSort(e.target.value)} disabled={ordersLoading}>
                       <option value="time">Newest first</option>
                       <option value="profit">Highest profit</option>
                       <option value="value">Highest value</option>
@@ -666,21 +719,21 @@ export default function Reports() {
       ) : (
         <>
           <div className="overview-controls">
-            <select className="date-filter" value={overviewPeriod} onChange={(e) => setOverviewPeriod(e.target.value)} disabled={overviewLoading}>
+            <select className="date-filter" aria-label="Overview period" value={overviewPeriod} onChange={(e) => setOverviewPeriod(e.target.value)} disabled={overviewLoading}>
               <option value="today">Today</option>
               <option value="week">This Week</option>
               <option value="month">This Month</option>
               <option value="all">All Time</option>
             </select>
             <button className="btn-secondary" onClick={handleExportOverviewCsv} disabled={overviewLoading || !salesData}>
-              Export CSV
+              <AdminIcon name="download" size={16} /> Export CSV
             </button>
           </div>
 
           {overviewError && <div className="error-container" style={{ marginBottom: '2rem' }}>{overviewError}</div>}
 
           {overviewLoading ? (
-            <div style={{ textAlign: 'center', padding: '4rem' }}>Generating reports...</div>
+            <div className="reports-loading" role="status"><span className="global-spinner" />Generating reports…</div>
           ) : (
             <>
               <section className="summary-grid">
@@ -704,6 +757,10 @@ export default function Reports() {
               <div className="reports-grid">
                 <div className="report-section">
                   <h3 className="report-section-title">Payment Methods</h3>
+                  <ReportDonut centerLabel="Orders" rows={[
+                    { label: 'UPI Payments', value: salesData?.payment_breakdown?.upi || 0, color: 'var(--chart-blue)' },
+                    { label: 'Cash on Delivery', value: salesData?.payment_breakdown?.cash || 0, color: 'var(--chart-green)' },
+                  ]} />
                   <ul className="breakdown-list">
                     <li className="breakdown-item">
                       <span className="breakdown-name">UPI Payments</span>
@@ -718,6 +775,11 @@ export default function Reports() {
 
                 <div className="report-section">
                   <h3 className="report-section-title">Payment Status</h3>
+                  <ReportBars money={false} rows={[
+                    { label: 'Paid (Completed)', value: (salesData?.payment_status?.paid || 0) + (salesData?.payment_status?.success || 0), color: 'var(--chart-green)' },
+                    { label: 'Pending', value: salesData?.payment_status?.pending || 0, color: 'var(--chart-amber)' },
+                    { label: 'Failed / Refunded', value: (salesData?.payment_status?.failed || 0) + (salesData?.payment_status?.refunded || 0), color: 'var(--chart-red)' },
+                  ]} />
                   <ul className="breakdown-list">
                     <li className="breakdown-item">
                       <span className="breakdown-name">Paid (Completed)</span>
@@ -751,7 +813,12 @@ export default function Reports() {
                             {p.product_name}
                             {p.item_type === 'combo' && <span className="top-items-combo-tag">Combo</span>}
                           </span>
-                          <span className="top-items-units">{p.total_quantity}</span>
+                          <span className="top-items-units">
+                            {p.total_quantity}
+                            <span className="report-mini-track" aria-hidden="true">
+                              <span style={{ width: (topQuantityScale ? Math.max(0, Number(p.total_quantity) || 0) / topQuantityScale * 100 : 0) + '%' }} />
+                            </span>
+                          </span>
                           <span className="top-items-price">₹{p.total_sales}</span>
                         </div>
                       ))}
@@ -762,7 +829,7 @@ export default function Reports() {
                 <div className="report-section">
                   <h3 className="report-section-title">Food Ratings</h3>
                   <p className="food-ratings-note">
-                    Shown = what customers see: every delivered order counts, unrated ones as 5★, never below 3.5. 🔥 above 4.8.
+                    Shown = what customers see: every delivered order counts, unrated ones as 5 stars, never below 3.5. Highlighted above 4.8.
                   </p>
                   {foodRatings.length === 0 ? (
                     <p style={{ color: 'var(--text-secondary)' }}>No delivered orders for this period.</p>
@@ -773,7 +840,7 @@ export default function Reports() {
                         <span>Shown</span>
                         <span>Real avg</span>
                         <span>Rated</span>
-                        <span>1–2 ★</span>
+                        <span>1–2 stars</span>
                       </div>
                       {foodRatings.map((r) => (
                         <div key={`${r.area_id ?? ''}-${r.product_id}-${r.item_type}`} className="top-items-row food-ratings-row">
@@ -783,10 +850,10 @@ export default function Reports() {
                             {r.area_code && <span className="top-items-combo-tag">{r.area_code}</span>}
                           </span>
                           <span className={`food-ratings-avg${r.rating < 4 ? ' food-ratings-avg-low' : ''}`}>
-                            {r.fire ? '🔥 ' : ''}{Number(r.rating).toFixed(1)}
+                            {r.fire && <AdminIcon name="bolt" size={13} />}{Number(r.rating).toFixed(1)}
                           </span>
                           <span className="top-items-units">
-                            {r.rated_avg == null ? '—' : `${Number(r.rated_avg).toFixed(1)} ★`}
+                            {r.rated_avg == null ? '—' : `${Number(r.rated_avg).toFixed(1)} stars`}
                           </span>
                           <span className="top-items-units">{r.ratings_count} / {r.orders_count}</span>
                           <span className="top-items-units">{r.low_ratings}</span>
@@ -832,6 +899,9 @@ export default function Reports() {
                         </div>
                         <div className="shop-report-subtext">
                           {orderCount} order{orderCount === 1 ? '' : 's'} • {itemsSold} item{itemsSold === 1 ? '' : 's'} sold
+                        </div>
+                        <div className="report-mini-track shop-sales-track" aria-hidden="true">
+                          <span style={{ width: (shopSalesScale ? Math.max(0, Number(shop.total_amount) || 0) / shopSalesScale * 100 : 0) + '%' }} />
                         </div>
                         <ul className="shop-report-products">
                           {shop.products.map((p) => (

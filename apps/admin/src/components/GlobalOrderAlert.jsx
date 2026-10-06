@@ -1,3 +1,4 @@
+import AdminIcon from './AdminIcon';
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { subscribeAdminOrderEvents, subscribeRealtime, OrdersApi } from '../api';
 import { apiClient } from '../api/client';
@@ -57,7 +58,7 @@ function useHeadCountdown(activeId, paused, deadline) {
   return seconds;
 }
 
-export default function GlobalOrderAlert() {
+export default function GlobalOrderAlert({ onOverlayOpen }) {
   const [modals, setModals] = useState([]);
   const [busy, setBusy] = useState({});
   const [errors, setErrors] = useState({});
@@ -68,6 +69,7 @@ export default function GlobalOrderAlert() {
   const audioCtxRef = useRef(null);
   const soundLoopRef = useRef(null);
   const prevQueueLengthRef = useRef(0);
+  const overlayRef = useRef(null);
 
   // Always show the first (oldest) pending alert — one full card at a time.
   const current = modals.length > 0 ? modals[0] : null;
@@ -79,6 +81,14 @@ export default function GlobalOrderAlert() {
   const currentDeadline = currentOrderId != null ? deadlines[currentOrderId] : null;
   const secondsLeft = useHeadCountdown(currentId, countdownPaused, currentDeadline);
   const isExtending = currentOrderId != null ? Boolean(extending[currentOrderId]) : false;
+  const overlayVisible = modals.length > 0 && !minimized;
+
+  // Order alerts take focus ahead of the navigation drawer.
+  useEffect(() => {
+    if (!overlayVisible) return;
+    onOverlayOpen?.();
+    overlayRef.current?.querySelector('button:not(:disabled)')?.focus();
+  }, [overlayVisible, currentId, onOverlayOpen]);
 
   const playAlertSound = useCallback(async () => {
     try {
@@ -384,7 +394,7 @@ export default function GlobalOrderAlert() {
         onClick={() => setMinimized(false)}
         aria-label={`Restore new order alert. Order number ${orderNumber}${wasAutoAccepted ? ', auto-accepted' : `, ${countdownCeil} seconds left`}`}
       >
-        <span className="order-alert-minimized-bell" aria-hidden="true">{wasAutoAccepted ? '⚡' : '🔔'}</span>
+        <span className="order-alert-minimized-bell" aria-hidden="true"><AdminIcon name={wasAutoAccepted ? 'bolt' : 'bell'} /></span>
         <span className="order-alert-minimized-text">
           <strong>#{orderNumber}</strong>
           <span>
@@ -397,7 +407,7 @@ export default function GlobalOrderAlert() {
   }
 
   return (
-    <div className="order-alert-overlay" role="presentation">
+    <div className="order-alert-overlay" role="presentation" ref={overlayRef}>
       <div className="order-alert-stack" data-count={total} role="region" aria-label="New order alerts">
         {/* Queue strip — compact chips only, never full cards */}
         {total > 1 ? (
@@ -441,7 +451,7 @@ export default function GlobalOrderAlert() {
         >
           <div className="order-alert-header">
             <div className="order-alert-bell">
-              <span aria-hidden="true">{wasAutoAccepted ? '⚡' : '🔔'}</span>
+              <span aria-hidden="true"><AdminIcon name={wasAutoAccepted ? 'bolt' : 'bell'} /></span>
             </div>
             <div className="order-alert-header-text">
               <strong id={`order-alert-title-${id}`}>

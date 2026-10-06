@@ -1,50 +1,51 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAreaStore } from '../stores/useAreaStore';
+import AdminIcon from './AdminIcon';
 import './Sidebar.css';
 
 const NAV_GROUPS = [
   {
     label: 'Operations',
     items: [
-      { path: '/', label: 'Dashboard', icon: '⚡' },
-      { path: '/orders', label: 'Orders', icon: '📦' },
-      { path: '/delivery-zones', label: 'Delivery Zones', icon: '📍' },
-      { path: '/riders', label: 'Riders', icon: '🛵' },
-      { path: '/mobile-admins', label: 'Mobile Admins', icon: '📲' },
+      { path: '/', label: 'Dashboard', icon: 'dashboard' },
+      { path: '/orders', label: 'Orders', icon: 'orders' },
+      { path: '/delivery-zones', label: 'Delivery Zones', icon: 'pin' },
+      { path: '/riders', label: 'Riders', icon: 'riders' },
+      { path: '/mobile-admins', label: 'Mobile Admins', icon: 'mobile' },
     ],
   },
   {
     label: 'Catalogue',
     items: [
-      { path: '/products', label: 'Products', icon: '🏷️' },
-      { path: '/combos', label: 'Combos', icon: '🍱' },
-      { path: '/categories', label: 'Categories', icon: '🗂️' },
-      { path: '/store-modes', label: 'Store Modes', icon: '🔀' },
-      { path: '/shops', label: 'Shops', icon: '🏪' },
-      { path: '/offers', label: 'Offers', icon: '🎁' },
-      { path: '/coupons', label: 'Coupons', icon: '🎟️' },
+      { path: '/products', label: 'Products', icon: 'products' },
+      { path: '/combos', label: 'Combos', icon: 'combos' },
+      { path: '/categories', label: 'Categories', icon: 'categories' },
+      { path: '/store-modes', label: 'Store Modes', icon: 'modes' },
+      { path: '/shops', label: 'Shops', icon: 'shops' },
+      { path: '/offers', label: 'Offers', icon: 'offers' },
+      { path: '/coupons', label: 'Coupons', icon: 'coupons' },
     ],
   },
   {
     label: 'Engagement',
     items: [
-      { path: '/mobile-dashboard', label: 'App Home', icon: '📱' },
-      { path: '/offer-cards', label: 'Offer Cards', icon: '🃏' },
+      { path: '/mobile-dashboard', label: 'App Home', icon: 'mobile' },
+      { path: '/offer-cards', label: 'Offer Cards', icon: 'cards' },
       // Customers are one account nationwide — a super admin page.
-      { path: '/customers', label: 'Customers', icon: '👥', superAdminOnly: true },
-      { path: '/notifications', label: 'Notifications', icon: '🔔' },
+      { path: '/customers', label: 'Customers', icon: 'customers', superAdminOnly: true },
+      { path: '/notifications', label: 'Notifications', icon: 'bell' },
     ],
   },
   {
     label: 'System',
     items: [
-      { path: '/images', label: 'Images', icon: '🖼️' },
-      { path: '/settings', label: 'Settings', icon: '⚙️' },
-      { path: '/reports', label: 'Reports', icon: '📊' },
-      { path: '/analytics', label: 'Analytics', icon: '📈' },
-      { path: '/heat-map', label: 'App Opens Map', icon: '🗺️' },
-      { path: '/health', label: 'System Health', icon: '💚' },
+      { path: '/images', label: 'Images', icon: 'images' },
+      { path: '/settings', label: 'Settings', icon: 'settings' },
+      { path: '/reports', label: 'Reports', icon: 'reports' },
+      { path: '/analytics', label: 'Analytics', icon: 'analytics' },
+      { path: '/heat-map', label: 'App Opens Map', icon: 'map' },
+      { path: '/health', label: 'System Health', icon: 'health' },
     ],
   },
 ];
@@ -54,14 +55,58 @@ const NAV_GROUPS = [
 const SUPER_ADMIN_GROUP = {
   label: 'Multi-Area',
   items: [
-    { path: '/areas', label: 'Areas', icon: '🌐' },
-    { path: '/admins', label: 'Admins', icon: '🛡️' },
-    { path: '/library', label: 'Library', icon: '📚' },
+    { path: '/areas', label: 'Areas', icon: 'areas' },
+    { path: '/admins', label: 'Admins', icon: 'admins' },
+    { path: '/library', label: 'Library', icon: 'library' },
   ],
 };
 
-export default function Sidebar() {
-  const [mobileOpen, setMobileOpen] = useState(false);
+export default function Sidebar({ mobileOpen, setMobileOpen }) {
+  const sidebarRef = useRef(null);
+  const toggleRef = useRef(null);
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 1024px)').matches);
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 1024px)');
+    const update = () => {
+      setIsMobile(media.matches);
+      if (!media.matches) setMobileOpen(false);
+    };
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, [setMobileOpen]);
+
+  useEffect(() => {
+    if (!mobileOpen) return undefined;
+    const sidebar = sidebarRef.current;
+    sidebar.querySelector('button')?.focus();
+    const onKeyDown = (event) => {
+      if (event.target.closest?.('.order-alert-overlay')) return;
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        setMobileOpen(false);
+      }
+      if (event.key !== 'Tab') return;
+      const controls = sidebar.querySelectorAll('button, a[href]');
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      if (window.matchMedia('(max-width: 1024px)').matches && !document.querySelector('.order-alert-overlay')) {
+        toggleRef.current?.focus();
+      }
+    };
+  }, [mobileOpen, setMobileOpen]);
   const { isSuperAdmin } = useAreaStore() || {};
   const navGroups = isSuperAdmin
     ? [...NAV_GROUPS, SUPER_ADMIN_GROUP]
@@ -71,14 +116,23 @@ export default function Sidebar() {
     <>
       {/* Mobile hamburger */}
       <button
-        className="sidebar-mobile-toggle"
+        ref={toggleRef}
+        type="button"
+        className={`sidebar-mobile-toggle${mobileOpen ? ' is-open' : ''}`}
         onClick={() => setMobileOpen(o => !o)}
-        aria-label="Toggle navigation"
+        aria-label="Open navigation"
+        aria-expanded={mobileOpen}
+        aria-controls="admin-navigation"
       >
-        {mobileOpen ? '✕' : '☰'}
+        <AdminIcon name="menu" />
       </button>
 
-      <aside className={`admin-sidebar${mobileOpen ? ' mobile-open' : ''}`}>
+      <aside ref={sidebarRef} id="admin-navigation"
+        className={`admin-sidebar${mobileOpen ? ' mobile-open' : ''}`}
+        {...(isMobile && !mobileOpen ? { inert: '' } : {})}
+        role={mobileOpen ? 'dialog' : undefined}
+        aria-modal={mobileOpen ? true : undefined}
+        aria-label="Admin navigation">
         <div className="sidebar-header">
           <div className="sidebar-logo">
             <img className="sidebar-logo-img" src="/logo.png" alt="VillKro" />
@@ -87,11 +141,13 @@ export default function Sidebar() {
             <span className="sidebar-brand-name">VillKro</span>
             <span className="sidebar-brand-subtitle">Admin Panel</span>
           </div>
+          <button type="button" className="sidebar-close" aria-label="Close navigation"
+            onClick={() => setMobileOpen(false)}><AdminIcon name="close" /></button>
         </div>
 
-        <nav className="sidebar-nav">
-          {navGroups.map(group => (
-            <div key={group.label} className="sidebar-group">
+        <nav className="sidebar-nav" aria-label="Main navigation">
+          {navGroups.map((group, index) => (
+            <div key={group.label} className="sidebar-group" style={{ '--group-index': index }}>
               <span className="sidebar-group-label">{group.label}</span>
               <ul className="sidebar-list">
                 {group.items.map(item => (
@@ -104,8 +160,9 @@ export default function Sidebar() {
                       onClick={() => setMobileOpen(false)}
                       end={item.path === '/'}
                     >
-                      <span className="sidebar-icon">{item.icon}</span>
+                      <AdminIcon name={item.icon} className="sidebar-icon" />
                       <span className="sidebar-label">{item.label}</span>
+                      <AdminIcon name="chevron" size={14} className="sidebar-link-chevron" />
                     </NavLink>
                   </li>
                 ))}
@@ -124,7 +181,7 @@ export default function Sidebar() {
 
       {/* Mobile overlay */}
       {mobileOpen && (
-        <div className="sidebar-mobile-backdrop" onClick={() => setMobileOpen(false)} />
+        <div className="sidebar-mobile-backdrop" aria-hidden="true" onClick={() => setMobileOpen(false)} />
       )}
     </>
   );

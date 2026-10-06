@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { AdminInboxApi } from '../api';
 import { subscribeRealtime } from '../api/realtimeClient';
 import { useAreaStore } from '../stores/useAreaStore';
+import AdminIcon from './AdminIcon';
 import './AdminNotificationsBell.css';
 
 const TYPE_ICONS = {
-  new_order: '🛒',
-  new_customer: '👤',
+  new_order: 'orders',
+  new_customer: 'customers',
 };
 
 const TYPE_LABELS = {
@@ -36,10 +37,28 @@ export default function AdminNotificationsBell() {
   const [items, setItems] = useState([]);
   const [unread, setUnread] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [panelTop, setPanelTop] = useState(0);
   // autoMarked ref is declared below (next to its consumers). State kept for
   // any future render-time UI hint if needed.
   const wrapperRef = useRef(null);
   const buttonRef = useRef(null);
+  const positionPanel = useCallback(() => {
+    const bottom = buttonRef.current?.closest('.admin-header')?.getBoundingClientRect().bottom || 76;
+    setPanelTop(Math.min(bottom + 8, Math.max(12, window.innerHeight - 160)));
+  }, []);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    positionPanel();
+    const header = buttonRef.current?.closest('.admin-header');
+    const observer = new ResizeObserver(positionPanel);
+    if (header) observer.observe(header);
+    window.addEventListener('resize', positionPanel);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', positionPanel);
+    };
+  }, [open, positionPanel]);
 
   // Initial fetch. Gated on the area store being initialized: this bell lives
   // in Header, OUTSIDE the routed subtree AdminLayout gates on `initialized`,
@@ -140,6 +159,7 @@ export default function AdminNotificationsBell() {
   }, [open, unread]);
 
   const handleOpen = () => {
+    positionPanel();
     setOpen(prev => !prev);
   };
 
@@ -171,7 +191,7 @@ export default function AdminNotificationsBell() {
         aria-expanded={open}
         aria-haspopup="dialog"
       >
-        <span aria-hidden="true">🔔</span>
+        <AdminIcon name="bell" size={18} />
         {unread > 0 && (
           <span className="admin-bell-badge" aria-hidden="true">
             {unread > 99 ? '99+' : unread}
@@ -180,7 +200,8 @@ export default function AdminNotificationsBell() {
       </button>
 
       {open && (
-        <div className="admin-bell-panel" role="dialog" aria-label="Admin notifications">
+        <div className="admin-bell-panel" role="dialog" aria-label="Admin notifications"
+          style={{ '--bell-panel-top': panelTop + 'px' }}>
           <header className="admin-bell-panel-header">
             <h3>Notifications</h3>
             <span className="admin-bell-panel-count">
@@ -191,7 +212,7 @@ export default function AdminNotificationsBell() {
           <div className="admin-bell-panel-body">
             {items.length === 0 ? (
               <div className="admin-bell-empty">
-                <span className="admin-bell-empty-icon" aria-hidden="true">🔕</span>
+                <span className="admin-bell-empty-icon"><AdminIcon name="bellOff" size={32} /></span>
                 <p>You're all caught up.</p>
                 <small>New password reset requests, orders, and customer signups will appear here.</small>
               </div>
@@ -211,7 +232,7 @@ export default function AdminNotificationsBell() {
                         disabled={!n.related_url}
                       >
                         <span className="admin-bell-item-icon" aria-hidden="true">
-                          {TYPE_ICONS[n.type] || '🔔'}
+                          <AdminIcon name={TYPE_ICONS[n.type] || 'bell'} size={18} />
                         </span>
                         <span className="admin-bell-item-body">
                           <span className="admin-bell-item-title">{n.title}</span>

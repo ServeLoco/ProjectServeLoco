@@ -1,10 +1,11 @@
-import React from 'react';
-import { Outlet } from 'react-router-dom';
+import React, { useCallback, useState } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 import GlobalOrderAlert from '../components/GlobalOrderAlert';
 import { useAreaStore } from '../stores/useAreaStore';
 import './AdminLayout.css';
+import '../styles/adminTheme.css';
 
 export default function AdminLayout() {
   // 25.3 — no react-query layer here; every page fetches its own data in a
@@ -12,6 +13,9 @@ export default function AdminLayout() {
   // forces React to unmount + remount the current page on every switch, so
   // its effects rerun from scratch against the new area instead of showing
   // stale data from the one just left.
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const closeNavigation = useCallback(() => setMobileOpen(false), []);
+  const { pathname } = useLocation();
   const { areaId, isSuperAdmin, initialized } = useAreaStore() || {};
 
   // A super_admin's areaId resolves asynchronously (GET /admin/areas + boot
@@ -24,18 +28,21 @@ export default function AdminLayout() {
 
   return (
     <div className="admin-shell">
-      <Sidebar />
-      <div className="admin-workspace">
+      <a className="admin-skip-link" href="#admin-main">Skip to content</a>
+      <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+      <div className="admin-workspace" {...(mobileOpen ? { inert: '' } : {})}>
         <Header />
-        <main className="admin-main">
-          {areaPending ? (
-            <div className="admin-area-pending">Loading your areas…</div>
-          ) : (
-            <Outlet key={areaId ?? 'none'} />
-          )}
+        <main className="admin-main" id="admin-main" tabIndex={-1}>
+          <div className="admin-page-content" key={pathname}>
+            {areaPending ? (
+              <div className="admin-area-pending">Loading your areas…</div>
+            ) : (
+              <Outlet key={areaId ?? 'none'} />
+            )}
+          </div>
         </main>
-        <GlobalOrderAlert />
       </div>
+      <GlobalOrderAlert onOverlayOpen={closeNavigation} />
     </div>
   );
 }
