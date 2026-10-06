@@ -12,6 +12,10 @@ const FRESH_MS = 10 * 60 * 1000;
 // After a failed fetch, wait a minute before the next card tries again.
 const RETRY_MS = 60 * 1000;
 
+// A product nobody has received yet starts at 5 stars — and 5 is above the
+// 4.8 fire line, so it burns too.
+export const DEFAULT_PRODUCT_RATING = Object.freeze({ rating: 5, fire: true });
+
 const ratingKey = (itemType, id) => `${itemType === 'combo' ? 'combo' : 'product'}:${id}`;
 
 export const useProductRatingsStore = create((set, get) => ({
@@ -49,9 +53,9 @@ export const useProductRatingsStore = create((set, get) => ({
 }));
 
 /**
- * `{ rating, fire }` for one product (or combo), or undefined when it has
- * no delivered order yet. Loads the area's ratings on first use and again
- * when the delivery area changes.
+ * `{ rating, fire }` for one product (or combo); DEFAULT_PRODUCT_RATING when
+ * it has no delivered order yet. Loads the area's ratings on first use and
+ * again when the delivery area changes.
  */
 export function useProductRating(id, itemType = 'product') {
   const key = id == null ? null : ratingKey(itemType, id);
@@ -60,5 +64,5 @@ export function useProductRating(id, itemType = 'product') {
   useEffect(() => {
     useProductRatingsStore.getState().ensureLoaded();
   }, [areaId]);
-  return entry;
+  return entry ?? DEFAULT_PRODUCT_RATING;
 }

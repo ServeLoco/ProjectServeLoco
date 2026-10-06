@@ -13,6 +13,7 @@ const { productsApi } = require('../src/api/productsApi');
 const { useProductRatingsStore } = require('../src/stores/useProductRatingsStore');
 const { useDeliveryLocationStore } = require('../src/stores/useDeliveryLocationStore');
 const ProductCard = require('../src/components/ProductCard').default;
+const Svg = require('react-native-svg').default;
 
 const ratingsResponse = {
   data: {
@@ -110,11 +111,16 @@ describe('ProductCard rating chip', () => {
     expect(findByLabel(tree, 'Rated 4.0 out of 5').length).toBeGreaterThan(0);
   });
 
-  it('shows the fire chip above 4.8', () => {
-    useProductRatingsStore.setState({ byKey: { 'product:8': { rating: 5, fire: true } } });
+  it('shows the burning fire chip above 4.8 — three flames, no emoji', () => {
+    useProductRatingsStore.setState({ byKey: { 'product:8': { rating: 4.9, fire: true } } });
     const tree = renderCard({ id: 8 });
-    expect(findByLabel(tree, 'Top rated, 5.0 out of 5').length).toBeGreaterThan(0);
-    expect(JSON.stringify(tree.toJSON())).toContain('🔥');
+    expect(findByLabel(tree, 'Top rated, 4.9 out of 5').length).toBeGreaterThan(0);
+    const json = JSON.stringify(tree.toJSON());
+    expect(json).not.toContain('🔥');
+    expect(json).toContain('4.9');
+    const flames = tree.root.findAllByType(Svg).filter((n) => n.props.viewBox === '0 0 20 28');
+    expect(flames.length).toBeGreaterThanOrEqual(1);
+    expect(flames.length).toBeLessThanOrEqual(3);
   });
 
   it('reads a combo by its combo id', () => {
@@ -123,8 +129,8 @@ describe('ProductCard rating chip', () => {
     expect(findByLabel(tree, 'Top rated, 4.9 out of 5').length).toBeGreaterThan(0);
   });
 
-  it('shows no chip for a product without a delivered order', () => {
+  it('gives a product without a delivered order the default 5.0, burning', () => {
     const tree = renderCard({ id: 99 });
-    expect(JSON.stringify(tree.toJSON())).not.toMatch(/out of 5/);
+    expect(findByLabel(tree, 'Top rated, 5.0 out of 5').length).toBeGreaterThan(0);
   });
 });
