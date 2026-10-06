@@ -149,6 +149,10 @@ function DropoffMap({ latitude, longitude }) {
         <Mapbox.Camera
           ref={cameraRef}
           defaultSettings={{ centerCoordinate: [longitude, latitude], zoomLevel: 15 }}
+          // A rider already at (or a few metres from) the drop-off makes the
+          // fit-both-pins bounds near zero, which zoomed to the max — the box
+          // showed one road edge and nothing else. Street level is enough.
+          maxZoomLevel={16}
         />
 
         <AnimatedRouteLine
