@@ -25,7 +25,7 @@ jest.mock('../src/utils/areaScope', () => ({
 
 const dueOrder = (overrides = {}) => ({
   id: 40,
-  order_number: 'ORD-40',
+  order_number: 'OD-20261006-A1-0040',
   customer_id: 7,
   order_date: '2026-10-06',
   ...overrides,
@@ -61,10 +61,11 @@ describe('sendDueRatingPrompts', () => {
     // batch_id, action_type, action_payload, created_by_admin_id
     expect(insertParams[0]).toBe(7);
     expect(insertParams[1]).toBe('⭐ How was your food?');
-    expect(insertParams[2]).toContain('#ORD-40');
+    // Only the last 4 of the order number, so it reads on a lock screen.
+    expect(insertParams[2]).toBe('Tap to rate your order #0040. Just tap the stars.');
     expect(insertParams.slice(3, 7)).toEqual(['info', 'order', 40, 'rate_prompt']);
     expect(insertParams[8]).toBe('rate_order');
-    expect(JSON.parse(insertParams[9])).toEqual({ orderId: 40, orderNumber: 'ORD-40', orderDate: '2026-10-06' });
+    expect(JSON.parse(insertParams[9])).toEqual({ orderId: 40, orderNumber: 'OD-20261006-A1-0040', orderDate: '2026-10-06' });
 
     expect(expoPush.sendPushToUser).toHaveBeenCalledWith(pool, 7, expect.objectContaining({
       title: '⭐ How was your food?',
@@ -72,13 +73,24 @@ describe('sendDueRatingPrompts', () => {
         type: 'info',
         notificationId: '77',
         orderId: '40',
-        orderNumber: 'ORD-40',
+        orderNumber: 'OD-20261006-A1-0040',
         action: 'rate_order',
         orderDate: '2026-10-06',
       },
       categoryId: 'order_update',
     }));
     expect(realtimeEvents.emitNotificationCreated).toHaveBeenCalledWith(7, { affectedRows: 1, insertId: 77 });
+  });
+
+  it('falls back to the order id when the order has no number', async () => {
+    listAreas.mockResolvedValue([{ id: 1 }]);
+    pool.query
+      .mockResolvedValueOnce([[dueOrder({ id: 9, order_number: null })]])
+      .mockResolvedValueOnce([{ affectedRows: 1, insertId: 79 }]);
+
+    await sendDueRatingPrompts({ delayMinutes: 30 });
+
+    expect(pool.query.mock.calls[1][1][2]).toBe('Tap to rate your order #9. Just tap the stars.');
   });
 
   it('sends nothing when no order is due', async () => {
@@ -143,12 +155,12 @@ describe('order push data', () => {
 
     await notificationService.createOrderNotification({
       userId: 7,
-      order: { id: 40, order_number: 'ORD-40' },
+      order: { id: 40, order_number: 'OD-20261006-A1-0040' },
       event: 'status_delivered',
     });
 
     expect(expoPush.sendPushToUser).toHaveBeenCalledWith(pool, 7, expect.objectContaining({
-      data: { type: 'success', notificationId: '90', orderId: '40', orderNumber: 'ORD-40' },
+      data: { type: 'success', notificationId: '90', orderId: '40', orderNumber: 'OD-20261006-A1-0040' },
     }));
   });
 });

@@ -56,12 +56,16 @@ const findOrdersToPrompt = async (areaId, delayMinutes) => {
   return rows;
 };
 
+// The push shows only the last 4 characters of the order number
+// (OD-20261006-A1-0003 -> #0003): short enough to read on a lock screen.
+const shortOrderNumber = (orderNumber) => String(orderNumber).slice(-4);
+
 const sendPrompt = async (order) => {
   const orderNumber = order.order_number || order.id;
   const result = await notificationService.createNotification({
     userId: order.customer_id,
     title: '⭐ How was your food?',
-    body: `Tap to rate your order #${orderNumber}. Just tap the stars.`,
+    body: `Tap to rate your order #${shortOrderNumber(orderNumber)}. Just tap the stars.`,
     type: 'info',
     sourceType: 'order',
     sourceId: order.id,
