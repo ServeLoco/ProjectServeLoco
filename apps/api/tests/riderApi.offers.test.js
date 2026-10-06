@@ -92,7 +92,9 @@ describe('Rider offers & assignments API', () => {
     expect(res.statusCode).toBe(200);
     expect(res.body.offer.id).toBe(9);
     expect(res.body.offer.secondsRemaining).toBeGreaterThan(0);
-    expect(res.body.offer.shops).toEqual([{ id: 1, name: 'Shop A' }]);
+    expect(res.body.offer.shops).toEqual([
+      { id: 1, name: 'Shop A', status: 'pending', accepted: false, rejected: false },
+    ]);
     expect(res.body.offer.items).toHaveLength(1);
     expect(res.body.offer.items[0].productName).toBe('Milk');
     // Exactly two reads for the whole queue (plus the rider lookup and the
@@ -101,6 +103,37 @@ describe('Rider offers & assignments API', () => {
       ([sql]) => typeof sql === 'string' && /order_id IN \(\?\)/.test(sql)
     );
     expect(orderScopedCalls).toHaveLength(2);
+  });
+
+  it('GET /offers/active marks the shop that rejected and its items', async () => {
+    const expires = new Date(Date.now() + 60000);
+    const at = new Date();
+    pool.query
+      .mockResolvedValueOnce([[RIDER]])
+      .mockResolvedValueOnce([[{
+        id: 9, order_id: 10, status: 'pending', expires_at: expires,
+        order_number: 'ORD-1', address: 'Street 1', phone: '111', customer_name: 'C',
+      }]])
+      .mockResolvedValueOnce([[
+        { order_id: 10, id: 1, name: 'Shop A' },
+        { order_id: 10, id: 2, name: 'Shop B' },
+      ]])
+      .mockResolvedValueOnce([[
+        { id: 5, order_id: 10, product_name: 'Milk', quantity: 1, shop_id: 1, shop_confirmed_at: at, shop_rejected_at: null },
+        { id: 6, order_id: 10, product_name: 'Bread', quantity: 1, shop_id: 2, shop_confirmed_at: null, shop_rejected_at: at },
+      ]]);
+
+    const res = await request(app)
+      .get('/api/rider/offers/active')
+      .set('Authorization', `Bearer ${token()}`);
+
+    expect(res.statusCode).toBe(200);
+    const [shopA, shopB] = res.body.offer.shops;
+    expect(shopA).toMatchObject({ id: 1, status: 'accepted', accepted: true, rejected: false });
+    expect(shopB).toMatchObject({ id: 2, status: 'rejected', accepted: false, rejected: true });
+    const [milk, bread] = res.body.offer.items;
+    expect(milk).toMatchObject({ shopName: 'Shop A', rejected: false });
+    expect(bread).toMatchObject({ shopName: 'Shop B', rejected: true });
   });
 
   it('POST accept delegates to engine', async () => {

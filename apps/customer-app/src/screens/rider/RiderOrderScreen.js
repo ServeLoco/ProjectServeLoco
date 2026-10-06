@@ -21,6 +21,7 @@ import AppIcon from '../../components/AppIcon';
 import RiderDeliveryMap from '../../components/RiderDeliveryMap';
 import {
   getRiderActionFlags,
+  isShopRejected,
   mergeRiderOrder,
 } from '../../utils/riderOrderActions';
 import { elapsedSecondsFromStart, formatElapsed } from '../../utils/riderOfferTime';
@@ -151,7 +152,11 @@ export default function RiderOrderScreen({ route, navigation }) {
     ? formatElapsed(elapsedSecondsFromStart(assignedAt, nowTick))
     : null;
 
-  const navShops = (Array.isArray(order?.shops) ? order.shops : [])
+  // A shop that rejected is listed so the rider knows, but never routed to.
+  const orderShops = Array.isArray(order?.shops) ? order.shops : [];
+  const pickupShops = orderShops.filter((s) => !isShopRejected(s));
+  const rejectedShops = orderShops.filter(isShopRejected);
+  const navShops = pickupShops
     .map((s) => {
       const lat = Number(s?.latitude ?? s?.lat);
       const lng = Number(s?.longitude ?? s?.lng);
@@ -239,9 +244,14 @@ export default function RiderOrderScreen({ route, navigation }) {
             </View>
           ) : null}
 
-          {Array.isArray(order.shops) && order.shops.length > 0 ? (
+          {pickupShops.length > 0 ? (
             <Text style={styles.shopsLine} numberOfLines={2}>
-              Pickup: {order.shops.map((s) => s.name).filter(Boolean).join(' · ') || 'Shop'}
+              Pickup: {pickupShops.map((s) => s.name).filter(Boolean).join(' · ') || 'Shop'}
+            </Text>
+          ) : null}
+          {rejectedShops.length > 0 ? (
+            <Text style={[styles.shopsLine, styles.rejectedShopsLine]} numberOfLines={2}>
+              Rejected · do not go: {rejectedShops.map((s) => s.name).filter(Boolean).join(' · ') || 'Shop'}
             </Text>
           ) : null}
 
@@ -491,6 +501,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: spacing.sm,
   },
+  rejectedShopsLine: { color: colors.error },
   itemsBlock: {
     backgroundColor: colors.bgApp,
     borderRadius: radius.md,

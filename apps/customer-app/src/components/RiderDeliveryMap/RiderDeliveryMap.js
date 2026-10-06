@@ -21,6 +21,7 @@ import {
 } from '../../utils/mapbox';
 import AnimatedRouteLine from '../AnimatedRouteLine';
 import { RIDER_WATCH_OPTIONS, shouldSendPing } from '../../utils/riderTracking';
+import { isShopRejected } from '../../utils/riderOrderActions';
 
 const CUSTOMER_COLOR = '#FF7A3A';
 const OFF_ROUTE_METERS = 150;
@@ -301,9 +302,12 @@ export default function RiderDeliveryMap({ order, pickedUp, style, onRouteInfo, 
     return { latitude: lat, longitude: lng };
   }, [order]);
 
+  // A shop that rejected its part of the order is not a stop: no marker,
+  // no route leg (the sheet below the map names it instead).
   const shops = useMemo(() => {
     const list = order?.shops || [];
     return list
+      .filter((s) => !isShopRejected(s))
       .map((s) => {
         const lat = numOrNull(s.latitude ?? s.lat);
         const lng = numOrNull(s.longitude ?? s.lng);

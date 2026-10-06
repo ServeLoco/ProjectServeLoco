@@ -15,6 +15,15 @@ export function isOutForDelivery(status) {
   return status === 'Out for Delivery' || status === 'Out for delivery';
 }
 
+/**
+ * A shop pin or order item the shop turned down. The API rolls this up per
+ * shop (riderController shopDecision) — the rider must not ride to that shop
+ * and its items will not be in the bag.
+ */
+export function isShopRejected(shopOrItem) {
+  return Boolean(shopOrItem?.rejected) || shopOrItem?.status === 'rejected';
+}
+
 export function isPaymentPending(order) {
   const paymentStatus = order?.paymentStatus || order?.payment_status;
   return !paymentStatus || paymentStatus === 'Pending';

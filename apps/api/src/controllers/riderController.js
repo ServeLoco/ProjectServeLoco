@@ -82,6 +82,22 @@ const shapeItemRow = (it, shopName = it.shop_name || null) => ({
 });
 
 /**
+ * Roll one shop's decision up from its order_items rows. A shop's reject /
+ * confirm is all-or-nothing per shop (shopOrderActions), and a reject wins
+ * over an earlier confirm. Shared by the assignment view and the offer
+ * popup so a rider sees which shop turned the order down in both.
+ */
+const shopDecision = (rows) => {
+  const accepted = rows.length > 0 && rows.every((it) => it.shop_confirmed_at != null);
+  const rejected = rows.length > 0 && rows.every((it) => it.shop_rejected_at != null);
+  return {
+    status: rejected ? 'rejected' : (accepted ? 'accepted' : 'pending'),
+    accepted,
+    rejected,
+  };
+};
+
+/**
  * Attach shops + items to a batch of order rows in two queries total
  * (IN (...) on order_id) instead of two queries per order — the multi-order
  * list endpoints can return up to 20 active jobs.
@@ -127,11 +143,7 @@ const loadAssignmentExtrasBatch = async (orderRows) => {
       if (!shopEntriesByOrder.has(row.order_id)) shopEntriesByOrder.set(row.order_id, new Map());
       const byShop = shopEntriesByOrder.get(row.order_id);
       if (!byShop.has(row.shop_id)) byShop.set(row.shop_id, []);
-      byShop.get(row.shop_id).push({
-        item: shapedItem,
-        confirmed: row.shop_confirmed_at != null,
-        rejected: row.shop_rejected_at != null,
-      });
+      byShop.get(row.shop_id).push({ item: shapedItem, row });
     }
   }
 
@@ -147,14 +159,9 @@ const loadAssignmentExtrasBatch = async (orderRows) => {
     // soon as at least one shop confirms, instead of requiring all of them).
     order.shops = shopPins.map((shop) => {
       const entries = byShop.get(shop.id) || [];
-      const accepted = entries.length > 0 && entries.every((e) => e.confirmed);
-      const rejected = entries.length > 0 && entries.every((e) => e.rejected);
-      const status = rejected ? 'rejected' : (accepted ? 'accepted' : 'pending');
       return {
         ...shop,
-        status,
-        accepted,
-        rejected,
+        ...shopDecision(entries.map((e) => e.row)),
         items: entries.map((e) => e.item),
       };
     });
@@ -400,7 +407,8 @@ const getActiveOffer = async (req, res) => {
       [orderIds]
     ),
     pool.query(
-      `SELECT order_id, id, product_name, quantity, variant_label, shop_id, unit_price, line_total
+      `SELECT order_id, id, product_name, quantity, variant_label, shop_id, unit_price, line_total,
+              shop_confirmed_at, shop_rejected_at
        FROM order_items WHERE order_id IN (?)
        ORDER BY order_id, shop_id, id`,
       [orderIds]
@@ -421,9 +429,16 @@ const getActiveOffer = async (req, res) => {
   const offers = rows.map((row) => {
     const offer = shapeOffer(row);
     const shops = shopsByOrder.get(row.order_id) || [];
-    offer.shops = shops;
+    const orderItems = itemsByOrder.get(row.order_id) || [];
+    // Every shop has decided before an offer goes out (maybeStartRiderAssignment),
+    // so a shop that rejected shows as rejected here — the rider must not
+    // ride to it, and its items will not be in the bag.
+    offer.shops = shops.map((sh) => ({
+      ...sh,
+      ...shopDecision(orderItems.filter((it) => it.shop_id === sh.id)),
+    }));
     const shopNameById = new Map(shops.map((sh) => [sh.id, sh.name]));
-    offer.items = (itemsByOrder.get(row.order_id) || [])
+    offer.items = orderItems
       .map((it) => shapeItemRow(it, shopNameById.get(it.shop_id) || null));
     return offer;
   });

@@ -25,6 +25,7 @@ import {
   formatCountdown,
 } from '../../utils/riderOfferTime';
 import { Mapbox, mapboxAvailable } from '../../utils/mapbox';
+import { isShopRejected } from '../../utils/riderOrderActions';
 
 const numOrNull = (v) => {
   if (v === undefined || v === null || v === '') return null;
@@ -377,6 +378,7 @@ export default function RiderOfferPopup({
   const countdownLabel = formatCountdown(secondsLeft);
   const countdownUrgent = secondsLeft <= 30;
   const shops = offer.shops || [];
+  let pickupNo = 0;
   const items = offer.items || [];
   const phone = offer.phone;
   const isFast = offer.deliveryType === 'fast' || offer.delivery_type === 'fast';
@@ -489,20 +491,30 @@ export default function RiderOfferPopup({
             {/* Trip-style route: pickup shop(s), Uber-esque numbered markers */}
             {(shops.length > 0 || (offer.address && !hasDropoffPin)) ? (
               <View style={styles.routeCard}>
-                {shops.map((s, idx) => (
-                  <View key={s.id} style={styles.routeRow}>
-                    <View style={styles.routeMarkerCol}>
-                      <View style={styles.routeDot}>
-                        <Text style={styles.routeDotText}>{idx + 1}</Text>
+                {shops.map((s) => {
+                  // A shop that rejected stays on the card so the rider
+                  // knows not to go there, but it is not a numbered stop.
+                  const rejected = isShopRejected(s);
+                  if (!rejected) pickupNo += 1;
+                  return (
+                    <View key={s.id} style={styles.routeRow}>
+                      <View style={styles.routeMarkerCol}>
+                        <View style={[styles.routeDot, rejected && styles.routeDotRejected]}>
+                          <Text style={[styles.routeDotText, rejected && styles.rejectedText]}>
+                            {rejected ? '✕' : pickupNo}
+                          </Text>
+                        </View>
+                        <View style={styles.routeLine} />
                       </View>
-                      <View style={styles.routeLine} />
+                      <View style={styles.routeTextCol}>
+                        <Text style={[styles.routeLabel, rejected && styles.rejectedText]}>
+                          {rejected ? 'Rejected · do not go' : 'Pickup'}
+                        </Text>
+                        <Text style={[styles.routeText, rejected && styles.rejectedStrike]}>{s.name}</Text>
+                      </View>
                     </View>
-                    <View style={styles.routeTextCol}>
-                      <Text style={styles.routeLabel}>Pickup</Text>
-                      <Text style={styles.routeText}>{s.name}</Text>
-                    </View>
-                  </View>
-                ))}
+                  );
+                })}
                 {(offer.address && !hasDropoffPin) ? (
                   <View style={[styles.routeRow, styles.routeRowLast]}>
                     <View style={styles.routeMarkerCol}>
@@ -532,16 +544,27 @@ export default function RiderOfferPopup({
                 <View style={styles.itemsCard}>
                   {items.map((it, idx) => {
                     const shopName = it.shopName || it.shop_name;
+                    const rejected = isShopRejected(it);
                     return (
                       <View
                         key={it.id ?? idx}
                         style={[styles.itemRow, idx === items.length - 1 && styles.itemRowLast]}
                       >
-                        <Text style={styles.itemQty}>{it.quantity}x</Text>
+                        <Text style={[styles.itemQty, rejected && styles.rejectedStrike]}>{it.quantity}x</Text>
                         <View style={{ flex: 1 }}>
-                          <Text style={styles.itemName} numberOfLines={1}>
-                            {it.productName || it.product_name}
-                            {shopName ? <Text style={styles.itemShopName}> · {shopName}</Text> : null}
+                          <Text
+                            style={styles.itemName}
+                            // Room for the red "Rejected" tag after a long name.
+                            numberOfLines={rejected ? 2 : 1}
+                          >
+                            <Text style={rejected ? styles.rejectedStrike : null}>
+                              {it.productName || it.product_name}
+                            </Text>
+                            {shopName ? (
+                              <Text style={[styles.itemShopName, rejected && styles.rejectedText]}>
+                                {' '}· {shopName}{rejected ? ' · Rejected' : ''}
+                              </Text>
+                            ) : null}
                           </Text>
                         </View>
                       </View>
@@ -978,6 +1001,10 @@ const styles = StyleSheet.create({
   },
   itemName: { flex: 1, ...typography.body, color: colors.textPrimary, fontWeight: '600' },
   itemShopName: { fontSize: 11, fontWeight: '700', color: colors.saffronDark },
+  // A shop that rejected: red label, its name / items struck through.
+  routeDotRejected: { backgroundColor: colors.errorLight },
+  rejectedText: { color: colors.error },
+  rejectedStrike: { color: colors.textSecondary, textDecorationLine: 'line-through' },
 
   errorPill: {
     flexDirection: 'row',
