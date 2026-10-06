@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { colors, radius, layout } from '../../theme';
 import ProductImage from '../ProductImage';
 import AppIcon from '../AppIcon';
+import { useProductRating } from '../../stores/useProductRatingsStore';
 
 /**
  * ProductCard — "Redesign v2" (Claude Design: Product Card Redesign.dc.html)
@@ -13,6 +14,9 @@ import AppIcon from '../AppIcon';
  *   - Corner-fold ribbon (not a diagonal strip) for discounts
  *   - Glass name plate with a saffron accent edge
  *   - Fixed 72x28 "pebble" buy/stepper control, dark-ink text on saffron
+ *   - Rating chip above the name plate: ★ 4.6 on dark glass, or a hot
+ *     orange 🔥 4.9 chip when the rating is above 4.8 (rating comes from
+ *     useProductRating; no chip until the product has a delivered order)
  *
  * Buy control never grows/shrinks the price row — same footprint in every
  * state (Buy, stepper, variant "Buy ⌄", "{n} in cart", Out).
@@ -129,6 +133,36 @@ const CardArt = React.memo(function CardArt({
   );
 });
 
+const STAR_YELLOW = '#FBBF24';
+const FIRE_GRADIENT = ['#FF9A3C', '#F2452B'];
+
+// "★ 4.6" / "🔥 4.9" — sits on the dark bottom scrim, so both read on any photo.
+const RatingChip = React.memo(function RatingChip({ rating, fire, compact }) {
+  const label = rating.toFixed(1);
+  return (
+    <View
+      style={[styles.ratingChip, fire && styles.ratingChipFire, compact && styles.ratingChipCompact]}
+      accessible
+      accessibilityLabel={fire ? `Top rated, ${label} out of 5` : `Rated ${label} out of 5`}
+    >
+      {fire ? (
+        <LinearGradient
+          colors={FIRE_GRADIENT}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFillObject}
+        />
+      ) : null}
+      {fire ? (
+        <Text style={[styles.ratingEmoji, compact && styles.ratingEmojiCompact]}>🔥</Text>
+      ) : (
+        <AppIcon name="star" size={compact ? 9 : 10} color={STAR_YELLOW} fill={STAR_YELLOW} strokeWidth={2} />
+      )}
+      <Text style={[styles.ratingText, compact && styles.ratingTextCompact]}>{label}</Text>
+    </View>
+  );
+});
+
 function ProductCard({
   product = {},
   name,
@@ -186,6 +220,9 @@ function ProductCard({
     : 0;
 
   const resolvedDiscountLabel = product.discountLabel ?? discountLabel ?? (discountPct > 0 ? `${discountPct}% OFF` : null);
+
+  const isCombo = Boolean(product.isCombo ?? product.is_combo) || product.type === 'combo';
+  const ratingEntry = useProductRating(product.id, isCombo ? 'combo' : 'product');
 
   const handlePressIn = () => {
     // Warm full-size image into expo-image cache before navigation/detail paint.
@@ -336,6 +373,9 @@ function ProductCard({
 
           {/* Bottom stack: glass name plate, then price + control row */}
           <View style={[styles.bottomStrip, compact && styles.bottomStripCompact]}>
+            {ratingEntry ? (
+              <RatingChip rating={ratingEntry.rating} fire={ratingEntry.fire} compact={compact} />
+            ) : null}
             <View style={[styles.namePlate, compact && styles.namePlateCompact]}>
               <View style={styles.namePlateEdge} />
               <Text style={[styles.name, compact && styles.nameCompact]} numberOfLines={2}>
@@ -529,6 +569,52 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingBottom: 6,
     gap: 5,
+  },
+
+  // Rating chip — same dark glass as the unit badge; the fire version swaps
+  // the glass for a warm gradient and a soft glow.
+  ratingChip: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(8,8,10,0.6)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.16)',
+    overflow: 'hidden',
+    marginBottom: -2,
+  },
+  ratingChipFire: {
+    backgroundColor: '#F2452B',
+    borderColor: 'rgba(255,214,170,0.75)',
+    shadowColor: '#FF5A1F',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.45,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  ratingChipCompact: {
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    gap: 2,
+  },
+  ratingText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.1,
+  },
+  ratingTextCompact: {
+    fontSize: 10,
+  },
+  ratingEmoji: {
+    fontSize: 10,
+  },
+  ratingEmojiCompact: {
+    fontSize: 9,
   },
 
   // Glass name plate — frosted-look panel (approximated, no real blur) with
