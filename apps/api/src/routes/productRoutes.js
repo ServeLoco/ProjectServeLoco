@@ -3,6 +3,7 @@ const router = express.Router();
 const rateLimit = require('express-rate-limit');
 const asyncHandler = require('../utils/asyncHandler');
 const { getProducts, getProductById } = require('../controllers/productController');
+const { getProductRatings } = require('../controllers/ratingController');
 const { resolveCustomerArea } = require('../middleware/areaMiddleware');
 const { catalogETag } = require('../utils/areaScope');
 
@@ -39,6 +40,9 @@ const productsCatalogETag = (req, res, next) => {
 };
 
 router.get('/', resolveCustomerArea, productsCatalogETag, asyncHandler(getProducts));
+// Card ratings for the area — registered before '/:id' so "ratings" is never
+// read as a product id.
+router.get('/ratings', resolveCustomerArea, asyncHandler(getProductRatings));
 // Bug fix (multi-area audit finding #4) — this had no area resolution at
 // all, so any product/combo id was fetchable regardless of which area it
 // belongs to: a public cross-area catalog leak. Same resolveCustomerArea

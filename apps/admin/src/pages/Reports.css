@@ -675,7 +675,13 @@
 }
 
 .food-ratings-row {
-  grid-template-columns: minmax(0, 1fr) 70px 64px 56px;
+  grid-template-columns: minmax(0, 1fr) 62px 64px 58px 44px;
+}
+
+.food-ratings-note {
+  margin: -0.25rem 0 0.75rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
 }
 
 .food-ratings-avg {

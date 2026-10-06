@@ -1,4 +1,6 @@
 const { pool } = require('../db/mysql');
+const { requestAreaId } = require('../utils/areaScope');
+const { getAreaProductRatings } = require('../utils/productRatings');
 
 /**
  * Food ratings: a customer's 1-5 stars for one line of their own Delivered
@@ -70,6 +72,19 @@ const rateOrderItem = async (req, res) => {
   res.status(200).json({ data: ratingPayload(orderId, orderItemId, stars) });
 };
 
+/**
+ * GET /api/products/ratings — the rating every product card shows, for the
+ * customer's area (utils/productRatings.js has the formula). A separate,
+ * cached read so the catalog responses and their ETags stay as they are.
+ */
+const getProductRatings = async (req, res) => {
+  const areaId = requestAreaId(req);
+  const items = areaId == null ? [] : await getAreaProductRatings(areaId);
+  res.set('Cache-Control', 'private, max-age=300');
+  res.status(200).json({ data: { areaId, area_id: areaId, items } });
+};
+
 module.exports = {
   rateOrderItem,
+  getProductRatings,
 };

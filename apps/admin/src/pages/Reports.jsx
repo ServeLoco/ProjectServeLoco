@@ -761,14 +761,18 @@ export default function Reports() {
 
                 <div className="report-section">
                   <h3 className="report-section-title">Food Ratings</h3>
+                  <p className="food-ratings-note">
+                    Shown = what customers see: every delivered order counts, unrated ones as 5★, never below 3.5. 🔥 above 4.8.
+                  </p>
                   {foodRatings.length === 0 ? (
-                    <p style={{ color: 'var(--text-secondary)' }}>No ratings for this period.</p>
+                    <p style={{ color: 'var(--text-secondary)' }}>No delivered orders for this period.</p>
                   ) : (
                     <div className="top-items-table">
                       <div className="top-items-row food-ratings-row top-items-head">
                         <span>Item (lowest first)</span>
-                        <span>Avg ★</span>
-                        <span>Ratings</span>
+                        <span>Shown</span>
+                        <span>Real avg</span>
+                        <span>Rated</span>
                         <span>1–2 ★</span>
                       </div>
                       {foodRatings.map((r) => (
@@ -778,10 +782,13 @@ export default function Reports() {
                             {r.item_type === 'combo' && <span className="top-items-combo-tag">Combo</span>}
                             {r.area_code && <span className="top-items-combo-tag">{r.area_code}</span>}
                           </span>
-                          <span className={`food-ratings-avg${r.avg_stars < 3 ? ' food-ratings-avg-low' : ''}`}>
-                            {Number(r.avg_stars).toFixed(1)} ★
+                          <span className={`food-ratings-avg${r.rating < 4 ? ' food-ratings-avg-low' : ''}`}>
+                            {r.fire ? '🔥 ' : ''}{Number(r.rating).toFixed(1)}
                           </span>
-                          <span className="top-items-units">{r.ratings_count}</span>
+                          <span className="top-items-units">
+                            {r.rated_avg == null ? '—' : `${Number(r.rated_avg).toFixed(1)} ★`}
+                          </span>
+                          <span className="top-items-units">{r.ratings_count} / {r.orders_count}</span>
                           <span className="top-items-units">{r.low_ratings}</span>
                         </div>
                       ))}

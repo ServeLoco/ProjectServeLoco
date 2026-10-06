@@ -2,6 +2,7 @@ const config = require('../config/env');
 const { istIsToday, istIsThisWeek, istIsThisMonth, istDateOf } = require('../utils/businessTime');
 const { signAdminToken } = require('../utils/auth');
 const { pool } = require('../db/mysql');
+const { STARS_MISSING_SQL, shownRating, isFire } = require('../utils/productRatings');
 const { validatePagination } = require('../validators');
 const { roundMoney, toMoney } = require('../utils/money');
 const { resolvePeriod, ReportPeriodError } = require('../utils/reportPeriods');
@@ -754,9 +755,12 @@ const getTopProductsReport = async (req, res) => {
   res.status(200).json({ data });
 };
 
-// Food ratings (order_item_ratings) per item, lowest average first so the
-// food customers liked least sits on top. Same period and area rules as
-// getTopProductsReport; the period is when the rating was given.
+// Food ratings per item, lowest first so the food customers liked least sits
+// on top. `rating` is the number the product card shows (utils/productRatings:
+// every delivered order line counts, unrated ones as 5 stars, floor 3.5);
+// `ratedAvg` is the plain average of the stars customers actually gave.
+// Same period and area rules as getTopProductsReport; the period is when the
+// order was placed.
 const getFoodRatingsReport = async (req, res) => {
   const areaId = resolveAreaOrAll(req, res);
   if (areaId === undefined) return;
@@ -768,54 +772,72 @@ const getFoodRatingsReport = async (req, res) => {
 
   let dateFilter = '1=1';
   if (period === 'today') {
-    dateFilter = istIsToday('r.created_at');
+    dateFilter = istIsToday('o.created_at');
   } else if (period === 'week') {
-    dateFilter = istIsThisWeek('r.created_at');
+    dateFilter = istIsThisWeek('o.created_at');
   } else if (period === 'month') {
-    dateFilter = istIsThisMonth('r.created_at');
+    dateFilter = istIsThisMonth('o.created_at');
   }
 
   const areaParams = [];
-  let groupBy = 'r.item_type, r.product_id';
+  let groupBy = 'oi.item_type, oi.product_id';
   if (areaId === 'all') {
-    groupBy = 'r.area_id, ' + groupBy;
+    groupBy = 'o.area_id, ' + groupBy;
   } else {
-    dateFilter += ' AND r.area_id = ?';
+    dateFilter += ' AND o.area_id = ?';
     areaParams.push(areaId);
   }
 
   const [rows] = await pool.query(`
-    SELECT ${areaId === 'all' ? 'r.area_id,' : ''} r.item_type, r.product_id,
+    SELECT ${areaId === 'all' ? 'o.area_id,' : ''} oi.item_type, oi.product_id,
            MAX(oi.product_name) AS product_name,
-           ROUND(AVG(r.stars), 1) AS avg_stars,
-           COUNT(*) AS ratings_count,
-           SUM(r.stars <= 2) AS low_ratings
-    FROM order_item_ratings r
-    JOIN order_items oi ON oi.id = r.order_item_id
-    WHERE ${dateFilter}
+           COUNT(*) AS orders_count,
+           COUNT(r.id) AS ratings_count,
+           ${STARS_MISSING_SQL} AS stars_missing,
+           ROUND(AVG(r.stars), 1) AS rated_avg,
+           COALESCE(SUM(r.stars <= 2), 0) AS low_ratings
+    FROM orders o
+    JOIN order_items oi ON oi.order_id = o.id
+    LEFT JOIN order_item_ratings r ON r.order_item_id = oi.id AND r.area_id = oi.area_id
+    WHERE o.status = 'Delivered' AND ${dateFilter}
     GROUP BY ${groupBy}
-    ORDER BY avg_stars ASC, ratings_count DESC
-    LIMIT 200
   `, areaParams);
 
   const shaped = rows.map((row) => {
-    const avgStars = Number(row.avg_stars);
+    const ordersCount = Number(row.orders_count);
     const ratingsCount = Number(row.ratings_count);
     const lowRatings = Number(row.low_ratings);
+    const rating = shownRating(ordersCount, row.stars_missing);
+    const ratedAvg = row.rated_avg == null ? null : Number(row.rated_avg);
+    const fire = isFire(rating);
+    const rest = { ...row };
+    delete rest.stars_missing;
     return {
-      ...row,
+      ...rest,
       itemType: row.item_type,
       productId: row.product_id,
       productName: row.product_name,
-      avgStars,
-      avg_stars: avgStars,
+      rating,
+      fire,
+      ratedAvg,
+      rated_avg: ratedAvg,
+      ordersCount,
+      orders_count: ordersCount,
       ratingsCount,
       ratings_count: ratingsCount,
       lowRatings,
       low_ratings: lowRatings,
     };
   });
-  const data = areaId === 'all' ? await withAreaCodes(shaped) : shaped;
+  // Lowest shown rating first; among equals, the worst real stars, then the
+  // most ordered.
+  shaped.sort((a, b) => (
+    a.rating - b.rating
+    || (a.ratedAvg ?? 6) - (b.ratedAvg ?? 6)
+    || b.ordersCount - a.ordersCount
+  ));
+  const top = shaped.slice(0, 200);
+  const data = areaId === 'all' ? await withAreaCodes(top) : top;
   res.status(200).json({ data });
 };
 
