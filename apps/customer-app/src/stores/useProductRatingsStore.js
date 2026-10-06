@@ -18,6 +18,12 @@ export const DEFAULT_PRODUCT_RATING = Object.freeze({ rating: 5, fire: true });
 
 const ratingKey = (itemType, id) => `${itemType === 'combo' ? 'combo' : 'product'}:${id}`;
 
+// Which area the ratings belong to: the resolved area, else the pin.
+const scopeOf = ({ coords, areaId }) => {
+  if (!coords) return null;
+  return areaId != null ? `area:${areaId}` : `pin:${coords.lat},${coords.lng}`;
+};
+
 export const useProductRatingsStore = create((set, get) => ({
   byKey: {}, // 'product:12' -> { rating: 4.6, fire: false }
   loadedFor: null,
@@ -25,17 +31,20 @@ export const useProductRatingsStore = create((set, get) => ({
   loading: false,
 
   ensureLoaded: async () => {
-    const { coords, areaId } = useDeliveryLocationStore.getState();
+    const location = useDeliveryLocationStore.getState();
+    const scope = scopeOf(location);
     // No pin yet: nothing to scope the ratings to.
-    if (!coords) return;
-    const scope = areaId != null ? `area:${areaId}` : `pin:${coords.lat},${coords.lng}`;
+    if (!scope) return;
     const state = get();
     if (state.loading) return;
     if (state.loadedFor === scope && Date.now() < state.nextLoadAt) return;
 
     set({ loading: true });
     try {
-      const res = await productsApi.getRatings({ latitude: coords.lat, longitude: coords.lng });
+      const res = await productsApi.getRatings({
+        latitude: location.coords.lat,
+        longitude: location.coords.lng,
+      });
       const byKey = {};
       (res?.data?.items || []).forEach((it) => {
         const rating = Number(it.rating);
@@ -49,6 +58,10 @@ export const useProductRatingsStore = create((set, get) => ({
     } catch {
       set({ loadedFor: scope, nextLoadAt: Date.now() + RETRY_MS, loading: false });
     }
+    // The pin moved to another area while this was loading (that change's
+    // own call returned early above): load the new area now.
+    const nowScope = scopeOf(useDeliveryLocationStore.getState());
+    if (nowScope && nowScope !== scope) get().ensureLoaded();
   },
 }));
 

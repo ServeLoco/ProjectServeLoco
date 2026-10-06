@@ -64,10 +64,28 @@ const loadAreaProductRatings = async (areaId) => {
 // Ratings move slowly; ten minutes of staleness is fine and keeps the
 // aggregate off every card view. Keyed by area id (a small, fixed set).
 const areaRatingsCache = createTtlCache({ ttlMs: 10 * 60 * 1000, maxEntries: 50 });
+// When the cache runs out, every customer opening the app at that moment
+// would run the aggregate at once; they share one query instead. A failed
+// load is not cached, so the next request tries again.
+const loadsInFlight = new Map();
 
-const getAreaProductRatings = (areaId) => (
-  areaRatingsCache.wrap(String(areaId), () => loadAreaProductRatings(areaId))
-);
+const getAreaProductRatings = async (areaId) => {
+  const key = String(areaId);
+  const cached = areaRatingsCache.get(key);
+  if (cached !== undefined) return cached;
+  if (!loadsInFlight.has(key)) {
+    const load = loadAreaProductRatings(areaId)
+      .then((items) => {
+        areaRatingsCache.set(key, items);
+        return items;
+      })
+      .finally(() => {
+        if (loadsInFlight.get(key) === load) loadsInFlight.delete(key);
+      });
+    loadsInFlight.set(key, load);
+  }
+  return loadsInFlight.get(key);
+};
 
 module.exports = {
   UNRATED_STARS,
@@ -77,5 +95,8 @@ module.exports = {
   shownRating,
   isFire,
   getAreaProductRatings,
-  clearProductRatingsCache: () => areaRatingsCache.del(),
+  clearProductRatingsCache: () => {
+    areaRatingsCache.del();
+    loadsInFlight.clear();
+  },
 };

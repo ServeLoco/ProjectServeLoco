@@ -64,6 +64,26 @@ describe('useProductRatingsStore.ensureLoaded', () => {
     expect(productsApi.getRatings).toHaveBeenCalledTimes(2);
   });
 
+  it('loads the new area when the pin moves there mid-load', async () => {
+    let finishFirst;
+    productsApi.getRatings
+      .mockReturnValueOnce(new Promise((resolve) => { finishFirst = resolve; }))
+      .mockResolvedValueOnce({ data: { areaId: 2, items: [{ itemType: 'product', productId: 90, rating: 4.2, fire: false }] } });
+
+    const first = useProductRatingsStore.getState().ensureLoaded();
+    useDeliveryLocationStore.setState({ coords: { lat: 28.6, lng: 77.2 }, areaId: 2 });
+    // The change's own call finds a load running and returns.
+    await useProductRatingsStore.getState().ensureLoaded();
+    finishFirst(ratingsResponse);
+    await first;
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(productsApi.getRatings).toHaveBeenCalledTimes(2);
+    expect(productsApi.getRatings).toHaveBeenLastCalledWith({ latitude: 28.6, longitude: 77.2 });
+    expect(useProductRatingsStore.getState().loadedFor).toBe('area:2');
+    expect(useProductRatingsStore.getState().byKey).toEqual({ 'product:90': { rating: 4.2, fire: false } });
+  });
+
   it('does nothing without a delivery pin', async () => {
     useDeliveryLocationStore.setState({ coords: null });
 

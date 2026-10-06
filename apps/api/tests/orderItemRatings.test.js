@@ -4,9 +4,10 @@ const jwt = require('jsonwebtoken');
 const orderRoutes = require('../src/routes/orderRoutes');
 const { pool } = require('../src/db/mysql');
 
-// PATCH /api/orders/:id/items/:itemId/rating issues at most two queries:
+// PATCH /api/orders/:id/items/:itemId/rating issues at most three queries:
 //   1) SELECT the order line (+ its order and any saved rating)
 //   2) INSERT ... ON DUPLICATE KEY UPDATE the rating
+//   3) a first rating only: read back whose stars were kept
 jest.mock('../src/db/mysql', () => ({
   pool: {
     query: jest.fn(),
@@ -45,6 +46,9 @@ const itemRow = (overrides = {}) => ({
   edit_session: null,
   ...overrides,
 });
+
+// What step 3 reads back when this visit's write was kept.
+const keptRow = (stars) => [[{ stars, edit_session: SESSION }]];
 
 const rate = (body) => request(app)
   .patch(URL)
@@ -113,7 +117,8 @@ describe('PATCH /api/orders/:id/items/:itemId/rating', () => {
   it('saves a first rating and answers in camelCase and snake_case', async () => {
     pool.query
       .mockResolvedValueOnce([[itemRow()]])
-      .mockResolvedValueOnce([{ affectedRows: 1, insertId: 9 }]);
+      .mockResolvedValueOnce([{ affectedRows: 1, insertId: 9 }])
+      .mockResolvedValueOnce(keptRow(5));
 
     const res = await rate({ stars: 5, editSession: SESSION });
 
@@ -132,12 +137,29 @@ describe('PATCH /api/orders/:id/items/:itemId/rating', () => {
     expect(sql).toMatch(/IF\(edit_session = VALUES\(edit_session\), VALUES\(stars\), stars\)/);
     // area_id comes from the order line, never from the client.
     expect(params).toEqual([2, 40, 400, CUSTOMER_ID, 'product', 55, 5, SESSION]);
+    const [readSql, readParams] = pool.query.mock.calls[2];
+    expect(readSql).toMatch(/FROM order_item_ratings WHERE order_item_id = \? AND area_id = \?/);
+    expect(readParams).toEqual([400, 2]);
+  });
+
+  it('answers RATING_LOCKED when another visit saved the line first (two phones racing)', async () => {
+    pool.query
+      .mockResolvedValueOnce([[itemRow()]]) // nothing saved when read
+      .mockResolvedValueOnce([{ affectedRows: 1 }]) // the IF kept the other visit's stars
+      .mockResolvedValueOnce([[{ stars: 2, edit_session: 'visit-other0001' }]]);
+
+    const res = await rate({ stars: 5, editSession: SESSION });
+
+    expect(res.statusCode).toBe(409);
+    expect(res.body.code).toBe('RATING_LOCKED');
+    expect(res.body.data).toEqual(expect.objectContaining({ stars: 2, myRating: 2 }));
   });
 
   it('accepts snake_case edit_session and numeric-string stars', async () => {
     pool.query
       .mockResolvedValueOnce([[itemRow()]])
-      .mockResolvedValueOnce([{ affectedRows: 1 }]);
+      .mockResolvedValueOnce([{ affectedRows: 1 }])
+      .mockResolvedValueOnce(keptRow(3));
 
     const res = await rate({ stars: '3', edit_session: SESSION });
 
@@ -172,7 +194,8 @@ describe('PATCH /api/orders/:id/items/:itemId/rating', () => {
   it('stores a combo line with its item_type', async () => {
     pool.query
       .mockResolvedValueOnce([[itemRow({ item_type: 'combo', product_id: 12 })]])
-      .mockResolvedValueOnce([{ affectedRows: 1 }]);
+      .mockResolvedValueOnce([{ affectedRows: 1 }])
+      .mockResolvedValueOnce(keptRow(4));
 
     const res = await rate({ stars: 4, editSession: SESSION });
 

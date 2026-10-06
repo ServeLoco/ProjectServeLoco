@@ -99,6 +99,35 @@ describe('GET /api/products/ratings', () => {
     expect(pool.query).toHaveBeenCalledTimes(1);
   });
 
+  it('runs one query for requests that arrive together', async () => {
+    let finish;
+    pool.query.mockReturnValueOnce(new Promise((resolve) => { finish = resolve; }));
+
+    const first = request(app).get('/api/products/ratings?area=1');
+    const second = request(app).get('/api/products/ratings?area=1');
+    const sent = Promise.all([first, second]);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    finish([[{ item_type: 'product', product_id: 7, orders_count: 1, stars_missing: '0' }]]);
+    const [a, b] = await sent;
+
+    expect(pool.query).toHaveBeenCalledTimes(1);
+    expect(a.body.data.items).toHaveLength(1);
+    expect(b.body.data.items).toEqual(a.body.data.items);
+  });
+
+  it('does not cache a failed load', async () => {
+    pool.query
+      .mockRejectedValueOnce(new Error('db down'))
+      .mockResolvedValueOnce([[]]);
+
+    const failed = await request(app).get('/api/products/ratings?area=1');
+    const retried = await request(app).get('/api/products/ratings?area=1');
+
+    expect(failed.statusCode).toBe(500);
+    expect(retried.statusCode).toBe(200);
+    expect(pool.query).toHaveBeenCalledTimes(2);
+  });
+
   it('returns no items when the area is unknown', async () => {
     const res = await request(app).get('/api/products/ratings');
 

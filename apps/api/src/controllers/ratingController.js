@@ -50,13 +50,14 @@ const rateOrderItem = async (req, res) => {
     });
   }
 
+  const locked = (savedStars) => res.status(409).json({
+    code: 'RATING_LOCKED',
+    message: 'This rating is already saved.',
+    data: ratingPayload(orderId, orderItemId, Number(savedStars)),
+  });
+
   if (item.rated_stars != null && item.edit_session !== editSession) {
-    const savedStars = Number(item.rated_stars);
-    return res.status(409).json({
-      code: 'RATING_LOCKED',
-      message: 'This rating is already saved.',
-      data: ratingPayload(orderId, orderItemId, savedStars),
-    });
+    return locked(item.rated_stars);
   }
 
   // The IF keeps the saved stars when another visit wrote the row between
@@ -68,6 +69,18 @@ const rateOrderItem = async (req, res) => {
      ON DUPLICATE KEY UPDATE stars = IF(edit_session = VALUES(edit_session), VALUES(stars), stars)`,
     [item.area_id, orderId, orderItemId, userId, item.item_type || 'product', item.product_id, stars, editSession]
   );
+
+  // A first rating can lose that race; read back whose stars were kept so
+  // the answer never claims stars that were not saved. A change (the row was
+  // already this visit's) cannot lose it, so it skips the read.
+  if (item.rated_stars == null) {
+    const [savedRows] = await pool.query(
+      'SELECT stars, edit_session FROM order_item_ratings WHERE order_item_id = ? AND area_id = ?',
+      [orderItemId, item.area_id]
+    );
+    const saved = savedRows[0];
+    if (saved && saved.edit_session !== editSession) return locked(saved.stars);
+  }
 
   res.status(200).json({ data: ratingPayload(orderId, orderItemId, stars) });
 };

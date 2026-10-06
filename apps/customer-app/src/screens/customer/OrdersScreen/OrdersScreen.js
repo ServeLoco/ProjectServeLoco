@@ -329,6 +329,8 @@ export default function OrdersScreen() {
   // Ratings for one item are sent one after another, so a quick 5 -> 3
   // change can never reach the server in the wrong order.
   const ratingQueue = useRef(new Map());
+  // Per item, the stars the server last confirmed (null = not rated).
+  const savedStars = useRef(new Map());
 
   const fetchOrders = useCallback((refresh = false) => {
     const isLoadMore = !refresh && pagination.offset > 0;
@@ -475,25 +477,37 @@ export default function OrdersScreen() {
   const handleRateItem = useCallback((orderId, item, stars) => {
     const itemKey = String(item.id);
     const visit = ratingVisit;
-    const before = item.myRating ?? null;
+    const previous = ratingQueue.current.get(itemKey);
+    // With nothing in flight, the card shows what the server holds; a failed
+    // save falls back to it (not to an earlier tap that was never saved).
+    if (!previous) savedStars.current.set(itemKey, item.myRating ?? null);
     visit.rated.add(itemKey);
     setOrders(prev => setItemRating(prev, orderId, item.id, stars));
 
-    const previous = ratingQueue.current.get(itemKey) || Promise.resolve();
-    const request = previous
+    const request = (previous || Promise.resolve())
       .then(() => ordersApi.rateItem(orderId, item.id, stars, visit.id))
+      .then(() => {
+        savedStars.current.set(itemKey, stars);
+      })
       .catch((err) => {
         if (err?.code === 'RATING_LOCKED') {
           // Saved in an earlier visit: show what is saved, read-only.
           // ApiError.response is the JSON body.
-          const saved = err.response?.data?.stars ?? before;
+          const saved = err.response?.data?.stars ?? savedStars.current.get(itemKey) ?? null;
+          savedStars.current.set(itemKey, saved);
           visit.rated.delete(itemKey);
           setOrders(prev => setItemRating(prev, orderId, item.id, saved));
           return;
         }
-        if (before == null) visit.rated.delete(itemKey);
-        setOrders(prev => setItemRating(prev, orderId, item.id, before));
+        // A newer tap is queued behind this one; its answer decides.
+        if (ratingQueue.current.get(itemKey) !== request) return;
+        const saved = savedStars.current.get(itemKey) ?? null;
+        if (saved == null) visit.rated.delete(itemKey);
+        setOrders(prev => setItemRating(prev, orderId, item.id, saved));
         showToast('Could not save your rating. Please try again.', { type: 'error' });
+      })
+      .finally(() => {
+        if (ratingQueue.current.get(itemKey) === request) ratingQueue.current.delete(itemKey);
       });
     ratingQueue.current.set(itemKey, request);
   }, [ratingVisit]);
