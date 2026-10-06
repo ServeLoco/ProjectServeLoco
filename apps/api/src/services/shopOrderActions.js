@@ -34,6 +34,34 @@ async function notifyShopOwnerOrderUpdated(shopId, orderId, action) {
   }
 }
 
+/**
+ * Tell the order's assigned rider (if any) that a shop changed its part.
+ * Offers only go out once every shop has decided, but a shop can still be
+ * auto-rejected or re-sent by an admin after a rider took the order; their
+ * job card and map refetch on this event (no order in the payload), so a
+ * shop that rejected drops off the route without the rider reopening it.
+ */
+async function notifyAssignedRiderShopChanged(shopId, orderId, action) {
+  try {
+    const [rows] = await pool.query(
+      `SELECT r.user_id FROM orders o
+       JOIN riders r ON r.id = o.rider_id
+       WHERE o.id = ?`,
+      [orderId]
+    );
+    if (!rows[0]?.user_id) return;
+    emitToCustomer(rows[0].user_id, 'rider.assignment.updated', {
+      orderId: Number(orderId),
+      order_id: Number(orderId),
+      shopId: Number(shopId),
+      shop_id: Number(shopId),
+      reason: `shop_${action}`,
+    });
+  } catch (e) {
+    logger.error('[shop-order] notifyAssignedRiderShopChanged failed:', e.message);
+  }
+}
+
 /** List Accepted/Preparing orders that include items for this shop. */
 async function listShopActiveOrders(shopId) {
   const [orders] = await pool.query(
@@ -245,6 +273,7 @@ async function rejectShopOrder(shopId, orderId, { shopName, source = 'owner' } =
   );
 
   await notifyShopOwnerOrderUpdated(shopId, orderId, 'rejected');
+  await notifyAssignedRiderShopChanged(shopId, orderId, 'rejected');
 
   return { ok: true, message: 'Order rejected' };
 }
@@ -290,6 +319,7 @@ async function resendShopOrder(shopId, orderId, { shopName } = {}) {
   });
 
   await notifyShopOwnerOrderUpdated(shopId, orderId, 'resent');
+  await notifyAssignedRiderShopChanged(shopId, orderId, 'resent');
 
   return { ok: true, message: 'Order resent to shop' };
 }
