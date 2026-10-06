@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 const asyncHandler = require('../utils/asyncHandler');
 const { createOrder, getOrders, getOrderById, cancelOrder } = require('../controllers/orderController');
+const { rateOrderItem } = require('../controllers/ratingController');
 const { requireCustomer } = require('../middleware/authMiddleware');
-const { validate, isEnum, isPositiveInteger, validateCoordinates, isId } = require('../validators');
+const { validate, isEnum, isPositiveInteger, validateCoordinates, isId, normalizeField } = require('../validators');
 const { body, validationResult } = require('express-validator');
 const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
 
@@ -110,11 +111,43 @@ const orderLimiter = rateLimit({
   message: { code: 'TOO_MANY_REQUESTS', message: 'Too many orders, please wait a minute.' }
 });
 
+// The app makes the edit-session id itself (one per Orders-page visit).
+const EDIT_SESSION_PATTERN = /^[A-Za-z0-9-]{8,64}$/;
+
+const rateItemSchema = (req) => {
+  const errors = {};
+  const rawStars = normalizeField(req, 'stars', 'stars');
+  const editSession = normalizeField(req, 'editSession', 'edit_session');
+  const stars = (typeof rawStars === 'number' || typeof rawStars === 'string') ? Number(rawStars) : NaN;
+
+  if (!isId(req.params.id)) errors.id = 'Invalid order id';
+  if (!isId(req.params.itemId)) errors.itemId = 'Invalid order item id';
+  if (!isPositiveInteger(stars, 5)) errors.stars = 'stars must be a whole number from 1 to 5';
+  if (typeof editSession !== 'string' || !EDIT_SESSION_PATTERN.test(editSession)) {
+    errors.editSession = 'editSession must be 8-64 letters, digits or dashes';
+  }
+  return { errors, data: { stars, editSession } };
+};
+
+// Per-user cap on rating taps. A customer changing their mind across a few
+// items stays far below it; keyed like orderLimiter.
+const ratingLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 30,
+  keyGenerator: (req) => (
+    req.user?.id != null
+      ? String(req.user.id)
+      : ipKeyGenerator(req.ip)
+  ),
+  message: { code: 'TOO_MANY_REQUESTS', message: 'Too many ratings, please wait a minute.' }
+});
+
 router.post('/', requireCustomer, orderLimiter, ...expressValidatorChecks, validateExpress, validate(createOrderSchema), asyncHandler(createOrder));
 router.get('/', requireCustomer, asyncHandler(getOrders));
 router.get('/:id', requireCustomer, asyncHandler(getOrderById));
 router.patch('/:id/cancel', requireCustomer, asyncHandler(cancelOrder));
 router.post('/:id/cancel', requireCustomer, asyncHandler(cancelOrder)); // alias for frontend
+router.patch('/:id/items/:itemId/rating', requireCustomer, ratingLimiter, validate(rateItemSchema), asyncHandler(rateOrderItem));
 
 module.exports = router;
 // Reused by adminRoutes.js so "create order on behalf of a customer" runs

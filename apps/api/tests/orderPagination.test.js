@@ -218,8 +218,8 @@ describe('GET /api/orders pagination', () => {
   it('adds items_preview to each order from one order_items query', async () => {
     const rows = buildOrderRows(2);
     mockGetOrdersQuery(rows, 2, [
-      { order_id: rows[0].id, product_name: 'Paneer Tikka', variant_label: 'Half', quantity: 2 },
-      { order_id: rows[0].id, product_name: 'Butter Naan', variant_label: null, quantity: 3 },
+      { id: 501, order_id: rows[0].id, product_name: 'Paneer Tikka', variant_label: 'Half', quantity: 2, my_rating: 4 },
+      { id: 502, order_id: rows[0].id, product_name: 'Butter Naan', variant_label: null, quantity: 3, my_rating: null },
     ]);
 
     const res = await request(app)
@@ -227,11 +227,20 @@ describe('GET /api/orders pagination', () => {
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.statusCode).toBe(200);
+    // name/variant_label/quantity are the original fields; the item id and
+    // the customer's own stars are the additive food-rating fields.
     expect(res.body.data[0].items_preview).toEqual([
-      { name: 'Paneer Tikka', variant_label: 'Half', quantity: 2 },
-      { name: 'Butter Naan', variant_label: null, quantity: 3 },
+      {
+        name: 'Paneer Tikka', variant_label: 'Half', quantity: 2,
+        id: 501, orderItemId: 501, order_item_id: 501, myRating: 4, my_rating: 4,
+      },
+      {
+        name: 'Butter Naan', variant_label: null, quantity: 3,
+        id: 502, orderItemId: 502, order_item_id: 502, myRating: null, my_rating: null,
+      },
     ]);
     expect(res.body.data[1].items_preview).toEqual([]);
+    expect(pool.query.mock.calls[2][0]).toMatch(/LEFT JOIN order_item_ratings r ON r\.order_item_id = oi\.id AND r\.area_id = oi\.area_id/);
     expect(pool.query.mock.calls[2][1]).toEqual([rows.map((o) => o.id)]);
   });
 
