@@ -27,6 +27,14 @@ import {
 import { elapsedSecondsFromStart, formatElapsed } from '../../utils/riderOfferTime';
 import { openGoogleMapsDirections } from '../../utils/googleMapsNav';
 
+// Number(null) is 0, so a missing pin would otherwise pass as (0, 0) and
+// send Google Maps there instead of being skipped.
+const numOrNull = (v) => {
+  if (v === undefined || v === null || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+};
+
 /**
  * Full-screen delivery map + status actions for one assigned order.
  * Button visibility matches RiderDashboardScreen (shared getRiderActionFlags).
@@ -158,14 +166,14 @@ export default function RiderOrderScreen({ route, navigation }) {
   const rejectedShops = orderShops.filter(isShopRejected);
   const navShops = pickupShops
     .map((s) => {
-      const lat = Number(s?.latitude ?? s?.lat);
-      const lng = Number(s?.longitude ?? s?.lng);
-      return Number.isFinite(lat) && Number.isFinite(lng) ? { latitude: lat, longitude: lng } : null;
+      const lat = numOrNull(s?.latitude ?? s?.lat);
+      const lng = numOrNull(s?.longitude ?? s?.lng);
+      return lat != null && lng != null ? { latitude: lat, longitude: lng } : null;
     })
     .filter(Boolean);
-  const custLat = Number(order?.latitude ?? order?.lat);
-  const custLng = Number(order?.longitude ?? order?.lng);
-  const navCustomer = Number.isFinite(custLat) && Number.isFinite(custLng)
+  const custLat = numOrNull(order?.latitude ?? order?.lat);
+  const custLng = numOrNull(order?.longitude ?? order?.lng);
+  const navCustomer = custLat != null && custLng != null
     ? { latitude: custLat, longitude: custLng }
     : null;
 

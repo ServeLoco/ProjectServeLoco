@@ -303,7 +303,10 @@ export default function RiderDeliveryMap({ order, pickedUp, style, onRouteInfo, 
   }, [order]);
 
   // A shop that rejected its part of the order is not a stop: no marker,
-  // no route leg (the sheet below the map names it instead).
+  // no route leg (the sheet below the map names it instead). When every
+  // shop rejected there is simply nothing to pick up — not a missing pin.
+  const allShopsRejected = (order?.shops || []).length > 0
+    && order.shops.every(isShopRejected);
   const shops = useMemo(() => {
     const list = order?.shops || [];
     return list
@@ -856,7 +859,7 @@ export default function RiderDeliveryMap({ order, pickedUp, style, onRouteInfo, 
           <Text style={styles.warnText}>Customer pin missing on this order</Text>
         </View>
       ) : null}
-      {shops.length === 0 ? (
+      {shops.length === 0 && !allShopsRejected ? (
         <View style={[styles.warnChip, { top: topPad + 36 }]}>
           <Text style={styles.warnText}>No shop location set — ask admin</Text>
         </View>
