@@ -59,6 +59,15 @@ function offerIdOf(o) {
   return o?.id ?? o?.offerId ?? null;
 }
 
+// 404/409 from accept or reject means the offer is already settled on the
+// server: accepted from the floating or lock-screen card, expired, or taken
+// back by an admin. A retry can never succeed, so the popup drops it and
+// resyncs (an offer this rider took shows up as their job) instead of
+// holding a slider the server will keep refusing.
+function isOfferAlreadySettled(err) {
+  return err?.status === 404 || err?.status === 409;
+}
+
 function assignedAtMs(job) {
   const raw = job?.riderAssignedAt || job?.rider_assigned_at
     || job?.createdAt || job?.created_at;
@@ -486,7 +495,11 @@ export default function RiderDashboardScreen({ navigation }) {
   const handleAcceptOffer = useCallback(async (offer) => {
     silenceRiderAlarm();
     const id = offer.id || offer.offerId;
-    await riderApi.acceptOffer(id);
+    try {
+      await riderApi.acceptOffer(id);
+    } catch (err) {
+      if (!isOfferAlreadySettled(err)) throw err;
+    }
     // Drop accepted offer from queue, then load any next pending offer.
     setOfferQueue((prev) => prev.filter((o) => {
       const oid = o.id || o.offerId;
@@ -501,7 +514,11 @@ export default function RiderDashboardScreen({ navigation }) {
   const handleRejectOffer = useCallback(async (offer) => {
     silenceRiderAlarm();
     const id = offer.id || offer.offerId;
-    await riderApi.rejectOffer(id);
+    try {
+      await riderApi.rejectOffer(id);
+    } catch (err) {
+      if (!isOfferAlreadySettled(err)) throw err;
+    }
     setOfferQueue((prev) => prev.filter((o) => {
       const oid = o.id || o.offerId;
       return !(oid && Number(oid) === Number(id));

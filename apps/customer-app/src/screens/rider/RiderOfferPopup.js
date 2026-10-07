@@ -283,19 +283,35 @@ export default function RiderOfferPopup({
     }
     if (!lastOfferRef.current) return undefined;
     setLeaving(true);
+    // The offer is gone, so the sheet must go too, however the slide-down
+    // ends. It used to wait for `finished: true` only — but an offer that
+    // arrived while the app was minimised and was then accepted from the
+    // floating card gets its slide-down cut off the moment the app comes back
+    // (`finished: false`), and the sheet froze on that offer with a slider
+    // the server can only refuse. Only this effect's own cleanup (a new offer
+    // landing mid-slide) may keep the sheet up.
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      lastOfferRef.current = null;
+      setLeaving(false);
+    };
     const anim = Animated.timing(enter, {
       toValue: 0,
       duration: 220,
       easing: Easing.in(Easing.cubic),
       useNativeDriver: true,
     });
-    anim.start(({ finished }) => {
-      if (finished) {
-        lastOfferRef.current = null;
-        setLeaving(false);
-      }
-    });
-    return () => anim.stop();
+    anim.start(finish);
+    // Never leave the sheet up if the end callback is lost altogether — long
+    // enough that it never cuts a slide-down that is actually playing.
+    const fallback = setTimeout(finish, 1000);
+    return () => {
+      settled = true;
+      anim.stop();
+      clearTimeout(fallback);
+    };
   }, [offerProp, enter]);
 
   useEffect(() => {
