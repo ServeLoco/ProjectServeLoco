@@ -32,3 +32,22 @@
   .heatmap-map { height: 380px; }
   .heatmap-hours { gap: 2px; }
 }
+
+/* Bold stat tiles, matching the dashboard. */
+.heatmap-stats > .heatmap-stat {
+  --tone-a: #f7813f;
+  --tone-b: #d9530f;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border: 0;
+  color: #fff;
+  background: linear-gradient(140deg, var(--tone-a), var(--tone-b));
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--tone-b) 26%, transparent);
+}
+.heatmap-stats > .heatmap-stat::after { content: ''; position: absolute; z-index: -1; width: 100px; height: 100px; top: -44px; right: -30px; border-radius: 50%; background: rgba(255, 255, 255, 0.13); }
+.heatmap-stats > .heatmap-stat:nth-child(2) { --tone-a: #3b7bf0; --tone-b: #1d4ed8; }
+.heatmap-stats > .heatmap-stat:nth-child(3) { --tone-a: #8b5cf6; --tone-b: #6d28d9; }
+.heatmap-stats > .heatmap-stat-warn { --tone-a: #e8930c; --tone-b: #b45309; }
+.heatmap-stats > .heatmap-stat :is(span, strong) { color: #fff; }
+.heatmap-stats > .heatmap-stat span { opacity: 0.9; }

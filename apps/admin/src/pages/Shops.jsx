@@ -10,6 +10,7 @@ import { readList } from '../utils/apiResponse';
 import { GENERIC_ERROR } from '../utils/constants';
 import PickAreaNotice from '../components/PickAreaNotice';
 import { useAreaStore } from '../stores/useAreaStore';
+import AdminIcon from '../components/AdminIcon';
 import './Shops.css';
 
 // Patches (or drops) a shop row from a live admin.shop.updated event —
@@ -223,7 +224,7 @@ export default function Shops() {
                   </td>
                   <td>
                     {(s.latitude != null && s.longitude != null) ? (
-                      <span className="shop-loc-set" title={`${s.latitude}, ${s.longitude}`}>🏪 Set</span>
+                      <span className="shop-loc-set" title={`${s.latitude}, ${s.longitude}`}><AdminIcon name="pin" size={14} strokeWidth={2.2} className="ds-inline-icon" /> Set</span>
                     ) : (
                       <span className="shop-loc-missing">Not set</span>
                     )}

@@ -117,4 +117,24 @@ function resolvePeriod({ period, from, to } = {}) {
   return { key, from, to, timezone };
 }
 
-module.exports = { resolvePeriod, ReportPeriodError, PERIOD_KEYS };
+// Business-day date filter shared by the profit/payout report endpoints.
+// resolved.key='all' (report PERIOD, e.g. "all time" — unrelated to the
+// areaId 'all' below) skips the date clause; every other period key was
+// already resolved to a concrete [from, to] business-day range by
+// resolvePeriod(). areaId is a separate axis: a number appends an area
+// filter, 'all' (super_admin cross-area roll-up, §2.10) or undefined skips it.
+const buildPeriodDateFilter = (resolved, areaId, column = 'o.created_at') => {
+  const parts = [];
+  const params = [];
+  if (resolved.key !== 'all') {
+    parts.push(`DATE(CONVERT_TZ(${column}, ?, ?)) BETWEEN ? AND ?`);
+    params.push(config.MYSQL_SESSION_TZ_SQL, resolved.timezone, resolved.from, resolved.to);
+  }
+  if (areaId !== undefined && areaId !== 'all') {
+    parts.push('o.area_id = ?');
+    params.push(areaId);
+  }
+  return { clause: parts.length > 0 ? parts.join(' AND ') : '1=1', params };
+};
+
+module.exports = { resolvePeriod, ReportPeriodError, PERIOD_KEYS, buildPeriodDateFilter };

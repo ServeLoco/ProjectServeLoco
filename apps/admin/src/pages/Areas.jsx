@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import AdminIcon from '../components/AdminIcon';
 import { AreasApi, ImagesApi } from '../api';
 import { readList } from '../utils/apiResponse';
 import { getUploadedImage, normalizeImageUrl, handleImageError } from '../utils/imageUrl';
@@ -196,7 +197,7 @@ export default function Areas() {
                     />
                     {a.brandColor || a.brand_color || '—'}
                   </td>
-                  <td>{a.isDefault || a.is_default ? '✓' : ''}</td>
+                  <td>{a.isDefault || a.is_default ? <AdminIcon name="checkCircle" size={18} strokeWidth={2.2} className="ds-inline-icon area-default-check" /> : ''}</td>
                   <td>
                     <button
                       type="button"

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { OrdersApi } from '../api';
+import { iconSvg } from './adminIconPaths';
 import './LiveOrderMap.css';
 
 const DEFAULT_CENTER = { lat: 29.451998, lng: 75.668669 };
@@ -21,7 +22,7 @@ function shopIcon() {
     className: 'live-map-marker-wrap',
     html: `
       <div class="live-map-shop">
-        <div class="live-map-shop-facade"><span>🏪</span></div>
+        <div class="live-map-shop-facade"><span>${iconSvg('shops', { size: 18, strokeWidth: 2.2 })}</span></div>
         <div class="live-map-shop-awning"></div>
       </div>
     `,
@@ -47,7 +48,7 @@ function customerIcon() {
 function riderIcon() {
   return L.divIcon({
     className: 'live-map-marker-wrap',
-    html: `<div class="live-map-scooty"><span>🛵</span></div>`,
+    html: `<div class="live-map-scooty"><span>${iconSvg('scooter', { size: 22, strokeWidth: 2.2 })}</span></div>`,
     iconSize: [44, 44],
     iconAnchor: [22, 22],
   });

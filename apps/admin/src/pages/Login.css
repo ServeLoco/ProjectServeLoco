@@ -48,6 +48,11 @@
   animation-delay: -5s;
 }
 
+/* Dark mode: black + saffron glow instead of green / blue / purple. */
+[data-theme="dark"] .login-blob-1 { background: radial-gradient(circle, rgba(242, 107, 42, 0.2), transparent 70%); }
+[data-theme="dark"] .login-blob-2 { background: radial-gradient(circle, rgba(255, 154, 102, 0.1), transparent 70%); }
+[data-theme="dark"] .login-blob-3 { background: radial-gradient(circle, rgba(242, 107, 42, 0.08), transparent 70%); }
+
 @keyframes blobFloat {
   0%, 100% { transform: translate(0, 0) scale(1); }
   33% { transform: translate(20px, -30px) scale(1.05); }
@@ -85,6 +90,12 @@
   color: white;
   position: relative;
   overflow: hidden;
+}
+
+[data-theme="dark"] .login-brand-panel {
+  background:
+    radial-gradient(circle at 15% 0%, rgba(255, 122, 58, 0.32), transparent 55%),
+    linear-gradient(145deg, #1b1b1f 0%, #0a0a0b 100%);
 }
 
 .login-brand-panel::before {
@@ -278,9 +289,18 @@
   letter-spacing: 0.01em;
 }
 
+[data-theme="dark"] .login-submit-btn {
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+  box-shadow: 0 4px 16px rgba(242, 107, 42, 0.3);
+}
+
 .login-submit-btn:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 8px 28px rgba(22, 163, 74, 0.38);
+}
+
+[data-theme="dark"] .login-submit-btn:hover:not(:disabled) {
+  box-shadow: 0 8px 28px rgba(242, 107, 42, 0.38);
 }
 
 .login-submit-btn:active:not(:disabled) {
@@ -324,3 +344,20 @@
   .login-card { padding: 1.75rem 1.5rem; }
   .login-card-inner { max-width: 100%; }
 }
+
+/* Feature list icons (were emoji). */
+.login-feature-icon {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+[data-theme="dark"] .login-feature-icon { background: linear-gradient(140deg, #f26b2a, #e05a1a); box-shadow: 0 6px 14px rgba(242, 107, 42, 0.3); }
+.login-brand-features li { gap: 0.7rem; opacity: 0.95; }
+.login-eye-btn { display: inline-flex; align-items: center; }
+.login-error-alert { display: flex; align-items: center; gap: 0.5rem; }

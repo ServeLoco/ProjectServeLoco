@@ -505,7 +505,7 @@ export default function GlobalOrderAlert({ onOverlayOpen }) {
               aria-label="Minimize (keeps timer running)"
               title="Minimize — timer keeps running"
             >
-              ✕
+              <AdminIcon name="close" size={16} strokeWidth={2.4} />
             </button>
           </div>
 

@@ -8,6 +8,7 @@ import ImageCropper from '../components/ImageCropper/ImageCropper';
 import './Settings.css';
 import { GENERIC_ERROR } from '../utils/constants';
 import MessageBanner from '../components/MessageBanner';
+import AdminIcon from '../components/AdminIcon';
 import PickAreaNotice from '../components/PickAreaNotice';
 import { useAreaStore } from '../stores/useAreaStore';
 
@@ -139,7 +140,7 @@ function StoreVersionGate({ gate, settings, fieldErrors, onChange, onClear }) {
             fontSize: '0.88rem',
             color: minimum ? 'var(--warning-text, #92400e)' : 'var(--text-secondary)',
           }}>
-            <span style={{ fontSize: '1rem' }}>{minimum ? '⚠️' : '✅'}</span>
+            <span style={{ display: 'inline-flex', color: minimum ? 'var(--warning-color)' : 'var(--success-color)' }}><AdminIcon name={minimum ? 'warning' : 'checkCircle'} size={17} strokeWidth={2.2} /></span>
             {minimum
               ? `${gate.title} force update is ACTIVE — ${gate.title} users on versions older than ${minimum} will be blocked.`
               : `${gate.title} force update is OFF — all ${gate.title} app versions are allowed.`}
@@ -467,7 +468,7 @@ export default function Settings() {
 
       {/* ── 1. Operational Status ────────────────────────────────────────── */}
       <section className="settings-section">
-        <h2 className="settings-section-title">Operational Status</h2>
+        <h2 className="settings-section-title"><span className="settings-title-icon"><AdminIcon name="health" size={17} strokeWidth={2.1} /></span>Operational Status</h2>
         <div className="settings-form-grid">
           <div className="toggle-switch-wrapper">
             <div style={{ flex: 1 }}>
@@ -497,7 +498,7 @@ export default function Settings() {
 
       {/* ── 1b. Rider Capacity ──────────────────────────────────────────── */}
       <section className="settings-section">
-        <h2 className="settings-section-title">Rider Capacity</h2>
+        <h2 className="settings-section-title"><span className="settings-title-icon"><AdminIcon name="riders" size={17} strokeWidth={2.1} /></span>Rider Capacity</h2>
         <div className="settings-form-grid">
           <div className="settings-form-group">
             <label className="settings-label">Capacity Multiplier</label>
@@ -527,7 +528,7 @@ export default function Settings() {
 
       {/* ── 2. Delivery Pricing ─────────────────────────────────────────── */}
       <section className="settings-section">
-        <h2 className="settings-section-title">Delivery Pricing</h2>
+        <h2 className="settings-section-title"><span className="settings-title-icon"><AdminIcon name="map" size={17} strokeWidth={2.1} /></span>Delivery Pricing</h2>
         <div className="settings-form-grid">
           <div className="settings-form-group">
             <label className="settings-label">Delivery Charge (₹)</label>
@@ -556,10 +557,10 @@ export default function Settings() {
 
       {/* ── 4. Delivery Speed ───────────────────────────────────────────── */}
       <section className="settings-section">
-        <h2 className="settings-section-title">Delivery Speed</h2>
+        <h2 className="settings-section-title"><span className="settings-title-icon"><AdminIcon name="clock" size={17} strokeWidth={2.1} /></span>Delivery Speed</h2>
         <div className="settings-form-grid">
           <div className="settings-form-group">
-            <label className="settings-label">🕐 Standard Delivery Time (minutes)</label>
+            <label className="settings-label"><AdminIcon name="clock" size={15} strokeWidth={2.1} className="ds-inline-icon" /> Standard Delivery Time (minutes)</label>
             <input
               type="number"
               min="1"
@@ -586,7 +587,7 @@ export default function Settings() {
           <div className="toggle-switch-wrapper full-width fast-delivery-toggle">
             <div style={{ flex: 1 }}>
               <strong style={{ display: 'block', marginBottom: '0.25rem', color: 'var(--text-primary)' }}>
-                ⚡ Fast Delivery Option
+                <AdminIcon name="bolt" size={15} strokeWidth={2.1} className="ds-inline-icon" /> Fast Delivery Option
               </strong>
               <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                 When enabled, customers can choose fast delivery at a fixed charge and ETA you set below.
@@ -607,7 +608,7 @@ export default function Settings() {
           {Boolean(settings.fast_delivery_enabled) && (
             <>
               <div className="settings-form-group fast-delivery-charge-input">
-                <label className="settings-label">⚡ Fast Delivery Charge (₹)</label>
+                <label className="settings-label"><AdminIcon name="bolt" size={15} strokeWidth={2.1} className="ds-inline-icon" /> Fast Delivery Charge (₹)</label>
                 <input
                   type="number"
                   min="0"
@@ -630,7 +631,7 @@ export default function Settings() {
                 </span>
               </div>
               <div className="settings-form-group">
-                <label className="settings-label">⚡ Fast Delivery Time (minutes)</label>
+                <label className="settings-label"><AdminIcon name="bolt" size={15} strokeWidth={2.1} className="ds-inline-icon" /> Fast Delivery Time (minutes)</label>
                 <input
                   type="number"
                   min="1"
@@ -660,7 +661,7 @@ export default function Settings() {
 
       {/* ── 5. Night Delivery ───────────────────────────────────────────── */}
       <section className="settings-section">
-        <h2 className="settings-section-title">Night Delivery</h2>
+        <h2 className="settings-section-title"><span className="settings-title-icon"><AdminIcon name="moon" size={17} strokeWidth={2.1} /></span>Night Delivery</h2>
         <div className="settings-form-grid">
           <div className="settings-form-group">
             <label className="settings-label">Night Delivery Surcharge (₹)</label>
@@ -726,12 +727,12 @@ export default function Settings() {
 
       {/* ── 5b. Rain Charge ─────────────────────────────────────────────── */}
       <section className="settings-section">
-        <h2 className="settings-section-title">Rain Charge</h2>
+        <h2 className="settings-section-title"><span className="settings-title-icon"><AdminIcon name="rain" size={17} strokeWidth={2.1} /></span>Rain Charge</h2>
         <div className="settings-form-grid">
           <div className="toggle-switch-wrapper full-width">
             <div style={{ flex: 1 }}>
               <strong style={{ display: 'block', marginBottom: '0.25rem', color: 'var(--text-primary)' }}>
-                🌧️ Rain Charge
+                <AdminIcon name="rain" size={15} strokeWidth={2.1} className="ds-inline-icon" /> Rain Charge
               </strong>
               <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                 When enabled, a fixed surcharge is added to every order&apos;s bill. Turn this on/off
@@ -751,7 +752,7 @@ export default function Settings() {
 
           {Boolean(settings.rain_charge_enabled) && (
             <div className="settings-form-group">
-              <label className="settings-label">🌧️ Rain Charge (₹)</label>
+              <label className="settings-label"><AdminIcon name="rain" size={15} strokeWidth={2.1} className="ds-inline-icon" /> Rain Charge (₹)</label>
               <input
                 type="number"
                 min="0"
@@ -779,7 +780,7 @@ export default function Settings() {
 
       {/* ── 6. Contact & Payment Info ───────────────────────────────────── */}
       <section className="settings-section">
-        <h2 className="settings-section-title">Contact & Payment Info</h2>
+        <h2 className="settings-section-title"><span className="settings-title-icon"><AdminIcon name="phone" size={17} strokeWidth={2.1} /></span>Contact & Payment Info</h2>
         <div className="settings-form-grid">
           <div className="settings-form-group">
             <label className="settings-label">WhatsApp Number</label>
@@ -815,7 +816,7 @@ export default function Settings() {
 
       {/* ── Customer app: nav-bar image ─────────────────────────────────── */}
       <section className="settings-section">
-        <h2 className="settings-section-title">Nav Bar Image (Customer App)</h2>
+        <h2 className="settings-section-title"><span className="settings-title-icon"><AdminIcon name="images" size={17} strokeWidth={2.1} /></span>Nav Bar Image (Customer App)</h2>
         <div className="settings-form-grid">
           <div className="settings-form-group full-width">
             <label className="settings-label">Image</label>
@@ -893,7 +894,7 @@ export default function Settings() {
 
       {/* ── 7. App Version Control ──────────────────────────────────────── */}
       <section className="settings-section">
-        <h2 className="settings-section-title">📱 App Version Control</h2>
+        <h2 className="settings-section-title"><span className="settings-title-icon"><AdminIcon name="mobile" size={17} strokeWidth={2.1} /></span>App Version Control</h2>
         {STORE_VERSION_GATES.map((gate) => (
           <StoreVersionGate
             key={gate.key}

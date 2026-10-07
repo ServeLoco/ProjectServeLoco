@@ -1,0 +1,274 @@
+/* VillKro admin design layer — one look for every page.
+   Visual only: spacing, colour, depth and motion. Nothing here hides,
+   moves or renames content, and no rule changes how a control behaves.
+   Selectors start with `.admin-shell .admin-main` so they win over the
+   per-page stylesheets without !important. Both themes read the same
+   tokens (index.css), so light keeps its green and dark its saffron. */
+
+.admin-shell {
+  --ds-radius: 16px;
+  --ds-radius-lg: 20px;
+  --ds-ease: cubic-bezier(.22, 1, .36, 1);
+  --ds-accent: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+  --ds-tint: color-mix(in srgb, var(--primary-color) 9%, var(--surface-color));
+}
+
+/* Bold tones shared by stat tiles and charts: green = money / good,
+   blue = counts, amber = waiting / shops, red = loss / failed,
+   violet = discounts, saffron = brand / peaks. */
+.tone-green { --tone-a: #22a35a; --tone-b: #11753c; }
+.tone-blue { --tone-a: #3b7bf0; --tone-b: #1d4ed8; }
+.tone-saffron { --tone-a: #f7813f; --tone-b: #d9530f; }
+.tone-violet { --tone-a: #8b5cf6; --tone-b: #6d28d9; }
+.tone-red { --tone-a: #ef4444; --tone-b: #b91c1c; }
+.tone-amber { --tone-a: #e8930c; --tone-b: #b45309; }
+.tone-teal { --tone-a: #14b8a6; --tone-b: #0f766e; }
+
+/* ── Motion ───────────────────────────────────────────────────── */
+@keyframes ds-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes ds-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ds-pop { from { opacity: 0; transform: translateY(12px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes ds-drawer { from { opacity: .4; transform: translateX(48px); } to { opacity: 1; transform: none; } }
+@keyframes ds-sheen { from { transform: translateX(-120%); } to { transform: translateX(220%); } }
+
+/* Page sections rise in one after another. */
+.admin-shell .admin-page-content > div > :is(header, section, div, article):nth-child(-n + 8) { animation: ds-rise 460ms var(--ds-ease) backwards; }
+.admin-shell .admin-page-content > div > :nth-child(2) { animation-delay: 50ms; }
+.admin-shell .admin-page-content > div > :nth-child(3) { animation-delay: 100ms; }
+.admin-shell .admin-page-content > div > :nth-child(4) { animation-delay: 150ms; }
+.admin-shell .admin-page-content > div > :nth-child(5) { animation-delay: 200ms; }
+.admin-shell .admin-page-content > div > :nth-child(n + 6) { animation-delay: 240ms; }
+
+/* ── Page header: a tinted card with a bold accent edge ──────── */
+.admin-shell .admin-main :is(.products-header, .shops-header, .categories-header, .customers-header,
+  .settings-header, .offers-header, .images-header, .orders-header, .health-header, .dashboard-header,
+  .library-header, .bi-header, .coupons-header, .analytics-header, .page-header, .reports-header) {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  padding: 22px 26px 22px 32px;
+  margin-bottom: 24px;
+  background: linear-gradient(115deg, var(--ds-tint) 0%, var(--surface-color) 58%);
+  border: 1px solid var(--border-color);
+  border-radius: var(--ds-radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  isolation: isolate;
+}
+.admin-shell .admin-main :is(.products-header, .shops-header, .categories-header, .customers-header,
+  .settings-header, .offers-header, .images-header, .orders-header, .health-header, .dashboard-header,
+  .library-header, .bi-header, .coupons-header, .analytics-header, .page-header, .reports-header)::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: var(--ds-accent);
+}
+.admin-shell .admin-main :is(.products-header, .shops-header, .categories-header, .customers-header,
+  .settings-header, .offers-header, .images-header, .orders-header, .health-header, .dashboard-header,
+  .library-header, .bi-header, .coupons-header, .analytics-header, .page-header, .reports-header)::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  width: 280px;
+  height: 280px;
+  top: -150px;
+  right: -70px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--primary-color) 22%, transparent), transparent 70%);
+  pointer-events: none;
+}
+.admin-shell .admin-main :is(.products-header, .shops-header, .categories-header, .customers-header,
+  .settings-header, .offers-header, .images-header, .orders-header, .health-header, .dashboard-header,
+  .library-header, .bi-header, .coupons-header, .analytics-header, .page-header, .reports-header) h1 {
+  margin: 0;
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: clamp(22px, 2.1vw, 28px);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -.03em;
+}
+.admin-shell .admin-main :is(.products-header, .shops-header, .categories-header, .customers-header,
+  .settings-header, .offers-header, .images-header, .orders-header, .health-header, .dashboard-header,
+  .library-header, .bi-header, .coupons-header, .analytics-header, .page-header, .reports-header) p {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.55;
+  max-width: 72ch;
+}
+
+/* ── Surfaces ─────────────────────────────────────────────────── */
+.admin-shell .admin-main :is(.section-card, .settings-section, .health-card, .report-card, .filter-bar,
+  .bulk-actions-bar, .products-table-wrapper, .orders-table-wrapper, .categories-table-wrapper,
+  .customers-table-wrapper, .shops-table-wrapper, .table-card, .table-scroll-wrapper) {
+  border-radius: var(--ds-radius);
+  border-color: var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+.admin-shell .admin-main :is(.image-card, .offers-grid > *, .health-card, .report-card) {
+  transition: transform 220ms var(--ds-ease), box-shadow 220ms ease, border-color 220ms ease;
+}
+.admin-shell .admin-main :is(.image-card, .offers-grid > *, .health-card, .report-card):hover {
+  transform: translateY(-3px);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
+}
+
+/* ── Tables ───────────────────────────────────────────────────── */
+.admin-shell .admin-main table thead th {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.admin-shell .admin-main table tbody tr { transition: background-color 160ms ease; }
+.admin-shell .admin-main table tbody tr:hover > td { background: color-mix(in srgb, var(--primary-color) 6%, transparent); }
+.admin-shell .admin-main table tbody tr:hover > td:first-child { box-shadow: inset 3px 0 0 var(--primary-color); }
+
+/* ── Buttons ──────────────────────────────────────────────────── */
+.admin-shell :is(.btn-primary, .btn-secondary, .btn-danger) {
+  border-radius: 11px;
+  font-weight: 650;
+  letter-spacing: 0;
+}
+/* Only the primary button carries the sheen, so only it clips. */
+.admin-shell .btn-primary { position: relative; overflow: hidden; isolation: isolate; }
+.admin-shell .btn-primary {
+  background: var(--ds-accent);
+  color: #fff;
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--primary-color) 30%, transparent);
+}
+.admin-shell .btn-primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  z-index: -1;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .28), transparent);
+  transform: translateX(-120%);
+  pointer-events: none;
+}
+.admin-shell .btn-primary:hover:not(:disabled)::after { animation: ds-sheen 700ms ease; }
+.admin-shell .btn-primary:hover:not(:disabled) { box-shadow: 0 10px 24px color-mix(in srgb, var(--primary-color) 38%, transparent); transform: translateY(-1px); }
+.admin-shell .btn-secondary { background: var(--surface-color); border-color: var(--border-color); color: var(--text-primary); }
+.admin-shell .btn-secondary:hover:not(:disabled) { border-color: var(--primary-color); color: var(--primary-color); background: var(--ds-tint); }
+.admin-shell .btn-danger { background: linear-gradient(135deg, #ef4444, #c81e1e); box-shadow: 0 6px 16px rgba(220, 38, 38, .28); }
+
+/* ── Inputs ───────────────────────────────────────────────────── */
+.admin-shell .admin-main :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]), select, textarea) {
+  border-radius: 10px;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+.admin-shell .admin-main :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]), select, textarea):hover:not(:disabled):not(:focus) {
+  border-color: var(--border-strong);
+}
+.admin-shell :is(input[type="checkbox"], input[type="radio"]) { accent-color: var(--primary-color); }
+
+/* ── Drawers & modals ─────────────────────────────────────────── */
+.admin-shell :is(.drawer-overlay, .modal-overlay, .shop-drawer-overlay, .coupon-form-overlay) {
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: ds-fade 200ms ease;
+}
+.admin-shell :is(.drawer-content, .shop-drawer) { animation: ds-drawer 340ms var(--ds-ease); box-shadow: -24px 0 60px rgba(0, 0, 0, .28); }
+.admin-shell .modal-content { border-radius: var(--ds-radius-lg); animation: ds-pop 260ms var(--ds-ease); box-shadow: 0 30px 80px rgba(0, 0, 0, .3); }
+.admin-shell :is(.drawer-header, .modal-header, .shop-drawer-header) {
+  background: linear-gradient(115deg, var(--ds-tint) 0%, var(--surface-color) 70%);
+  border-bottom: 1px solid var(--border-color);
+}
+.admin-shell :is(.drawer-title, .modal-title) { font-family: 'Inter', sans-serif; font-weight: 700; letter-spacing: -.02em; }
+.admin-shell :is(.drawer-close, .modal-close) { border-radius: 10px; transition: transform 200ms var(--ds-ease), background 160ms ease, color 160ms ease; }
+.admin-shell :is(.drawer-close, .modal-close):hover { transform: rotate(90deg); color: var(--primary-color); }
+
+/* ── Feedback ─────────────────────────────────────────────────── */
+.admin-shell .admin-main .error-container { border-left: 4px solid var(--danger-color); font-weight: 500; animation: ds-pop 240ms var(--ds-ease); }
+.admin-shell .global-spinner { border-color: color-mix(in srgb, var(--primary-color) 18%, transparent); border-top-color: var(--primary-color); }
+
+/* ── Pagination ───────────────────────────────────────────────── */
+.admin-shell .admin-main .pagination-controls button:not(:disabled):hover { border-color: var(--primary-color); color: var(--primary-color); }
+
+/* Inline icons that replace emoji sit on the text baseline. */
+.admin-shell .ds-inline-icon { display: inline-block; vertical-align: -3px; flex-shrink: 0; }
+
+/* ── Status badges: solid and bold, one colour per stage ─────── */
+/* [class] lifts this above the per-page `.status-badge.<state>` rules. */
+.admin-shell :is(.status-badge, .payment-pill)[class] {
+  --tone-a: #6b7280;
+  --tone-b: #4b5563;
+  border: 0;
+  color: #fff;
+  background: linear-gradient(135deg, var(--tone-a), var(--tone-b));
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--tone-b) 30%, transparent);
+  font-weight: 700;
+  letter-spacing: .03em;
+}
+.admin-shell .status-badge.pending { --tone-a: #f0a020; --tone-b: #c2610c; }
+.admin-shell .status-badge.accepted { --tone-a: #14b8a6; --tone-b: #0f766e; }
+.admin-shell .status-badge.preparing { --tone-a: #3b7bf0; --tone-b: #1d4ed8; }
+.admin-shell .status-badge.out-for-delivery { --tone-a: #8b5cf6; --tone-b: #6d28d9; }
+.admin-shell .status-badge.delivered { --tone-a: #22a35a; --tone-b: #11753c; }
+.admin-shell .status-badge.cancelled { --tone-a: #ef4444; --tone-b: #b91c1c; }
+.admin-shell .payment-pill.pending { --tone-a: #f0a020; --tone-b: #c2610c; }
+.admin-shell :is(.payment-pill.paid, .payment-pill.success) { --tone-a: #22a35a; --tone-b: #11753c; }
+.admin-shell :is(.payment-pill.failed, .payment-pill.refunded) { --tone-a: #ef4444; --tone-b: #b91c1c; }
+
+/* ── On/off toggles (stock, online, active): solid green / red ─ */
+.admin-shell .availability-toggle[class] {
+  --tone-a: #6b7280;
+  --tone-b: #4b5563;
+  border: 0;
+  color: #fff;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--tone-a), var(--tone-b));
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--tone-b) 30%, transparent);
+  transition: transform 160ms var(--ds-ease), box-shadow 160ms ease, filter 160ms ease;
+}
+.admin-shell .availability-toggle.in-stock[class] { --tone-a: #22a35a; --tone-b: #11753c; }
+.admin-shell .availability-toggle.out-of-stock[class] { --tone-a: #ef4444; --tone-b: #b91c1c; }
+.admin-shell .availability-toggle[class]:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.08); box-shadow: 0 6px 14px color-mix(in srgb, var(--tone-b) 38%, transparent); }
+
+/* ── Row actions read as small buttons, not bare text ─────────── */
+.admin-shell .admin-main .action-link {
+  border-radius: 8px;
+  padding: 0.32rem 0.7rem;
+  font-weight: 650;
+  background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+  color: var(--primary-color);
+}
+.admin-shell .admin-main .action-link:hover { background: var(--primary-color); color: #fff; }
+.admin-shell .admin-main .action-link.danger { background: color-mix(in srgb, var(--danger-color) 12%, transparent); color: var(--danger-color); }
+.admin-shell .admin-main .action-link.danger:hover { background: var(--danger-color); color: #fff; }
+
+/* Products.css centres .form-label and Shops.css stacks it; together the
+   labels came out centred. Keep the stack, align to the left edge. */
+.admin-shell .form-label { align-items: flex-start; text-align: left; }
+
+/* Card corner status (Categories, Store Modes): solid green / red. */
+.admin-shell :is(.category-card-status, .store-mode-card-status)[class] {
+  border: 0;
+  color: #fff;
+  background: linear-gradient(135deg, #22a35a, #11753c);
+  box-shadow: 0 3px 10px rgba(17, 117, 60, 0.32);
+}
+.admin-shell :is(.category-card-status, .store-mode-card-status).is-hidden[class] {
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  box-shadow: 0 3px 10px rgba(185, 28, 28, 0.32);
+}
+
+/* Offer / offer-card / coupon status tags: solid like the order badges. */
+.admin-shell :is(.offer-status.active, .coupon-status.status-active)[class] { color: #fff; border: 0; background: linear-gradient(135deg, #22a35a, #11753c); box-shadow: 0 3px 10px rgba(17, 117, 60, 0.3); }
+.admin-shell :is(.offer-status.inactive, .coupon-status.status-inactive)[class] { color: #fff; border: 0; background: linear-gradient(135deg, #6b7280, #4b5563); }
+.admin-shell .coupon-status.status-scheduled[class] { color: #fff; border: 0; background: linear-gradient(135deg, #3b7bf0, #1d4ed8); }
+.admin-shell .coupon-status.status-expired[class] { color: #fff; border: 0; background: linear-gradient(135deg, #f0a020, #c2610c); }
+.admin-shell .coupon-status.status-deleted[class] { color: #fff; border: 0; background: linear-gradient(135deg, #ef4444, #b91c1c); }
+.admin-shell :is(.coupon-auto-badge, .coupon-auto-tag)[class] { color: #fff; border: 0; background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
+.admin-shell .coupon-code-chip[class] { color: #fff; border: 0; background: linear-gradient(135deg, var(--primary-color), var(--primary-hover)); }
+
+/* Customer trust flags. */
+.admin-shell :is(.badge-trusted, .badge-trusted-inline)[class] { color: #fff; border: 0; background: linear-gradient(135deg, #22a35a, #11753c); }
+.admin-shell .badge-blocked[class] { color: #fff; border: 0; background: linear-gradient(135deg, #ef4444, #b91c1c); }

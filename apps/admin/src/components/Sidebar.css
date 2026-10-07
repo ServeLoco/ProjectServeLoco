@@ -55,3 +55,20 @@
   .sidebar-mobile-backdrop { display: block; position: fixed; inset: 0; z-index: 99; background: #0b152b66; backdrop-filter: blur(4px); animation: admin-soft-enter 200ms ease; }
 }
 @media (max-width: 600px) { .sidebar-mobile-toggle { top: 16px; left: 12px; } }
+
+/* Dark mode: black + saffron, like the app's dark shop screens. */
+[data-theme="dark"] .admin-sidebar { background: #0a0a0b; color: #e4e4e7; border-right-color: #222226; }
+[data-theme="dark"] :is(.sidebar-header, .sidebar-footer) { border-color: #222226; }
+[data-theme="dark"] .sidebar-logo { border-color: #2e2e33; }
+[data-theme="dark"] :is(.sidebar-brand-subtitle, .sidebar-group-label) { color: #8a8a93; }
+[data-theme="dark"] .sidebar-nav { scrollbar-color: #33333a transparent; }
+[data-theme="dark"] .sidebar-item-link { color: #b4b4bb; }
+[data-theme="dark"] .sidebar-item-link:hover { color: #fff; background: #1a1a1d; }
+[data-theme="dark"] .sidebar-item-link.active { color: #fff; background: linear-gradient(135deg, #f26b2a, #e05a1a); border-color: #f26b2a; box-shadow: 0 6px 18px rgba(242,107,42,.28); }
+[data-theme="dark"] .sidebar-item-link.active .sidebar-icon { color: #fff; }
+[data-theme="dark"] .sidebar-footer-badge { color: #a1a1aa; }
+[data-theme="dark"] .sidebar-footer-dot { background: #ff7a3a; box-shadow: 0 0 0 4px rgba(255,122,58,.18); }
+@media (max-width: 1024px) {
+  [data-theme="dark"] .sidebar-close { background: #1a1a1d; color: #e4e4e7; border-color: #33333a; }
+  [data-theme="dark"] .sidebar-mobile-backdrop { background: #0009; }
+}

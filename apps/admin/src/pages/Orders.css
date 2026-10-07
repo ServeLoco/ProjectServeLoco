@@ -921,3 +921,49 @@
     font-size: 0.85rem;
   }
 }
+
+/* ── Design refresh: bold summary tiles and one button family ─── */
+.orders-summary-grid > .orders-summary-card {
+  --tone-a: #3b7bf0;
+  --tone-b: #1d4ed8;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border: 0;
+  border-radius: 16px;
+  color: #fff;
+  background: linear-gradient(140deg, var(--tone-a), var(--tone-b));
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--tone-b) 28%, transparent);
+}
+.orders-summary-grid > .orders-summary-card::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  width: 120px;
+  height: 120px;
+  top: -50px;
+  right: -36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.13);
+}
+.orders-summary-grid > .orders-summary-card:nth-child(2) { --tone-a: #f7813f; --tone-b: #d9530f; }
+.orders-summary-grid > .orders-summary-card:nth-child(3) { --tone-a: #22a35a; --tone-b: #11753c; }
+.orders-summary-grid > .orders-summary-card:nth-child(4) { --tone-a: #8b5cf6; --tone-b: #6d28d9; }
+.orders-summary-grid > .orders-summary-card:hover { transform: translateY(-3px); box-shadow: 0 14px 30px color-mix(in srgb, var(--tone-b) 36%, transparent); }
+.orders-summary-grid > .orders-summary-card strong { color: #fff; font-size: 1.5rem; letter-spacing: -0.02em; }
+.orders-summary-grid > .orders-summary-card .summary-label { color: rgba(255, 255, 255, 0.88); }
+
+.orders-header-actions .btn-export {
+  min-height: 40px;
+  border-radius: 11px;
+  border: 0;
+  font-weight: 650;
+  color: #fff;
+  background: linear-gradient(135deg, #22a35a, #11753c);
+  box-shadow: 0 6px 16px rgba(17, 117, 60, 0.3);
+}
+.orders-header-actions .btn-export:hover:not(:disabled) { background: linear-gradient(135deg, #22a35a, #11753c); box-shadow: 0 10px 22px rgba(17, 117, 60, 0.38); }
+
+.orders-filter-bar .filter-chip { transition: background 160ms ease, color 160ms ease, border-color 160ms ease, transform 160ms ease; }
+.orders-filter-bar .filter-chip:hover { transform: translateY(-1px); border-color: var(--primary-color); color: var(--primary-color); }
+.orders-filter-bar .filter-chip.active { background: linear-gradient(135deg, var(--primary-color), var(--primary-hover)); color: #fff; border-color: transparent; box-shadow: 0 4px 12px color-mix(in srgb, var(--primary-color) 32%, transparent); }

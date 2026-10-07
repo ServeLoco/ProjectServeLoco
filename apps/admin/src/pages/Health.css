@@ -61,13 +61,16 @@
 }
 
 .health-status-icon.ok {
-  background: rgba(16, 185, 129, 0.1);
-  color: var(--success-color);
+  background: linear-gradient(140deg, #22a35a, #11753c);
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(17, 117, 60, 0.35);
+  animation: ds-pop 420ms cubic-bezier(.22,1,.36,1);
 }
 
 .health-status-icon.error {
-  background: rgba(239, 68, 68, 0.1);
-  color: var(--danger-color);
+  background: linear-gradient(140deg, #ef4444, #b91c1c);
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(185, 28, 28, 0.35);
 }
 
 .health-status-icon.loading {
@@ -146,15 +149,15 @@
 }
 
 .service-badge.ok {
-  background: rgba(16, 185, 129, 0.1);
-  color: var(--success-color);
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  background: linear-gradient(135deg, #22a35a, #11753c);
+  color: #fff;
+  border: 0;
 }
 
 .service-badge.error {
-  background: rgba(239, 68, 68, 0.1);
-  color: var(--danger-color);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  color: #fff;
+  border: 0;
 }
 
 .health-troubleshoot {

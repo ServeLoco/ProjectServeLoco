@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import AdminIcon from '../components/AdminIcon';
 import { LibraryApi, CategoryLibraryApi, StoreModeLibraryApi, CategoriesApi, ImagesApi } from '../api';
 import { readList } from '../utils/apiResponse';
 import { getUploadedImage, normalizeImageUrl, handleImageError } from '../utils/imageUrl';
@@ -370,7 +371,7 @@ export default function Library() {
                   {(imageUrl || iconUrl) ? (
                     <img src={imageUrl || iconUrl} onError={handleImageError} alt={rowLabel(row)} />
                   ) : (
-                    <div className="library-card-image-placeholder">🗂️</div>
+                    <div className="library-card-image-placeholder"><AdminIcon name="folder" size={34} strokeWidth={1.8} /></div>
                   )}
                 </div>
                 <div className="library-card-body">

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../components/AuthProvider';
+import AdminIcon from '../components/AdminIcon';
 import './Login.css';
 
 export default function Login() {
@@ -54,10 +55,10 @@ export default function Login() {
           <h1 className="login-brand-title">VillKro</h1>
           <p className="login-brand-tagline">Manage your store with clarity and speed.</p>
           <ul className="login-brand-features">
-            <li>⚡ Real-time order tracking</li>
-            <li>📦 Inventory management</li>
-            <li>📊 Sales analytics</li>
-            <li>🔔 Push notifications</li>
+            <li><span className="login-feature-icon"><AdminIcon name="bolt" size={16} strokeWidth={2.1} /></span>Real-time order tracking</li>
+            <li><span className="login-feature-icon"><AdminIcon name="orders" size={16} strokeWidth={2.1} /></span>Inventory management</li>
+            <li><span className="login-feature-icon"><AdminIcon name="analytics" size={16} strokeWidth={2.1} /></span>Sales analytics</li>
+            <li><span className="login-feature-icon"><AdminIcon name="bell" size={16} strokeWidth={2.1} /></span>Push notifications</li>
           </ul>
         </div>
 
@@ -70,7 +71,7 @@ export default function Login() {
 
             {error && (
               <div className="login-error-alert" role="alert">
-                <span>⚠</span> {error}
+                <AdminIcon name="alertCircle" size={16} strokeWidth={2.2} /> {error}
               </div>
             )}
 
@@ -106,7 +107,7 @@ export default function Login() {
                     onClick={() => setShowPassword(v => !v)}
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
-                    {showPassword ? '🙈' : '👁️'}
+                    <AdminIcon name={showPassword ? 'eyeOff' : 'eye'} size={18} strokeWidth={2} />
                   </button>
                 </div>
               </div>

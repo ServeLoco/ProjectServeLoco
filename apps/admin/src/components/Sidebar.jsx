@@ -6,45 +6,65 @@ import './Sidebar.css';
 
 const NAV_GROUPS = [
   {
-    label: 'Operations',
+    label: 'Overview',
     items: [
       { path: '/', label: 'Dashboard', icon: 'dashboard' },
+    ],
+  },
+  {
+    label: 'Orders & Delivery',
+    items: [
       { path: '/orders', label: 'Orders', icon: 'orders' },
-      { path: '/delivery-zones', label: 'Delivery Zones', icon: 'pin' },
       { path: '/riders', label: 'Riders', icon: 'riders' },
-      { path: '/mobile-admins', label: 'Mobile Admins', icon: 'mobile' },
+      { path: '/delivery-zones', label: 'Delivery Zones', icon: 'pin' },
     ],
   },
   {
     label: 'Catalogue',
     items: [
       { path: '/products', label: 'Products', icon: 'products' },
-      { path: '/combos', label: 'Combos', icon: 'combos' },
       { path: '/categories', label: 'Categories', icon: 'categories' },
+      { path: '/combos', label: 'Combos', icon: 'combos' },
       { path: '/store-modes', label: 'Store Modes', icon: 'modes' },
-      { path: '/shops', label: 'Shops', icon: 'shops' },
-      { path: '/offers', label: 'Offers', icon: 'offers' },
-      { path: '/coupons', label: 'Coupons', icon: 'coupons' },
+      { path: '/images', label: 'Images', icon: 'images' },
     ],
   },
   {
-    label: 'Engagement',
+    label: 'Shops & Team',
     items: [
-      { path: '/mobile-dashboard', label: 'App Home', icon: 'mobile' },
+      { path: '/shops', label: 'Shops', icon: 'shops' },
+      { path: '/mobile-admins', label: 'Mobile Admins', icon: 'mobile' },
+    ],
+  },
+  {
+    label: 'Marketing',
+    items: [
+      { path: '/offers', label: 'Offers', icon: 'offers' },
+      { path: '/coupons', label: 'Coupons', icon: 'coupons' },
       { path: '/offer-cards', label: 'Offer Cards', icon: 'cards' },
+      { path: '/notifications', label: 'Notifications', icon: 'bell' },
+    ],
+  },
+  {
+    label: 'App & Customers',
+    items: [
+      { path: '/mobile-dashboard', label: 'App Home', icon: 'appHome' },
       // Customers are one account nationwide — a super admin page.
       { path: '/customers', label: 'Customers', icon: 'customers', superAdminOnly: true },
-      { path: '/notifications', label: 'Notifications', icon: 'bell' },
+    ],
+  },
+  {
+    label: 'Insights',
+    items: [
+      { path: '/reports', label: 'Reports', icon: 'reports' },
+      { path: '/analytics', label: 'Analytics', icon: 'analytics' },
+      { path: '/heat-map', label: 'App Opens Map', icon: 'map' },
     ],
   },
   {
     label: 'System',
     items: [
-      { path: '/images', label: 'Images', icon: 'images' },
       { path: '/settings', label: 'Settings', icon: 'settings' },
-      { path: '/reports', label: 'Reports', icon: 'reports' },
-      { path: '/analytics', label: 'Analytics', icon: 'analytics' },
-      { path: '/heat-map', label: 'App Opens Map', icon: 'map' },
       { path: '/health', label: 'System Health', icon: 'health' },
     ],
   },
@@ -110,7 +130,8 @@ export default function Sidebar({ mobileOpen, setMobileOpen }) {
   const { isSuperAdmin } = useAreaStore() || {};
   const navGroups = isSuperAdmin
     ? [...NAV_GROUPS, SUPER_ADMIN_GROUP]
-    : NAV_GROUPS.map((group) => ({ ...group, items: group.items.filter((item) => !item.superAdminOnly) }));
+    : NAV_GROUPS.map((group) => ({ ...group, items: group.items.filter((item) => !item.superAdminOnly) }))
+      .filter((group) => group.items.length > 0);
 
   return (
     <>

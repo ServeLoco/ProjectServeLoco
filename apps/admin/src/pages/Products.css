@@ -251,6 +251,10 @@
   background-color: rgba(22, 163, 74, 0.08) !important;
 }
 
+[data-theme="dark"] .products-table tbody tr.selected {
+  background-color: rgba(242, 107, 42, 0.1) !important;
+}
+
 .products-table tbody tr:nth-child(even) {
   background: rgba(148, 163, 184, 0.04);
 }

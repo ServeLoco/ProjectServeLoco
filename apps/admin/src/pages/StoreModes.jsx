@@ -8,19 +8,21 @@ import { getImageUploadError } from '../utils/fileValidation';
 import { useImageCropper } from '../hooks/useImageCropper';
 import ImageCropper from '../components/ImageCropper/ImageCropper';
 import PickAreaNotice from '../components/PickAreaNotice';
+import AdminIcon from '../components/AdminIcon';
 import { useAreaStore } from '../stores/useAreaStore';
 import './Categories.css';
 import './StoreModes.css';
 
+// Fallback when a mode has no uploaded icon image.
 const MODE_ICONS = {
-  packed: '📦',
-  fast_food: '🍔',
-  sweets: '🍬',
-  house: '🏠',
+  packed: 'orders',
+  fast_food: 'burger',
+  sweets: 'cake',
+  house: 'home',
 };
 
 function modeIcon(slug) {
-  return MODE_ICONS[slug] || '🔀';
+  return <AdminIcon name={MODE_ICONS[slug] || 'shuffle'} size={24} strokeWidth={2} />;
 }
 
 export default function StoreModes() {

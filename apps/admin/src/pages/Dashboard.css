@@ -152,71 +152,78 @@
   margin-bottom: 1.75rem;
 }
 
-.metric-card {
-  background: var(--surface-color);
-  border-radius: var(--radius-lg);
-  padding: 1.5rem;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--border-color);
+/* Two classes so it beats the plain card surface in index.css. */
+.metrics-grid > .metric-card {
+  --tone-a: #22a35a;
+  --tone-b: #11753c;
+  border-radius: 18px;
+  padding: 1.25rem 1.35rem;
+  color: #fff;
+  border: 0;
+  background: linear-gradient(140deg, var(--tone-a), var(--tone-b));
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--tone-b) 30%, transparent);
   display: flex;
   flex-direction: column;
   position: relative;
   overflow: hidden;
-  transition: transform var(--transition-spring), box-shadow var(--transition-normal), border-color var(--transition-fast);
+  isolation: isolate;
+  min-width: 0;
+  transition: transform var(--transition-spring), box-shadow var(--transition-normal);
 }
 
+/* Soft light disc in the corner gives the flat colour some depth. */
 .metric-card::before {
   content: '';
   position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 5px;
-  border-radius: 0 3px 3px 0;
+  z-index: -1;
+  width: 150px;
+  height: 150px;
+  top: -60px;
+  right: -45px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.13);
 }
 
-.metric-card.sales::before { background: var(--metric-sales-accent); }
-.metric-card.orders::before { background: var(--metric-orders-accent); }
-.metric-card.pending::before { background: var(--metric-pending-accent); }
-.metric-card.payments::before { background: var(--metric-payments-accent); }
+.metric-card.sales { --tone-a: #22a35a; --tone-b: #11753c; }
+.metric-card.orders { --tone-a: #3b7bf0; --tone-b: #1d4ed8; }
+.metric-card.pending { --tone-a: #f0a020; --tone-b: #c2610c; }
+.metric-card.payments { --tone-a: #ef4444; --tone-b: #b91c1c; }
 
 .metric-card:hover {
   transform: translateY(-4px);
-  box-shadow: var(--shadow-md);
-  border-color: var(--border-strong);
+  box-shadow: 0 16px 34px color-mix(in srgb, var(--tone-b) 38%, transparent);
 }
 
 .metric-card-inner {
   display: flex;
-  align-items: center;
-  gap: 1rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.9rem;
+  min-width: 0;
 }
 
 .metric-icon-wrap {
-  width: 50px;
-  height: 50px;
-  border-radius: var(--radius-md);
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   transition: transform var(--transition-spring);
-  color: var(--text-primary);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
 }
 
 .metric-icon-wrap svg {
-  width: 26px;
-  height: 26px;
+  width: 22px;
+  height: 22px;
 }
 
 .metric-card:hover .metric-icon-wrap {
-  transform: scale(1.1);
+  transform: scale(1.08) rotate(-4deg);
 }
-
-.icon-sales { background: rgba(22, 163, 74, 0.12); color: var(--metric-sales-accent); }
-.icon-orders { background: rgba(37, 99, 235, 0.12); color: var(--metric-orders-accent); }
-.icon-pending { background: rgba(217, 119, 6, 0.12); color: var(--metric-pending-accent); }
-.icon-payments { background: rgba(220, 38, 38, 0.12); color: var(--metric-payments-accent); }
 
 .metric-card-content {
   display: flex;
@@ -228,19 +235,20 @@
 .metric-title {
   font-size: 0.72rem;
   font-weight: 800;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.88);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   line-height: 1.2;
 }
 
 .metric-value {
-  font-size: 2rem;
-  font-weight: 900;
-  color: var(--text-primary);
-  font-family: 'Outfit', 'Inter', sans-serif;
+  font-size: clamp(1.45rem, 2.1vw, 2rem);
+  font-weight: 800;
+  color: #fff;
+  font-family: 'Inter', sans-serif;
   letter-spacing: -0.03em;
-  line-height: 1;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
 }
 
 /* ── Latest orders full-width section ────────────────────── */
@@ -677,6 +685,11 @@
   border-radius: 50%;
   border-top-color: var(--primary-color);
   animation: spin 0.75s linear infinite;
+}
+
+[data-theme="dark"] .spinner {
+  border-color: rgba(242, 107, 42, 0.14);
+  border-top-color: var(--primary-color);
 }
 
 .error-state-wrapper {

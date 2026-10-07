@@ -5,7 +5,8 @@ const { pool } = require('../db/mysql');
 const { STARS_MISSING_SQL, shownRating, isFire } = require('../utils/productRatings');
 const { validatePagination } = require('../validators');
 const { roundMoney, toMoney } = require('../utils/money');
-const { resolvePeriod, ReportPeriodError } = require('../utils/reportPeriods');
+const { resolvePeriod, ReportPeriodError, buildPeriodDateFilter } = require('../utils/reportPeriods');
+const { buildProfitInsights } = require('../services/reportInsights');
 const notificationService = require('../utils/notificationService');
 const logger = require('../utils/logger');
 const {
@@ -963,26 +964,6 @@ const getShopsReport = async (req, res) => {
   res.status(200).json({ data });
 };
 
-// Business-day date filter shared by the profit/payout report endpoints.
-// resolved.key='all' (report PERIOD, e.g. "all time" — unrelated to the
-// areaId 'all' below) skips the date clause; every other period key was
-// already resolved to a concrete [from, to] business-day range by
-// resolvePeriod(). areaId is a separate axis: a number appends an area
-// filter, 'all' (super_admin cross-area roll-up, §2.10) or undefined skips it.
-const buildPeriodDateFilter = (resolved, areaId, column = 'o.created_at') => {
-  const parts = [];
-  const params = [];
-  if (resolved.key !== 'all') {
-    parts.push(`DATE(CONVERT_TZ(${column}, ?, ?)) BETWEEN ? AND ?`);
-    params.push(config.MYSQL_SESSION_TZ_SQL, resolved.timezone, resolved.from, resolved.to);
-  }
-  if (areaId !== undefined && areaId !== 'all') {
-    parts.push('o.area_id = ?');
-    params.push(areaId);
-  }
-  return { clause: parts.length > 0 ? parts.join(' AND ') : '1=1', params };
-};
-
 // Profit & payout report — the daily business ledger. Basis is Delivered
 // orders only (see plans/profit-report.md): in-flight orders are surfaced
 // separately as "pipeline" so they're visible without polluting profit, and
@@ -1154,6 +1135,28 @@ const getProfitSummary = async (req, res) => {
       rejected_items_count: Number(warningsRow.rejected_items_count) || 0,
     },
   });
+};
+
+// Trend, busiest hours, customers and losses for the same period and area
+// as the summary — see services/reportInsights.js for each definition.
+const getProfitInsights = async (req, res) => {
+  const areaId = resolveAreaOrAll(req, res);
+  if (areaId === undefined) return;
+  let resolved;
+  try {
+    resolved = resolvePeriod({ period: req.query.period, from: req.query.from, to: req.query.to });
+  } catch (err) {
+    if (err instanceof ReportPeriodError) {
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: err.message });
+    }
+    throw err;
+  }
+
+  const insights = await buildProfitInsights(pool, resolved, areaId, buildPeriodDateFilter(resolved, areaId));
+  if (areaId === 'all') {
+    insights.losses.rejectionsByShop = await withAreaCodes(insights.losses.rejectionsByShop);
+  }
+  res.status(200).json({ period: resolved, ...insights });
 };
 
 const PROFIT_ORDERS_SORTS = {
@@ -2670,6 +2673,7 @@ module.exports = {
   getCustomersReport,
   getShopsReport,
   getProfitSummary,
+  getProfitInsights,
   getProfitOrders,
   getAdminNotifications,
   createAdminNotification,

@@ -3,6 +3,7 @@ import { ReportsApi, subscribeAdminOrderEvents, subscribeRealtimeLifecycle } fro
 import { useAdminRefresh } from '../hooks/useAdminRefresh';
 import AdminIcon from '../components/AdminIcon';
 import { ReportBars, ReportDonut } from '../components/ReportVisuals';
+import ReportInsights from '../components/ReportInsights';
 import './Reports.css';
 
 import { GENERIC_ERROR } from '../utils/constants';
@@ -169,6 +170,10 @@ export default function Reports() {
   const [profitLoading, setProfitLoading] = useState(false);
   const [profitError, setProfitError] = useState(null);
 
+  const [insights, setInsights] = useState(null);
+  const [insightsLoading, setInsightsLoading] = useState(false);
+  const [insightsError, setInsightsError] = useState(null);
+
   const [ordersRows, setOrdersRows] = useState([]);
   const [ordersPagination, setOrdersPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 1 });
   const [ordersLoading, setOrdersLoading] = useState(false);
@@ -203,6 +208,20 @@ export default function Reports() {
     }
   }, [buildPeriodParams]);
 
+  const fetchProfitInsights = useCallback(async (showLoading = true) => {
+    try {
+      if (showLoading) setInsightsLoading(true);
+      setInsightsError(null);
+      const res = await ReportsApi.getProfitInsights(buildPeriodParams());
+      setInsights(res.data || res || null);
+    } catch (err) {
+      console.error(err);
+      setInsightsError(GENERIC_ERROR);
+    } finally {
+      setInsightsLoading(false);
+    }
+  }, [buildPeriodParams]);
+
   const fetchProfitOrders = useCallback(async (page = 1, showLoading = true) => {
     try {
       if (showLoading) setOrdersLoading(true);
@@ -227,18 +246,20 @@ export default function Reports() {
 
   const refreshProfitTab = useCallback((showLoading = true) => {
     fetchProfitSummary(showLoading);
+    fetchProfitInsights(showLoading);
     fetchProfitOrders(ordersPagination.page || 1, showLoading);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetchProfitSummary, fetchProfitOrders]);
+  }, [fetchProfitSummary, fetchProfitInsights, fetchProfitOrders]);
 
   // Period (or custom range) changed -> reload summary + reset to page 1
   useEffect(() => {
     if (activeTab !== 'profit') return;
     if (profitPeriodKey === 'custom' && (!customFrom || !customTo)) return;
     fetchProfitSummary();
+    fetchProfitInsights();
     fetchProfitOrders(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, profitPeriodKey, customFrom, customTo, fetchProfitSummary]);
+  }, [activeTab, profitPeriodKey, customFrom, customTo, fetchProfitSummary, fetchProfitInsights]);
 
   // Sort or shop filter changed -> reload orders from page 1 (summary untouched)
   useEffect(() => {
@@ -537,6 +558,8 @@ export default function Reports() {
                   ]} />
                 </article>
               </section>
+
+              <ReportInsights insights={insights} loading={insightsLoading} error={insightsError} />
 
               <div className="profit-main-grid">
                 <section className="profit-breakdown-card">

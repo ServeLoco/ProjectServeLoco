@@ -10,6 +10,7 @@ import { useImageCropper } from '../hooks/useImageCropper';
 import { useStoreModes } from '../hooks/useStoreModes';
 import ImageCropper from '../components/ImageCropper/ImageCropper';
 import MessageBanner from '../components/MessageBanner';
+import AdminIcon from '../components/AdminIcon';
 import { GENERIC_ERROR } from '../utils/constants';
 import PickAreaNotice from '../components/PickAreaNotice';
 import { useAreaStore } from '../stores/useAreaStore';
@@ -316,9 +317,9 @@ export default function Products() {
       <header className="products-header">
         <h1 className="products-title">Products Management</h1>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <button className="btn-secondary" onClick={() => navigate('/bulk-import')}>📦 Bulk Import</button>
-          <button className="btn-secondary" onClick={() => setLibraryPickerOpen(true)}>📚 Add from Library</button>
-          <button className="btn-primary" onClick={openCreateDrawer}>+ New Product</button>
+          <button className="btn-secondary" onClick={() => navigate('/bulk-import')}><AdminIcon name="upload" size={16} strokeWidth={2.1} className="ds-inline-icon" /> Bulk Import</button>
+          <button className="btn-secondary" onClick={() => setLibraryPickerOpen(true)}><AdminIcon name="book" size={16} strokeWidth={2.1} className="ds-inline-icon" /> Add from Library</button>
+          <button className="btn-primary" onClick={openCreateDrawer}><AdminIcon name="plus" size={16} strokeWidth={2.4} className="ds-inline-icon" /> New Product</button>
         </div>
       </header>
 
@@ -370,7 +371,7 @@ export default function Products() {
           <div className="bulk-actions-buttons">
             <button className="btn-secondary" disabled={bulkUpdating} onClick={() => handleBulkAvailability(true)}>Mark In Stock</button>
             <button className="btn-secondary" disabled={bulkUpdating} onClick={() => handleBulkAvailability(false)}>Mark Out of Stock</button>
-            <button className="btn-secondary" disabled={bulkUpdating} onClick={() => handleBulkFeatured(true)}>⭐ Mark Featured</button>
+            <button className="btn-secondary" disabled={bulkUpdating} onClick={() => handleBulkFeatured(true)}><AdminIcon name="star" size={15} strokeWidth={2.1} className="ds-inline-icon" /> Mark Featured</button>
             <button className="btn-secondary" disabled={bulkUpdating} onClick={() => handleBulkFeatured(false)}>Remove Featured</button>
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <select
@@ -411,8 +412,8 @@ export default function Products() {
                 Delete
               </button>
             ) : (
-              <div className="bi-confirm-bar" style={{ display: 'inline-flex', gap: '0.5rem', alignItems: 'center', background: '#fff3cd', border: '1px solid #ffc107', borderRadius: '6px', padding: '0.35rem 0.75rem' }}>
-                <span style={{ fontSize: '0.85rem', color: '#856404' }}>⚠️ Delete {selectedIds.length} products?</span>
+              <div className="bi-confirm-bar" style={{ display: 'inline-flex', gap: '0.5rem', alignItems: 'center', background: 'var(--warning-bg)', border: '1px solid var(--warning-border)', borderRadius: '10px', padding: '0.35rem 0.75rem' }}>
+                <span style={{ fontSize: '0.85rem', color: 'var(--warning-text)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}><AdminIcon name="warning" size={15} strokeWidth={2.1} className="ds-inline-icon" /> Delete {selectedIds.length} products?</span>
                 <button className="btn-secondary" style={{ padding: '0.2rem 0.6rem', fontSize: '0.8rem', borderColor: 'var(--danger-color)', color: 'var(--danger-color)' }} disabled={bulkUpdating} onClick={handleBulkDelete}>Yes, Delete</button>
                 <button className="btn-secondary" style={{ padding: '0.2rem 0.6rem', fontSize: '0.8rem' }} onClick={() => setConfirmDelete(false)}>Cancel</button>
               </div>
@@ -520,7 +521,7 @@ export default function Products() {
                                 : '#b91c1c',
                               marginRight: 6,
                             }}>
-                              {isWithinTimeWindow(p.available_from_time, p.available_until_time) ? '✓ Visible now' : '✗ Hidden now'}
+                              {isWithinTimeWindow(p.available_from_time, p.available_until_time) ? <><AdminIcon name="eye" size={13} strokeWidth={2.1} className="ds-inline-icon" /> Visible now</> : <><AdminIcon name="eyeOff" size={13} strokeWidth={2.1} className="ds-inline-icon" /> Hidden now</>}
                             </span>
                             <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                               ⏰ {formatTimeWindow(p.available_from_time, p.available_until_time)}
@@ -541,7 +542,7 @@ export default function Products() {
                         <td>
                           <div className="product-info" style={{ paddingLeft: '1.5rem' }}>
                             <div className="product-details">
-                              <span className="product-name" style={{ fontSize: '0.85rem' }}>↳ {v.label}</span>
+                              <span className="product-name" style={{ fontSize: '0.85rem' }}><AdminIcon name="subItem" size={14} strokeWidth={2.1} className="ds-inline-icon" /> {v.label}</span>
                               <span className="product-unit">{v.isDefault || v.is_default ? 'Default option' : ''}</span>
                             </div>
                           </div>
@@ -1129,7 +1130,7 @@ function ProductFormDrawer({ product, categories, shops, currentMode, onClose, o
                   padding: '0.6rem 0.9rem', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.85rem',
                 }}
               >
-                📚 Name, image, description, unit and variant labels are managed in the Library.{' '}
+                <AdminIcon name="book" size={15} strokeWidth={2.1} className="ds-inline-icon" /> Name, image, description, unit and variant labels are managed in the Library.{' '}
                 <a href="/library" style={{ fontWeight: 700, textDecoration: 'underline' }}>Edit there</a> —
                 price, availability, category and shop stay editable here.
               </div>
@@ -1232,7 +1233,8 @@ function ProductFormDrawer({ product, categories, shops, currentMode, onClose, o
                         className="action-link danger variant-remove"
                         onClick={() => handleRemoveVariant(i)}
                         title="Remove variant"
-                      >✕</button>
+                        aria-label="Remove variant"
+                      ><AdminIcon name="close" size={14} strokeWidth={2.4} /></button>
                     </div>
                     <div className="variant-row-prices">
                       <div className="form-group">
@@ -1407,8 +1409,8 @@ function ProductFormDrawer({ product, categories, shops, currentMode, onClose, o
                 }}>
                   <strong>
                     {isWithinTimeWindow(formData.available_from_time, formData.available_until_time)
-                      ? '✓ Customers can see this product right now'
-                      : '✗ Customers cannot see this product right now'}
+                      ? <><AdminIcon name="eye" size={15} strokeWidth={2.1} className="ds-inline-icon" /> Customers can see this product right now</>
+                      : <><AdminIcon name="eyeOff" size={15} strokeWidth={2.1} className="ds-inline-icon" /> Customers cannot see this product right now</>}
                   </strong>
                   <div style={{ marginTop: 2, opacity: 0.85 }}>
                     Window: {formatTimeWindow(formData.available_from_time, formData.available_until_time)}

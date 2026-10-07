@@ -806,3 +806,46 @@
   gap: 10px;
   align-items: center;
 }
+
+/* ── Design refresh: icon chips instead of emoji, bold type badges ── */
+.notifications-page .page-title { display: flex; align-items: center; gap: 0.75rem; }
+.page-title-icon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  color: #fff;
+  background: linear-gradient(140deg, var(--primary-color), var(--primary-hover));
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--primary-color) 32%, transparent);
+}
+.notifications-page .card h2 { display: flex; align-items: center; gap: 0.55rem; font-family: 'Inter', sans-serif; letter-spacing: -0.02em; }
+.notifications-page .card h2 svg { color: var(--primary-color); }
+.notifications-page :is(.inline-error-box, .inline-success-box) { display: flex; align-items: flex-start; gap: 0.5rem; }
+.notifications-page :is(.inline-error-box, .inline-success-box) svg { margin-top: 1px; }
+.preview-app-icon { background: #0e1116; overflow: hidden; }
+.preview-app-icon img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.emoji-btn { display: inline-flex; align-items: center; justify-content: center; color: var(--text-secondary); }
+.emoji-btn:hover { color: var(--primary-color); }
+.notifications-page .template-icon {
+  width: 40px;
+  height: 40px;
+  margin-top: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  color: #fff;
+  background: linear-gradient(140deg, var(--primary-color), var(--primary-hover));
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--primary-color) 28%, transparent);
+}
+.notifications-page .template-disabled .template-icon { background: var(--surface-soft); color: var(--text-muted); box-shadow: none; }
+
+.notifications-page .badge[class*="badge-"] { color: #fff; border: 0; }
+.notifications-page .badge-info { background: linear-gradient(135deg, #3b7bf0, #1d4ed8); }
+.notifications-page .badge-offer { background: linear-gradient(135deg, #f7813f, #d9530f); }
+.notifications-page .badge-success { background: linear-gradient(135deg, #22a35a, #11753c); }
+.notifications-page .badge-warning { background: linear-gradient(135deg, #ef4444, #b91c1c); }
+.notifications-page .badge-admin { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
