@@ -33,8 +33,8 @@ import { useRefetchOnFocus } from '../../../hooks/useRefetchOnFocus';
 // Both the customer app's Linking.openURL and any web/marketing link should use
 // the same path so there is one source of truth.
 const POLICY_URLS = {
-  privacy: 'https://api.serveloco.app/policies/privacy',
-  terms: 'https://api.serveloco.app/policies/terms',
+  privacy: 'https://api.villkro.in/policies/privacy',
+  terms: 'https://api.villkro.in/policies/terms',
 };
 
 // Brand-level contact links. Update these when they change.
