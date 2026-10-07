@@ -53,6 +53,10 @@ for suffix in ("serveloco.app", "villkro.in"):
         ("ota", "/assets?source=app", "GET"),
     ):
         host = service + "." + suffix
+        # Asset contents are shared across domain aliases in production.
+        # Use separate fixture keys because the mock body includes the Host.
+        if path.startswith("/assets?"):
+            path += "&fixture_host=" + host
         status, headers, body = request(host, path, method)
         assert status == 200 and "Location" not in headers, (host, status, headers)
         assert body == "compatibility upstream " + method + " " + host + path, body
