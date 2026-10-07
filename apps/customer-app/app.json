@@ -106,7 +106,7 @@
     "owner": "yashsiwch",
     "runtimeVersion": "1.9.9",
     "updates": {
-      "url": "https://ota.serveloco.app/manifest",
+      "url": "https://ota.villkro.in/manifest",
       "enabled": true,
       "codeSigningCertificate": "./certs/certificate.pem",
       "codeSigningMetadata": {

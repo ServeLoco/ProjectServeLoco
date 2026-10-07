@@ -86,12 +86,12 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Check if customer-app package.json changed
+      - name: Check if customer-app native configuration changed
         id: pkg
         run: |
           set -euo pipefail
-          CHANGED="$(git diff --name-only ${{ steps.baseline.outputs.range }} -- ${{ env.APP_DIR }}/package.json || true)"
-          echo "package.json changed files: $CHANGED"
+          CHANGED="$(git diff --name-only ${{ steps.baseline.outputs.range }} -- ${{ env.APP_DIR }}/package.json ${{ env.APP_DIR }}/app.json ${{ env.APP_DIR }}/android ${{ env.APP_DIR }}/ios || true)"
+          echo "Native configuration changed files: $CHANGED"
           if [ -n "$CHANGED" ]; then
             echo "pkg_changed=true" >> "$GITHUB_OUTPUT"
           else
@@ -120,7 +120,7 @@ jobs:
 
           if [ "$PKG_CHANGED" = "true" ]; then
             BUMP="major"
-            REASON="package.json changed in apps/customer-app"
+            REASON="native dependencies or configuration changed in apps/customer-app"
           fi
           if echo "$MSGS" | grep -Eqi '^(feat|breaking)(\(.+\))?!?:'; then
             BUMP="major"

@@ -43,8 +43,8 @@ const LOGO_CLEARANCE = 14;
 const GLASS_PLACEHOLDER = 'rgba(255,255,255,0.55)';
 
 const POLICY_URLS = {
-  privacy: 'https://api.serveloco.app/policies/privacy',
-  terms: 'https://api.serveloco.app/policies/terms',
+  privacy: 'https://api.villkro.in/policies/privacy',
+  terms: 'https://api.villkro.in/policies/terms',
 };
 
 /* ── Pure helper ─────────────────────────────────────────── */
