@@ -65,5 +65,24 @@ jobs:
           }
           NGINX
           docker run -d --name routing-fixture --network routing-ci --network-alias api --network-alias admin --network-alias ota -v "$fixture_dir/default.conf:/etc/nginx/conf.d/default.conf:ro" nginx:alpine
-          docker run -d --name routing-proxy --network routing-ci -p 127.0.0.1:8080:80 -v "$PWD/deploy/nginx-proxy.conf:/etc/nginx/conf.d/default.conf:ro" nginx:alpine
+          cp deploy/nginx-proxy.conf "$fixture_dir/proxy.conf"
+          start_proxy() {
+            docker run -d --name routing-proxy --network routing-ci -p 127.0.0.1:8080:80 -v "$fixture_dir/proxy.conf:/etc/nginx/conf.d/default.conf:ro" nginx:alpine
+          }
+          start_proxy
+          python3 deploy/check-website-routing.py
+
+          # Reproduce Git replacing a single-file mount: reload cannot see the
+          # new inode. The deployment must detect this and recreate the proxy.
+          cp "$fixture_dir/proxy.conf" "$fixture_dir/next.conf"
+          echo '# replacement inode regression fixture' >> "$fixture_dir/next.conf"
+          mv "$fixture_dir/next.conf" "$fixture_dir/proxy.conf"
+          if docker exec routing-proxy cat /etc/nginx/conf.d/default.conf | cmp -s "$fixture_dir/proxy.conf" -; then
+            echo 'Expected the existing single-file mount to retain the old inode'
+            exit 1
+          fi
+          docker run --rm --network routing-ci -v "$fixture_dir/proxy.conf:/etc/nginx/conf.d/default.conf:ro" nginx:alpine nginx -t
+          docker rm -f routing-proxy
+          start_proxy
+          docker exec routing-proxy cat /etc/nginx/conf.d/default.conf | cmp -s "$fixture_dir/proxy.conf" -
           python3 deploy/check-website-routing.py
