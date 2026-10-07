@@ -79,6 +79,7 @@ const {
   cancelAllAlarmNotifications,
   handleAlarmActionEvent,
   handleBackgroundAlarmMessage,
+  performOfferAction,
 } = require('../src/utils/orderAlarmNotifications');
 
 describe('orderAlarmNotifications', () => {
@@ -393,6 +394,37 @@ describe('orderAlarmNotifications', () => {
       });
 
       expect(notifee.cancelNotification).toHaveBeenCalledWith(ORDER_ALARM_NOTIFICATION_ID);
+    });
+  });
+
+  // The floating card's Accept opens the app before this returns; the result
+  // tells the dashboard whether the offer it is holding back was really taken.
+  describe('performOfferAction result', () => {
+    beforeEach(() => {
+      useAuthStore.setState({ token: 'jwt-token' });
+    });
+
+    it('is true when the server accepted the rider offer', async () => {
+      await expect(performOfferAction(ALERT_TYPE_RIDER_OFFER, 'accept', { offerId: '29' }))
+        .resolves.toBe(true);
+      expect(riderApi.acceptOffer).toHaveBeenCalledWith('29');
+    });
+
+    it('is false when the accept call fails, and the ring still stops', async () => {
+      riderApi.acceptOffer.mockRejectedValueOnce(new Error('network down'));
+
+      await expect(performOfferAction(ALERT_TYPE_RIDER_OFFER, 'accept', { offerId: '29' }))
+        .resolves.toBe(false);
+      expect(notifee.cancelNotification).toHaveBeenCalledWith(RIDER_OFFER_ALARM_NOTIFICATION_ID);
+    });
+
+    it('is false when there is no session to call the API with', async () => {
+      useAuthStore.setState({ token: null });
+      AsyncStorage.getItem.mockResolvedValue(null);
+
+      await expect(performOfferAction(ALERT_TYPE_RIDER_OFFER, 'accept', { offerId: '29' }))
+        .resolves.toBe(false);
+      expect(riderApi.acceptOffer).not.toHaveBeenCalled();
     });
   });
 
