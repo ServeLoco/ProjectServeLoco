@@ -130,6 +130,7 @@ services:
     env_file:
       - ./.env.ota
     environment:
+      BASE_URL: https://ota.villkro.in
       STORAGE_MODE: local
       LOCAL_BUCKET_BASE_PATH: /updates
       CACHE_MODE: local
