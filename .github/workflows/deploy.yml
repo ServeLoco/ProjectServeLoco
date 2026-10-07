@@ -316,9 +316,21 @@ jobs:
             # up when just the API moves.
             docker compose -f docker-compose.prod.yml up -d --remove-orphans
 
-            # A bind-mounted config change does not recreate the proxy, and the
-            # proxy is also the container that has to notice a recreated API's
-            # new IP. Validate the config, then reload it in place.
+            # Git can replace a file's inode. A single-file Docker bind mount
+            # then keeps the old config even after nginx reloads. Compare the
+            # actual mounted content and recreate only the proxy if it differs.
+            if ! docker compose -f docker-compose.prod.yml exec -T proxy cat /etc/nginx/conf.d/default.conf | cmp -s deploy/nginx-proxy.conf -; then
+              # A one-off container sees the current host file. Validate it
+              # before replacing the proxy that is still serving customers.
+              docker compose -f docker-compose.prod.yml run --rm --no-deps proxy nginx -t \
+                || rollback_and_fail "new nginx config failed validation"
+              docker compose -f docker-compose.prod.yml up -d --no-deps --force-recreate proxy \
+                || rollback_and_fail "proxy recreation failed"
+              docker compose -f docker-compose.prod.yml exec -T proxy cat /etc/nginx/conf.d/default.conf | cmp -s deploy/nginx-proxy.conf - \
+                || rollback_and_fail "proxy still has a stale nginx config"
+            fi
+
+            # Reload an unchanged mount in place and confirm syntax either way.
             docker compose -f docker-compose.prod.yml exec -T proxy nginx -t \
               || rollback_and_fail "nginx config failed validation — proxy not reloaded"
             docker compose -f docker-compose.prod.yml exec -T proxy nginx -s reload \
