@@ -7,27 +7,7 @@ import ReportInsights from '../components/ReportInsights';
 import './Reports.css';
 
 import { GENERIC_ERROR } from '../utils/constants';
-const escapeCsvCell = (value) => {
-  let s = String(value ?? '');
-  // Prevent formula injection: neutralize leading =,+,-,@ that spreadsheet
-  // apps (Excel/LibreOffice) evaluate as formulas when a CSV is opened.
-  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
-  return `"${s.replace(/"/g, '""')}"`;
-};
-
-const downloadCsv = (filename, headers, rows) => {
-  const csvContent = "data:text/csv;charset=utf-8,"
-    + headers.map(escapeCsvCell).join(",") + "\n"
-    + rows.map(row => row.map(escapeCsvCell).join(",")).join("\n");
-  const encodedUri = encodeURI(csvContent);
-  const link = document.createElement("a");
-  link.setAttribute("href", encodedUri);
-  link.setAttribute("download", filename);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-};
-
+import { collectExportRows, downloadCsv } from '../utils/csvExport';
 const formatMoney = (value) => {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric.toFixed(2) : '0.00';
@@ -91,7 +71,6 @@ const EMPTY_TOTALS = {
 };
 
 const ORDERS_EXPORT_PAGE_LIMIT = 100;
-const ORDERS_EXPORT_ROW_CAP = 5000;
 
 export default function Reports() {
   const [activeTab, setActiveTab] = useState('profit'); // profit, overview
@@ -320,7 +299,7 @@ export default function Reports() {
       ['Paid via UPI', salesData?.payment_breakdown?.upi || 0],
       ['Paid via Cash', salesData?.payment_breakdown?.cash || 0],
     ];
-    downloadCsv(`serveloco_report_${overviewPeriod}_${Date.now()}.csv`, headers, rows);
+    downloadCsv(`villkro_report_${overviewPeriod}_${Date.now()}.csv`, headers, rows);
   };
 
   const handleExportProfitSummary = () => {
@@ -354,34 +333,30 @@ export default function Reports() {
     if (exportingOrders) return;
     setExportingOrders(true);
     try {
-      const rows = [];
-      let page = 1;
-      let totalPages = 1;
-      do {
-        const params = {
-          ...buildPeriodParams(),
-          page,
-          limit: ORDERS_EXPORT_PAGE_LIMIT,
-          sort: ordersSort,
-          shopId: ordersShopId || undefined,
-        };
-        const res = await ReportsApi.getProfitOrders(params);
-        const data = res.data || [];
-        totalPages = res.pagination?.totalPages || 1;
-        for (const o of data) {
-          rows.push([
-            o.orderNumber, formatOrderTime(o.createdAt), o.customerName, o.paymentMethod,
-            formatMoney(o.appItemsTotal), formatMoney(o.shopCost), formatMoney(o.productMargin),
-            formatMoney(o.chargesIncome), formatMoney(o.discount), formatMoney(o.customerPaid), formatMoney(o.netProfit),
-          ]);
-        }
-        page += 1;
-      } while (page <= totalPages && rows.length < ORDERS_EXPORT_ROW_CAP);
+      setOrdersError(null);
+      const periodParams = buildPeriodParams();
+      const orders = await collectExportRows(page => ReportsApi.getProfitOrders({
+        ...periodParams,
+        page,
+        limit: ORDERS_EXPORT_PAGE_LIMIT,
+        sort: ordersSort,
+        shopId: ordersShopId || undefined,
+      }));
+      if (orders.length === 0) {
+        setOrdersError('No orders found to export for this period.');
+        return;
+      }
+      const rows = orders.map(o => [
+        o.orderNumber, formatOrderTime(o.createdAt), o.customerName, o.paymentMethod,
+        formatMoney(o.appItemsTotal), formatMoney(o.shopCost), formatMoney(o.productMargin),
+        formatMoney(o.chargesIncome), formatMoney(o.discount), formatMoney(o.customerPaid), formatMoney(o.netProfit),
+      ]);
 
       const headers = ['Order #', 'Time', 'Customer', 'Payment', 'App', 'Shop Cost', 'Margin', 'Charges', 'Discount', 'Paid', 'Profit'];
       downloadCsv(`villkro_profit_orders_${profitSummary?.period?.key || 'range'}_${profitSummary?.period?.from || ''}_${profitSummary?.period?.to || ''}.csv`, headers, rows);
     } catch (err) {
       console.error(err);
+      setOrdersError(err.message || GENERIC_ERROR);
     } finally {
       setExportingOrders(false);
     }

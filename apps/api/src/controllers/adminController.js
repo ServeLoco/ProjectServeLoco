@@ -1415,9 +1415,28 @@ const getAdminOrders = async (req, res) => {
     }
   }
 
+  // Lifetime delivered history, independent of list filters/pagination. Batch
+  // only the page's customers and retain the admin's area access boundary.
+  const deliveredCounts = new Map();
+  const customerIds = [...new Set(rows.map((row) => row.customer_id).filter((id) => id != null))];
+  if (customerIds.length > 0) {
+    const historyScope = orderAreaScope(areaId, 'o');
+    const [historyRows] = await pool.query(
+      `SELECT o.customer_id, COUNT(*) AS delivered_order_count FROM orders o
+       WHERE o.customer_id IN (?) AND o.status = 'Delivered'${historyScope.clause}
+       GROUP BY o.customer_id`,
+      [customerIds, ...historyScope.params]
+    );
+    for (const row of historyRows) {
+      deliveredCounts.set(String(row.customer_id), Number(row.delivered_order_count));
+    }
+  }
+
   res.status(200).json({
     data: rows.map((row) => ({
       ...row,
+      customerDeliveredOrderCount: deliveredCounts.get(String(row.customer_id)) || 0,
+      customer_delivered_order_count: deliveredCounts.get(String(row.customer_id)) || 0,
       riderId: row.rider_id,
       riderName: row.rider_name,
       riderAssignmentStatus: row.rider_assignment_status,

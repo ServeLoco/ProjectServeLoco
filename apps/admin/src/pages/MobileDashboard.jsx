@@ -5,6 +5,7 @@ import './MobileDashboard.css';
 import { GENERIC_ERROR } from '../utils/constants';
 import PickAreaNotice from '../components/PickAreaNotice';
 import AdminIcon from '../components/AdminIcon';
+import AppHomePreview from '../components/AppHomePreview';
 import { useAreaStore } from '../stores/useAreaStore';
 
 import { readList } from '../utils/apiResponse';
@@ -66,6 +67,30 @@ export default function MobileDashboard() {
 
   // Edit section properties form
   const [editForm, setEditForm] = useState(null);
+  const [showPreview, setShowPreview] = useState(true);
+  const detailRequest = useRef(0);
+  const listRequest = useRef(0);
+  const homePageRef = useRef(null);
+  const candidatesRequest = useRef(0);
+  const mutationScope = useRef({ areaId, storeType, sectionId: selectedSection?.id, areaGeneration: 0, sectionGeneration: 0 });
+  // Async mutations may finish after the admin selects another area/section.
+  // Keep the current scope available to callbacks from older renders.
+  const previousScope = mutationScope.current;
+  const areaChanged = previousScope.areaId !== areaId || previousScope.storeType !== storeType;
+  const sectionChanged = areaChanged || previousScope.sectionId !== selectedSection?.id;
+  mutationScope.current = {
+    areaId, storeType, sectionId: selectedSection?.id,
+    areaGeneration: previousScope.areaGeneration + Number(areaChanged),
+    sectionGeneration: previousScope.sectionGeneration + Number(sectionChanged),
+  };
+  const captureMutationScope = (sectionSpecific = true) => {
+    const started = mutationScope.current;
+    return () => {
+      const current = mutationScope.current;
+      return current.areaGeneration === started.areaGeneration
+        && (!sectionSpecific || current.sectionGeneration === started.sectionGeneration);
+    };
+  };
 
   // Item picker states
   const [candidates, setCandidates] = useState([]);
@@ -85,7 +110,8 @@ export default function MobileDashboard() {
   // 25.4 — App Home sections are per-area (the API 400s for "all"); skip the
   // doomed preload + fetch and render the inline notice instead.
   useEffect(() => {
-    if (isAllAreas) return;
+    if (isAllAreas) return undefined;
+    let alive = true;
     (async () => {
       try {
         const [catRes, offRes, shopRes] = await Promise.all([
@@ -93,6 +119,7 @@ export default function MobileDashboard() {
           OffersApi.list({}),
           ShopsApi.list(),
         ]);
+        if (!alive) return;
         setAllCategories(readList(catRes, 'categories'));
         setAllOffers(readList(offRes, 'offers'));
         setAllShops(readList(shopRes, 'shops'));
@@ -100,19 +127,39 @@ export default function MobileDashboard() {
         console.warn('MobileDashboard: failed to preload categories/offers/shops', err);
       }
     })();
-  }, [isAllAreas]);
+    return () => { alive = false; };
+  }, [isAllAreas, areaId]);
 
   useEffect(() => {
+    detailRequest.current += 1;
+    listRequest.current += 1;
+    setLoadingDetail(false);
+    setSavingSection(false);
+    setSavingItem(false);
+    setAddingItemId(null);
+    addingItemRef.current = false;
+    setRemoveConfirmItem(null);
+    setSelectedSection(null);
+    setEditForm(null);
+    setSuccessSection(null);
+    setSections([]);
     if (isAllAreas) return;
     fetchSections();
     setNewSectionForm(prev => ({ ...prev, store_type: storeType }));
-  }, [storeType, isAllAreas]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [storeType, isAllAreas, areaId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    candidatesRequest.current += 1;
+    setSavingSection(false);
+    setSavingItem(false);
+    setAddingItemId(null);
+    addingItemRef.current = false;
+    setRemoveConfirmItem(null);
     if (selectedSection) {
       loadCandidates(selectedSection.section_type);
     } else {
       setCandidates([]);
+      setLoadingCandidates(false);
     }
     setSearchQuery('');
     setShopFilter('');
@@ -121,24 +168,27 @@ export default function MobileDashboard() {
   }, [selectedSection?.id, selectedSection?.section_type]);
 
   const fetchSections = async () => {
+    const requestId = ++listRequest.current;
     try {
       setLoadingSections(true);
       setError(null);
       const res = await MobileDashboardApi.listSections({ store_type: storeType });
-      setSections(res.data || []);
+      if (requestId === listRequest.current) setSections(res.data || []);
     } catch (err) {
       console.error(err);
-      setError(GENERIC_ERROR);
+      if (requestId === listRequest.current) setError(GENERIC_ERROR);
     } finally {
-      setLoadingSections(false);
+      if (requestId === listRequest.current) setLoadingSections(false);
     }
   };
 
   const fetchSectionDetail = async (id) => {
+    const requestId = ++detailRequest.current;
     try {
       setLoadingDetail(true);
       setError(null);
       const res = await MobileDashboardApi.getSection(id);
+      if (requestId !== detailRequest.current) return;
       const section = res.data;
       setSelectedSection(section);
       
@@ -162,39 +212,40 @@ export default function MobileDashboard() {
       });
     } catch (err) {
       console.error(err);
-      setError(GENERIC_ERROR);
+      if (requestId === detailRequest.current) setError(GENERIC_ERROR);
     } finally {
-      setLoadingDetail(false);
+      if (requestId === detailRequest.current) setLoadingDetail(false);
     }
   };
 
   const loadCandidates = async (sectionType) => {
+    const requestId = ++candidatesRequest.current;
     try {
       setLoadingCandidates(true);
       setCandidates([]);
       if (sectionType === 'offer_banner') {
         const res = await OffersApi.list({ store_type: itemMode });
-        setCandidates(readList(res, 'offers'));
+        if (requestId === candidatesRequest.current) setCandidates(readList(res, 'offers'));
       } else if (sectionType === 'category_grid') {
         const res = await CategoriesApi.list({ type: itemMode });
-        setCandidates(readList(res, 'categories'));
+        if (requestId === candidatesRequest.current) setCandidates(readList(res, 'categories'));
       } else if (sectionType === 'product_block') {
         // Load only non-combos
         const res = await ProductsApi.list({ limit: 100, is_combo: '0', available: '1', type: itemMode });
-        setCandidates(readList(res, 'products'));
+        if (requestId === candidatesRequest.current) setCandidates(readList(res, 'products'));
       } else if (sectionType === 'combo_block') {
         // Load only combos
         const res = await CombosApi.list({ limit: 100, available: '1', store_type: itemMode });
-        setCandidates(readList(res, ['products', 'combos']));
+        if (requestId === candidatesRequest.current) setCandidates(readList(res, ['products', 'combos']));
       } else if (sectionType === 'offer_cards') {
         // Cards made on the Offer Cards page, for this mode or for every mode.
         const res = await OfferCardsApi.list({ store_type: itemMode });
-        setCandidates(readList(res));
+        if (requestId === candidatesRequest.current) setCandidates(readList(res));
       }
     } catch (err) {
       console.error('Failed to load candidate items', err);
     } finally {
-      setLoadingCandidates(false);
+      if (requestId === candidatesRequest.current) setLoadingCandidates(false);
     }
   };
 
@@ -261,6 +312,7 @@ export default function MobileDashboard() {
 
   const handleCreateSection = async (e) => {
     e.preventDefault();
+    const isCurrent = captureMutationScope(false);
     try {
       setSavingSection(true);
       setError(null);
@@ -280,6 +332,7 @@ export default function MobileDashboard() {
       };
 
       await MobileDashboardApi.createSection(payload);
+      if (!isCurrent()) return;
       setIsModalOpen(false);
 
       // Reset form
@@ -302,16 +355,18 @@ export default function MobileDashboard() {
 
       await fetchSections();
     } catch (err) {
+      if (!isCurrent()) return;
       console.error(err);
       setError(err?.response?.data?.message || GENERIC_ERROR);
     } finally {
-      setSavingSection(false);
+      if (isCurrent()) setSavingSection(false);
     }
   };
 
   const handleUpdateSection = async (e) => {
     e.preventDefault();
     if (!selectedSection) return;
+    const isCurrent = captureMutationScope();
     try {
       setSavingSection(true);
       setError(null);
@@ -336,13 +391,16 @@ export default function MobileDashboard() {
         ends_at: localInputToUtcIso(editForm.ends_at)
       };
 
-      const res = await MobileDashboardApi.updateSection(selectedSection.id, payload);
+      await MobileDashboardApi.updateSection(selectedSection.id, payload);
+      if (!isCurrent()) return;
       setSuccessSection('Section updated successfully');
 
       // Refresh section detail to get next version
       await fetchSectionDetail(selectedSection.id);
+      if (!isCurrent()) return;
       await fetchSections();
     } catch (err) {
+      if (!isCurrent()) return;
       console.error(err);
       // Surface the backend's specific message — 409 version conflicts are
       // important to distinguish from generic failures.
@@ -355,25 +413,28 @@ export default function MobileDashboard() {
         setError(msg || GENERIC_ERROR);
       }
     } finally {
-      setSavingSection(false);
+      if (isCurrent()) setSavingSection(false);
     }
   };
 
   const handleDeleteSection = async () => {
     if (!selectedSection) return;
     if (!window.confirm('Are you sure you want to delete this section? This will soft-delete the layout configuration.')) return;
+    const isCurrent = captureMutationScope();
     try {
       setSavingSection(true);
       setError(null);
       await MobileDashboardApi.deleteSection(selectedSection.id);
+      if (!isCurrent()) return;
       setSelectedSection(null);
       setEditForm(null);
       await fetchSections();
     } catch (err) {
+      if (!isCurrent()) return;
       console.error(err);
       setError(GENERIC_ERROR);
     } finally {
-      setSavingSection(false);
+      if (isCurrent()) setSavingSection(false);
     }
   };
 
@@ -381,6 +442,7 @@ export default function MobileDashboard() {
   // background. Waiting on the network round-trip before repainting is what
   // made drag/reorder feel like a ~2s freeze; the backend call itself is fast.
   const applySectionOrder = (newSections) => {
+    const isCurrent = captureMutationScope(false);
     const withOrder = newSections.map((section, displayOrder) => ({
       ...section,
       display_order: displayOrder,
@@ -389,10 +451,19 @@ export default function MobileDashboard() {
     MobileDashboardApi
       .reorderSections(withOrder.map(s => s.id), { store_type: storeType })
       .catch(err => {
+        if (!isCurrent()) return;
         console.error(err);
         setError(GENERIC_ERROR);
         fetchSections();
       });
+  };
+
+  const moveSection = (index, direction) => {
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= sections.length) return;
+    const reordered = [...sections];
+    [reordered[index], reordered[nextIndex]] = [reordered[nextIndex], reordered[index]];
+    applySectionOrder(reordered);
   };
 
   const draggedSectionIndex = useRef(null);
@@ -430,6 +501,7 @@ export default function MobileDashboard() {
 
   const handleAddItem = async (itemId) => {
     if (!selectedSection || addingItemRef.current) return;
+    const isCurrent = captureMutationScope();
     addingItemRef.current = true;
     try {
       setSavingItem(true);
@@ -465,20 +537,24 @@ export default function MobileDashboard() {
         active: 1
       });
 
+      if (!isCurrent()) return;
       const newItem = res?.data;
       if (newItem) {
-        setSelectedSection(prev => ({ ...prev, items: [...(prev.items || []), newItem] }));
+        setSelectedSection(prev => prev?.id === selectedSection.id ? ({ ...prev, items: [...(prev.items || []), newItem] }) : prev);
       } else {
         // Fallback, e.g. against an older API build without the hydrated item.
         await fetchSectionDetail(selectedSection.id);
       }
     } catch (err) {
+      if (!isCurrent()) return;
       console.error(err);
       setError(GENERIC_ERROR);
     } finally {
-      addingItemRef.current = false;
-      setSavingItem(false);
-      setAddingItemId(null);
+      if (isCurrent()) {
+        addingItemRef.current = false;
+        setSavingItem(false);
+        setAddingItemId(null);
+      }
     }
   };
 
@@ -486,31 +562,35 @@ export default function MobileDashboard() {
 
   const confirmRemoveItem = async () => {
     if (!selectedSection || !removeConfirmItem) return;
+    const isCurrent = captureMutationScope();
     const sectionItemId = removeConfirmItem.id;
     setRemoveConfirmItem(null);
 
     // Optimistic: drop it from the list immediately, persist in the
     // background, restore (via a real refetch) only if the delete fails.
     const previousItems = selectedSection.items || [];
-    setSelectedSection(prev => ({ ...prev, items: prev.items.filter(i => i.id !== sectionItemId) }));
+    setSelectedSection(prev => prev?.id === selectedSection.id ? ({ ...prev, items: (prev.items || []).filter(i => i.id !== sectionItemId) }) : prev);
     setSavingItem(true);
     try {
       await MobileDashboardApi.deleteSectionItem(selectedSection.id, sectionItemId);
     } catch (err) {
+      if (!isCurrent()) return;
       console.error(err);
       setError(GENERIC_ERROR);
-      setSelectedSection(prev => ({ ...prev, items: previousItems }));
+      setSelectedSection(prev => prev?.id === selectedSection.id ? ({ ...prev, items: previousItems }) : prev);
     } finally {
-      setSavingItem(false);
+      if (isCurrent()) setSavingItem(false);
     }
   };
 
   // Optimistic: repaint immediately, persist in the background.
   const applyItemOrder = (newItems) => {
-    setSelectedSection(prev => ({ ...prev, items: newItems }));
+    const isCurrent = captureMutationScope();
+    setSelectedSection(prev => prev?.id === selectedSection.id ? ({ ...prev, items: newItems }) : prev);
     MobileDashboardApi
       .reorderSectionItems(selectedSection.id, newItems.map(item => item.id))
       .catch(err => {
+        if (!isCurrent()) return;
         console.error(err);
         setError(GENERIC_ERROR);
         fetchSectionDetail(selectedSection.id);
@@ -595,6 +675,33 @@ export default function MobileDashboard() {
     return list;
   };
 
+  // Keep keyboard focus inside the current modal and return it to its trigger.
+  useEffect(() => {
+    if (!isModalOpen && !isAssignOpen && !isRearrangeOpen && !removeConfirmItem) return undefined;
+    const dialog = homePageRef.current?.querySelector('.modal-content');
+    if (!dialog) return undefined;
+    const previousFocus = document.activeElement;
+    const focusable = () => [...dialog.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), [tabindex="0"]')];
+    (dialog.querySelector('input:not(:disabled)') || focusable()[0])?.focus();
+    const onKeyDown = event => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setIsModalOpen(false);
+        setIsAssignOpen(false);
+        setIsRearrangeOpen(false);
+        setRemoveConfirmItem(null);
+      } else if (event.key === 'Tab') {
+        const controls = focusable();
+        const first = controls[0];
+        const last = controls[controls.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+        if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+      }
+    };
+    dialog.addEventListener('keydown', onKeyDown);
+    return () => { dialog.removeEventListener('keydown', onKeyDown); if (previousFocus?.isConnected) previousFocus.focus(); };
+  }, [isModalOpen, isAssignOpen, isRearrangeOpen, removeConfirmItem]);
+
   // Shop/category filters only make sense for product_block — combos have no
   // shop_id, and category/offer sections' candidates ARE categories/offers.
   const showAssignFilters = selectedSection?.section_type === 'product_block';
@@ -604,7 +711,22 @@ export default function MobileDashboard() {
   }
 
   return (
-    <div>
+    <div className="app-home-page" ref={homePageRef}>
+      <header className="home-page-header">
+        <div>
+          <span className="home-eyebrow">CUSTOMER EXPERIENCE</span>
+          <h1>App Home Content</h1>
+          <p>Arrange your home page, manage its content, and preview each section.</p>
+        </div>
+        <div className="home-header-actions">
+          <button type="button" className="btn-secondary" aria-pressed={showPreview} onClick={() => setShowPreview(prev => !prev)}>
+            <AdminIcon name="appHome" size={17} /> {showPreview ? 'Hide Preview' : 'Show Preview'}
+          </button>
+          <button type="button" className="btn-primary" onClick={() => setIsModalOpen(true)}>
+            <AdminIcon name="plus" size={17} /> Add Section
+          </button>
+        </div>
+      </header>
       {/* Status banners */}
       {error && (
         <div className="error-container" style={{ marginBottom: '1rem' }}>{error}</div>
@@ -630,20 +752,10 @@ export default function MobileDashboard() {
         </div>
       )}
 
-    <div className="dashboard-workspace">
-      {/* Left Panel: Section Selector */}
-      <aside className="sections-panel">
-        <header className="panel-header">
-          <h2 className="panel-title">Layout Sections</h2>
-          <button className="btn-add-section" onClick={() => setIsModalOpen(true)}>
-            <AdminIcon name="plus" size={15} strokeWidth={2.4} /> Add Section
-          </button>
-        </header>
-
-        <div style={{ display: 'flex', gap: '0.5rem', padding: '0 1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+      <nav className="home-mode-tabs" aria-label="Home layout mode">
         <button
-          className={`btn-secondary ${isCommonTab ? 'active' : ''}`}
-          style={isCommonTab ? { background: 'var(--primary-color)', color: 'white', borderColor: 'var(--primary-color)' } : {}}
+          aria-pressed={isCommonTab}
+          className={`home-mode-tab ${isCommonTab ? 'active' : ''}`}
           title="Shown in every mode, at the top of Home between the top bar and the shop modes"
           onClick={() => {
             setStoreType(COMMON_STORE_TYPE);
@@ -656,8 +768,8 @@ export default function MobileDashboard() {
         {modes.map(m => (
           <button
             key={m.slug}
-            className={`btn-secondary ${storeType === m.slug ? 'active' : ''}`}
-            style={storeType === m.slug ? { background: 'var(--primary-color)', color: 'white', borderColor: 'var(--primary-color)' } : {}}
+            aria-pressed={storeType === m.slug}
+            className={`home-mode-tab ${storeType === m.slug ? 'active' : ''}`}
             onClick={() => {
               setStoreType(m.slug);
               setSelectedSection(null);
@@ -668,12 +780,22 @@ export default function MobileDashboard() {
           </button>
         ))}
         {isCommonTab && (
-          <div className="form-hint" style={{ width: '100%' }}>
+          <div className="home-mode-hint">
             These sections show in every shop mode, at the top of Home between the top bar and the shop modes.
           </div>
         )}
-      </div>
+      </nav>
 
+
+    <div className={`dashboard-workspace ${showPreview ? 'with-preview' : ''}`}>
+      {/* Left Panel: Section Selector */}
+      <aside className="sections-panel">
+        <header className="panel-header">
+          <h2 className="panel-title">Layout Sections</h2>
+          <span className="home-section-count">{sections.length}</span>
+        </header>
+
+        <p className="section-list-hint">Drag to reorder. Select to edit.</p>
         <div className="sections-list-container">
           {loadingSections && sections.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '2rem' }}>Loading layout...</div>
@@ -701,7 +823,7 @@ export default function MobileDashboard() {
                   </svg>
                 </span>
                 <div className="section-meta-info">
-                  <span className="section-card-title">{sec.title}</span>
+                  <button type="button" className="section-card-title home-section-select" aria-pressed={selectedSection?.id === sec.id}>{sec.title || 'Untitled section'}</button>
                   <div className="section-card-badges">
                     <span className="badge badge-type">
                       {sec.auto_kind ? `${sec.auto_kind} row` : sec.section_type.replace('_', ' ')}
@@ -713,6 +835,10 @@ export default function MobileDashboard() {
                     {sec.auto_kind && <span className="badge badge-type" title="Created automatically from your shops and categories">Auto created</span>}
                   </div>
                 </div>
+                <div className="home-section-order">
+                  <button type="button" className="btn-order-arrow" aria-label={`Move ${sec.title || 'section'} up`} disabled={index === 0} onClick={e => { e.stopPropagation(); moveSection(index, -1); }}>▲</button>
+                  <button type="button" className="btn-order-arrow" aria-label={`Move ${sec.title || 'section'} down`} disabled={index === sections.length - 1} onClick={e => { e.stopPropagation(); moveSection(index, 1); }}>▼</button>
+                </div>
               </div>
             ))
           )}
@@ -721,11 +847,11 @@ export default function MobileDashboard() {
       </aside>
 
       {/* Right Panel: Selected Section Details & Workspace */}
-      <section className="detail-panel">
-        {selectedSection && editForm ? (
+      <section className="detail-panel" aria-busy={loadingDetail}>
+        {loadingDetail ? <div className="detail-empty-state" role="status">Loading section...</div> : selectedSection && editForm ? (
           <>
             <header className="detail-header-bar">
-              <h2 className="detail-title">{selectedSection.title} Details</h2>
+              <div><span className="home-eyebrow">SECTION EDITOR</span><h2 className="detail-title">{selectedSection.title || 'Untitled section'}</h2></div>
               {selectedSection.auto_kind ? (
                 <span className="badge badge-type" title="Created automatically from your shops and categories">Auto created</span>
               ) : (
@@ -743,17 +869,18 @@ export default function MobileDashboard() {
             <div className="detail-body-container">
               {/* Properties Form */}
               <form onSubmit={handleUpdateSection} className="form-section">
-                <h3 style={{ fontSize: '1rem', fontWeight: 600, borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+                <p className="home-form-intro">Changes are applied when you save properties. Item assignments and reordering save immediately.</p>
+                <h3 className="home-form-heading">
                   Section Properties
                 </h3>
                 
                 <div className="form-grid-2">
                   <div className="form-group">
-                    <label className="form-label">
+                    <label className="form-label" htmlFor="home-edit-title">
                       Section Title{TITLE_OPTIONAL_TYPES.includes(editForm.section_type) ? ' (optional)' : ''}
                     </label>
                     <input
-                      type="text"
+                      id="home-edit-title" type="text"
                       name="title"
                       required={!TITLE_OPTIONAL_TYPES.includes(editForm.section_type)}
                       placeholder={TITLE_OPTIONAL_TYPES.includes(editForm.section_type) ? 'Leave blank to hide the header' : ''}
@@ -767,9 +894,9 @@ export default function MobileDashboard() {
                     )}
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Slug</label>
+                    <label className="form-label" htmlFor="home-edit-slug">Slug</label>
                     <input 
-                      type="text" 
+                      id="home-edit-slug" type="text"
                       name="slug" 
                       required 
                       className="form-input" 
@@ -782,9 +909,9 @@ export default function MobileDashboard() {
 
                 <div className="form-grid-2">
                   <div className="form-group">
-                    <label className="form-label">Store Visibility</label>
+                    <label className="form-label" htmlFor="home-edit-store_type">Store Visibility</label>
                     <select 
-                      name="store_type" 
+                      id="home-edit-store_type" name="store_type"
                       className="form-select" 
                       value={editForm.store_type} 
                       onChange={handleEditFormChange}
@@ -796,11 +923,11 @@ export default function MobileDashboard() {
                     </select>
                   </div>
                   <div className="form-group">
-                    <label className="form-label">
+                    <label className="form-label" htmlFor="home-edit-max_visible_items">
                       {selectedSection.section_type === 'offer_banner' ? 'Active Banners in Rotation' : 'Max Display Items'}
                     </label>
                     <input 
-                      type="number" 
+                      id="home-edit-max_visible_items" type="number"
                       name="max_visible_items" 
                       min="1" 
                       className="form-input" 
@@ -818,9 +945,9 @@ export default function MobileDashboard() {
                 <div className="form-grid-2">
                   {editForm.section_type === 'category_grid' && (
                     <div className="form-group">
-                      <label className="form-label">Linked Category (optional)</label>
+                      <label className="form-label" htmlFor="home-edit-linked_category_id">Linked Category (optional)</label>
                       <select
-                        name="linked_category_id"
+                        id="home-edit-linked_category_id" name="linked_category_id"
                         className="form-select"
                         value={editForm.linked_category_id}
                         onChange={handleEditFormChange}
@@ -835,9 +962,9 @@ export default function MobileDashboard() {
                   )}
                   {editForm.section_type === 'offer_banner' && (
                     <div className="form-group">
-                      <label className="form-label">Linked Offer (optional)</label>
+                      <label className="form-label" htmlFor="home-edit-linked_offer_id">Linked Offer (optional)</label>
                       <select
-                        name="linked_offer_id"
+                        id="home-edit-linked_offer_id" name="linked_offer_id"
                         className="form-select"
                         value={editForm.linked_offer_id}
                         onChange={handleEditFormChange}
@@ -854,9 +981,9 @@ export default function MobileDashboard() {
 
                 <div className="form-grid-2">
                   <div className="form-group">
-                    <label className="form-label">Scheduled Start Time</label>
+                    <label className="form-label" htmlFor="home-edit-starts_at">Scheduled Start Time</label>
                     <input 
-                      type="datetime-local" 
+                      id="home-edit-starts_at" type="datetime-local"
                       name="starts_at" 
                       className="form-input" 
                       value={editForm.starts_at} 
@@ -864,9 +991,9 @@ export default function MobileDashboard() {
                     />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Scheduled End Time</label>
+                    <label className="form-label" htmlFor="home-edit-ends_at">Scheduled End Time</label>
                     <input 
-                      type="datetime-local" 
+                      id="home-edit-ends_at" type="datetime-local"
                       name="ends_at" 
                       className="form-input" 
                       value={editForm.ends_at} 
@@ -877,9 +1004,9 @@ export default function MobileDashboard() {
 
                 <div className="form-grid-2">
                   <div className="form-group">
-                    <label className="form-label">Section Icon (shown before title in customer app)</label>
+                    <label className="form-label" htmlFor="home-edit-section_icon">Section Icon (shown before title in customer app)</label>
                     <select
-                      name="section_icon"
+                      id="home-edit-section_icon" name="section_icon"
                       className="form-select"
                       value={editForm.section_icon || ''}
                       onChange={handleEditFormChange}
@@ -899,7 +1026,7 @@ export default function MobileDashboard() {
                   </div>
                   <div className="form-group">
                     <label className="form-label">Display</label>
-                    <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.5rem' }}>
+                    <div className="home-display-options">
                       <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <input 
                           type="checkbox" 
@@ -997,6 +1124,7 @@ export default function MobileDashboard() {
                           <div className="item-action-controls">
                             <button
                               className="btn-order-arrow"
+                              aria-label={`Move ${name} up`}
                               disabled={idx === 0}
                               onClick={() => handleMoveItem(idx, 'up')}
                             >
@@ -1004,6 +1132,7 @@ export default function MobileDashboard() {
                             </button>
                             <button
                               className="btn-order-arrow"
+                              aria-label={`Move ${name} down`}
                               disabled={idx === selectedSection.items.length - 1}
                               onClick={() => handleMoveItem(idx, 'down')}
                             >
@@ -1045,23 +1174,31 @@ export default function MobileDashboard() {
         )}
       </section>
 
+      {showPreview && (
+        <AppHomePreview
+          section={loadingDetail ? null : selectedSection}
+          draft={editForm}
+          modeName={isCommonTab ? 'Common' : modeLabel(modes, storeType)}
+        />
+      )}
+
       {/* Add Section Modal */}
       {isModalOpen && (
         <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
+          <div className="modal-content" role="dialog" aria-modal="true" aria-label="New dashboard section" onClick={e => e.stopPropagation()}>
             <form onSubmit={handleCreateSection}>
               <header className="modal-header">
                 <h3 className="modal-title">New Dashboard Section</h3>
-                <button type="button" style={{ background: 'none', border: 'none', color: 'var(--text-on-primary)', fontSize: '1.5rem' }} onClick={() => setIsModalOpen(false)}>&times;</button>
+                <button type="button" aria-label="Close dialog" className="home-modal-close" onClick={() => setIsModalOpen(false)}><AdminIcon name="close" size={20} /></button>
               </header>
 
               <div className="modal-body">
                 <div className="form-group">
-                  <label className="form-label">
+                  <label className="form-label" htmlFor="home-new-title">
                     Section Title{TITLE_OPTIONAL_TYPES.includes(newSectionForm.section_type) ? ' (optional)' : ''}
                   </label>
                   <input
-                    type="text"
+                    id="home-new-title" type="text"
                     name="title"
                     required={!TITLE_OPTIONAL_TYPES.includes(newSectionForm.section_type)}
                     placeholder={TITLE_OPTIONAL_TYPES.includes(newSectionForm.section_type) ? 'Leave blank to hide the header' : 'e.g. Milk Products, Daily Banners'}
@@ -1072,9 +1209,9 @@ export default function MobileDashboard() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Slug (URL friendly)</label>
+                  <label className="form-label" htmlFor="home-new-slug">Slug (URL friendly)</label>
                   <input 
-                    type="text" 
+                    id="home-new-slug" type="text"
                     name="slug" 
                     required 
                     className="form-input" 
@@ -1084,9 +1221,9 @@ export default function MobileDashboard() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Section Type</label>
+                  <label className="form-label" htmlFor="home-new-section_type">Section Type</label>
                   <select
-                    name="section_type"
+                    id="home-new-section_type" name="section_type"
                     className="form-select"
                     value={newSectionForm.section_type}
                     onChange={handleModalFormChange}
@@ -1101,9 +1238,9 @@ export default function MobileDashboard() {
 
                 {newSectionForm.section_type === 'category_grid' && (
                   <div className="form-group">
-                    <label className="form-label">Linked Category (optional)</label>
+                    <label className="form-label" htmlFor="home-new-linked_category_id">Linked Category (optional)</label>
                     <select
-                      name="linked_category_id"
+                      id="home-new-linked_category_id" name="linked_category_id"
                       className="form-select"
                       value={newSectionForm.linked_category_id}
                       onChange={handleModalFormChange}
@@ -1119,9 +1256,9 @@ export default function MobileDashboard() {
 
                 {newSectionForm.section_type === 'offer_banner' && (
                   <div className="form-group">
-                    <label className="form-label">Linked Offer (optional)</label>
+                    <label className="form-label" htmlFor="home-new-linked_offer_id">Linked Offer (optional)</label>
                     <select
-                      name="linked_offer_id"
+                      id="home-new-linked_offer_id" name="linked_offer_id"
                       className="form-select"
                       value={newSectionForm.linked_offer_id}
                       onChange={handleModalFormChange}
@@ -1136,9 +1273,9 @@ export default function MobileDashboard() {
                 )}
 
                 <div className="form-group">
-                  <label className="form-label">Store Visibility</label>
+                  <label className="form-label" htmlFor="home-new-store_type">Store Visibility</label>
                   <select 
-                    name="store_type" 
+                    id="home-new-store_type" name="store_type"
                     className="form-select" 
                     value={newSectionForm.store_type} 
                     onChange={handleModalFormChange}
@@ -1149,11 +1286,11 @@ export default function MobileDashboard() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">
+                  <label className="form-label" htmlFor="home-new-max_visible_items">
                     {newSectionForm.section_type === 'offer_banner' ? 'Active Banners in Rotation' : 'Max Visible Items'}
                   </label>
                   <input 
-                    type="number" 
+                    id="home-new-max_visible_items" type="number"
                     name="max_visible_items" 
                     min="1" 
                     className="form-input" 
@@ -1169,11 +1306,11 @@ export default function MobileDashboard() {
 
                 <div className="form-group">
                   <label className="form-label font-medium">Scheduled Visibility (Optional)</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '0.25rem' }}>
+                  <div className="home-schedule-grid">
                     <div>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Starts At</span>
+                      <label className="form-label" htmlFor="home-new-starts_at">Starts At</label>
                       <input 
-                        type="datetime-local" 
+                        id="home-new-starts_at" type="datetime-local"
                         name="starts_at" 
                         className="form-input" 
                         value={newSectionForm.starts_at} 
@@ -1181,9 +1318,9 @@ export default function MobileDashboard() {
                       />
                     </div>
                     <div>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Ends At</span>
+                      <label className="form-label" htmlFor="home-new-ends_at">Ends At</label>
                       <input 
-                        type="datetime-local" 
+                        id="home-new-ends_at" type="datetime-local"
                         name="ends_at" 
                         className="form-input" 
                         value={newSectionForm.ends_at} 
@@ -1195,9 +1332,9 @@ export default function MobileDashboard() {
 
                 <div className="form-grid-2">
                   <div className="form-group">
-                    <label className="form-label">Section Icon</label>
+                    <label className="form-label" htmlFor="home-new-section_icon">Section Icon</label>
                     <select
-                      name="section_icon"
+                      id="home-new-section_icon" name="section_icon"
                       className="form-select"
                       value={newSectionForm.section_icon || ''}
                       onChange={handleModalFormChange}
@@ -1216,7 +1353,7 @@ export default function MobileDashboard() {
                   </div>
                   <div className="form-group">
                     <label className="form-label">Display</label>
-                    <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.5rem' }}>
+                    <div className="home-display-options">
                       <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <input 
                           type="checkbox" 
@@ -1263,10 +1400,10 @@ export default function MobileDashboard() {
       {/* Remove Item Confirm */}
       {removeConfirmItem && (
         <div className="modal-overlay" onClick={() => setRemoveConfirmItem(null)}>
-          <div className="modal-content confirm-modal" onClick={e => e.stopPropagation()}>
+          <div className="modal-content confirm-modal" role="dialog" aria-modal="true" aria-label="Remove item" onClick={e => e.stopPropagation()}>
             <header className="modal-header modal-header-danger">
               <h3 className="modal-title">Remove Item</h3>
-              <button type="button" style={{ background: 'none', border: 'none', color: 'var(--text-on-primary)', fontSize: '1.5rem' }} onClick={() => setRemoveConfirmItem(null)}>&times;</button>
+              <button type="button" aria-label="Close dialog" className="home-modal-close" onClick={() => setRemoveConfirmItem(null)}><AdminIcon name="close" size={20} /></button>
             </header>
             <div className="modal-body">
               <p className="confirm-message">
@@ -1284,10 +1421,10 @@ export default function MobileDashboard() {
       {/* Assign New Item Modal */}
       {isAssignOpen && selectedSection && (
         <div className="modal-overlay" onClick={() => setIsAssignOpen(false)}>
-          <div className="modal-content assign-modal" onClick={e => e.stopPropagation()}>
+          <div className="modal-content assign-modal" role="dialog" aria-modal="true" aria-label="Assign items" onClick={e => e.stopPropagation()}>
             <header className="modal-header">
               <h3 className="modal-title">Assign Item — {selectedSection.title}</h3>
-              <button type="button" style={{ background: 'none', border: 'none', color: 'var(--text-on-primary)', fontSize: '1.5rem' }} onClick={() => setIsAssignOpen(false)}>&times;</button>
+              <button type="button" aria-label="Close dialog" className="home-modal-close" onClick={() => setIsAssignOpen(false)}><AdminIcon name="close" size={20} /></button>
             </header>
 
             <div className="modal-body">
@@ -1295,18 +1432,19 @@ export default function MobileDashboard() {
                 <input
                   type="text"
                   placeholder="Search available candidates..."
+                  aria-label="Search available items"
                   className="form-input assign-search-input"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                 />
                 {showAssignFilters && (
                   <>
-                    <select className="form-select" value={shopFilter} onChange={e => setShopFilter(e.target.value)}>
+                    <select aria-label="Filter by shop" className="form-select" value={shopFilter} onChange={e => setShopFilter(e.target.value)}>
                       <option value="">All Shops</option>
                       <option value="home">Home (No Shop)</option>
                       {allShops.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
-                    <select className="form-select" value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
+                    <select aria-label="Filter by category" className="form-select" value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
                       <option value="">All Categories</option>
                       {allCategories
                         .filter(c => !c.type || !itemMode || c.type === itemMode)
@@ -1385,10 +1523,10 @@ export default function MobileDashboard() {
       {/* Rearrange Items Modal */}
       {isRearrangeOpen && selectedSection && (
         <div className="modal-overlay" onClick={() => setIsRearrangeOpen(false)}>
-          <div className="modal-content rearrange-modal" onClick={e => e.stopPropagation()}>
+          <div className="modal-content rearrange-modal" role="dialog" aria-modal="true" aria-label="Rearrange items" onClick={e => e.stopPropagation()}>
             <header className="modal-header">
               <h3 className="modal-title">Rearrange Items — {selectedSection.title}</h3>
-              <button type="button" style={{ background: 'none', border: 'none', color: 'var(--text-on-primary)', fontSize: '1.5rem' }} onClick={() => setIsRearrangeOpen(false)}>&times;</button>
+              <button type="button" aria-label="Close dialog" className="home-modal-close" onClick={() => setIsRearrangeOpen(false)}><AdminIcon name="close" size={20} /></button>
             </header>
 
             <div className="modal-body">
