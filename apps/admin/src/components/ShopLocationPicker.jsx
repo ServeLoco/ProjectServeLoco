@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { iconSvg } from './adminIconPaths';
 import './ShopLocationPicker.css';
 
 const DEFAULT_CENTER = { lat: 29.451998, lng: 75.668669 };
@@ -12,7 +13,7 @@ function createShopMarkerIcon(L) {
     html: `
       <div class="shop-store-marker">
         <div class="shop-store-facade">
-          <span class="shop-store-emoji" aria-hidden="true">🏪</span>
+          <span class="shop-store-emoji" aria-hidden="true">${iconSvg('shops', { size: 20, strokeWidth: 2.2 })}</span>
         </div>
         <div class="shop-store-awning"></div>
         <div class="shop-store-base"></div>

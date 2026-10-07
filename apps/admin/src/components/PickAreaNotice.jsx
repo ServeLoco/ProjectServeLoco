@@ -1,4 +1,5 @@
 import React from 'react';
+import AdminIcon from './AdminIcon';
 import './PickAreaNotice.css';
 
 // 25.4 — Settings, Delivery Zones and Store Modes all render this instead of
@@ -8,7 +9,7 @@ import './PickAreaNotice.css';
 export default function PickAreaNotice({ label = 'this page' }) {
   return (
     <div className="pick-area-notice">
-      <div className="pick-area-notice-icon">🌐</div>
+      <div className="pick-area-notice-icon"><AdminIcon name="globe" size={30} strokeWidth={1.9} /></div>
       <h2>Pick an area</h2>
       <p>{label} can&apos;t be shown for &ldquo;All areas&rdquo; — pick a single area from the switcher above.</p>
     </div>

@@ -261,6 +261,10 @@
   transition: width 0.5s ease;
 }
 
+[data-theme="dark"] .usage-bar-fill {
+  background: linear-gradient(90deg, var(--primary-hover), #ff9a66);
+}
+
 .usage-bar-fill.near-limit {
   background: linear-gradient(90deg, #f59e0b, #ef4444);
 }

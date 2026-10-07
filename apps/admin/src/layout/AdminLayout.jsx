@@ -6,6 +6,7 @@ import GlobalOrderAlert from '../components/GlobalOrderAlert';
 import { useAreaStore } from '../stores/useAreaStore';
 import './AdminLayout.css';
 import '../styles/adminTheme.css';
+import '../styles/adminDesign.css';
 
 export default function AdminLayout() {
   // 25.3 — no react-query layer here; every page fetches its own data in a

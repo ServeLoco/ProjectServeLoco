@@ -4,6 +4,7 @@ import { MobileDashboardApi, ProductsApi, CategoriesApi, OffersApi, CombosApi, S
 import './MobileDashboard.css';
 import { GENERIC_ERROR } from '../utils/constants';
 import PickAreaNotice from '../components/PickAreaNotice';
+import AdminIcon from '../components/AdminIcon';
 import { useAreaStore } from '../stores/useAreaStore';
 
 import { readList } from '../utils/apiResponse';
@@ -614,15 +615,18 @@ export default function MobileDashboard() {
           style={{
             marginBottom: '1rem',
             padding: '10px 14px',
-            background: 'rgba(34, 197, 94, 0.1)',
-            border: '1px solid rgba(34, 197, 94, 0.3)',
-            color: '#15803d',
-            borderRadius: 8,
+            background: 'var(--success-bg)',
+            border: '1px solid var(--success-border)',
+            color: 'var(--success-text)',
+            borderRadius: 10,
             fontSize: '0.9rem',
             fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
           }}
         >
-          ✅ {successSection}
+          <AdminIcon name="checkCircle" size={17} strokeWidth={2.2} /> {successSection}
         </div>
       )}
 
@@ -632,7 +636,7 @@ export default function MobileDashboard() {
         <header className="panel-header">
           <h2 className="panel-title">Layout Sections</h2>
           <button className="btn-add-section" onClick={() => setIsModalOpen(true)}>
-            + Add Section
+            <AdminIcon name="plus" size={15} strokeWidth={2.4} /> Add Section
           </button>
         </header>
 
@@ -959,7 +963,7 @@ export default function MobileDashboard() {
                     onClick={() => setIsRearrangeOpen(true)}
                     disabled={(selectedSection.items?.length || 0) < 2}
                   >
-                    ⇅ Rearrange
+                    <AdminIcon name="reorder" size={15} strokeWidth={2.2} /> Rearrange
                   </button>
                 </div>
 
@@ -1034,7 +1038,7 @@ export default function MobileDashboard() {
           </>
         ) : (
           <div className="detail-empty-state">
-            <span className="empty-state-icon">📱</span>
+            <span className="empty-state-icon"><AdminIcon name="appHome" size={34} strokeWidth={1.8} /></span>
             <h2>Mobile Layout Editor</h2>
             <p>Select any section from the list to manage its visibility, timing, settings, and layout items.</p>
           </div>

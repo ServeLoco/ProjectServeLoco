@@ -1,4 +1,5 @@
 import React from 'react';
+import AdminIcon from './AdminIcon';
 import './MessageBanner.css';
 
 export default function MessageBanner({ type = 'info', message, onDismiss }) {
@@ -13,7 +14,7 @@ export default function MessageBanner({ type = 'info', message, onDismiss }) {
           onClick={onDismiss}
           aria-label="Dismiss message"
         >
-          ✕
+          <AdminIcon name="close" size={14} strokeWidth={2.4} />
         </button>
       )}
     </div>

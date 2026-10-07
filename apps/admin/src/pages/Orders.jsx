@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { OrdersApi, ShopsApi, RidersApi, subscribeAdminOrderEvents, subscribeRealtimeLifecycle } from '../api';
 import MessageBanner from '../components/MessageBanner';
+import AdminIcon from '../components/AdminIcon';
 import LiveOrderMap from '../components/LiveOrderMap';
 import CreateOrderModal from '../components/CreateOrderModal';
 import ReplaceItemModal from '../components/ReplaceItemModal';
@@ -808,7 +809,7 @@ export default function Orders() {
         </div>
         <div className="orders-header-actions">
           <button className="btn-primary" onClick={() => setShowCreateOrder(true)}>
-            + Create Order
+            <AdminIcon name="plus" size={16} strokeWidth={2.4} /> Create Order
           </button>
           <button className="btn-secondary" onClick={() => fetchOrders(pagination.page)} disabled={loading}>
             {loading ? 'Refreshing...' : 'Refresh'}
@@ -827,7 +828,7 @@ export default function Orders() {
             onClick={handleExportCSV}
             disabled={loading || orders.length === 0}
           >
-            Export CSV
+            <AdminIcon name="download" size={16} strokeWidth={2.2} /> Export CSV
           </button>
         </div>
       </header>
@@ -984,10 +985,10 @@ export default function Orders() {
                   <td className="order-id">
                     #{order.order_number}
                     {(order.deliveryType || order.delivery_type) === 'fast' && (
-                      <span className="fast-delivery-tag">⚡ Fast</span>
+                      <span className="fast-delivery-tag"><AdminIcon name="bolt" size={12} strokeWidth={2.2} className="ds-inline-icon" /> Fast</span>
                     )}
                     {(order.adminRemark || order.admin_remark) && (
-                      <span className="admin-remark-tag" title={order.adminRemark || order.admin_remark}>📝 Note</span>
+                      <span className="admin-remark-tag" title={order.adminRemark || order.admin_remark}><AdminIcon name="note" size={12} strokeWidth={2.2} className="ds-inline-icon" /> Note</span>
                     )}
                     <span className="row-hint">Open details</span>
                   </td>
@@ -1062,7 +1063,7 @@ export default function Orders() {
               </span>
               {(selectedOrder.deliveryType || selectedOrder.delivery_type) === 'fast' && (
                 <span className="status-badge" style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#b45309' }}>
-                  ⚡ Fast Delivery
+                  <AdminIcon name="bolt" size={13} strokeWidth={2.2} className="ds-inline-icon" /> Fast Delivery
                 </span>
               )}
               <button className="drawer-close" onClick={closeDrawer}>&times;</button>
@@ -1114,7 +1115,7 @@ export default function Orders() {
                   <span>Name:</span>
                   <strong>
                     {selectedOrder.customer_name}
-                    {selectedOrder.customer_trusted && <span className="badge-trusted-inline">✓ Trusted</span>}
+                    {selectedOrder.customer_trusted && <span className="badge-trusted-inline"><AdminIcon name="check" size={12} strokeWidth={2.4} className="ds-inline-icon" /> Trusted</span>}
                   </strong>
                 </div>
                 <div className="detail-row"><span>Phone:</span> <strong>{selectedOrder.phone}</strong></div>
@@ -1297,11 +1298,13 @@ export default function Orders() {
                         || sc.orderCancelled
                         || sc.order_cancelled;
                       const label = orderCancelled
-                        ? '✕ Order cancelled'
-                        : sc.rejected ? '✕ Shop cancelled'
-                        : sc.ready ? '✓ Ready'
-                        : sc.confirmed ? '✓ Confirmed'
-                        : '⏳ Waiting';
+                        ? 'Order cancelled'
+                        : sc.rejected ? 'Shop cancelled'
+                        : sc.ready ? 'Ready'
+                        : sc.confirmed ? 'Confirmed'
+                        : 'Waiting';
+                      const labelIcon = (orderCancelled || sc.rejected) ? 'close'
+                        : (sc.ready || sc.confirmed) ? 'check' : 'hourglass';
                       const background = (orderCancelled || sc.rejected)
                         ? 'rgba(239, 68, 68, 0.15)'
                         : sc.ready ? 'rgba(59, 130, 246, 0.15)'
@@ -1314,7 +1317,7 @@ export default function Orders() {
                             padding: '4px 10px', borderRadius: 12, fontSize: '0.8rem', fontWeight: 600,
                             background, color,
                           }}>
-                            {sc.shopName} {label}
+                            {sc.shopName} <AdminIcon name={labelIcon} size={13} strokeWidth={2.2} /> {label}
                             {(sc.shopTotal ?? sc.shop_total) > 0 ? ` · ₹${sc.shopTotal ?? sc.shop_total} owed` : ''}
                           </span>
                           {sc.rejected && !orderCancelled && (
@@ -1325,7 +1328,7 @@ export default function Orders() {
                               disabled={resendingShopId !== null}
                               onClick={() => handleResendToShop(sc.shopId)}
                             >
-                              {resendingShopId === sc.shopId ? 'Resending…' : '↻ Resend'}
+                              {resendingShopId === sc.shopId ? 'Resending…' : <><AdminIcon name="rotate" size={13} strokeWidth={2.2} className="ds-inline-icon" /> Resend</>}
                             </button>
                           )}
                         </span>
@@ -1352,7 +1355,7 @@ export default function Orders() {
                             title="Change this item"
                             onClick={() => setReplacingItem({ order: selectedOrder, item })}
                           >
-                            ⇄ Change
+                            <AdminIcon name="swap" size={13} strokeWidth={2.2} className="ds-inline-icon" /> Change
                           </button>
                         )}
                       </span>

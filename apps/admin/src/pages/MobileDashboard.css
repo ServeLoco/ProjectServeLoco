@@ -25,23 +25,30 @@
 .panel-header {
   padding: 1.5rem;
   border-bottom: 1px solid var(--border-color);
-  background: linear-gradient(135deg, rgba(31, 181, 116, 0.24), rgba(56, 130, 246, 0.14));
+  background: linear-gradient(115deg, color-mix(in srgb, var(--primary-color) 14%, var(--surface-color)), var(--surface-color) 75%);
   color: var(--text-primary);
+  gap: 0.75rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
 .panel-title {
-  font-size: 1.25rem;
-  font-weight: 600;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   margin: 0;
 }
 
 .btn-add-section {
-  background: rgba(31, 181, 116, 0.18);
-  color: var(--text-primary);
-  border: 1px solid rgba(31, 181, 116, 0.32);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+  color: #fff;
+  border: 0;
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--primary-color) 30%, transparent);
+  white-space: nowrap;
   padding: 0.5rem 1rem;
   border-radius: var(--radius-md);
   font-weight: 500;
@@ -51,8 +58,8 @@
 }
 
 .btn-add-section:hover {
-  background: rgba(31, 181, 116, 0.26);
   transform: translateY(-1px);
+  box-shadow: 0 10px 20px color-mix(in srgb, var(--primary-color) 38%, transparent);
 }
 
 .sections-list-container {
@@ -230,9 +237,16 @@
 }
 
 .empty-state-icon {
-  font-size: 3rem;
+  width: 72px;
+  height: 72px;
   margin-bottom: 1rem;
-  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
+  color: #fff;
+  background: linear-gradient(140deg, var(--primary-color), var(--primary-hover));
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--primary-color) 32%, transparent);
 }
 
 .detail-header-bar {

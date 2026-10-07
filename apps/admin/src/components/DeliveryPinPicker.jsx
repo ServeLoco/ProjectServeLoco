@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { iconSvg } from './adminIconPaths';
 import './DeliveryPinPicker.css';
 
 const DEFAULT_CENTER = { lat: 29.451998, lng: 75.668669 };
@@ -8,7 +9,7 @@ const DEFAULT_CENTER = { lat: 29.451998, lng: 75.668669 };
 function createPinIcon(L) {
   return L.divIcon({
     className: 'delivery-pin-marker-wrap',
-    html: '<div class="delivery-pin-marker">📍</div>',
+    html: `<div class="delivery-pin-marker">${iconSvg('pin', { size: 30, strokeWidth: 2.2 })}</div>`,
     iconSize: [34, 34],
     iconAnchor: [17, 32],
   });

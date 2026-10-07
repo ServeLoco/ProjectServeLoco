@@ -133,7 +133,7 @@
 .bi-dropzone.drag-over { border-color: var(--primary-color); background: var(--hover-color, rgba(99,102,241,0.08)); }
 .bi-dropzone.has-file { border-color: #22c55e; border-style: solid; }
 .bi-dropzone.has-file .bi-dropzone-icon { filter: grayscale(0); }
-.bi-dropzone-icon { font-size: 2.5rem; margin-bottom: 0.25rem; }
+.bi-dropzone-icon { width: 56px; height: 56px; margin: 0 auto 0.35rem; display: flex; align-items: center; justify-content: center; border-radius: 16px; color: #fff; background: linear-gradient(140deg, var(--primary-color), var(--primary-hover)); box-shadow: 0 8px 20px color-mix(in srgb, var(--primary-color) 30%, transparent); }
 .bi-dropzone-filename { color: var(--text-primary); font-size: 0.9rem; word-break: break-all; }
 .bi-dropzone-change { font-size: 0.78rem; color: var(--primary-color); }
 .bi-dropzone-hint { font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem; line-height: 1.4; }
@@ -316,6 +316,6 @@
   padding: 3rem 1rem;
   gap: 1rem;
 }
-.bi-result-icon { font-size: 4rem; }
+.bi-result-icon { width: 84px; height: 84px; display: flex; align-items: center; justify-content: center; border-radius: 50%; color: #fff; background: linear-gradient(140deg, #22a35a, #11753c); box-shadow: 0 14px 32px rgba(17, 117, 60, 0.35); animation: ds-pop 420ms cubic-bezier(.22,1,.36,1); }
 .bi-result-title { font-size: 1.5rem; font-weight: 700; color: var(--text-primary); margin: 0; }
 .bi-result-actions { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-top: 0.5rem; }

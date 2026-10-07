@@ -9,8 +9,16 @@
 }
 
 .pick-area-notice-icon {
-  font-size: 2.5rem;
-  margin-bottom: 0.75rem;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18px;
+  color: #fff;
+  background: linear-gradient(140deg, var(--primary-color), var(--primary-hover));
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--primary-color) 32%, transparent);
 }
 
 .pick-area-notice h2 {

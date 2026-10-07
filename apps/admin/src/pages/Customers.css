@@ -189,6 +189,10 @@
   box-shadow: var(--shadow-md);
 }
 
+[data-theme="dark"] .customer-avatar {
+  background: linear-gradient(135deg, var(--primary-hover), #ff9a66);
+}
+
 .customer-detail-name {
   font-size: 1.2rem;
   font-weight: 800;

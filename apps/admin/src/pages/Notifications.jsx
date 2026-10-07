@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { NotificationsApi, NotificationTemplatesApi } from '../api';
 import { useAreaStore } from '../stores/useAreaStore';
+import AdminIcon from '../components/AdminIcon';
 import './Notifications.css';
 
 const EMOJI_SUGGESTIONS = {
@@ -22,15 +23,15 @@ const QUICK_TEMPLATES = [
 import { GENERIC_ERROR } from '../utils/constants';
 
 const EVENT_LABELS = {
-  order_placed:           { label: 'Order Placed',        icon: '🎉', trigger: 'When customer places an order' },
-  status_accepted:        { label: 'Order Accepted',       icon: '✅', trigger: 'When admin accepts an order' },
-  status_preparing:       { label: 'Preparing',            icon: '👨‍🍳', trigger: 'When admin marks as Preparing' },
-  status_out_for_delivery:{ label: 'Out for Delivery',     icon: '🚚', trigger: 'When admin marks as Out for Delivery' },
-  status_delivered:       { label: 'Delivered',            icon: '🎊', trigger: 'When admin marks as Delivered' },
-  status_cancelled:       { label: 'Order Cancelled',      icon: '❌', trigger: 'When order is cancelled (by admin or customer)' },
-  payment_paid:           { label: 'Payment Received',     icon: '💰', trigger: 'When admin marks payment as Paid' },
-  payment_failed:         { label: 'Payment Failed',       icon: '⚠️', trigger: 'When admin marks payment as Failed' },
-  payment_refunded:       { label: 'Payment Refunded',     icon: '💸', trigger: 'When admin marks payment as Refunded' },
+  order_placed:           { label: 'Order Placed',        icon: 'orders', trigger: 'When customer places an order' },
+  status_accepted:        { label: 'Order Accepted',       icon: 'checkCircle', trigger: 'When admin accepts an order' },
+  status_preparing:       { label: 'Preparing',            icon: 'clock', trigger: 'When admin marks as Preparing' },
+  status_out_for_delivery:{ label: 'Out for Delivery',     icon: 'scooter', trigger: 'When admin marks as Out for Delivery' },
+  status_delivered:       { label: 'Delivered',            icon: 'home', trigger: 'When admin marks as Delivered' },
+  status_cancelled:       { label: 'Order Cancelled',      icon: 'close', trigger: 'When order is cancelled (by admin or customer)' },
+  payment_paid:           { label: 'Payment Received',     icon: 'check', trigger: 'When admin marks payment as Paid' },
+  payment_failed:         { label: 'Payment Failed',       icon: 'warning', trigger: 'When admin marks payment as Failed' },
+  payment_refunded:       { label: 'Payment Refunded',     icon: 'rotate', trigger: 'When admin marks payment as Refunded' },
 };
 
 export default function Notifications() {
@@ -142,7 +143,7 @@ export default function Notifications() {
       let pushHint = '';
       if (typeof pushEligible === 'number') {
         pushHint = pushEligible === 0
-          ? ' ⚠️ Saved to in-app inboxes, but none of these customers have a push-capable device — no phone notifications will be delivered.'
+          ? ' Saved to in-app inboxes, but none of these customers have a push-capable device — no phone notifications will be delivered.'
           : ` — ${pushEligible} have push-capable devices (others will see it in-app)`;
       }
 
@@ -150,9 +151,9 @@ export default function Notifications() {
         ? ` (matched: ${matched.join(', ')})`
         : '';
       const unmatchedHint = Array.isArray(unmatched) && unmatched.length
-        ? ` ⚠️ ${unmatched.length} numbers not found: ${unmatched.join(', ')}`
+        ? ` ${unmatched.length} numbers not found: ${unmatched.join(', ')}`
         : '';
-      setSuccessMsg(`✅ Sent successfully to ${recipientCount} customer${recipientCount === 1 ? '' : 's'}!${matchedHint}${unmatchedHint}${pushHint}`);
+      setSuccessMsg(`Sent successfully to ${recipientCount} customer${recipientCount === 1 ? '' : 's'}!${matchedHint}${unmatchedHint}${pushHint}`);
       setTitle('');
       setBody('');
       setPhonesInput('');
@@ -270,16 +271,16 @@ export default function Notifications() {
   return (
     <div className="notifications-page">
       <header className="page-header">
-        <h1 className="page-title">📢 Broadcast Notifications</h1>
+        <h1 className="page-title"><span className="page-title-icon"><AdminIcon name="megaphone" size={20} strokeWidth={2.1} /></span>Broadcast Notifications</h1>
         <p className="page-subtitle">Send instant notifications to all your customers</p>
       </header>
 
       <div className="notifications-content">
         <div className="compose-section card">
-          <h2>✨ Send New Broadcast</h2>
+          <h2><AdminIcon name="sparkles" size={18} strokeWidth={2.1} className="ds-inline-icon" /> Send New Broadcast</h2>
 
-          {errorMsg && <div className="inline-error-box">❌ {errorMsg}</div>}
-          {successMsg && <div className="inline-success-box">{successMsg}</div>}
+          {errorMsg && <div className="inline-error-box"><AdminIcon name="alertCircle" size={16} strokeWidth={2.1} className="ds-inline-icon" /> {errorMsg}</div>}
+          {successMsg && <div className="inline-success-box"><AdminIcon name="checkCircle" size={16} strokeWidth={2.1} className="ds-inline-icon" /> {successMsg}</div>}
 
           {/* Quick Templates */}
           <div className="quick-templates">
@@ -304,19 +305,19 @@ export default function Notifications() {
               <div className="form-group">
                 <label>Target Audience</label>
                 <select value={target} onChange={e => setTarget(e.target.value)}>
-                  <option value="everyone">👥 All Active Customers</option>
-                  <option value="phones">📱 Specific Phone Numbers</option>
+                  <option value="everyone">All Active Customers</option>
+                  <option value="phones">Specific Phone Numbers</option>
                 </select>
               </div>
 
               <div className="form-group">
                 <label>Notification Type</label>
                 <select value={type} onChange={e => setType(e.target.value)}>
-                  <option value="info">ℹ️ Info</option>
-                  <option value="offer">🎁 Offer / Promotion</option>
-                  <option value="success">✅ Success</option>
-                  <option value="warning">⚠️ Warning / Alert</option>
-                  <option value="admin">👨‍💼 Admin Update</option>
+                  <option value="info">Info</option>
+                  <option value="offer">Offer / Promotion</option>
+                  <option value="success">Success</option>
+                  <option value="warning">Warning / Alert</option>
+                  <option value="admin">Admin Update</option>
                 </select>
               </div>
             </div>
@@ -366,8 +367,9 @@ export default function Notifications() {
                     setShowEmojiPicker(!showEmojiPicker);
                   }}
                   title="Add emoji"
+                  aria-label="Add emoji"
                 >
-                  😊
+                  <AdminIcon name="smile" size={18} strokeWidth={2} />
                 </button>
               </div>
             </div>
@@ -390,8 +392,9 @@ export default function Notifications() {
                     setShowEmojiPicker(!showEmojiPicker);
                   }}
                   title="Add emoji"
+                  aria-label="Add emoji"
                 >
-                  😊
+                  <AdminIcon name="smile" size={18} strokeWidth={2} />
                 </button>
               </div>
             </div>
@@ -400,7 +403,7 @@ export default function Notifications() {
               <div className="emoji-picker">
                 <div className="emoji-picker-header">
                   <span>Suggested for {type}</span>
-                  <button type="button" onClick={() => setShowEmojiPicker(false)}>✕</button>
+                  <button type="button" onClick={() => setShowEmojiPicker(false)} aria-label="Close emoji picker"><AdminIcon name="close" size={14} strokeWidth={2.4} /></button>
                 </div>
                 <div className="emoji-grid">
                   {EMOJI_SUGGESTIONS[type]?.map((emoji, idx) => (
@@ -420,10 +423,10 @@ export default function Notifications() {
             {/* Preview */}
             {(title || body) && (
               <div className="notification-preview">
-                <label>📱 Preview (How it will look on phone)</label>
+                <label><AdminIcon name="phone" size={15} strokeWidth={2.1} className="ds-inline-icon" /> Preview (How it will look on phone)</label>
                 <div className="preview-phone">
                   <div className="preview-notification">
-                    <div className="preview-app-icon">🍽️</div>
+                    <div className="preview-app-icon"><img src="/logo.png" alt="" /></div>
                     <div className="preview-content">
                       <div className="preview-title">{title || 'Notification Title'}</div>
                       <div className="preview-body">{body || 'Notification message will appear here'}</div>
@@ -434,13 +437,13 @@ export default function Notifications() {
             )}
 
             <button type="submit" className="btn btn-primary btn-send" disabled={isSending}>
-              {isSending ? '📤 Sending...' : '📤 Send Broadcast'}
+              <><AdminIcon name="send" size={16} strokeWidth={2.1} className="ds-inline-icon" /> {isSending ? 'Sending...' : 'Send Broadcast'}</>
             </button>
           </form>
         </div>
 
         <div className="history-section card">
-          <h2>📋 Recent Broadcasts</h2>
+          <h2><AdminIcon name="clipboard" size={18} strokeWidth={2.1} className="ds-inline-icon" /> Recent Broadcasts</h2>
           {loading ? (
             <p>Loading...</p>
           ) : broadcasts.length === 0 ? (
@@ -475,7 +478,7 @@ export default function Notifications() {
                           onClick={() => handleDelete(b.id)}
                           disabled={deletingId === b.id}
                         >
-                          {deletingId === b.id ? '⏳ Deleting…' : '🗑️ Delete'}
+                          {deletingId === b.id ? 'Deleting…' : <><AdminIcon name="trash" size={14} strokeWidth={2.1} className="ds-inline-icon" /> Delete</>}
                         </button>
                       </td>
                     </tr>
@@ -489,7 +492,7 @@ export default function Notifications() {
 
       {/* ── Auto-send notification templates ──────────────────────────── */}
       <div className="templates-section card">
-        <h2>⚙️ Auto-Send Notification Templates</h2>
+        <h2><AdminIcon name="settings" size={18} strokeWidth={2.1} className="ds-inline-icon" /> Auto-Send Notification Templates</h2>
         <p className="templates-subtitle">
           These messages are sent automatically when order or payment status changes.
           {isSuperAdmin
@@ -502,7 +505,7 @@ export default function Notifications() {
         ) : (
           <div className="templates-list">
             {templates.map(tmpl => {
-              const meta = EVENT_LABELS[tmpl.event_key] || { label: tmpl.event_key, icon: '🔔', trigger: '' };
+              const meta = EVENT_LABELS[tmpl.event_key] || { label: tmpl.event_key, icon: 'bell', trigger: '' };
               const isEditing = editingTemplateId === tmpl.id;
               const isSaving = savingTemplateId === tmpl.id;
               const isResetting = resettingTemplateId === tmpl.id;
@@ -512,7 +515,7 @@ export default function Notifications() {
                 <div key={tmpl.id} className={`template-row${!tmpl.enabled ? ' template-disabled' : ''}`}>
                   <div className="template-header">
                     <div className="template-identity">
-                      <span className="template-icon">{meta.icon}</span>
+                      <span className="template-icon"><AdminIcon name={meta.icon} size={20} strokeWidth={2.1} /></span>
                       <div className="template-meta">
                         <span className="template-event-name">{meta.label}</span>
                         <span className="template-trigger">{meta.trigger}</span>
@@ -543,7 +546,7 @@ export default function Notifications() {
                         </button>
                       ) : (
                         <button className="btn btn-sm btn-outline" onClick={() => handleTemplateEditStart(tmpl)}>
-                          ✏️ Edit
+                          <AdminIcon name="edit" size={14} strokeWidth={2.1} className="ds-inline-icon" /> Edit
                         </button>
                       )}
 
@@ -553,7 +556,7 @@ export default function Notifications() {
                         disabled={isResetting}
                         title="Reset to default text"
                       >
-                        {isResetting ? '⏳' : '↺ Default'}
+                        {isResetting ? <AdminIcon name="hourglass" size={14} strokeWidth={2.1} /> : <><AdminIcon name="rotate" size={14} strokeWidth={2.1} className="ds-inline-icon" /> Default</>}
                       </button>
                     </div>
                     )}
@@ -573,10 +576,10 @@ export default function Notifications() {
                           />
                         </div>
                         <div className="form-group template-preview-phone-wrap">
-                          <label>📱 Preview</label>
+                          <label><AdminIcon name="phone" size={15} strokeWidth={2.1} className="ds-inline-icon" /> Preview</label>
                           <div className="preview-phone template-preview-phone">
                             <div className="preview-notification">
-                              <div className="preview-app-icon">🍽️</div>
+                              <div className="preview-app-icon"><img src="/logo.png" alt="" /></div>
                               <div className="preview-content">
                                 <div className="preview-title">{editForm.title || 'Title'}</div>
                                 <div className="preview-body">{editForm.body || 'Body…'}</div>
@@ -603,7 +606,7 @@ export default function Notifications() {
                           onClick={() => handleTemplateEditSave(tmpl)}
                           disabled={isSaving || !editForm.title.trim() || !editForm.body.trim()}
                         >
-                          {isSaving ? '⏳ Saving…' : '💾 Save'}
+                          {isSaving ? 'Saving…' : <><AdminIcon name="save" size={14} strokeWidth={2.1} className="ds-inline-icon" /> Save</>}
                         </button>
                         <button className="btn btn-sm btn-secondary" onClick={handleTemplateEditCancel}>
                           Cancel

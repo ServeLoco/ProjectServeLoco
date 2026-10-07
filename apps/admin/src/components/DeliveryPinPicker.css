@@ -69,3 +69,7 @@
   line-height: 1;
   filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.35));
 }
+
+/* The pin is an SVG icon now; colour it like a map pin. */
+.delivery-pin-marker { color: #dc2626; display: flex; }
+.delivery-pin-marker svg { fill: #fff; }

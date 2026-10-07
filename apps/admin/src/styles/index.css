@@ -117,30 +117,32 @@
 [data-theme="dark"] {
   color-scheme: dark;
 
-  --bg-color: #0a0c10;
-  --bg-elevated: #111318;
-  --surface-color: #161a21;
-  --surface-strong: #1e232c;
-  --surface-soft: #12151b;
-  --text-primary: #e2e8f0;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --primary-color: #22c55e;
-  --primary-hover: #16a34a;
-  --primary-soft: rgba(34, 197, 94, 0.1);
+  /* Black + saffron, the same look as the app's dark shop screens
+     (apps/customer-app/src/theme/glass.js). Status colours stay as they are. */
+  --bg-color: #0f0f11;
+  --bg-elevated: #18181b;
+  --surface-color: #18181b;
+  --surface-strong: #202024;
+  --surface-soft: #131315;
+  --text-primary: #f4f4f5;
+  --text-secondary: #a1a1aa;
+  --text-muted: #8a8a93;
+  --primary-color: #f26b2a;
+  --primary-hover: #e05a1a;
+  --primary-soft: rgba(242, 107, 42, 0.14);
   --success-color: #22c55e;
   --danger-color: #ef4444;
   --warning-color: #f59e0b;
   --info-color: #3b82f6;
-  --border-color: #1e2530;
-  --border-strong: #2a3340;
-  --surface-hover: #1a1f28;
-  --focus-ring: 0 0 0 3px rgba(34, 197, 94, 0.22);
+  --border-color: #27272b;
+  --border-strong: #3a3a40;
+  --surface-hover: #222226;
+  --focus-ring: 0 0 0 3px rgba(242, 107, 42, 0.24);
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.18);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.2);
   --shadow-lg: 0 20px 48px rgba(0, 0, 0, 0.5), 0 8px 20px rgba(0, 0, 0, 0.3);
-  --shadow-primary: 0 8px 24px rgba(34, 197, 94, 0.22);
-  --glass-bg: rgba(22, 26, 33, 0.88);
+  --shadow-primary: 0 8px 24px rgba(242, 107, 42, 0.24);
+  --glass-bg: rgba(20, 20, 23, 0.88);
   --glass-border: rgba(255, 255, 255, 0.06);
 
   --text-on-primary: #ffffff;
@@ -189,10 +191,10 @@
   --whatsapp: #25D366;
   --print-btn-bg: #4B5563;
   --print-btn-hover: #374151;
-  --gradient-primary-light: #22c55e;
-  --gradient-primary-mid: #4ade80;
-  --gradient-primary-dark: #16a34a;
-  --input-bg: #161a21;
+  --gradient-primary-light: #ff9a66;
+  --gradient-primary-mid: #ff7a3a;
+  --gradient-primary-dark: #e05a1a;
+  --input-bg: #131315;
   --warning-bg: rgba(245, 158, 11, 0.12);
   --warning-text: #fbbf24;
   --warning-border: rgba(245, 158, 11, 0.28);
@@ -200,9 +202,9 @@
   --preparing-text: #60a5fa;
   --delivery-text: #a78bfa;
 
-  --metric-sales-start: rgba(34, 197, 94, 0.06);
-  --metric-sales-end: rgba(34, 197, 94, 0.12);
-  --metric-sales-accent: #22c55e;
+  --metric-sales-start: rgba(242, 107, 42, 0.06);
+  --metric-sales-end: rgba(242, 107, 42, 0.12);
+  --metric-sales-accent: #f26b2a;
   --metric-orders-start: rgba(59, 130, 246, 0.06);
   --metric-orders-end: rgba(59, 130, 246, 0.12);
   --metric-orders-accent: #3b82f6;
@@ -289,6 +291,10 @@ textarea::placeholder {
   border: 1px solid transparent;
   background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
   box-shadow: 0 2px 8px rgba(22, 163, 74, 0.22);
+}
+
+[data-theme="dark"] .btn-primary {
+  box-shadow: 0 2px 8px rgba(242, 107, 42, 0.22);
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -596,6 +602,13 @@ textarea::placeholder {
 }
 
 /* ── Inputs ──────────────────────────────────────────────────── */
+
+/* Page CSS gives these fields a hard-coded green focus glow; dark mode uses saffron. */
+[data-theme="dark"] :is(.filter-input, .filter-select, .form-input, .form-select, .form-textarea,
+  .settings-input, .settings-select, .coupons-filter select,
+  .form-row :is(input, select, textarea), .form-group :is(input, select, textarea)):focus {
+  box-shadow: var(--focus-ring);
+}
 
 .filter-input,
 .filter-select,

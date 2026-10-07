@@ -1,5 +1,12 @@
 /* Theme is scoped to the authenticated shell; page content and behavior stay intact. */
 .admin-shell {
+  --sidebar-width: 248px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+}
+/* Light colours only. Dark mode takes its black + saffron colours from
+   [data-theme="dark"] in index.css, so the shell and pop-ups match. */
+:root:not([data-theme="dark"]) .admin-shell {
   --bg-color: #f4f6f8;
   --bg-elevated: #fff;
   --surface-color: #fff;
@@ -19,37 +26,10 @@
   --table-header-bg: #f6f8fa;
   --input-bg: #fff;
   --glass-bg: rgba(255,255,255,.94);
-  --sidebar-width: 248px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
   --shadow-sm: 0 2px 3px rgba(24,41,49,.02), 0 5px 16px rgba(24,41,49,.025);
   --shadow-md: 0 8px 26px rgba(24,41,49,.07);
   --shadow-primary: 0 6px 18px rgba(20,125,89,.16);
   --focus-ring: 0 0 0 3px rgba(20,125,89,.18);
-}
-[data-theme="dark"] .admin-shell {
-  --bg-color: #0d161e;
-  --bg-elevated: #17232d;
-  --surface-color: #17232d;
-  --surface-strong: #1b2a35;
-  --surface-soft: #111e28;
-  --surface-hover: #1d303a;
-  --text-primary: #e5edf2;
-  --text-secondary: #a2b3c0;
-  --text-muted: #8fa2b0;
-  --primary-color: #70d6a8;
-  --primary-hover: #4abb8e;
-  --primary-soft: #1a3830;
-  --text-on-primary: #0d261e;
-  --success-color: #70d6a8;
-  --success-text: #8ee4bc;
-  --border-color: #2a3944;
-  --border-strong: #405562;
-  --table-header-bg: #111e28;
-  --input-bg: #111e28;
-  --glass-bg: rgba(23,35,45,.94);
-  --shadow-sm: 0 3px 15px rgba(0,0,0,.12);
-  --shadow-md: 0 8px 26px rgba(0,0,0,.2);
 }
 .admin-shell :is(h1, h2, h3, h4, h5, h6, .metric-value, .summary-value, .waterfall-amount, .profit-kpi-value, .breakdown-stat) { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; letter-spacing: -.025em; }
 .admin-shell :is(.btn-primary, .btn-secondary, .btn-danger) { font-weight: 600; font-size: 12px; min-height: 40px; box-shadow: none; }
@@ -57,6 +37,7 @@
 .admin-shell .btn-danger, .admin-shell .admin-bell-badge { color: #fff; }
 .admin-shell :is(button, a, input, select, textarea):focus-visible { outline: 2px solid var(--primary-color); outline-offset: 3px; }
 .admin-shell .sidebar-item-link:focus-visible, .admin-shell .sidebar-close:focus-visible { outline-color: #7de2b4; }
+[data-theme="dark"] .admin-shell :is(.sidebar-item-link, .sidebar-close):focus-visible { outline-color: #ff7a3a; }
 .admin-shell :is(.products-table-wrapper, .orders-table-wrapper, .categories-table-wrapper, .customers-table-wrapper, .section-card, .settings-section, .health-card, .report-card, .filter-bar) { box-shadow: var(--shadow-sm); border-radius: var(--radius-lg); }
 .admin-shell table { font-variant-numeric: tabular-nums; }
 .admin-shell .area-switcher { height: 38px; max-width: 220px; border-radius: 10px; padding: 0 12px; font-size: 11px; font-weight: 500; background: var(--surface-soft); }

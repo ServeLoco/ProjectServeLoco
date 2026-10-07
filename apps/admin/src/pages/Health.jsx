@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import AdminIcon from '../components/AdminIcon';
 import { HealthApi } from '../api';
 import './Health.css';
 
@@ -44,7 +45,7 @@ export default function Health() {
       <div className="health-card">
         <div className="health-overall">
           <div className={`health-status-icon ${loading ? 'loading' : isHealthy ? 'ok' : 'error'}`}>
-            {loading ? '...' : isHealthy ? '✓' : '!'}
+            {loading ? '...' : <AdminIcon name={isHealthy ? 'check' : 'warning'} size={30} strokeWidth={2.6} />}
           </div>
           <div className="health-overall-text">
             <h2>{loading ? 'Checking Systems...' : isHealthy ? 'All Systems Operational' : 'System Degraded'}</h2>

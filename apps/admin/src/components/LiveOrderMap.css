@@ -103,3 +103,8 @@
   justify-content: center;
   font-size: 22px;
 }
+
+/* Marker glyphs are SVG icons (iconSvg) instead of emoji. */
+.live-map-scooty { color: #2563eb; }
+.live-map-shop-facade { color: #b45309; }
+.live-map-shop-facade svg, .live-map-scooty svg { display: block; }

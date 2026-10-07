@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ProductsApi } from '../api';
+import AdminIcon from '../components/AdminIcon';
 import { getFileSizeError, MAX_BULK_CSV_BYTES, MAX_BULK_ZIP_BYTES } from '../utils/fileValidation';
 import './BulkImport.css';
 
@@ -14,7 +15,7 @@ function StepIndicator({ step }) {
       {steps.map((label, idx) => (
         <React.Fragment key={idx}>
           <div className={`bi-step ${step === idx + 1 ? 'active' : step > idx + 1 ? 'done' : ''}`}>
-            <div className="bi-step-circle">{step > idx + 1 ? '✓' : idx + 1}</div>
+            <div className="bi-step-circle">{step > idx + 1 ? <AdminIcon name="check" size={16} strokeWidth={2.6} /> : idx + 1}</div>
             <span className="bi-step-label">{label}</span>
           </div>
           {idx < steps.length - 1 && <div className={`bi-step-line ${step > idx + 1 ? 'done' : ''}`} />}
@@ -203,8 +204,8 @@ export default function BulkImport() {
 
       {error && (
         <div className="bi-error-banner" role="alert">
-          ⚠️ {error}
-          <button className="bi-error-dismiss" onClick={() => setError(null)}>✕</button>
+          <AdminIcon name="alertCircle" size={16} strokeWidth={2.1} className="ds-inline-icon" /> {error}
+          <button className="bi-error-dismiss" onClick={() => setError(null)} aria-label="Dismiss error"><AdminIcon name="close" size={14} strokeWidth={2.4} /></button>
         </div>
       )}
 
@@ -227,7 +228,7 @@ export default function BulkImport() {
                 accept=".csv,.xlsx,.xls"
                 onChange={e => setUploadFile('csv', e.target.files[0] || null)}
               />
-              <div className="bi-dropzone-icon">📄</div>
+              <div className="bi-dropzone-icon"><AdminIcon name="file" size={28} strokeWidth={1.9} /></div>
               {csvFile
                 ? <><strong className="bi-dropzone-filename">{csvFile.name}</strong><span className="bi-dropzone-change">Click to change</span></>
                 : <><strong>Drop CSV / XLSX here</strong><span>or click to browse</span></>
@@ -250,7 +251,7 @@ export default function BulkImport() {
                 accept=".zip"
                 onChange={e => setUploadFile('zip', e.target.files[0] || null)}
               />
-              <div className="bi-dropzone-icon">🗜️</div>
+              <div className="bi-dropzone-icon"><AdminIcon name="archive" size={28} strokeWidth={1.9} /></div>
               {zipFile
                 ? <><strong className="bi-dropzone-filename">{zipFile.name}</strong><span className="bi-dropzone-change">Click to change</span></>
                 : <><strong>Drop Image ZIP here</strong><span>or click to browse (optional for update-only imports)</span></>
@@ -260,7 +261,7 @@ export default function BulkImport() {
           </div>
 
           <div className="bi-csv-guide">
-            <h3 className="bi-guide-title">📋 CSV Column Reference</h3>
+            <h3 className="bi-guide-title"><AdminIcon name="clipboard" size={18} strokeWidth={2.1} className="ds-inline-icon" /> CSV Column Reference</h3>
             <div className="bi-guide-cols">
               <div>
                 <strong>Required (for create)</strong>
@@ -272,12 +273,12 @@ export default function BulkImport() {
               </div>
             </div>
             <div className="bi-guide-note">
-              💡 Image filenames must be lowercase with hyphens, e.g. <code>coca-cola-500ml.webp</code>
+              <AdminIcon name="lightbulb" size={15} strokeWidth={2.1} className="ds-inline-icon" /> Image filenames must be lowercase with hyphens, e.g. <code>coca-cola-500ml.webp</code>
               &nbsp;— exactly matching the <code>image_file</code> column in the CSV.
               <br />
-              💡 <strong>mode</strong> accepted values: <code>packed</code> · <code>packed items</code> · <code>fast</code> · <code>fast food</code> · <code>fast_food</code>
+              <AdminIcon name="lightbulb" size={15} strokeWidth={2.1} className="ds-inline-icon" /> <strong>mode</strong> accepted values: <code>packed</code> · <code>packed items</code> · <code>fast</code> · <code>fast food</code> · <code>fast_food</code>
               <br />
-              💡 For <strong>updates</strong>, supply <code>id</code> or <code>product_id</code> to target by ID, or use name+category to match. Omit <code>image_file</code> to keep the existing image.
+              <AdminIcon name="lightbulb" size={15} strokeWidth={2.1} className="ds-inline-icon" /> For <strong>updates</strong>, supply <code>id</code> or <code>product_id</code> to target by ID, or use name+category to match. Omit <code>image_file</code> to keep the existing image.
             </div>
             <div style={{ marginTop: '0.75rem' }}>
               <button
@@ -293,7 +294,7 @@ export default function BulkImport() {
 
           <div className="bi-upload-actions">
             <button type="submit" className="btn-primary bi-submit-btn" disabled={loading || !csvFile}>
-              {loading ? <><span className="bi-spinner" /> Analysing…</> : '🔍 Preview Import'}
+              {loading ? <><span className="bi-spinner" /> Analysing…</> : <><AdminIcon name="search" size={16} strokeWidth={2.1} className="ds-inline-icon" /> Preview Import</>}
             </button>
           </div>
         </form>
@@ -337,7 +338,7 @@ export default function BulkImport() {
                       <td className="bi-image-file">{r.image_file || <em style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>keep existing</em>}</td>
                       <td>
                         <span className={`bi-action-badge ${r.action}`}>
-                          {r.action === 'create' ? '✅ Create' : '🔄 Update'}
+                          {r.action === 'create' ? <><AdminIcon name="plus" size={13} strokeWidth={2.4} className="ds-inline-icon" /> Create</> : <><AdminIcon name="rotate" size={13} strokeWidth={2.1} className="ds-inline-icon" /> Update</>}
                         </span>
                       </td>
                       <td><span className="bi-action-badge valid">Valid</span></td>
@@ -355,7 +356,7 @@ export default function BulkImport() {
                 className="bi-skipped-toggle"
                 onClick={() => setShowSkipped(v => !v)}
               >
-                ⚠️ {skippedCount} row{skippedCount !== 1 ? 's' : ''} skipped — {showSkipped ? 'Hide' : 'Show'} details
+                <AdminIcon name="warning" size={15} strokeWidth={2.1} className="ds-inline-icon" /> {skippedCount} row{skippedCount !== 1 ? 's' : ''} skipped — {showSkipped ? 'Hide' : 'Show'} details
                 <button
                   type="button"
                   className="btn-secondary"
@@ -389,11 +390,11 @@ export default function BulkImport() {
                 onClick={() => setConfirmPending(true)}
                 disabled={loading}
               >
-                {`✅ Import ${validCount} Products${skippedCount > 0 ? ` (${skippedCount} will be skipped)` : ''}`}
+                <><AdminIcon name="upload" size={16} strokeWidth={2.1} className="ds-inline-icon" /> {`Import ${validCount} Products${skippedCount > 0 ? ` (${skippedCount} will be skipped)` : ''}`}</>
               </button>
             ) : (
               <div className="bi-confirm-bar">
-                <span>⚠️ Import {preview.summary.will_create} creates + {preview.summary.will_update} updates? {skippedCount > 0 ? `${skippedCount} rows will be skipped.` : ''} Cannot be undone.</span>
+                <span><AdminIcon name="warning" size={15} strokeWidth={2.1} className="ds-inline-icon" /> Import {preview.summary.will_create} creates + {preview.summary.will_update} updates? {skippedCount > 0 ? `${skippedCount} rows will be skipped.` : ''} Cannot be undone.</span>
                 <button className="btn-secondary" onClick={() => setConfirmPending(false)} disabled={loading}>Cancel</button>
                 <button className="btn-primary" onClick={handleCommit} disabled={loading}>
                   {loading ? <><span className="bi-spinner" /> Importing…</> : 'Yes, Import Now'}
@@ -407,7 +408,7 @@ export default function BulkImport() {
       {/* ── STEP 3: Done ────────────────────────────────────────────────── */}
       {step === 3 && result && (
         <div className="bi-result">
-          <div className="bi-result-icon">🎉</div>
+          <div className="bi-result-icon"><AdminIcon name="checkCircle" size={44} strokeWidth={1.9} /></div>
           <h2 className="bi-result-title">Import Complete!</h2>
           <div className="bi-stat-row">
             <StatCard label="Created" value={result.created} variant="create" />

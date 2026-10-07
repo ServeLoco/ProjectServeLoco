@@ -247,6 +247,10 @@
   text-transform: capitalize;
 }
 
+[data-theme="dark"] .category-type {
+  background: var(--primary-soft);
+}
+
 .category-type.fast-food {
   background: rgba(245, 158, 11, 0.1);
   color: #d97706;
