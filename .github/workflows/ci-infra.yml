@@ -44,3 +44,26 @@ jobs:
             echo "== $conf"
             docker run --rm -v "$PWD/$conf:/etc/nginx/conf.d/default.conf:ro" nginx:alpine nginx -t
           done
+
+      - name: Website redirects preserve compatibility routes
+        run: |
+          fixture_dir=$(mktemp -d)
+          cleanup() {
+            docker rm -f routing-proxy routing-landing routing-fixture >/dev/null 2>&1 || true
+            docker network rm routing-ci >/dev/null 2>&1 || true
+            rm -rf "$fixture_dir"
+          }
+          trap cleanup EXIT
+          docker network create routing-ci
+          docker build -t routing-landing apps/landing
+          docker run -d --name routing-landing --network routing-ci --network-alias landing routing-landing
+          cat > "$fixture_dir/default.conf" <<'NGINX'
+          server {
+              listen 80;
+              listen 3000;
+              return 200 "compatibility upstream $request_method $host$request_uri";
+          }
+          NGINX
+          docker run -d --name routing-fixture --network routing-ci --network-alias api --network-alias admin --network-alias ota -v "$fixture_dir/default.conf:/etc/nginx/conf.d/default.conf:ro" nginx:alpine
+          docker run -d --name routing-proxy --network routing-ci -p 127.0.0.1:8080:80 -v "$PWD/deploy/nginx-proxy.conf:/etc/nginx/conf.d/default.conf:ro" nginx:alpine
+          python3 deploy/check-website-routing.py
