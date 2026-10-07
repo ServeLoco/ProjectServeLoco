@@ -1,0 +1,96 @@
+name: Landing CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths: ['apps/landing/**', '.github/workflows/ci-landing.yml']
+  push:
+    branches: [main]
+    paths: ['apps/landing/**', '.github/workflows/ci-landing.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  website:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build the production website
+        run: docker build -t villkro-landing-ci apps/landing
+      - name: Start and validate nginx
+        run: |
+          docker run -d --name landing-ci -p 127.0.0.1:8080:80 villkro-landing-ci
+          docker exec landing-ci nginx -t
+          for attempt in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:8080/ > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          docker logs landing-ci
+          exit 1
+      - name: Check public pages and crawler responses
+        shell: python
+        run: |
+          import json
+          from html.parser import HTMLParser
+          from urllib.error import HTTPError
+          from urllib.request import urlopen
+          import xml.etree.ElementTree as ET
+
+          base = 'http://127.0.0.1:8080'
+          def get(path):
+              with urlopen(base + path, timeout=10) as response:
+                  assert response.status == 200, path
+                  return response.read().decode()
+
+          class Metadata(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.canonical, self.robots, self.schemas = [], [], []
+                  self.h1, self.in_schema = 0, False
+              def handle_starttag(self, tag, attrs):
+                  attrs = dict(attrs)
+                  if tag == 'h1': self.h1 += 1
+                  if tag == 'link' and attrs.get('rel') == 'canonical':
+                      self.canonical.append(attrs.get('href'))
+                  if tag == 'meta' and attrs.get('name') == 'robots':
+                      self.robots.append(attrs.get('content', '').lower())
+                  if tag == 'script' and attrs.get('type') == 'application/ld+json':
+                      self.in_schema = True
+                      self.schemas.append('')
+              def handle_data(self, data):
+                  if self.in_schema: self.schemas[-1] += data
+              def handle_endtag(self, tag):
+                  if tag == 'script': self.in_schema = False
+
+          sitemap = ET.fromstring(get('/sitemap.xml'))
+          urls = [node.text for node in sitemap.findall('{*}url/{*}loc')]
+          assert set(urls) == {'https://villkro.in/', 'https://villkro.in/app/'}
+          assert len(urls) == 2
+          for url in urls:
+              html = get(url.removeprefix('https://villkro.in'))
+              page = Metadata()
+              page.feed(html)
+              assert page.h1 == 1 and page.canonical == [url], url
+              assert all('noindex' not in value for value in page.robots), url
+              assert page.schemas, url
+              for schema in page.schemas: json.loads(schema)
+              assert 'com.yashsiwach.villkro' in html and 'id6800449391' in html
+
+          helper = Metadata()
+          helper.feed(get('/get/'))
+          assert any('noindex' in value for value in helper.robots)
+          assert 'Sitemap: https://villkro.in/sitemap.xml' in get('/robots.txt')
+          for asset in ['/logo.png', '/og-image.png', '/qr-download.svg']:
+              with urlopen(base + asset, timeout=10) as response:
+                  assert response.status == 200 and response.read(), asset
+          try:
+              get('/this-page-does-not-exist')
+              raise AssertionError('Missing page must return 404')
+          except HTTPError as error:
+              assert error.code == 404
+          print('Canonical pages, schema, sitemap, download helper and 404 passed')
+      - name: Clean up
+        if: always()
+        run: docker rm -f landing-ci || true
