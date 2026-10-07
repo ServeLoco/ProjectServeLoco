@@ -5,20 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0B0B0C">
   <meta name="color-scheme" content="dark">
-  <title>VillKro - Local shops, delivered fast</title>
-  <meta name="description" content="VillKro is a local delivery app for towns and cities. Order groceries, food and daily essentials from shops you already trust, and track your order live.">
-  <link rel="canonical" href="https://serveloco.app/">
+  <title>VillKro | Grocery &amp; Food Delivery from Local Shops</title>
+  <meta name="description" content="Order groceries, food and daily essentials from local shops with VillKro. Check delivery availability in the app, track your rider, and download for Android or iOS.">
+  <link rel="canonical" href="https://villkro.in/">
   <meta name="robots" content="index, follow">
 
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://serveloco.app/">
-  <meta property="og:title" content="VillKro - Local shops, delivered fast">
-  <meta property="og:description" content="Groceries, food and daily essentials from neighbourhood shops, delivered to your door. Eat. Explore. Enjoy.">
-  <meta property="og:image" content="https://serveloco.app/og-image.png">
+  <meta property="og:site_name" content="VillKro">
+  <meta property="og:url" content="https://villkro.in/">
+  <meta property="og:title" content="VillKro | Grocery &amp; Food Delivery from Local Shops">
+  <meta property="og:description" content="Order groceries, food and daily essentials from neighbourhood shops. Check availability in the VillKro app for Android and iOS.">
+  <meta property="og:image" content="https://villkro.in/og-image.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:image" content="https://serveloco.app/og-image.png">
+  <meta name="twitter:title" content="VillKro | Grocery &amp; Food Delivery from Local Shops">
+  <meta name="twitter:description" content="Order from local shops and track your rider with VillKro for Android and iOS.">
+  <meta name="twitter:image" content="https://villkro.in/og-image.png">
 
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
   <link rel="icon" type="image/png" sizes="192x192" href="/icon.png">
@@ -31,12 +34,38 @@
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "MobileApplication",
-    "name": "VillKro",
-    "operatingSystem": "Android, iOS",
-    "applicationCategory": "ShoppingApplication",
-    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "INR" },
-    "downloadUrl": "https://play.google.com/store/apps/details?id=com.yashsiwach.villkro"
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://villkro.in/#organization",
+        "name": "VillKro",
+        "url": "https://villkro.in/",
+        "logo": "https://villkro.in/logo.png",
+        "email": "decodelabsofficial@gmail.com",
+        "sameAs": ["https://instagram.com/villkro"]
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://villkro.in/#website",
+        "name": "VillKro",
+        "url": "https://villkro.in/",
+        "publisher": { "@id": "https://villkro.in/#organization" }
+      },
+      {
+        "@type": "MobileApplication",
+        "@id": "https://villkro.in/#app",
+        "name": "VillKro",
+        "url": "https://villkro.in/app/",
+        "operatingSystem": "Android, iOS",
+        "applicationCategory": "ShoppingApplication",
+        "publisher": { "@id": "https://villkro.in/#organization" },
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "INR" },
+        "downloadUrl": [
+          "https://play.google.com/store/apps/details?id=com.yashsiwach.villkro",
+          "https://apps.apple.com/in/app/villkro-smart-food-delivery/id6800449391"
+        ]
+      }
+    ]
   }
   </script>
 
@@ -364,9 +393,11 @@
     .head { text-align: center; margin-bottom: 56px; }
     .head .sub { margin: 0 auto; }
 
-    .reveal { opacity: 0; transform: translateY(32px); transition: opacity 0.9s var(--ease), transform 0.9s var(--ease); }
+    .reveal { opacity: 1; transform: none; transition: opacity 0.9s var(--ease), transform 0.9s var(--ease); }
+    .reveal.will-reveal:not(.in) { opacity: 0; transform: translateY(32px); }
     .reveal.in { opacity: 1; transform: none; }
-    .stagger > * { opacity: 0; transform: translateY(28px) scale(0.98); transition: opacity 0.8s var(--ease), transform 0.8s var(--ease); }
+    .stagger > * { opacity: 1; transform: none; transition: opacity 0.8s var(--ease), transform 0.8s var(--ease); }
+    .stagger.will-reveal:not(.in) > * { opacity: 0; transform: translateY(28px) scale(0.98); }
     .stagger.in > * { opacity: 1; transform: none; }
     .stagger.in > *:nth-child(2) { transition-delay: 0.08s; }
     .stagger.in > *:nth-child(3) { transition-delay: 0.16s; }
@@ -549,7 +580,7 @@
     @media (prefers-reduced-motion: reduce) {
       html { scroll-behavior: auto; }
       *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; transition-delay: 0s !important; }
-      .reveal, .stagger > * { opacity: 1; transform: none; }
+      .reveal, .stagger > * { opacity: 1 !important; transform: none !important; }
       .rider { offset-distance: 60%; }
     }
   </style>
@@ -584,7 +615,7 @@
       <div class="speed" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
       <div class="container hero-grid">
         <div>
-          <span class="eyebrow"><span class="live-dot"></span><b>Live now</b> in towns &amp; cities</span>
+          <span class="eyebrow"><span class="live-dot"></span><b>Shop local</b> in villages &amp; small towns</span>
           <h1>
             <span class="word"><span style="animation-delay:.05s">Your</span></span>
             <span class="word"><span style="animation-delay:.12s">local</span></span>
@@ -676,10 +707,10 @@
     <section style="padding-bottom:0">
       <div class="container">
         <div class="stats stagger">
-          <div class="stat"><b class="grad-text"><span data-count="30">0</span>&ndash;45</b><span>minutes for most orders</span></div>
+          <div class="stat"><b class="grad-text">Live</b><span>rider tracking</span></div>
           <div class="stat"><b class="grad-text">&#8377;<span data-count="0">0</span></b><span>subscription, ever</span></div>
-          <div class="stat"><b class="grad-text"><span data-count="100">0</span>%</b><span>local shops</span></div>
-          <div class="stat"><b class="grad-text"><span data-count="24">0</span>/7</b><span>order updates on your phone</span></div>
+          <div class="stat"><b class="grad-text"><span data-count="100">100</span>%</b><span>local shops</span></div>
+          <div class="stat"><b class="grad-text">Updates</b><span>follow each order in the app</span></div>
         </div>
       </div>
     </section>
@@ -705,13 +736,13 @@
           </article>
           <article class="card">
             <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></div>
-            <h3>Delivered in minutes</h3>
-            <p>Most orders reach you within 30&ndash;45 minutes.</p>
+            <h3>Delivery from nearby shops</h3>
+            <p>Check available shops in the app and follow your order from preparation to delivery.</p>
           </article>
           <article class="card">
             <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></svg></div>
-            <h3>Pay on delivery</h3>
-            <p>No card or wallet needed. Pay the rider when your order arrives.</p>
+            <h3>UPI &amp; cash on delivery</h3>
+            <p>Choose from the payment options shown at checkout. Cash availability depends on your area and ordering time.</p>
           </article>
           <article class="card">
             <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg></div>
@@ -783,7 +814,7 @@
             </div>
           </div>
           <div class="qr-card">
-            <img src="/qr-download.svg" alt="QR code to download the VillKro app" width="180" height="180">
+            <img src="/qr-download.svg?v=villkro-in" alt="QR code to download the VillKro app" width="180" height="180">
             <p>Scan with your phone camera</p>
           </div>
         </div>
@@ -800,19 +831,19 @@
         <div class="faq stagger">
           <details>
             <summary>What is VillKro?</summary>
-            <div class="ans">VillKro is a delivery app for towns and cities. You order from local shops near you &mdash; groceries, food, dairy and daily essentials &mdash; and a rider brings it to your door.</div>
+            <div class="ans">VillKro is a local delivery app built for villages and small towns. Order groceries, food, dairy and daily essentials from available nearby shops, and follow your rider in the app.</div>
           </details>
           <details>
             <summary>Where does VillKro deliver?</summary>
-            <div class="ans">VillKro runs in several towns and cities, and we keep adding new areas. Open the app and set your location to see the shops that deliver to you.</div>
+            <div class="ans">Delivery availability depends on your location. Open the VillKro app and set your delivery location to see available shops and products before ordering.</div>
           </details>
           <details>
             <summary>How do I pay?</summary>
-            <div class="ans">Pay the rider when your order arrives. There is no subscription and no fee to use the app.</div>
+            <div class="ans">Choose UPI or cash on delivery where available. Cash may be unavailable in some areas or at certain times. Review payment options, your order total and applicable charges at checkout. The app is free to download.</div>
           </details>
           <details>
             <summary>How fast is delivery?</summary>
-            <div class="ans">Most orders arrive within 30&ndash;45 minutes. You can track your rider live in the app the whole way.</div>
+            <div class="ans">Delivery time depends on shop preparation, distance and rider availability. Check order updates and track your rider live in the app.</div>
           </details>
           <details>
             <summary>Who can use VillKro?</summary>
@@ -833,7 +864,7 @@
       <div class="foot">
         <div>
           <a href="/" aria-label="VillKro home"><img class="foot-wordmark" src="/wordmark.png" alt="VillKro - Eat, Explore, Enjoy" width="593" height="240" loading="lazy"></a>
-          <p>Fast home delivery from local shops, in towns and cities.</p>
+          <p>Groceries and food from local shops, built for villages and small towns.</p>
         </div>
         <div>
           <h4>Product</h4>
@@ -842,6 +873,7 @@
             <li><a href="#how">How it works</a></li>
             <li><a href="#faq">FAQ</a></li>
             <li><a href="#download">Download</a></li>
+            <li><a href="/app/">VillKro app for Android &amp; iOS</a></li>
           </ul>
         </div>
         <div>
@@ -945,13 +977,18 @@
         el.classList.add('in');
         el.querySelectorAll('[data-count]').forEach(countUp);
       }
-      if ('IntersectionObserver' in window) {
-        var io = new IntersectionObserver(function (entries) {
-          entries.forEach(function (e) {
-            if (e.isIntersecting) { show(e.target); io.unobserve(e.target); }
-          });
-        }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
-        targets.forEach(function (el) { io.observe(el); });
+      if (!reduce && 'IntersectionObserver' in window) {
+        try {
+          var io = new IntersectionObserver(function (entries) {
+            entries.forEach(function (e) {
+              if (e.isIntersecting) { show(e.target); io.unobserve(e.target); }
+            });
+          }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+          targets.forEach(function (el) { el.classList.add('will-reveal'); io.observe(el); });
+        } catch (error) {
+          // Keep content readable if animation setup fails.
+          targets.forEach(show);
+        }
       } else {
         targets.forEach(show);
       }
