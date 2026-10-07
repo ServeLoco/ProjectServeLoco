@@ -44,6 +44,9 @@ services:
     # any SENTRY_RELEASE in .env.production (there shouldn't be one).
     environment:
       SENTRY_RELEASE: ${IMAGE_TAG:-latest}
+      # Keep existing browser clients working while the admin domain moves.
+      CORS_ORIGIN: https://admin.serveloco.app,https://app.serveloco.app,https://admin.villkro.in
+      PUBLIC_BASE_URL: https://api.villkro.in
     restart: always
     logging: *logging
     expose:

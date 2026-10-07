@@ -43,13 +43,17 @@ for path in ("/", "/app/", "/get/", "/robots.txt", "/sitemap.xml"):
     assert request("villkro.in", path)[0] == 200, path
 assert request("villkro.in", "/missing-routing-check")[0] == 404
 
-for host, path, method in (
-    ("api.serveloco.app", "/health", "GET"),
-    ("api.serveloco.app", "/api/orders?source=app", "POST"),
-    ("admin.serveloco.app", "/", "GET"),
-    ("ota.serveloco.app", "/manifest?channel=production", "GET"),
-):
-    status, headers, body = request(host, path, method)
-    assert status == 200 and "Location" not in headers, (host, status, headers)
-    assert body == "compatibility upstream " + method + " " + host + path, body
-print("Website aliases redirect directly; canonical pages and compatibility routes pass")
+for suffix in ("serveloco.app", "villkro.in"):
+    for service, path, method in (
+        ("api", "/health", "GET"),
+        ("api", "/api/orders?source=app", "POST"),
+        ("api", "/socket.io/?EIO=4&transport=polling", "GET"),
+        ("admin", "/", "GET"),
+        ("ota", "/manifest?channel=production", "GET"),
+        ("ota", "/assets?source=app", "GET"),
+    ):
+        host = service + "." + suffix
+        status, headers, body = request(host, path, method)
+        assert status == 200 and "Location" not in headers, (host, status, headers)
+        assert body == "compatibility upstream " + method + " " + host + path, body
+print("Website aliases redirect; new and legacy service routes pass without redirects")
