@@ -104,15 +104,11 @@ packagingOptions {
         applicationId 'com.yashsiwach.villkro'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        // Kept in step with app.json by hand: android/ is committed, so nothing
-        // regenerates these from app.json on a local build. They drifted two
-        // releases behind (1.8.3/33 while app.json was on 1.9.1/40), which made
-        // every locally built release APK report an old version and hard-gate
-        // itself on the server's minimum_version. The EAS cloud release reads
-        // app.json, so only local builds were affected — but a local .aab would
-        // have been rejected by Play for reusing a versionCode.
-        versionCode 46
-        versionName "1.9.9"
+        // android/ is committed, so Gradle is the Android binary's version
+        // source for both local and EAS builds. Keep these exact values in
+        // step with app.json; production EAS autoIncrement is disabled.
+        versionCode 48
+        versionName "1.9.10"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
