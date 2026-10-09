@@ -162,7 +162,9 @@ const config = {
   // If a shop neither confirms nor rejects within this long of the order
   // being Accepted, auto-reject that shop's items on its behalf (same
   // effect as the owner pressing Reject) so the order stops stalling.
-  SHOP_RESPONSE_TIMEOUT_MS: Number(process.env.SHOP_RESPONSE_TIMEOUT_MS) || 600000,
+  SHOP_RESPONSE_TIMEOUT_MS: Number(process.env.SHOP_RESPONSE_TIMEOUT_MS) || 1800000,
+  // Escalate unanswered shop alerts to the area's admins while ringing continues.
+  SHOP_ADMIN_ALERT_MS: Number(process.env.SHOP_ADMIN_ALERT_MS) || 180000,
 
   // How long a new order sits at Pending before it auto-accepts. This is the
   // admin's veto window — and, because shops are only told about an order once
@@ -170,7 +172,7 @@ const config = {
   // worst-case delay before a shop owner's phone rings on an order no admin
   // touched. Lower it to shorten that delay; every other hop in the chain is
   // sub-second.
-  ORDER_AUTO_ACCEPT_MS: Number(process.env.ORDER_AUTO_ACCEPT_MS) || 120000,
+  ORDER_AUTO_ACCEPT_MS: Number(process.env.ORDER_AUTO_ACCEPT_MS) || 60000,
 
   // Customer notifications older than this many days are deleted for good,
   // nightly (services/notificationRetention.js).

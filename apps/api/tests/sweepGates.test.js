@@ -87,16 +87,18 @@ describe('shop-alert sweeper tick', () => {
     expect(pool.query).toHaveBeenCalledTimes(2);
   });
 
-  it('runs both passes, as before, while a shop is waiting', async () => {
+  it('runs reminders, escalation and timeout passes while a shop is waiting', async () => {
     pool.query
       .mockResolvedValueOnce([[{ 1: 1 }]]) // a shop is waiting
       .mockResolvedValueOnce([[]]) // remind pass: nothing due this tick
+      .mockResolvedValueOnce([[]]) // escalation pass: nothing due this tick
       .mockResolvedValueOnce([[]]); // timeout pass: nobody past the window
 
     await shopAlertSweeper.tick();
-    expect(pool.query).toHaveBeenCalledTimes(3);
+    expect(pool.query).toHaveBeenCalledTimes(4);
     expect(pool.query.mock.calls[1][0]).toMatch(/shop_last_notified_at/);
-    expect(pool.query.mock.calls[2][0]).toMatch(/SELECT DISTINCT oi\.order_id/);
+    expect(pool.query.mock.calls[2][0]).toMatch(/shop_admin_alerted_at/);
+    expect(pool.query.mock.calls[3][0]).toMatch(/SELECT DISTINCT oi\.order_id/);
     expect(gates.shopAlerts.isClosed()).toBe(false); // keeps ticking
   });
 

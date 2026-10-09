@@ -1775,7 +1775,7 @@ const updateOrderStatus = async (req, res) => {
           `UPDATE order_items
            SET shop_confirmed_at = NULL, shop_rejected_at = NULL, shop_ready_at = NULL,
                shop_last_notified_at = NULL, shop_notify_count = 0, shop_alert_acked_at = NULL,
-               shop_billable = 1, shop_requested_at = NULL
+               shop_billable = 1, shop_requested_at = NULL, shop_admin_alerted_at = NULL
            WHERE order_id = ?`,
           [id]
         );

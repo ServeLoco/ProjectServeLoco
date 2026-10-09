@@ -7,7 +7,7 @@ import LiveOrderMap from './LiveOrderMap';
 import './GlobalOrderAlert.css';
 
 const SOUND_LOOP_INTERVAL_MS = 8000;
-const AUTO_ACCEPT_SECONDS = 120;
+const AUTO_ACCEPT_SECONDS = 60;
 
 function formatPlacedAt(iso) {
   if (!iso) return 'Just now';
@@ -225,12 +225,14 @@ export default function GlobalOrderAlert({ onOverlayOpen }) {
       return prev.filter(m => m.id !== id);
     });
     setBusy(prev => {
-      const { [id]: _gone, ...rest } = prev;
-      return rest;
+      const next = { ...prev };
+      delete next[id];
+      return next;
     });
     setErrors(prev => {
-      const { [id]: _gone, ...rest } = prev;
-      return rest;
+      const next = { ...prev };
+      delete next[id];
+      return next;
     });
   }, []);
 

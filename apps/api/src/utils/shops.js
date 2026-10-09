@@ -146,7 +146,8 @@ const notifyShopsForOrder = async (order) => {
     // Started after the pushes are already in flight: it is bookkeeping for a
     // sweeper that next ticks seconds from now, so it must not delay the alarm.
     await pool.query(
-      `UPDATE order_items SET shop_last_notified_at = NOW(), shop_notify_count = shop_notify_count + 1
+      `UPDATE order_items SET shop_requested_at = COALESCE(shop_requested_at, NOW()),
+         shop_last_notified_at = NOW(), shop_notify_count = shop_notify_count + 1
        WHERE order_id = ? AND shop_id IN (?) AND shop_confirmed_at IS NULL AND shop_rejected_at IS NULL`,
       [order.id, shopIds]
     );

@@ -9,11 +9,13 @@ import './AdminNotificationsBell.css';
 const TYPE_ICONS = {
   new_order: 'orders',
   new_customer: 'customers',
+  shop_not_responding: 'shops',
 };
 
 const TYPE_LABELS = {
   new_order: 'New order',
   new_customer: 'New customer',
+  shop_not_responding: 'Shop awaiting response',
 };
 
 const formatRelativeTime = (iso) => {
@@ -36,7 +38,6 @@ export default function AdminNotificationsBell() {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState([]);
   const [unread, setUnread] = useState(0);
-  const [loading, setLoading] = useState(false);
   const [panelTop, setPanelTop] = useState(0);
   // autoMarked ref is declared below (next to its consumers). State kept for
   // any future render-time UI hint if needed.
@@ -205,7 +206,7 @@ export default function AdminNotificationsBell() {
           <header className="admin-bell-panel-header">
             <h3>Notifications</h3>
             <span className="admin-bell-panel-count">
-              {loading ? 'Loading…' : `${items.length} item${items.length === 1 ? '' : 's'}`}
+              {`${items.length} item${items.length === 1 ? '' : 's'}`}
             </span>
           </header>
 
@@ -213,7 +214,7 @@ export default function AdminNotificationsBell() {
             {items.length === 0 ? (
               <div className="admin-bell-empty">
                 <span className="admin-bell-empty-icon"><AdminIcon name="bellOff" size={32} /></span>
-                <p>You're all caught up.</p>
+                <p>You&apos;re all caught up.</p>
                 <small>New password reset requests, orders, and customer signups will appear here.</small>
               </div>
             ) : (

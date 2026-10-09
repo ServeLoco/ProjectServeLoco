@@ -576,7 +576,7 @@ async function catchUpMissedOrderNotifications() {
 
 const ADMIN_ORDER_PUSH_TYPES = new Set([
   'new_order', 'order_auto_cancelled', 'rider_assignment_failed',
-  'rider_zero_available', 'order_cancelled_no_rider',
+  'rider_zero_available', 'order_cancelled_no_rider', 'shop_not_responding',
 ]);
 
 // Retry budget for deep-links that arrive before their target screen exists:

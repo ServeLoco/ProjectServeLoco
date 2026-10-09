@@ -14,6 +14,17 @@ const orderAutoAccept = require('../src/realtime/orderAutoAccept');
 const LONG_DELAY = 3_600_000;
 
 describe('orderAutoAccept deadline math', () => {
+  it('uses a one-minute default veto window', () => {
+    jest.useFakeTimers();
+    try {
+      expect(orderAutoAccept.AUTO_ACCEPT_MS).toBe(60000);
+      orderAutoAccept.schedule(100, 'OD-100');
+      expect(orderAutoAccept.getDeadline(100)).toBe(Date.now() + 60000);
+    } finally {
+      orderAutoAccept.cancel(100);
+      jest.useRealTimers();
+    }
+  });
   it('extend() pushes the deadline back by exactly the requested amount', () => {
     orderAutoAccept.schedule(101, 'OD-101', LONG_DELAY);
     const before = orderAutoAccept.getDeadline(101);

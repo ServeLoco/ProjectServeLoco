@@ -5,7 +5,7 @@ import { adminApi, subscribeAdminOrderEvents, subscribeAdminRealtime } from '../
 import { useNewOrderAlert } from '../../hooks/useNewOrderAlert';
 import AppIcon from '../../components/AppIcon';
 
-const AUTO_ACCEPT_SECONDS = 120;
+const AUTO_ACCEPT_SECONDS = 60;
 
 function formatPlacedAt(iso) {
   if (!iso) return 'Just now';

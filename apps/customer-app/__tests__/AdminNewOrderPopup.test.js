@@ -123,6 +123,7 @@ describe('AdminNewOrderPopup', () => {
 
     const texts = findAllText(root.root);
     expect(texts).toEqual(expect.arrayContaining(['Order #OD-44 auto-accepted']));
+    expect(texts).toContain('Auto-accepted after 60s with no admin action. You can still cancel below.');
   });
 
   it('keeps a failed accept in the queue and shows the error', async () => {

@@ -2808,6 +2808,9 @@ const migrate = async () => {
     await ensureColumnAtEnd('orders', 'billing_snapshot', 'billing_snapshot JSON NULL DEFAULT NULL');
     await ensureColumnAtEnd('orders', 'billing_revision', 'billing_revision BIGINT UNSIGNED NOT NULL DEFAULT 0');
     await ensureColumnAtEnd('order_items', 'shop_requested_at', 'shop_requested_at DATETIME NULL DEFAULT NULL');
+    // One escalation per shop/request, even after an admin dismisses the inbox
+    // row. Resending resets this nullable marker; existing decisions stay intact.
+    await ensureColumnAtEnd('order_items', 'shop_admin_alerted_at', 'shop_admin_alerted_at DATETIME NULL DEFAULT NULL');
     const { saveOrderBilling } = require('../services/orderBilling');
     // Only pre-fix rejected orders need repair. The snapshot is the durable
     // marker: repeat runs neither apply the reduction twice nor rewrite new bills.

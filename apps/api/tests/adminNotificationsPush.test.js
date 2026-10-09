@@ -15,7 +15,7 @@ jest.mock('../src/utils/expoPush', () => ({
 
 const { pool } = require('../src/db/mysql');
 const { sendPushToMany } = require('../src/utils/expoPush');
-const { createAdminNotification, TYPES } = require('../src/utils/adminNotifications');
+const { createAdminNotification, publishAdminNotification, TYPES } = require('../src/utils/adminNotifications');
 
 // The push fan-out is fire-and-forget (createAdminNotification resolves
 // before notifyMobileAdminsPush finishes its internal awaits) — flush the
@@ -27,6 +27,16 @@ describe('createAdminNotification — mobile admin push fan-out', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     pool.query.mockReset();
+  });
+
+  it('pushes a shop escalation with the actual order id instead of its composite dedupe key', async () => {
+    pool.query.mockResolvedValueOnce([[{ n: 1 }]]).mockResolvedValueOnce([[{ user_id: 5 }]]);
+    publishAdminNotification({ area_id: 7, type: TYPES.SHOP_NOT_RESPONDING, title: 'Waiting', body: 'Contact the shop', related_id: '50-2-20261010010000' }, { orderId: '50' });
+    await flushAsync();
+    expect(sendPushToMany).toHaveBeenCalledWith(pool, [5], expect.objectContaining({
+      data: { type: TYPES.SHOP_NOT_RESPONDING, orderId: '50' },
+    }));
+    expect(pool.query).toHaveBeenCalledWith(expect.stringContaining('area_id = ?'), [7]);
   });
 
   // broadcastUnreadCount() still fires un-awaited (pre-existing pattern) right

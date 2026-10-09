@@ -20,6 +20,9 @@ jest.mock('../src/utils/shops', () => ({
 jest.mock('../src/services/shopOrderActions', () => ({
   rejectShopOrder: jest.fn(),
 }));
+jest.mock('../src/services/shopOrderEscalation', () => ({
+  escalatePendingShopOrder: jest.fn().mockResolvedValue(null),
+}));
 
 jest.mock('../src/utils/adminNotifications', () => ({
   TYPES: {
@@ -32,13 +35,17 @@ const { pool } = require('../src/db/mysql');
 const { remindShopOrderOwner } = require('../src/utils/shops');
 const { rejectShopOrder } = require('../src/services/shopOrderActions');
 const adminInbox = require('../src/utils/adminNotifications');
+const { escalatePendingShopOrder } = require('../src/services/shopOrderEscalation');
 const {
   remindPendingShopOrders,
   timeoutRejectStaleShopOrders,
+  alertAdminsForPendingShopOrders,
+  tick,
   SHOP_ALERT_REMIND_MS,
   SHOP_ALERT_REMIND_ACKED_MS,
   SHOP_ALERT_FIRST_RETRY_MS,
   SHOP_RESPONSE_TIMEOUT_MS,
+  SHOP_ADMIN_ALERT_MS,
 } = require('../src/realtime/shopAlertSweeper');
 
 describe('remindPendingShopOrders', () => {
@@ -199,6 +206,51 @@ describe('remindPendingShopOrders', () => {
     // did but rejected; row 23 succeeded — net one successful reminder.
     expect(remindShopOrderOwner).toHaveBeenCalledTimes(2);
     expect(remindShopOrderOwner).toHaveBeenCalledWith(expect.anything(), 3, 703, expect.anything());
+  });
+});
+
+describe('admin escalation during the shop response window', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    pool.query.mockReset();
+  });
+
+  it('scans only active unanswered requests between 3 and 30 minutes that have not been escalated', async () => {
+    pool.query.mockResolvedValueOnce([[]]);
+    await alertAdminsForPendingShopOrders();
+    const [sql, params] = pool.query.mock.calls[0];
+    expect(SHOP_ADMIN_ALERT_MS).toBe(180000);
+    expect(SHOP_RESPONSE_TIMEOUT_MS).toBe(1800000);
+    expect(params).toEqual([180, 1800]);
+    expect(sql).toContain("o.status IN ('Accepted', 'Preparing')");
+    expect(sql).toContain('oi.shop_confirmed_at IS NULL AND oi.shop_rejected_at IS NULL');
+    expect(sql).toContain('oi.shop_admin_alerted_at IS NULL');
+    expect(sql).toContain('COALESCE(oi.shop_requested_at, o.accepted_at) <= NOW() - INTERVAL ? SECOND');
+    expect(sql).toContain('COALESCE(oi.shop_requested_at, o.accepted_at) > NOW() - INTERVAL ? SECOND');
+    expect(escalatePendingShopOrder).not.toHaveBeenCalled();
+  });
+
+  it('escalates each pending shop independently and continues after a failure', async () => {
+    pool.query.mockResolvedValueOnce([[
+      { order_id: 10, shop_id: 1, shop_name: 'Shop A' },
+      { order_id: 10, shop_id: 2, shop_name: 'Shop B' },
+    ]]);
+    escalatePendingShopOrder.mockRejectedValueOnce(new Error('db blip'));
+    await alertAdminsForPendingShopOrders();
+    expect(escalatePendingShopOrder).toHaveBeenCalledWith(10, 1, 'Shop A');
+    expect(escalatePendingShopOrder).toHaveBeenCalledWith(10, 2, 'Shop B');
+    expect(rejectShopOrder).not.toHaveBeenCalled();
+  });
+
+  it('runs reminders, admin escalation and timeout checks in the same live sweep', async () => {
+    pool.query
+      .mockResolvedValueOnce([[{ live: 1 }]])
+      .mockResolvedValueOnce([[]]) // reminders
+      .mockResolvedValueOnce([[{ order_id: 10, shop_id: 1, shop_name: 'Shop A' }]])
+      .mockResolvedValueOnce([[]]); // timeout
+    await tick();
+    expect(escalatePendingShopOrder).toHaveBeenCalledWith(10, 1, 'Shop A');
+    expect(pool.query).toHaveBeenCalledTimes(4);
   });
 });
 

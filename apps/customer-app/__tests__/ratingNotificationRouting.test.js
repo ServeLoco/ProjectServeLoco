@@ -4,12 +4,24 @@
  * opens Order Detail.
  */
 import { navigateFromNotificationData } from '../src/hooks/useLocalNotifications';
+import { useAuthStore } from '../src/stores';
 
 const readyRef = () => ({
   current: { isReady: () => true, navigate: jest.fn() },
 });
 
 describe('navigateFromNotificationData', () => {
+  it('opens the admin order detail when a shop escalation push is tapped', () => {
+    const previous = useAuthStore.getState();
+    useAuthStore.setState({ admin: { id: 'test-admin' }, adminToken: 'test-session' });
+    try {
+      const ref = readyRef();
+      navigateFromNotificationData({ type: 'shop_not_responding', orderId: '50' }, ref);
+      expect(ref.current.navigate).toHaveBeenCalledWith('AdminOrderDetail', { orderId: '50' });
+    } finally {
+      useAuthStore.setState(previous, true);
+    }
+  });
   it('sends a rate_order tap to the Orders tab with the order and its day', () => {
     const ref = readyRef();
     navigateFromNotificationData(

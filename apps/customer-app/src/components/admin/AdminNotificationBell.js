@@ -12,6 +12,7 @@ const TYPE_LABELS = {
   new_order: 'New order',
   new_customer: 'New customer',
   shop_rejected: 'Shop rejected',
+  shop_not_responding: 'Shop awaiting response',
   order_auto_cancelled: 'Order auto-cancelled',
   rider_assignment_failed: 'Rider assignment failed',
   rider_zero_available: 'No riders available',
@@ -103,7 +104,10 @@ export default function AdminNotificationBell() {
 
   const handleItemPress = useCallback((item) => {
     closePanel();
-    if (ORDER_TYPES.has(item.type) && item.related_id) {
+    if (item.type === 'shop_not_responding') {
+      const orderId = item.related_url?.match(/^\/orders\?id=(\d+)$/)?.[1];
+      if (orderId) navigation.navigate('AdminOrderDetail', { orderId });
+    } else if (ORDER_TYPES.has(item.type) && item.related_id) {
       navigation.navigate('AdminOrderDetail', { orderId: item.related_id });
     } else if (item.type === 'new_customer') {
       navigation.navigate('AdminPeople');

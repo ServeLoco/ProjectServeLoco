@@ -90,7 +90,7 @@ async function changeShopDecision(shopId, orderId, action, { source } = {}) {
       const [[eligible]] = await connection.query(`SELECT COUNT(*) AS cnt FROM order_items
         WHERE order_id = ? AND shop_id = ? AND shop_confirmed_at IS NULL AND shop_rejected_at IS NULL
           AND COALESCE(shop_requested_at, ?) <= NOW() - INTERVAL ? SECOND`,
-      [orderId, shopId, order.accepted_at, Math.ceil((config.SHOP_RESPONSE_TIMEOUT_MS || 600000) / 1000)]);
+      [orderId, shopId, order.accepted_at, Math.ceil(config.SHOP_RESPONSE_TIMEOUT_MS / 1000)]);
       if (Number(eligible.cnt) !== items.length) {
         await connection.rollback();
         return { ok: false, status: 409, code: 'CONCURRENCY_CONFLICT', message: 'Shop decision or response deadline has changed' };
@@ -99,7 +99,7 @@ async function changeShopDecision(shopId, orderId, action, { source } = {}) {
     const decisionSql = {
       confirmed: 'shop_confirmed_at = COALESCE(shop_confirmed_at, NOW()), shop_billable = 1',
       rejected: 'shop_rejected_at = COALESCE(shop_rejected_at, NOW()), shop_billable = 0',
-      resent: 'shop_confirmed_at = NULL, shop_rejected_at = NULL, shop_ready_at = NULL, shop_alert_acked_at = NULL, shop_requested_at = NOW(), shop_last_notified_at = NULL, shop_notify_count = 0, shop_billable = 0',
+      resent: 'shop_confirmed_at = NULL, shop_rejected_at = NULL, shop_ready_at = NULL, shop_alert_acked_at = NULL, shop_admin_alerted_at = NULL, shop_requested_at = NOW(), shop_last_notified_at = NULL, shop_notify_count = 0, shop_billable = 0',
     }[action];
     await connection.query(`UPDATE order_items SET ${decisionSql} WHERE order_id = ? AND shop_id = ?`, [orderId, shopId]);
     const updatedOrder = await saveOrderBilling(connection, order);

@@ -8,6 +8,7 @@ const TYPES = {
   NEW_ORDER: 'new_order',
   NEW_CUSTOMER: 'new_customer',
   SHOP_REJECTED: 'shop_rejected',
+  SHOP_NOT_RESPONDING: 'shop_not_responding',
   // Fired when a shop's items were auto-rejected after SHOP_RESPONSE_TIMEOUT_MS
   // of silence AND the order is still alive afterward (another shop on the
   // same order already confirmed, or is still pending) — i.e. the case
@@ -24,6 +25,39 @@ const TYPES = {
   // reasoning as replaceOrderItem's own no-discount-recompute rule), so an
   // admin has to decide: cancel, manually adjust, or contact the customer.
   COUPON_TERMS_VIOLATED: 'coupon_terms_violated',
+};
+
+// Reusable persistence for callers that must commit notification + business
+// state atomically. Errors propagate so their transaction can roll back.
+const insertAdminNotification = async (queryable, { type, title, body, relatedUrl = null, relatedId = null, areaId }) => {
+  const [result] = await queryable.query(
+    `INSERT IGNORE INTO admin_notifications (area_id, type, title, body, related_url, related_id)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [areaId, type, title, body, relatedUrl, relatedId]
+  );
+  if (result.affectedRows === 0) return null;
+  const [rows] = await queryable.query(
+    `SELECT id, area_id, type, title, body, related_url, related_id, read_at, created_at
+       FROM admin_notifications
+      WHERE id = ?`,
+    [result.insertId]
+  );
+  if (!rows[0]) throw new Error('Inserted admin notification could not be read');
+  return rows[0];
+};
+
+// Publish only AFTER the caller's transaction commits. orderId may differ
+// from the dedupe key (shop alerts identify a specific shop/request cycle).
+const publishAdminNotification = (notification, { orderId = notification.related_id } = {}) => {
+  const { area_id: areaId, title, body, type } = notification;
+  if (areaId === null) {
+    emitToPlatformAdmins('admin.notification.created', notification);
+  } else {
+    emitToAdmins(areaId, 'admin.notification.created', notification);
+  }
+  broadcastUnreadCount(areaId);
+  notifyMobileAdminsPush({ title, body, type, relatedId: orderId, areaId })
+    .catch((err) => logger.error('[adminNotifications] push failed:', err.message));
 };
 
 /**
@@ -50,48 +84,10 @@ const TYPES = {
  * for new-signup (one per user id, behind an isNewUser branch); anything
  * higher-volume added later needs its own guard.
  */
-const createAdminNotification = async ({ type, title, body, relatedUrl = null, relatedId = null, areaId }) => {
+const createAdminNotification = async (data) => {
   try {
-    // Skip rows that would collide with an existing un-acknowledged event for
-    // the same business entity (e.g. duplicate signup/order retries) — same
-    // area, same type, same related entity.
-    const [result] = await pool.query(
-      `INSERT IGNORE INTO admin_notifications (area_id, type, title, body, related_url, related_id)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [areaId, type, title, body, relatedUrl, relatedId]
-    );
-    if (result.affectedRows === 0) {
-      // Duplicate — don't emit a realtime event, the original is already
-      // pending in the admin's inbox.
-      return null;
-    }
-    const [rows] = await pool.query(
-      `SELECT id, area_id, type, title, body, related_url, related_id, read_at, created_at
-         FROM admin_notifications
-        WHERE id = ?`,
-      [result.insertId]
-    );
-    const notification = rows[0];
-    if (notification) {
-      if (areaId === null) {
-        emitToPlatformAdmins('admin.notification.created', notification);
-      } else {
-        emitToAdmins(areaId, 'admin.notification.created', notification);
-      }
-      // Fire-and-forget updated badge count so all open admin tabs refresh.
-      broadcastUnreadCount(areaId);
-      // Background push to mobile admin phones (D4 — foreground gets the
-      // socket event above; backgrounded/killed apps need a device push).
-      // Every inbox type gets a push, matching the bell — the INSERT IGNORE
-      // above already means this only runs once per event even if callers
-      // double-fire. Fire-and-forget: several request handlers await
-      // createAdminNotification (shop-owner reject, rider dispatch), and this
-      // push is an external Expo HTTP round trip — blocking their response on
-      // it added hundreds of ms for a side effect the caller never reads.
-      // Failures still log inside notifyMobileAdminsPush/expoPush.
-      notifyMobileAdminsPush({ title, body, type, relatedId, areaId })
-        .catch((err) => logger.error('[adminNotifications] push failed:', err.message));
-    }
+    const notification = await insertAdminNotification(pool, data);
+    if (notification) publishAdminNotification(notification);
     return notification;
   } catch (e) {
     logger.error('[adminNotifications] create failed:', e.message);
@@ -175,6 +171,8 @@ const notifyMobileAdminsPush = async ({ title, body, type, relatedId, areaId }) 
 module.exports = {
   TYPES,
   createAdminNotification,
+  insertAdminNotification,
+  publishAdminNotification,
   getUnreadCount,
   broadcastUnreadCount,
 };

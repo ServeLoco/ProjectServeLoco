@@ -7,11 +7,13 @@
  * a data-only message dropped by the carrier), the order just sits waiting
  * for a shop that never heard about it — no retry, no admin visibility.
  *
- * Two passes per tick, same shape as riderOfferSweeper.js:
+ * Three passes per tick, same shape as riderOfferSweeper.js:
  *  1. remindPendingShopOrders — re-push the alarm to any shop that still
  *     hasn't confirmed/rejected, throttled by SHOP_ALERT_REMIND_MS so a
  *     bursty weak connection gets caught by a later retry.
- *  2. timeoutRejectStaleShopOrders — after SHOP_RESPONSE_TIMEOUT_MS of total
+ *  2. alertAdminsForPendingShopOrders — escalate unanswered requests while
+ *     the shop still has time to respond and reminders continue.
+ *  3. timeoutRejectStaleShopOrders — after SHOP_RESPONSE_TIMEOUT_MS of total
  *     silence from a shop, auto-reject that shop's items (same effect as the
  *     owner pressing Reject) so the order stops stalling indefinitely.
  *
@@ -41,7 +43,8 @@ const SHOP_ALERT_FIRST_RETRY_MS = Math.min(
   SHOP_ALERT_REMIND_MS
 );
 const SHOP_ALERT_REMIND_ACKED_MS = config.SHOP_ALERT_REMIND_ACKED_MS || 60000;
-const SHOP_RESPONSE_TIMEOUT_MS = config.SHOP_RESPONSE_TIMEOUT_MS || 600000;
+const SHOP_RESPONSE_TIMEOUT_MS = config.SHOP_RESPONSE_TIMEOUT_MS;
+const SHOP_ADMIN_ALERT_MS = config.SHOP_ADMIN_ALERT_MS;
 
 let timer = null;
 let running = false;
@@ -133,6 +136,32 @@ const remindPendingShopOrders = async () => {
   }
 };
 
+// Candidate scan only; the service rechecks under the order lock so a shop
+// response, cancellation or fresh resend cannot produce a stale escalation.
+const alertAdminsForPendingShopOrders = async () => {
+  const [rows] = await pool.query(
+    `SELECT DISTINCT oi.order_id, oi.shop_id, s.name AS shop_name
+     FROM order_items oi
+     JOIN orders o ON o.id = oi.order_id
+     JOIN shops s ON s.id = oi.shop_id
+     WHERE o.status IN ('Accepted', 'Preparing')
+       AND o.accepted_at IS NOT NULL
+       AND oi.shop_confirmed_at IS NULL AND oi.shop_rejected_at IS NULL
+       AND oi.shop_admin_alerted_at IS NULL
+       AND COALESCE(oi.shop_requested_at, o.accepted_at) <= NOW() - INTERVAL ? SECOND
+       AND COALESCE(oi.shop_requested_at, o.accepted_at) > NOW() - INTERVAL ? SECOND`,
+    [Math.ceil(SHOP_ADMIN_ALERT_MS / 1000), Math.ceil(SHOP_RESPONSE_TIMEOUT_MS / 1000)]
+  );
+  const { escalatePendingShopOrder } = require('../services/shopOrderEscalation');
+  for (const row of rows) {
+    try {
+      await escalatePendingShopOrder(row.order_id, row.shop_id, row.shop_name);
+    } catch (e) {
+      logger.error('[shop-alert] admin escalation failed for order', row.order_id, 'shop', row.shop_id, e.message);
+    }
+  }
+};
+
 /**
  * Auto-reject a shop's items once SHOP_RESPONSE_TIMEOUT_MS has elapsed since
  * the order was accepted with no confirm/reject from that shop. Reuses
@@ -143,8 +172,7 @@ const remindPendingShopOrders = async () => {
  *
  * When the reject does NOT auto-cancel the order (another shop already
  * confirmed, or is still within its own window), the order would otherwise
- * silently stall forever — maybeStartRiderAssignment requires every shop
- * confirmed, and nothing else is watching. Files a SHOP_TIMEOUT_PARTIAL admin
+ * need intervention. Files a SHOP_TIMEOUT_PARTIAL admin
  * notification in that case so a human can resend to the shop or cancel.
  */
 const timeoutRejectStaleShopOrders = async () => {
@@ -235,6 +263,7 @@ const tick = async () => {
     const checkpoint = gate.checkpoint();
     if (await hasLiveShopAlerts()) {
       await remindPendingShopOrders();
+      await alertAdminsForPendingShopOrders();
       await timeoutRejectStaleShopOrders();
     } else {
       gate.close(checkpoint);
@@ -279,10 +308,12 @@ module.exports = {
   tick,
   hasLiveShopAlerts,
   remindPendingShopOrders,
+  alertAdminsForPendingShopOrders,
   timeoutRejectStaleShopOrders,
   SHOP_ALERT_SWEEP_MS,
   SHOP_ALERT_REMIND_MS,
   SHOP_ALERT_REMIND_ACKED_MS,
   SHOP_ALERT_FIRST_RETRY_MS,
   SHOP_RESPONSE_TIMEOUT_MS,
+  SHOP_ADMIN_ALERT_MS,
 };

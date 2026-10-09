@@ -69,10 +69,11 @@ describeWithMysql('shop billing and reports (real MySQL)', () => {
     expect(Number((await bill(id)).total)).toBe(120);
     await rejectShopOrder(shops[1], id);
     expect(Number((await bill(id)).total)).toBe(120);
+    await pool.query('UPDATE order_items SET shop_admin_alerted_at = NOW() WHERE order_id = ? AND shop_id = ?', [id, shops[1]]);
     await resendShopOrder(shops[1], id);
     expect(Number((await bill(id)).total)).toBe(120);
-    const [[pending]] = await pool.query('SELECT shop_billable, shop_confirmed_at, shop_ready_at FROM order_items WHERE order_id = ? AND shop_id = ?', [id, shops[1]]);
-    expect(pending).toMatchObject({ shop_billable: 0, shop_confirmed_at: null, shop_ready_at: null });
+    const [[pending]] = await pool.query('SELECT shop_billable, shop_confirmed_at, shop_ready_at, shop_admin_alerted_at FROM order_items WHERE order_id = ? AND shop_id = ?', [id, shops[1]]);
+    expect(pending).toMatchObject({ shop_billable: 0, shop_confirmed_at: null, shop_ready_at: null, shop_admin_alerted_at: null });
     await confirmShopOrder(shops[1], id);
     expect(Number((await bill(id)).total)).toBe(320);
     await rejectShopOrder(shops[1], id);
@@ -142,7 +143,7 @@ describeWithMysql('shop billing and reports (real MySQL)', () => {
     // Shop B was resent once a day ago, then both shops rejected.
     await rejectShopOrder(shops[1], id);
     await resendShopOrder(shops[1], id);
-    await pool.query('UPDATE order_items SET shop_requested_at = NOW() - INTERVAL 1 DAY WHERE order_id = ? AND shop_id = ?', [id, shops[1]]);
+    await pool.query('UPDATE order_items SET shop_requested_at = NOW() - INTERVAL 1 DAY, shop_admin_alerted_at = NOW() WHERE order_id = ? AND shop_id = ?', [id, shops[1]]);
     await rejectShopOrder(shops[0], id);
     await rejectShopOrder(shops[1], id);
     expect(Number((await bill(id)).total)).toBe(0);
@@ -158,10 +159,10 @@ describeWithMysql('shop billing and reports (real MySQL)', () => {
     expect(Number(reopened.subtotal)).toBe(300);
     expect(Number(reopened.delivery_charge)).toBe(20);
     expect(Number(reopened.total)).toBe(320);
-    const [items] = await pool.query('SELECT shop_billable, shop_requested_at, shop_rejected_at FROM order_items WHERE order_id = ? ORDER BY id', [id]);
+    const [items] = await pool.query('SELECT shop_billable, shop_requested_at, shop_rejected_at, shop_admin_alerted_at FROM order_items WHERE order_id = ? ORDER BY id', [id]);
     expect(items).toEqual([
-      { shop_billable: 1, shop_requested_at: null, shop_rejected_at: null },
-      { shop_billable: 1, shop_requested_at: null, shop_rejected_at: null },
+      { shop_billable: 1, shop_requested_at: null, shop_rejected_at: null, shop_admin_alerted_at: null },
+      { shop_billable: 1, shop_requested_at: null, shop_rejected_at: null, shop_admin_alerted_at: null },
     ]);
   });
 
