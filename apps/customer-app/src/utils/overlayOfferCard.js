@@ -104,3 +104,52 @@ export function subscribeOverlayAction(cb) {
   const sub = emitter.addListener('OverlayOfferAction', cb);
   return () => sub.remove();
 }
+
+// Rider offers accepted on the card. Accept brings the app up before the
+// accept call has landed, so for that second (longer on a slow network) the
+// dashboard still holds the offer and would flash it as its slide-to-accept
+// popup. Offers here are kept out of that popup: while the call is in flight,
+// and for good once the server took it — a slow refresh that left before the
+// accept landed must not bring it back. A failed call releases the offer, so
+// the popup can still offer it if it is genuinely still open.
+const cardAcceptInFlight = new Set();
+const cardAccepted = new Set();
+const cardAcceptListeners = new Set();
+
+function notifyCardAccept(event) {
+  cardAcceptListeners.forEach((cb) => {
+    try {
+      cb(event);
+    } catch { /* a listener must not break the accept path */ }
+  });
+}
+
+/** The card's Accept was tapped for this offer; its accept call is starting. */
+export function beginCardAccept(offerId) {
+  if (offerId == null || offerId === '') return;
+  const key = String(offerId);
+  cardAcceptInFlight.add(key);
+  notifyCardAccept({ offerId: key, done: false });
+}
+
+/** That accept call ended — `accepted` is whether the server took it. */
+export function endCardAccept(offerId, accepted) {
+  if (offerId == null || offerId === '') return;
+  const key = String(offerId);
+  cardAcceptInFlight.delete(key);
+  if (accepted) cardAccepted.add(key);
+  notifyCardAccept({ offerId: key, done: true, accepted: Boolean(accepted) });
+}
+
+/** True while this offer's card accept is in flight, or once it succeeded. */
+export function isOfferTakenByCard(offerId) {
+  if (offerId == null) return false;
+  const key = String(offerId);
+  return cardAcceptInFlight.has(key) || cardAccepted.has(key);
+}
+
+/** @param {(event: {offerId: string, done: boolean, accepted?: boolean}) => void} cb */
+export function subscribeCardAccept(cb) {
+  cardAcceptListeners.add(cb);
+  return () => cardAcceptListeners.delete(cb);
+}

@@ -24,7 +24,12 @@ import {
   ALERT_TYPE_NEW_ORDER,
   ALERT_TYPE_RIDER_OFFER,
 } from './src/utils/orderAlarmNotifications';
-import { subscribeOverlayAction, openMainApp } from './src/utils/overlayOfferCard';
+import {
+  subscribeOverlayAction,
+  openMainApp,
+  beginCardAccept,
+  endCardAccept,
+} from './src/utils/overlayOfferCard';
 
 // Separate lightweight root rendered only by the native AlarmActivity (see
 // android AlarmActivity.kt) — a rider offer's lock-screen card, not the full
@@ -130,11 +135,24 @@ if (Platform.OS === 'android') {
     // Open the app on accept so they land on the job/order they took; reject
     // leaves them wherever they were. Launch first — the API call can take a
     // moment and the tap should feel immediate.
+    // A rider offer is marked before the launch, so the dashboard keeps it out
+    // of its own slide-to-accept popup while this accept is still in flight.
+    const riderAcceptId = action?.action === 'accept' ? action?.offerId : null;
+    if (riderAcceptId) {
+      beginCardAccept(riderAcceptId);
+    }
     if (action?.action === 'accept') {
       openMainApp();
     }
     const alertType = action?.offerId ? ALERT_TYPE_RIDER_OFFER : ALERT_TYPE_NEW_ORDER;
-    await performOfferAction(alertType, action?.action, action || {});
+    let accepted = false;
+    try {
+      accepted = await performOfferAction(alertType, action?.action, action || {});
+    } finally {
+      if (riderAcceptId) {
+        endCardAccept(riderAcceptId, accepted === true);
+      }
+    }
   }));
 }
 

@@ -617,13 +617,14 @@ async function silenceAlarmForAlertType(alertType) {
  * @param {string} alertType — ALERT_TYPE_NEW_ORDER | ALERT_TYPE_RIDER_OFFER
  * @param {'accept'|'reject'} action
  * @param {{ orderId?: string, offerId?: string }} data
+ * @returns {Promise<boolean>} true when the server took the action
  */
 export async function performOfferAction(alertType, action, data) {
   const token = await ensureBackgroundCustomerToken();
   if (!token) {
     // Cannot call API without auth — cancel ring and let user open the app.
     await silenceAlarmForAlertType(alertType);
-    return;
+    return false;
   }
 
   try {
@@ -650,10 +651,12 @@ export async function performOfferAction(alertType, action, data) {
     } else {
       await cancelAllAlarmNotifications();
     }
+    return true;
   } catch (err) {
     console.warn('[orderAlarm] action failed:', err?.message || err);
     // Still stop the ring so the user is not stuck with an endless alarm.
     await silenceAlarmForAlertType(alertType);
+    return false;
   }
 }
 

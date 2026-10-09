@@ -42,7 +42,12 @@ import {
   markAppForeground,
   markOfferHandledForeground,
 } from '../../utils/orderAlarmNotifications';
-import { canShowOverlay, requestOverlayPermission } from '../../utils/overlayOfferCard';
+import {
+  canShowOverlay,
+  isOfferTakenByCard,
+  requestOverlayPermission,
+  subscribeCardAccept,
+} from '../../utils/overlayOfferCard';
 import RiderOfferPopup from './RiderOfferPopup';
 
 // Not re-nagged every load once dismissed — the rider can still grant it
@@ -57,6 +62,15 @@ const FULLSCREEN_BANNER_DISMISSED_KEY = 'serveloco:fullScreenIntentBannerDismiss
 
 function offerIdOf(o) {
   return o?.id ?? o?.offerId ?? null;
+}
+
+// 404/409 from accept or reject means the offer is already settled on the
+// server: accepted from the floating or lock-screen card, expired, or taken
+// back by an admin. A retry can never succeed, so the popup drops it and
+// resyncs (an offer this rider took shows up as their job) instead of
+// holding a slider the server will keep refusing.
+function isOfferAlreadySettled(err) {
+  return err?.status === 404 || err?.status === 409;
 }
 
 function assignedAtMs(job) {
@@ -112,7 +126,11 @@ export default function RiderDashboardScreen({ navigation }) {
   const [selectedJobId, setSelectedJobId] = useState(null);
   const [overlayBannerVisible, setOverlayBannerVisible] = useState(false);
   const [fullScreenBannerVisible, setFullScreenBannerVisible] = useState(false);
-  const activeOffer = offerQueue[0] || null;
+  // Bumped when an offer's floating-card accept starts or ends, so the
+  // offers that card has taken drop out of (or come back to) the popup.
+  const [, setCardAcceptTick] = useState(0);
+  const pendingOffers = offerQueue.filter((o) => !isOfferTakenByCard(offerIdOf(o)));
+  const activeOffer = pendingOffers[0] || null;
   // Featured job card — whichever the rider picked from the queue chips,
   // falling back to the first assignment (also covers the single-job case).
   const assignment = (
@@ -288,6 +306,14 @@ export default function RiderDashboardScreen({ navigation }) {
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
+
+  // Floating-card accept: re-render as it starts and ends, then resync once
+  // it lands — a taken offer shows up as a job, a failed one comes back to
+  // the popup if the server still has it open.
+  useEffect(() => subscribeCardAccept(({ done }) => {
+    setCardAcceptTick((n) => n + 1);
+    if (done) fetchAll();
+  }), [fetchAll]);
 
   // Re-sync when returning from the map screen so card buttons match map actions.
   useFocusEffect(
@@ -486,7 +512,11 @@ export default function RiderDashboardScreen({ navigation }) {
   const handleAcceptOffer = useCallback(async (offer) => {
     silenceRiderAlarm();
     const id = offer.id || offer.offerId;
-    await riderApi.acceptOffer(id);
+    try {
+      await riderApi.acceptOffer(id);
+    } catch (err) {
+      if (!isOfferAlreadySettled(err)) throw err;
+    }
     // Drop accepted offer from queue, then load any next pending offer.
     setOfferQueue((prev) => prev.filter((o) => {
       const oid = o.id || o.offerId;
@@ -501,7 +531,11 @@ export default function RiderDashboardScreen({ navigation }) {
   const handleRejectOffer = useCallback(async (offer) => {
     silenceRiderAlarm();
     const id = offer.id || offer.offerId;
-    await riderApi.rejectOffer(id);
+    try {
+      await riderApi.rejectOffer(id);
+    } catch (err) {
+      if (!isOfferAlreadySettled(err)) throw err;
+    }
     setOfferQueue((prev) => prev.filter((o) => {
       const oid = o.id || o.offerId;
       return !(oid && Number(oid) === Number(id));
@@ -885,12 +919,12 @@ export default function RiderDashboardScreen({ navigation }) {
             >
               <AppIcon name="notification" size={28} color={colors.textInverse} />
               <Text style={styles.offerWaitingTitle}>
-                {offerQueue.length > 1
-                  ? `${offerQueue.length} offers in queue`
+                {pendingOffers.length > 1
+                  ? `${pendingOffers.length} offers in queue`
                   : 'New offer waiting'}
               </Text>
               <Text style={styles.offerWaitingSub}>
-                {offerQueue.length > 1
+                {pendingOffers.length > 1
                   ? 'Respond one by one in the popup — next opens after accept/reject'
                   : 'Accept or reject in the popup — timer is running'}
               </Text>
@@ -924,7 +958,7 @@ export default function RiderDashboardScreen({ navigation }) {
         hasActiveJobs={assignments.length > 0}
         activeJobCount={assignments.length}
         queueIndex={0}
-        queueTotal={offerQueue.length}
+        queueTotal={pendingOffers.length}
       />
 
       <RiderBackgroundLocationDisclosure
