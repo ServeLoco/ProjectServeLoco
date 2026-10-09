@@ -271,6 +271,27 @@
   color: var(--text-primary);
 }
 
+.customer-order-history {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.customer-tier {
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-weight: 750;
+}
+
+.customer-tier-new { color: #475569; background: #f1f5f9; }
+.customer-tier-starter { color: #1d4ed8; background: #dbeafe; }
+.customer-tier-regular { color: #047857; background: #d1fae5; }
+.customer-tier-loyal { color: #7e22ce; background: #f3e8ff; }
+
 .date-cell {
   color: var(--text-secondary);
   white-space: nowrap;

@@ -513,6 +513,288 @@ function HomeCartProgressSync({ deliveryZoneId, deliveryCoords, deliveryZonesVer
   return null;
 }
 
+// Keep existing rails out of progressive-loading renders. Appending a section
+// or resolving an automatic row should not rebuild every FlatList, category
+// card and animated node already on screen. Live section replacements still
+// render immediately, as do mode, width and handler changes.
+export const HomeSection = React.memo(function HomeSection({ section, rowsAboveRevealed, renderContext }) {
+  const {
+    windowWidth, navigation, currentApiStoreType, categoryCardWidth, categoryGap,
+    staggerCatAnims, handleCategoryPress, hotBadgePulse, contentWidth, staggerComboAnims,
+    handleAddToCart, handleIncrement, handleDecrement,
+    commonOfferSectionId, onCommonOfferScroll, offerReloadVersion,
+  } = renderContext;
+  // A section below a row that has not shown its content yet waits
+  // behind a skeleton, so the page fills in strictly top to bottom.
+  if (!rowsAboveRevealed) {
+    const waitingSizes = homeSkeletonSizes(windowWidth);
+    return (
+      <View key={section.id} style={styles.section}>
+        <SkeletonSectionTitle />
+        <SkeletonRail count={3} width={waitingSizes.productWidth} height={waitingSizes.productHeight} />
+      </View>
+    );
+  }
+  if (section.sectionType === 'offer_banner') {
+    return (
+      <OfferBannerCarousel
+        key={section.id}
+        offers={section.items}
+        bannerWidth={windowWidth - (PAGE_GUTTER * 2)}
+        onOfferPress={(offer) => navigation.navigate('ProductList', {
+          offerId: offer.id,
+          offerTitle: offer.title,
+          storeType: currentApiStoreType,
+        })}
+      />
+    );
+  }
+
+  if (section.sectionType === 'category_grid') {
+    const normalizedItems = section.items.map(normalizeCategory);
+    // Honour the admin-configured `max_visible_items` from the
+    // dashboard section. The API already caps `section.items` at
+    // that value, but re-applying the cap here defends against any
+    // future payload that exceeds it and lets the rail reflect the
+    // admin's intent even when the API limit grows.
+    // Fallback: show whatever the API sent (no client-side truncation).
+    const maxVisible = Number(section.maxVisibleItems) || normalizedItems.length;
+    const visibleItems = normalizedItems.slice(0, maxVisible);
+    // "See all" pill is shown at the end of the rail when the
+    // admin has more categories than are displayed here.
+    // Primary signal: API's `hasMore`. Fallback: totalItems > items.
+    // Safety net: more than 2 categories in total.
+    const totalCount = Number(section.totalItems) || normalizedItems.length;
+    const hasMore =
+      section.hasMore === true ||
+      totalCount > normalizedItems.length ||
+      normalizedItems.length > 2;
+    return (
+      <View key={section.id} style={styles.section}>
+        {!!section.title && (
+          <View style={styles.sectionHeader}>
+            <View style={styles.titleRow}>
+              <View style={styles.headerIndicator} />
+              {(section.sectionIcon === 'box' || (!section.sectionIcon && section.sectionType === 'category_grid')) && (
+                <HomeIcon name="box" size={14} color={colors.primary} style={styles.sectionTypeIcon} />
+              )}
+              {section.sectionIcon && section.sectionIcon !== 'box' && (
+                <HomeIcon name={section.sectionIcon} size={14} color={colors.primary} style={styles.sectionTypeIcon} />
+              )}
+              <Text style={styles.sectionTitlePremium}>{section.title}</Text>
+              {section.showHotBadge === true && (
+                <Animated.View style={[styles.hotBadge, { transform: [{ scale: hotBadgePulse }] }]}>
+                  <LinearGradient
+                    colors={['#FF6B6B', '#FF8E53']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.hotBadgeGradient}
+                  >
+                    <HomeIcon name="star" size={10} color="#FFFFFF" fill="#FFFFFF" style={styles.hotBadgeIcon} />
+                    <Text style={styles.hotBadgeText}>HOT</Text>
+                  </LinearGradient>
+                </Animated.View>
+              )}
+            </View>
+          </View>
+        )}
+        <Animated.FlatList
+          data={visibleItems}
+          keyExtractor={(item) => String(item.id)}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoryScrollContent}
+          keyboardShouldPersistTaps="handled"
+          style={styles.categoryScroll}
+          {...productRowListProps(visibleItems.length)}
+          renderItem={({ item: cat, index: idx }) => (
+            <Animated.View
+              style={{
+                width: categoryCardWidth,
+                marginRight: idx === visibleItems.length - 1 ? categoryGap : categoryGap,
+                opacity: staggerCatAnims[idx] || 1,
+                transform: [{
+                  translateY: (staggerCatAnims[idx] || new Animated.Value(1)).interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [20, 0]
+                  })
+                }]
+              }}
+            >
+              <CategoryCard
+                variant="hero"
+                name={cat.name}
+                count={cat.count}
+                imageUri={cat.imageUri}
+                style={{ width: categoryCardWidth }}
+                onPress={() => handleCategoryPress(cat)}
+              />
+            </Animated.View>
+          )}
+          ListFooterComponent={
+            hasMore ? (
+              <View style={styles.seeAllInRow}>
+                <SeeAllButton
+                  label="See all"
+                  onPress={() => navigation.navigate('Categories', { storeType: currentApiStoreType })}
+                  accessibilityLabel="See all categories"
+                />
+              </View>
+            ) : null
+          }
+        />
+      </View>
+    );
+  }
+
+  if (section.sectionType === 'product_block' || section.sectionType === 'combo_block') {
+    const isComboBlock = section.sectionType === 'combo_block';
+    const normalizedItems = section.items.map(normalizeProductCached);
+    // Unavailable items (shop closed or turned off) sink to the end of
+    // the row — stable sort keeps the admin's arranged relative order
+    // within each group. Recomputed every render, so the moment a live
+    // availability/shop-status patch flips an item's flag, the row
+    // reorders in the same tick the card greys out (or comes back to
+    // the front the instant it's available again).
+    const sortedItems = [...normalizedItems].sort((a, b) => {
+      const aOut = !a.available || a.shopIsOpen === false || a.shop_is_open === false;
+      const bOut = !b.available || b.shopIsOpen === false || b.shop_is_open === false;
+      return aOut === bOut ? 0 : aOut ? 1 : -1;
+    });
+    const visibleItems = isComboBlock ? sortedItems.slice(0, 2) : sortedItems;
+    // Show the "See all" button when EITHER:
+    //   (a) admin enabled the explicit "show_see_all" flag, OR
+    //   (b) the section has more items than are shown on the dashboard
+    //       (API's `hasMore` is true when totalItems > items.length).
+    // This respects the admin's intent even if max_visible_items
+    // happens to match the total item count.
+    const showSeeAll = section.showSeeAll === true;
+    const hasMore = section.hasMore === true;
+    const shouldShowSeeAll = showSeeAll || hasMore;
+    // Horizontal-scroll cards: ~40% of content width so the next card
+    // peeks (same peek effect as the categories rail).
+    const productCardWidth = Math.floor(contentWidth * 0.4);
+    return (
+      <View key={section.id} style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <View style={styles.titleRow}>
+            <View style={styles.headerIndicator} />
+            {section.sectionIcon === 'box' && (
+              <HomeIcon name="box" size={14} color={colors.primary} style={styles.sectionTypeIcon} />
+            )}
+            {(section.sectionIcon === 'shoppingBag' || (!section.sectionIcon && section.sectionType === 'product_block')) && (
+              <HomeIcon name="shoppingBag" size={14} color={colors.primary} style={styles.sectionTypeIcon} />
+            )}
+            {(section.sectionIcon === 'star' || (!section.sectionIcon && isComboBlock)) && (
+              <HomeIcon name="star" size={14} color={colors.primary} fill={colors.primary} style={styles.sectionTypeIcon} />
+            )}
+            {section.sectionIcon && section.sectionIcon !== 'box' && section.sectionIcon !== 'shoppingBag' && section.sectionIcon !== 'star' && (
+              <HomeIcon name={section.sectionIcon} size={14} color={colors.primary} style={styles.sectionTypeIcon} />
+            )}
+            <Text style={styles.sectionTitlePremium}>{section.title}</Text>
+            {section.showHotBadge === true && (
+              <Animated.View style={[styles.hotBadge, { transform: [{ scale: hotBadgePulse }] }]}>
+                <LinearGradient
+                  colors={['#FF6B6B', '#FF8E53']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.hotBadgeGradient}
+                >
+                  <HomeIcon name="star" size={10} color="#FFFFFF" fill="#FFFFFF" style={styles.hotBadgeIcon} />
+                  <Text style={styles.hotBadgeText}>HOT</Text>
+                </LinearGradient>
+              </Animated.View>
+            )}
+          </View>
+        </View>
+
+        <Animated.FlatList
+          data={visibleItems}
+          keyExtractor={(item) => String(item.id)}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.productScrollContent}
+          style={styles.productScroll}
+          keyboardShouldPersistTaps="handled"
+          {...productRowListProps(visibleItems.length)}
+          renderItem={({ item, index: idx }) => {
+            const isItemCombo = isComboBlock || item.isCombo || item.is_combo;
+            return (
+              <HomeProductCard
+                item={item}
+                isItemCombo={isItemCombo}
+                width={productCardWidth}
+                anim={staggerComboAnims[idx]}
+                onAdd={handleAddToCart}
+                onIncrement={handleIncrement}
+                onDecrement={handleDecrement}
+              />
+            );
+          }}
+          ListFooterComponent={
+            shouldShowSeeAll ? (
+              <View style={styles.seeAllInRowProduct}>
+                <SeeAllButton
+                  label="See all"
+                  onPress={() => navigation.navigate('ProductList', {
+                    sectionSlug: section.slug,
+                    sectionTitle: section.title,
+                    storeType: currentApiStoreType,
+                  })}
+                  accessibilityLabel={`See all ${section.title}`}
+                />
+              </View>
+            ) : null
+          }
+        />
+      </View>
+    );
+  }
+
+  if (section.sectionType === 'offer_cards') {
+    const cards = drawableOfferCards(section);
+    if (cards.length === 0) return null;
+    const offerCardWidth = offerCardWidthFor(cards.length, contentWidth);
+    // The row that colours the Common area reports its scroll.
+    const tintsArea = section.id === commonOfferSectionId;
+    return (
+      <View key={section.id} style={styles.section}>
+        {section.title ? (
+          <View style={styles.sectionHeader}>
+            <View style={styles.titleRow}>
+              <View style={styles.headerIndicator} />
+              <Text style={styles.sectionTitlePremium}>{section.title}</Text>
+            </View>
+          </View>
+        ) : null}
+        <OfferCardsRail
+          key={`${section.id}:${offerReloadVersion}`}
+          cards={cards}
+          cardWidth={offerCardWidth}
+          gutter={PAGE_GUTTER}
+          onScroll={tintsArea ? onCommonOfferScroll : undefined}
+          renderCard={(card) => {
+            const design = offerCardDesignOf(card);
+            const CardView = design.Component;
+            return (
+              <CardView
+                card={card}
+                width={offerCardWidth}
+                onViewAll={() => {
+                  const target = design.viewAll?.(card);
+                  if (target) navigation.navigate(target.name, target.params);
+                }}
+              />
+            );
+          }}
+        />
+      </View>
+    );
+  }
+
+  return null;
+});
+
 export default function HomeScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
@@ -1579,16 +1861,16 @@ export default function HomeScreen() {
       : 1),
     [hasCommon, scrollY],
   );
-  const topGroupTranslateY = scrollY.interpolate({
+  const topGroupTranslateY = useMemo(() => scrollY.interpolate({
     inputRange: [0, collapseDistance],
     outputRange: [0, -collapseDistance],
     extrapolate: 'clamp',
-  });
-  const topRowOpacity = scrollY.interpolate({
+  }), [scrollY, collapseDistance]);
+  const topRowOpacity = useMemo(() => scrollY.interpolate({
     inputRange: [0, collapseDistance * 0.7],
     outputRange: [1, 0],
     extrapolate: 'clamp',
-  });
+  }), [scrollY, collapseDistance]);
 
   const categoryGap = spacing.md;
   const contentWidth = windowWidth - (PAGE_GUTTER * 2);
@@ -1626,6 +1908,16 @@ export default function HomeScreen() {
   void comboGridWidth; // kept for future layout calculations
   void comboGap;
 
+  const sectionRenderContext = useMemo(() => ({
+    windowWidth, navigation, currentApiStoreType, categoryCardWidth, categoryGap,
+    staggerCatAnims, handleCategoryPress, hotBadgePulse, contentWidth, staggerComboAnims,
+    handleAddToCart, handleIncrement, handleDecrement,
+    commonOfferSectionId, onCommonOfferScroll, offerReloadVersion,
+  }), [windowWidth, navigation, currentApiStoreType, categoryCardWidth, categoryGap,
+    staggerCatAnims, handleCategoryPress, hotBadgePulse, contentWidth, staggerComboAnims,
+    handleAddToCart, handleIncrement, handleDecrement,
+    commonOfferSectionId, onCommonOfferScroll, offerReloadVersion]);
+
   // Draws a list of Home units (sections and automatic rows). Used for the
   // Common sections above the shop modes and for the mode's own sections.
   const renderHomeUnits = useCallback((units) => {
@@ -1654,281 +1946,18 @@ export default function HomeScreen() {
           />
         );
       }
-      const { section } = unit;
-      // A section below a row that has not shown its content yet waits
-      // behind a skeleton, so the page fills in strictly top to bottom.
-      if (!rowsAboveRevealed) {
-        const waitingSizes = homeSkeletonSizes(windowWidth);
-        return (
-          <View key={section.id} style={styles.section}>
-            <SkeletonSectionTitle />
-            <SkeletonRail count={3} width={waitingSizes.productWidth} height={waitingSizes.productHeight} />
-          </View>
-        );
-      }
-      if (section.sectionType === 'offer_banner') {
-        return (
-          <OfferBannerCarousel
-            key={section.id}
-            offers={section.items}
-            bannerWidth={windowWidth - (PAGE_GUTTER * 2)}
-            onOfferPress={(offer) => navigation.navigate('ProductList', {
-              offerId: offer.id,
-              offerTitle: offer.title,
-              storeType: currentApiStoreType,
-            })}
-          />
-        );
-      }
-
-      if (section.sectionType === 'category_grid') {
-        const normalizedItems = section.items.map(normalizeCategory);
-        // Honour the admin-configured `max_visible_items` from the
-        // dashboard section. The API already caps `section.items` at
-        // that value, but re-applying the cap here defends against any
-        // future payload that exceeds it and lets the rail reflect the
-        // admin's intent even when the API limit grows.
-        // Fallback: show whatever the API sent (no client-side truncation).
-        const maxVisible = Number(section.maxVisibleItems) || normalizedItems.length;
-        const visibleItems = normalizedItems.slice(0, maxVisible);
-        // "See all" pill is shown at the end of the rail when the
-        // admin has more categories than are displayed here.
-        // Primary signal: API's `hasMore`. Fallback: totalItems > items.
-        // Safety net: more than 2 categories in total.
-        const totalCount = Number(section.totalItems) || normalizedItems.length;
-        const hasMore =
-          section.hasMore === true ||
-          totalCount > normalizedItems.length ||
-          normalizedItems.length > 2;
-        return (
-          <View key={section.id} style={styles.section}>
-            {!!section.title && (
-              <View style={styles.sectionHeader}>
-                <View style={styles.titleRow}>
-                  <View style={styles.headerIndicator} />
-                  {(section.sectionIcon === 'box' || (!section.sectionIcon && section.sectionType === 'category_grid')) && (
-                    <HomeIcon name="box" size={14} color={colors.primary} style={styles.sectionTypeIcon} />
-                  )}
-                  {section.sectionIcon && section.sectionIcon !== 'box' && (
-                    <HomeIcon name={section.sectionIcon} size={14} color={colors.primary} style={styles.sectionTypeIcon} />
-                  )}
-                  <Text style={styles.sectionTitlePremium}>{section.title}</Text>
-                  {section.showHotBadge === true && (
-                    <Animated.View style={[styles.hotBadge, { transform: [{ scale: hotBadgePulse }] }]}>
-                      <LinearGradient
-                        colors={['#FF6B6B', '#FF8E53']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.hotBadgeGradient}
-                      >
-                        <HomeIcon name="star" size={10} color="#FFFFFF" fill="#FFFFFF" style={styles.hotBadgeIcon} />
-                        <Text style={styles.hotBadgeText}>HOT</Text>
-                      </LinearGradient>
-                    </Animated.View>
-                  )}
-                </View>
-              </View>
-            )}
-            <Animated.FlatList
-              data={visibleItems}
-              keyExtractor={(item) => String(item.id)}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.categoryScrollContent}
-              keyboardShouldPersistTaps="handled"
-              style={styles.categoryScroll}
-              renderItem={({ item: cat, index: idx }) => (
-                <Animated.View
-                  style={{
-                    width: categoryCardWidth,
-                    marginRight: idx === visibleItems.length - 1 ? categoryGap : categoryGap,
-                    opacity: staggerCatAnims[idx] || 1,
-                    transform: [{
-                      translateY: (staggerCatAnims[idx] || new Animated.Value(1)).interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [20, 0]
-                      })
-                    }]
-                  }}
-                >
-                  <CategoryCard
-                    variant="hero"
-                    name={cat.name}
-                    count={cat.count}
-                    imageUri={cat.imageUri}
-                    style={{ width: categoryCardWidth }}
-                    onPress={() => handleCategoryPress(cat)}
-                  />
-                </Animated.View>
-              )}
-              ListFooterComponent={
-                hasMore ? (
-                  <View style={styles.seeAllInRow}>
-                    <SeeAllButton
-                      label="See all"
-                      onPress={() => navigation.navigate('Categories', { storeType: currentApiStoreType })}
-                      accessibilityLabel="See all categories"
-                    />
-                  </View>
-                ) : null
-              }
-            />
-          </View>
-        );
-      }
-
-      if (section.sectionType === 'product_block' || section.sectionType === 'combo_block') {
-        const isComboBlock = section.sectionType === 'combo_block';
-        const normalizedItems = section.items.map(normalizeProductCached);
-        // Unavailable items (shop closed or turned off) sink to the end of
-        // the row — stable sort keeps the admin's arranged relative order
-        // within each group. Recomputed every render, so the moment a live
-        // availability/shop-status patch flips an item's flag, the row
-        // reorders in the same tick the card greys out (or comes back to
-        // the front the instant it's available again).
-        const sortedItems = [...normalizedItems].sort((a, b) => {
-          const aOut = !a.available || a.shopIsOpen === false || a.shop_is_open === false;
-          const bOut = !b.available || b.shopIsOpen === false || b.shop_is_open === false;
-          return aOut === bOut ? 0 : aOut ? 1 : -1;
-        });
-        const visibleItems = isComboBlock ? sortedItems.slice(0, 2) : sortedItems;
-        // Show the "See all" button when EITHER:
-        //   (a) admin enabled the explicit "show_see_all" flag, OR
-        //   (b) the section has more items than are shown on the dashboard
-        //       (API's `hasMore` is true when totalItems > items.length).
-        // This respects the admin's intent even if max_visible_items
-        // happens to match the total item count.
-        const showSeeAll = section.showSeeAll === true;
-        const hasMore = section.hasMore === true;
-        const shouldShowSeeAll = showSeeAll || hasMore;
-        // Horizontal-scroll cards: ~40% of content width so the next card
-        // peeks (same peek effect as the categories rail).
-        const productCardWidth = Math.floor(contentWidth * 0.4);
-        return (
-          <View key={section.id} style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.titleRow}>
-                <View style={styles.headerIndicator} />
-                {section.sectionIcon === 'box' && (
-                  <HomeIcon name="box" size={14} color={colors.primary} style={styles.sectionTypeIcon} />
-                )}
-                {(section.sectionIcon === 'shoppingBag' || (!section.sectionIcon && section.sectionType === 'product_block')) && (
-                  <HomeIcon name="shoppingBag" size={14} color={colors.primary} style={styles.sectionTypeIcon} />
-                )}
-                {(section.sectionIcon === 'star' || (!section.sectionIcon && isComboBlock)) && (
-                  <HomeIcon name="star" size={14} color={colors.primary} fill={colors.primary} style={styles.sectionTypeIcon} />
-                )}
-                {section.sectionIcon && section.sectionIcon !== 'box' && section.sectionIcon !== 'shoppingBag' && section.sectionIcon !== 'star' && (
-                  <HomeIcon name={section.sectionIcon} size={14} color={colors.primary} style={styles.sectionTypeIcon} />
-                )}
-                <Text style={styles.sectionTitlePremium}>{section.title}</Text>
-                {section.showHotBadge === true && (
-                  <Animated.View style={[styles.hotBadge, { transform: [{ scale: hotBadgePulse }] }]}>
-                    <LinearGradient
-                      colors={['#FF6B6B', '#FF8E53']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.hotBadgeGradient}
-                    >
-                      <HomeIcon name="star" size={10} color="#FFFFFF" fill="#FFFFFF" style={styles.hotBadgeIcon} />
-                      <Text style={styles.hotBadgeText}>HOT</Text>
-                    </LinearGradient>
-                  </Animated.View>
-                )}
-              </View>
-            </View>
-
-            <Animated.FlatList
-              data={visibleItems}
-              keyExtractor={(item) => String(item.id)}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.productScrollContent}
-              style={styles.productScroll}
-              keyboardShouldPersistTaps="handled"
-              {...productRowListProps(visibleItems.length)}
-              renderItem={({ item, index: idx }) => {
-                const isItemCombo = isComboBlock || item.isCombo || item.is_combo;
-                return (
-                  <HomeProductCard
-                    item={item}
-                    isItemCombo={isItemCombo}
-                    width={productCardWidth}
-                    anim={staggerComboAnims[idx]}
-                    onAdd={handleAddToCart}
-                    onIncrement={handleIncrement}
-                    onDecrement={handleDecrement}
-                  />
-                );
-              }}
-              ListFooterComponent={
-                shouldShowSeeAll ? (
-                  <View style={styles.seeAllInRowProduct}>
-                    <SeeAllButton
-                      label="See all"
-                      onPress={() => navigation.navigate('ProductList', {
-                        sectionSlug: section.slug,
-                        sectionTitle: section.title,
-                        storeType: currentApiStoreType,
-                      })}
-                      accessibilityLabel={`See all ${section.title}`}
-                    />
-                  </View>
-                ) : null
-              }
-            />
-          </View>
-        );
-      }
-
-      if (section.sectionType === 'offer_cards') {
-        const cards = drawableOfferCards(section);
-        if (cards.length === 0) return null;
-        const offerCardWidth = offerCardWidthFor(cards.length, contentWidth);
-        // The row that colours the Common area reports its scroll.
-        const tintsArea = section.id === commonOfferSectionId;
-        return (
-          <View key={section.id} style={styles.section}>
-            {section.title ? (
-              <View style={styles.sectionHeader}>
-                <View style={styles.titleRow}>
-                  <View style={styles.headerIndicator} />
-                  <Text style={styles.sectionTitlePremium}>{section.title}</Text>
-                </View>
-              </View>
-            ) : null}
-            <OfferCardsRail
-              key={`${section.id}:${offerReloadVersion}`}
-              cards={cards}
-              cardWidth={offerCardWidth}
-              gutter={PAGE_GUTTER}
-              onScroll={tintsArea ? onCommonOfferScroll : undefined}
-              renderCard={(card) => {
-                const design = offerCardDesignOf(card);
-                const CardView = design.Component;
-                return (
-                  <CardView
-                    card={card}
-                    width={offerCardWidth}
-                    onViewAll={() => {
-                      const target = design.viewAll?.(card);
-                      if (target) navigation.navigate(target.name, target.params);
-                    }}
-                  />
-                );
-              }}
-            />
-          </View>
-        );
-      }
-
-      return null;
+      return (
+        <HomeSection
+          key={unit.section.id}
+          section={unit.section}
+          rowsAboveRevealed={rowsAboveRevealed}
+          renderContext={sectionRenderContext}
+        />
+      );
     });
   }, [currentApiStoreType, deliveryCoords?.lat, deliveryCoords?.lng, autoBlocksRefresh,
     windowWidth, handleAddToCart, handleIncrement, handleDecrement, handleAutoSeeAll,
-    loadedAutoIds, handleAutoLoaded, navigation, categoryCardWidth, categoryGap,
-    staggerCatAnims, handleCategoryPress, hotBadgePulse, contentWidth, staggerComboAnims,
-    commonOfferSectionId, onCommonOfferScroll, offerReloadVersion]);
+    loadedAutoIds, handleAutoLoaded, sectionRenderContext]);
 
   // Adding catalog sections must not rebuild the offers above them.
   const renderedCommonUnits = useMemo(() => renderHomeUnits(commonUnits), [renderHomeUnits, commonUnits]);

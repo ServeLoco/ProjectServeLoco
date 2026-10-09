@@ -7,6 +7,9 @@ import CreateOrderModal from '../components/CreateOrderModal';
 import ReplaceItemModal from '../components/ReplaceItemModal';
 import { GENERIC_ERROR } from '../utils/constants';
 import { readList } from '../utils/apiResponse';
+import { getCustomerTier } from '../utils/customerTier';
+import { collectExportRows, downloadCsv } from '../utils/csvExport';
+import InvoicePreview from '../components/InvoicePreview';
 import { useAdminRefresh } from '../hooks/useAdminRefresh';
 import { useAreaStore } from '../stores/useAreaStore';
 import {
@@ -32,6 +35,17 @@ const ORDER_STATUS_LABELS = ORDER_STATUS_OPTIONS.reduce((acc, item) => {
   return acc;
 }, {});
 const getOrderStatusLabel = (status) => ORDER_STATUS_LABELS[status] || status || 'Unknown';
+
+function CustomerOrderTier({ order }) {
+  const tier = getCustomerTier(order.customerDeliveredOrderCount ?? order.customer_delivered_order_count);
+  if (!tier) return null;
+  return (
+    <span className="customer-order-history" title="Successfully delivered orders in the selected area (all dates)">
+      <span className={`customer-tier customer-tier-${tier.label.toLowerCase()}`}>{tier.label}</span>
+      <span>{tier.count} delivered {tier.count === 1 ? 'order' : 'orders'}</span>
+    </span>
+  );
+}
 // 'Paid' and 'Success' are the same state (money received) written by two
 // different code paths — auto-flip on delivery vs rider marking COD
 // collected. Collapsed to one option here; the server accepts the 'Paid'
@@ -42,19 +56,6 @@ const formatMoney = (value) => {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric.toFixed(2) : '0.00';
 };
-const escapeCsvCell = (value) => {
-  let s = String(value ?? '');
-  // Prevent formula injection: neutralize leading =,+,-,@ that spreadsheet
-  // apps (Excel/LibreOffice) evaluate as formulas when a CSV is opened.
-  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
-  return `"${s.replace(/"/g, '""')}"`;
-};
-const escapeHtml = (value) => String(value ?? '')
-  .replace(/&/g, '&amp;')
-  .replace(/</g, '&lt;')
-  .replace(/>/g, '&gt;')
-  .replace(/"/g, '&quot;')
-  .replace(/'/g, '&#039;');
 const EMPTY_FILTERS = {
   status: '',
   paymentStatus: '',
@@ -127,6 +128,7 @@ export default function Orders() {
   const [orders, setOrders] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 20, totalPages: 1 });
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState(null);
 
   const [filters, setFilters] = useState(EMPTY_FILTERS);
@@ -135,6 +137,7 @@ export default function Orders() {
   const [historyMode, setHistoryMode] = useState(false);
 
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [showInvoice, setShowInvoice] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [remarkDraft, setRemarkDraft] = useState('');
   const [remarkSaving, setRemarkSaving] = useState(false);
@@ -250,6 +253,7 @@ export default function Orders() {
   useEffect(() => {
     setRemarkDraft(selectedOrder?.admin_remark || '');
     setReassignRiderId('');
+    setShowInvoice(false);
   }, [selectedOrder?.id]);
 
   // Rider picker for the reassign control — only worth fetching once the
@@ -321,6 +325,10 @@ export default function Orders() {
         const patchedOrders = prevOrders.map(order => {
           if (String(order.id) !== eventOrderId) return order;
           found = true;
+          if (payload.status && payload.status !== order.status
+            && (payload.status === 'Delivered' || order.status === 'Delivered')) {
+            queueOrdersRefresh(page);
+          }
           return mergeAdminOrderPatch(order, payload);
         });
 
@@ -331,8 +339,8 @@ export default function Orders() {
         return patchedOrders;
       });
 
-      // Pure realtime: patch list + open drawer (status, cancel badges) from
-      // the socket payload — no forced HTTP refetch for status changes.
+      // Patch status immediately; delivery transitions also refresh customer
+      // history for every visible order belonging to that customer.
       setSelectedOrder(prevSelected => {
         if (!prevSelected || String(prevSelected.id) !== eventOrderId) {
           return prevSelected;
@@ -475,6 +483,9 @@ export default function Orders() {
             })
           : o
       )));
+      if (newStatus === 'Delivered' || latest.status === 'Delivered') {
+        queueOrdersRefresh(paginationRef.current.page || 1);
+      }
     } catch (err) {
       console.error(err);
       const apiMsg = err?.response?.data?.message;
@@ -611,17 +622,20 @@ export default function Orders() {
   };
 
   const handleExportCSV = async () => {
+    if (exporting) return;
     try {
-      setLoading(true);
-      const params = { page: 1, limit: 1000, ...filters };
+      setExporting(true);
+      setError(null);
+      const params = { limit: 100, ...filters };
+      if (!historyMode) params.today = '1';
       Object.keys(params).forEach(k => !params[k] && delete params[k]);
       
-      const res = await OrdersApi.list(params);
-      const allFilteredOrders = readList(res, ['orders']);
+      const allFilteredOrders = await collectExportRows(
+        page => OrdersApi.list({ ...params, page }), ['orders']
+      );
       
       if (allFilteredOrders.length === 0) {
         setPageMessage({ type: 'warning', text: 'No orders found to export' });
-        setLoading(false);
         return;
       }
 
@@ -661,132 +675,14 @@ export default function Orders() {
         o.note || ''
       ]);
 
-      const csvContent = "data:text/csv;charset=utf-8," 
-        + [headers.map(escapeCsvCell).join(",")]
-          .concat(rows.map(r => r.map(escapeCsvCell).join(",")))
-          .join("\n");
-
-      const encodedUri = encodeURI(csvContent);
-      const link = document.createElement("a");
-      link.setAttribute("href", encodedUri);
-      link.setAttribute("download", `serveloco_orders_${new Date().getTime()}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      downloadCsv(`villkro_orders_${Date.now()}.csv`, headers, rows);
+      setPageMessage({ type: 'success', text: `Exported ${rows.length} orders.` });
     } catch (err) {
       console.error(err);
-      setError(GENERIC_ERROR);
+      setError(err.message || GENERIC_ERROR);
     } finally {
-      setLoading(false);
+      setExporting(false);
     }
-  };
-
-  const handlePrintInvoice = () => {
-    if (!selectedOrder) return;
-    const itemsHtml = (selectedOrder.items || []).filter(item => item.shop_rejected_at == null && Number(item.shop_billable ?? 1) === 1).map(item => `
-      <tr>
-        <td>${escapeHtml(item.product_name)}</td>
-        <td style="text-align: center;">${escapeHtml(item.quantity)}</td>
-        <td style="text-align: right;">Rs. ${formatMoney(item.unit_price)}</td>
-        <td style="text-align: right;">Rs. ${formatMoney(item.line_total)}</td>
-      </tr>
-    `).join('');
-
-    const invoiceHtml = `
-      <html>
-      <head>
-        <title>Invoice - #${escapeHtml(selectedOrder.order_number)}</title>
-        <style>
-          body { font-family: system-ui, sans-serif; padding: 20px; color: #333; }
-          .header { display: flex; justify-content: space-between; border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 20px; }
-          .title { font-size: 24px; font-weight: bold; }
-          .details { margin-bottom: 30px; line-height: 1.6; }
-          table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-          th, td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
-          th { background: #f8fafc; }
-          .totals { text-align: right; line-height: 1.8; }
-          .totals strong { font-size: 18px; color: #0E1116; }
-          @media print {
-            body { padding: 0; }
-            .no-print { display: none; }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div>
-             <div class="title">ServeLoco</div>
-             <div>Quick Commerce & Grocery Delivery</div>
-          </div>
-          <div style="text-align: right;">
-             <div style="font-weight: bold; font-size: 18px;">INVOICE</div>
-             <div>Order #${escapeHtml(selectedOrder.order_number)}</div>
-             <div>Date: ${escapeHtml(formatDateTime(selectedOrder.created_at))}</div>
-          </div>
-        </div>
-        <div class="details">
-          <strong>Customer Details:</strong><br/>
-          Name: ${escapeHtml(selectedOrder.customer_name)}<br/>
-          Phone: ${escapeHtml(selectedOrder.phone)}<br/>
-          Address: ${escapeHtml(selectedOrder.address)}<br/>
-          ${selectedOrder.note ? `Note: ${escapeHtml(selectedOrder.note)}` : ''}
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Item</th>
-              <th style="text-align: center;">Qty</th>
-              <th style="text-align: right;">Price</th>
-              <th style="text-align: right;">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${itemsHtml}
-          </tbody>
-        </table>
-        <div class="totals">
-          <div>Subtotal: Rs. ${formatMoney(selectedOrder.subtotal)}</div>
-          <div>Delivery Charge: Rs. ${formatMoney(selectedOrder.delivery_charge)}</div>
-          ${selectedOrder.night_charge > 0 ? `<div>Night Charge: Rs. ${formatMoney(selectedOrder.night_charge)}</div>` : ''}
-          ${selectedOrder.rain_charge > 0 ? `<div>Rain Charge: Rs. ${formatMoney(selectedOrder.rain_charge)}</div>` : ''}
-          ${selectedOrder.fast_delivery_charge > 0 ? `<div>Fast Delivery Add-on: Rs. ${formatMoney(selectedOrder.fast_delivery_charge)}</div>` : ''}
-          <div style="margin-top: 10px;"><strong>Grand Total: Rs. ${formatMoney(selectedOrder.total)}</strong></div>
-        </div>
-        <div style="margin-top: 40px; text-align: center; color: #888; font-size: 12px;">
-          Thank you for shopping with ServeLoco!
-        </div>
-      </body>
-      </html>
-    `;
-
-    const previousFrame = document.getElementById('invoice-print-frame');
-    if (previousFrame) previousFrame.remove();
-
-    const printFrame = document.createElement('iframe');
-    printFrame.id = 'invoice-print-frame';
-    printFrame.title = 'Invoice print frame';
-    printFrame.style.position = 'fixed';
-    printFrame.style.right = '0';
-    printFrame.style.bottom = '0';
-    printFrame.style.width = '0';
-    printFrame.style.height = '0';
-    printFrame.style.border = '0';
-    document.body.appendChild(printFrame);
-
-    printFrame.onload = () => {
-      const frameWindow = printFrame.contentWindow;
-      if (!frameWindow) {
-        setPageMessage({ type: 'error', text: 'Unable to open print preview. Please try again.' });
-        printFrame.remove();
-        return;
-      }
-
-      frameWindow.focus();
-      frameWindow.print();
-      setTimeout(() => printFrame.remove(), 1000);
-    };
-
-    printFrame.srcdoc = invoiceHtml;
   };
 
   const isTerminalState = (status) => ['Delivered', 'Cancelled'].includes(status);
@@ -802,6 +698,9 @@ export default function Orders() {
 
   return (
     <div className="orders-container">
+      {showInvoice && selectedOrder && (
+        <InvoicePreview order={selectedOrder} onClose={() => setShowInvoice(false)} />
+      )}
       <header className="orders-header">
         <div>
           <h1 className="orders-title">Orders Management</h1>
@@ -826,9 +725,9 @@ export default function Orders() {
           <button
             className="btn-export"
             onClick={handleExportCSV}
-            disabled={loading || orders.length === 0}
+            disabled={loading || exporting || orders.length === 0}
           >
-            <AdminIcon name="download" size={16} strokeWidth={2.2} /> Export CSV
+            <AdminIcon name="download" size={16} strokeWidth={2.2} /> {exporting ? 'Exporting…' : 'Export CSV'}
           </button>
         </div>
       </header>
@@ -996,6 +895,7 @@ export default function Orders() {
                   <td>
                     <span className="customer-name">{order.customer_name}</span>
                     <span className="customer-phone">{order.phone}</span>
+                    <CustomerOrderTier order={order} />
                   </td>
                   <td className="items-cell">
                     {(order.items || []).length === 0 ? (
@@ -1131,8 +1031,8 @@ export default function Orders() {
                       View Map
                     </a>
                   )}
-                  <button onClick={handlePrintInvoice} className="btn-print">
-                    Print Invoice
+                  <button onClick={() => setShowInvoice(true)} className="btn-print">
+                    View Invoice
                   </button>
                 </div>
               </div>

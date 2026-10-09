@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ProductsApi } from '../api';
+import { downloadCsv, downloadCsvContent } from '../utils/csvExport';
 import AdminIcon from '../components/AdminIcon';
 import { getFileSizeError, MAX_BULK_CSV_BYTES, MAX_BULK_ZIP_BYTES } from '../utils/fileValidation';
 import './BulkImport.css';
@@ -34,17 +35,6 @@ function StatCard({ label, value, variant }) {
     </div>
   );
 }
-
-// ── Download helper ──────────────────────────────────────────────────────────
-const downloadCsv = (content, filename) => {
-  const blob = new Blob([content], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-};
 
 // ── Template columns ─────────────────────────────────────────────────────────
 const TEMPLATE_CONTENT = [
@@ -164,11 +154,9 @@ export default function BulkImport() {
   // ── Download skipped report ────────────────────────────────────────────────
   const downloadSkippedReport = (rows) => {
     if (!rows || rows.length === 0) return;
-    const header = 'Row,Name,Category,Status,Reason\n';
-    const content = rows.map(r =>
-      `${r.row},"${(r.name || '').replace(/"/g, '""')}","${(r.category || '').replace(/"/g, '""')}",skipped,"${(r.reason || '').replace(/"/g, '""')}"`
-    ).join('\n');
-    downloadCsv(header + content, `bulk-import-skipped-${Date.now()}.csv`);
+    downloadCsv(`bulk-import-skipped-${Date.now()}.csv`,
+      ['Row', 'Name', 'Category', 'Status', 'Reason'],
+      rows.map(r => [r.row, r.name, r.category, 'skipped', r.reason]));
   };
 
   // ── Reset to step 1 ────────────────────────────────────────────────────────
@@ -285,7 +273,7 @@ export default function BulkImport() {
                 type="button"
                 className="btn-secondary"
                 style={{ fontSize: '0.85rem', padding: '0.35rem 0.85rem' }}
-                onClick={() => downloadCsv(TEMPLATE_CONTENT, 'bulk-import-template.csv')}
+                onClick={() => downloadCsvContent('bulk-import-template.csv', TEMPLATE_CONTENT)}
               >
                 ⬇ Download CSV Template
               </button>
