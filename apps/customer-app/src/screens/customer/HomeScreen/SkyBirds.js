@@ -1,3 +1,4 @@
+import { runHomeAmbientAnimation } from '../../../utils/homeScrollMotion';
 import React, { useEffect, useMemo } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
@@ -20,28 +21,21 @@ function Bird({ size, y, duration, phase, flap, width }) {
 
   useEffect(() => {
     const flight = Animated.loop(
-      Animated.timing(travel, { toValue: 1, duration, easing: Easing.linear, useNativeDriver: true })
+      Animated.timing(travel, { toValue: 1, duration, easing: Easing.linear, useNativeDriver: true, isInteraction: false })
     );
     const wings = Animated.loop(
       Animated.sequence([
-        Animated.timing(beat, { toValue: 1, duration: flap / 2, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(beat, { toValue: 0, duration: flap / 2, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(beat, { toValue: 1, duration: flap / 2, easing: Easing.inOut(Easing.sin), useNativeDriver: true, isInteraction: false }),
+        Animated.timing(beat, { toValue: 0, duration: flap / 2, easing: Easing.inOut(Easing.sin), useNativeDriver: true, isInteraction: false }),
       ])
     );
     const glide = Animated.loop(
       Animated.sequence([
-        Animated.timing(bob, { toValue: 1, duration: 2400, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(bob, { toValue: 0, duration: 2400, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(bob, { toValue: 1, duration: 2400, easing: Easing.inOut(Easing.sin), useNativeDriver: true, isInteraction: false }),
+        Animated.timing(bob, { toValue: 0, duration: 2400, easing: Easing.inOut(Easing.sin), useNativeDriver: true, isInteraction: false }),
       ])
     );
-    flight.start();
-    wings.start();
-    glide.start();
-    return () => {
-      flight.stop();
-      wings.stop();
-      glide.stop();
-    };
+    return runHomeAmbientAnimation(Animated.parallel([flight, wings, glide]));
   }, [travel, beat, bob, duration, flap]);
 
   // Right to left across the screen. The loop restarts at 0, so the starting

@@ -1,3 +1,4 @@
+import { runHomeAmbientAnimation } from '../../../utils/homeScrollMotion';
 import React, { useEffect, useMemo } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 import SkyCloud from './SkyCloud';
@@ -20,10 +21,9 @@ function Drop({ x, len, thickness, opacity, duration, phase, height }) {
 
   useEffect(() => {
     const loop = Animated.loop(
-      Animated.timing(fall, { toValue: 1, duration, easing: Easing.linear, useNativeDriver: true })
+      Animated.timing(fall, { toValue: 1, duration, easing: Easing.linear, useNativeDriver: true, isInteraction: false })
     );
-    loop.start();
-    return () => loop.stop();
+    return runHomeAmbientAnimation(loop);
   }, [fall, duration]);
 
   // Top of the bar to its bottom, leaning left. The loop restarts at 0, so the

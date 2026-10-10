@@ -1,3 +1,4 @@
+import { runHomeAmbientAnimation } from '../../utils/homeScrollMotion';
 import React, { memo, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Animated, Easing } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -112,12 +113,11 @@ function DealProgress({ progress, accentColor, reducedMotion }) {
     if (reducedMotion || !trackWidth) return undefined;
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(shimmer, { toValue: 1, duration: 1300, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.timing(shimmer, { toValue: 1, duration: 1300, easing: Easing.inOut(Easing.quad), useNativeDriver: true, isInteraction: false }),
         Animated.delay(700),
       ])
     );
-    loop.start();
-    return () => loop.stop();
+    return runHomeAmbientAnimation(loop);
   }, [shimmer, trackWidth, reducedMotion]);
 
   // The amount counts down to its new value and pops.
@@ -135,8 +135,8 @@ function DealProgress({ progress, accentColor, reducedMotion }) {
     Animated.timing(counter, { toValue: to, duration: 450, easing: Easing.out(Easing.cubic), useNativeDriver: false })
       .start(() => setShownAmount(to));
     Animated.sequence([
-      Animated.timing(pop, { toValue: 1.12, duration: 130, easing: Easing.out(Easing.quad), useNativeDriver: true }),
-      Animated.spring(pop, { toValue: 1, friction: 4, tension: 140, useNativeDriver: true }),
+      Animated.timing(pop, { toValue: 1.12, duration: 130, easing: Easing.out(Easing.quad), useNativeDriver: true, isInteraction: false }),
+      Animated.spring(pop, { toValue: 1, friction: 4, tension: 140, useNativeDriver: true, isInteraction: false }),
     ]).start();
     return () => counter.removeListener(id);
   }, [progress.amountRemaining, counter, pop, reducedMotion]);
@@ -149,10 +149,10 @@ function DealProgress({ progress, accentColor, reducedMotion }) {
     if (!progress.unlocked || before || reducedMotion) return;
     burst.setValue(0);
     Animated.parallel([
-      Animated.timing(burst, { toValue: 1, duration: 750, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(burst, { toValue: 1, duration: 750, easing: Easing.out(Easing.cubic), useNativeDriver: true, isInteraction: false }),
       Animated.sequence([
-        Animated.timing(pop, { toValue: 1.22, duration: 160, easing: Easing.out(Easing.quad), useNativeDriver: true }),
-        Animated.spring(pop, { toValue: 1, friction: 3, tension: 120, useNativeDriver: true }),
+        Animated.timing(pop, { toValue: 1.22, duration: 160, easing: Easing.out(Easing.quad), useNativeDriver: true, isInteraction: false }),
+        Animated.spring(pop, { toValue: 1, friction: 3, tension: 120, useNativeDriver: true, isInteraction: false }),
       ]),
     ]).start();
   }, [progress.unlocked, burst, pop, reducedMotion]);
@@ -240,16 +240,15 @@ function DealTabsCard({ card, width, onViewAll }) {
       entry.setValue(1);
       return undefined;
     }
-    Animated.timing(entry, { toValue: 1, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+    Animated.timing(entry, { toValue: 1, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true, isInteraction: false }).start();
     const loop = Animated.loop(
       Animated.sequence([
         Animated.delay(2200),
-        Animated.timing(shine, { toValue: 1, duration: 1100, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-        Animated.timing(shine, { toValue: 0, duration: 0, useNativeDriver: true }),
+        Animated.timing(shine, { toValue: 1, duration: 1100, easing: Easing.inOut(Easing.quad), useNativeDriver: true, isInteraction: false }),
+        Animated.timing(shine, { toValue: 0, duration: 0, useNativeDriver: true, isInteraction: false }),
       ])
     );
-    loop.start();
-    return () => loop.stop();
+    return runHomeAmbientAnimation(loop);
   }, [entry, shine, reducedMotion]);
 
   // Rows slide in when the price tab changes (not on the first draw, so the
@@ -262,7 +261,7 @@ function DealTabsCard({ card, width, onViewAll }) {
     }
     if (reducedMotion) return;
     rowsIn.setValue(0);
-    Animated.timing(rowsIn, { toValue: 1, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+    Animated.timing(rowsIn, { toValue: 1, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: true, isInteraction: false }).start();
   }, [activeIndex, rowsIn, reducedMotion]);
 
   if (tiers.length === 0) return null;

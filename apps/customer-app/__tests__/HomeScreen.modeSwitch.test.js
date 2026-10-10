@@ -21,7 +21,7 @@ describe('Home store-mode switching', () => {
     expect(homeSource).toMatch(/const sectionsFade = useRef\(new Animated\.Value\(1\)\)\.current;/);
     // The capsule lives above this wrapper, so it must not be inside it.
     // (The fade is skipped where the native glass effect draws the bar.)
-    const wrapperIndex = homeSource.search(/<Animated\.View style=\{\{ opacity: [^}]*sectionsFade \}\}>/);
+    const wrapperIndex = homeSource.search(/<Animated\.View style=\{\{ opacity: [^}]*sectionsFade \}\}[^>]*>/);
     const capsuleIndex = homeSource.indexOf('<ShopModeSelector');
     expect(wrapperIndex).toBeGreaterThan(-1);
     expect(capsuleIndex).toBeGreaterThan(-1);

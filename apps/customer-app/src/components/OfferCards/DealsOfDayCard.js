@@ -1,3 +1,4 @@
+import { runHomeAmbientAnimation } from '../../utils/homeScrollMotion';
 import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Animated, Easing } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -55,12 +56,11 @@ export function DayCardHeader({ card, look, width, big = false, reducedMotion })
     const loop = Animated.loop(
       Animated.sequence([
         Animated.delay(2600),
-        Animated.timing(shine, { toValue: 1, duration: 1200, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-        Animated.timing(shine, { toValue: 0, duration: 0, useNativeDriver: true }),
+        Animated.timing(shine, { toValue: 1, duration: 1200, easing: Easing.inOut(Easing.quad), useNativeDriver: true, isInteraction: false }),
+        Animated.timing(shine, { toValue: 0, duration: 0, useNativeDriver: true, isInteraction: false }),
       ])
     );
-    loop.start();
-    return () => loop.stop();
+    return runHomeAmbientAnimation(loop);
   }, [shine, reducedMotion, card.imageUrl]);
 
   if (card.imageUrl) {
@@ -176,7 +176,7 @@ function DealsOfDayCard({ card, width, onViewAll }) {
       entry.setValue(1);
       return;
     }
-    Animated.timing(entry, { toValue: 1, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+    Animated.timing(entry, { toValue: 1, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true, isInteraction: false }).start();
   }, [entry, reducedMotion]);
 
   const products = (card?.products || []).slice(0, Number(look.rowsPerTab) || DEFAULT_DAY_STYLE.rowsPerTab);
@@ -200,13 +200,13 @@ function DealsOfDayCard({ card, width, onViewAll }) {
     const loop = Animated.loop(
       Animated.sequence([
         Animated.delay(WAVE_PAUSE_MS),
-        Animated.timing(wave, { toValue: end, duration: end * BOUNCE_MS, easing: Easing.linear, useNativeDriver: true }),
-        Animated.timing(wave, { toValue: 0, duration: 0, useNativeDriver: true }),
+        Animated.timing(wave, { toValue: end, duration: end * BOUNCE_MS, easing: Easing.linear, useNativeDriver: true, isInteraction: false }),
+        Animated.timing(wave, { toValue: 0, duration: 0, useNativeDriver: true, isInteraction: false }),
       ])
     );
-    loop.start();
+    const stop = runHomeAmbientAnimation(loop);
     return () => {
-      loop.stop();
+      stop();
       wave.setValue(0);
     };
   }, [wave, count, reducedMotion]);

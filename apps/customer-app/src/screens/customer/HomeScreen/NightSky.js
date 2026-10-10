@@ -1,3 +1,4 @@
+import { runHomeAmbientAnimation } from '../../../utils/homeScrollMotion';
 import React, { useEffect, useMemo } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
@@ -15,19 +16,18 @@ function Star({ x, y, size, half, delay }) {
     const loop = Animated.loop(
       Animated.sequence([
         Animated.delay(delay),
-        Animated.timing(glow, { toValue: 1, duration: half, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(glow, { toValue: 0, duration: half, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(glow, { toValue: 1, duration: half, easing: Easing.inOut(Easing.sin), useNativeDriver: true, isInteraction: false }),
+        Animated.timing(glow, { toValue: 0, duration: half, easing: Easing.inOut(Easing.sin), useNativeDriver: true, isInteraction: false }),
       ])
     );
-    loop.start();
-    return () => loop.stop();
+    return runHomeAmbientAnimation(loop);
   }, [glow, half, delay]);
 
   const opacity = glow.interpolate({ inputRange: [0, 1], outputRange: [0.12, 1] });
   const scale = glow.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1.15] });
 
   return (
-    <Animated.View style={[styles.star, { left: x, top: y, opacity, transform: [{ scale }] }]}>
+    <Animated.View renderToHardwareTextureAndroid style={[styles.star, { left: x, top: y, opacity, transform: [{ scale }] }]}>
       <Svg width={size} height={size} viewBox="0 0 24 24">
         <Path d={STAR_PATH} fill={STAR_COLOR} />
       </Svg>

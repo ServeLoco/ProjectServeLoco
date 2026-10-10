@@ -1,3 +1,4 @@
+import { runHomeAmbientAnimation } from '../../../utils/homeScrollMotion';
 import React, { useEffect, useMemo } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 import Svg, { Circle, Rect } from 'react-native-svg';
@@ -25,20 +26,15 @@ export default function SkyCloud({
 
   useEffect(() => {
     const drift = Animated.loop(
-      Animated.timing(travel, { toValue: 1, duration, easing: Easing.linear, useNativeDriver: true })
+      Animated.timing(travel, { toValue: 1, duration, easing: Easing.linear, useNativeDriver: true, isInteraction: false })
     );
     const float = Animated.loop(
       Animated.sequence([
-        Animated.timing(bob, { toValue: 1, duration: 3200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(bob, { toValue: 0, duration: 3200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(bob, { toValue: 1, duration: 3200, easing: Easing.inOut(Easing.sin), useNativeDriver: true, isInteraction: false }),
+        Animated.timing(bob, { toValue: 0, duration: 3200, easing: Easing.inOut(Easing.sin), useNativeDriver: true, isInteraction: false }),
       ])
     );
-    drift.start();
-    float.start();
-    return () => {
-      drift.stop();
-      float.stop();
-    };
+    return runHomeAmbientAnimation(Animated.parallel([drift, float]));
   }, [travel, bob, duration]);
 
   // The loop restarts at 0, so the starting phase is baked into the
@@ -55,7 +51,7 @@ export default function SkyCloud({
 
   return (
     <View pointerEvents="none" style={[styles.band, { top, height: cloudHeight }]}>
-      <Animated.View style={[styles.cloud, { transform: [{ translateX }, { translateY }] }]}>
+      <Animated.View renderToHardwareTextureAndroid style={[styles.cloud, { transform: [{ translateX }, { translateY }] }]}>
         <Svg width={cloudWidth} height={cloudHeight} viewBox="0 0 68 34">
           <Circle cx={21} cy={21} r={11} fill={color} fillOpacity={0.95} />
           <Circle cx={34} cy={15} r={14} fill={color} fillOpacity={0.95} />

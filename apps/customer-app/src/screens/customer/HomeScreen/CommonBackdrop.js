@@ -1,3 +1,4 @@
+import { runHomeAmbientAnimation } from '../../../utils/homeScrollMotion';
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -63,10 +64,9 @@ function ConfettiPiece({ left, shape, size, from, to, fall, delay, turns, color 
   useEffect(() => {
     const run = Animated.sequence([
       Animated.delay(delay),
-      Animated.loop(Animated.timing(progress, { toValue: 1, duration: fall, easing: Easing.linear, useNativeDriver: true })),
+      Animated.loop(Animated.timing(progress, { toValue: 1, duration: fall, easing: Easing.linear, useNativeDriver: true, isInteraction: false })),
     ]);
-    run.start();
-    return () => run.stop();
+    return runHomeAmbientAnimation(run);
   }, [progress, fall, delay]);
   const width = shape === 'strip' ? Math.round(size * 0.45) : size;
   return (
@@ -108,7 +108,7 @@ function ConfettiPiece({ left, shape, size, from, to, fall, delay, turns, color 
  *   takes a light shade of the card in view, cross-fading as the row scrolls
  *   (tintScrollX is that row's scroll).
  */
-function CommonBackdrop({ width, height, barColor, barShadow, barBottom, look = 'day', tint = null, tintScrollX = null }) {
+function CommonBackdrop({ width, height, barColor, barShadow, barBottom, look = 'day', tint = null, tintScrollX = null, backgroundOnly = false }) {
   const reducedMotion = useReducedMotion();
   const lookColors = AREA_COLORS[look] || AREA_COLORS.day;
 
@@ -167,7 +167,7 @@ function CommonBackdrop({ width, height, barColor, barShadow, barBottom, look = 
         />
       )}
       {/* Confetti falls gently from behind the clouds, behind the cards. */}
-      {reducedMotion || total - solid < 60
+      {backgroundOnly || reducedMotion || total - solid < 60
         ? null
         : CONFETTI.map((c, i) => (
           <ConfettiPiece
@@ -183,10 +183,10 @@ function CommonBackdrop({ width, height, barColor, barShadow, barBottom, look = 
             color={CONFETTI_COLORS[c.color]}
           />
         ))}
-      <View style={[styles.bar, { height: solid, backgroundColor: barColor }]} />
+      {!backgroundOnly && <View style={[styles.bar, { height: solid, backgroundColor: barColor }]} />}
 
       {/* The bank of puffy bumps hanging from the bar, with a soft shadow. */}
-      <Svg width={width} height={BANK_HEIGHT} style={[styles.abs, { top: solid - BANK_OVERLAP }]}>
+      {!backgroundOnly && <Svg width={width} height={BANK_HEIGHT} style={[styles.abs, { top: solid - BANK_OVERLAP }]}>
         {bumps.map((b, i) => (
           <Circle key={`s${i}`} cx={b.cx} cy={b.cy + 2} r={b.r} fill={barShadow} opacity={0.14} />
         ))}
@@ -194,7 +194,7 @@ function CommonBackdrop({ width, height, barColor, barShadow, barBottom, look = 
         {bumps.map((b, i) => (
           <Circle key={`b${i}`} cx={b.cx} cy={b.cy} r={b.r} fill={barColor} />
         ))}
-      </Svg>
+      </Svg>}
 
     </View>
   );

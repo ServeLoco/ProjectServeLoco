@@ -5,6 +5,7 @@ import Svg, { Defs, LinearGradient as SvgGradient, Path, Stop } from 'react-nati
 import AppIcon from '../AppIcon';
 import { radius } from '../../theme';
 import { useReducedMotion } from '../../utils/motionPreferences';
+import { runHomeAmbientAnimation } from '../../utils/homeScrollMotion';
 
 /**
  * The rating box of a top-rated product (above 4.8) — design 10, "fire runs
@@ -26,6 +27,7 @@ const CYCLE_MS = 1100;
 const fireClock = new Animated.Value(0);
 let clockUsers = 0;
 let clockLoop = null;
+let stopClockAnimation = null;
 
 const startClock = () => {
   clockUsers += 1;
@@ -36,15 +38,17 @@ const startClock = () => {
       duration: CYCLE_MS,
       easing: Easing.linear,
       useNativeDriver: true,
+      isInteraction: false,
     }),
   );
-  clockLoop.start();
+  stopClockAnimation = runHomeAmbientAnimation(clockLoop);
 };
 
 const stopClock = () => {
   clockUsers = Math.max(0, clockUsers - 1);
   if (clockUsers > 0 || !clockLoop) return;
-  clockLoop.stop();
+  stopClockAnimation?.();
+  stopClockAnimation = null;
   clockLoop = null;
   fireClock.setValue(0);
 };
@@ -103,6 +107,7 @@ const Flame = React.memo(function Flame({ flame, still }) {
 
   return (
     <Animated.View
+      renderToHardwareTextureAndroid
       style={[
         styles.flame,
         { left: `${flame.left}%`, width: flame.width, height: flame.height },
@@ -137,7 +142,7 @@ const BorderFire = React.memo(function BorderFire({ still }) {
     transform: [{ rotate: fireClock.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }],
   }), [still]);
   return (
-    <Animated.View pointerEvents="none" style={[styles.ringSpinner, spin]}>
+    <Animated.View renderToHardwareTextureAndroid pointerEvents="none" style={[styles.ringSpinner, spin]}>
       <LinearGradient
         colors={RING_COLORS}
         locations={RING_LOCATIONS}

@@ -1,3 +1,4 @@
+import { homeScrollMotion, runHomeAmbientAnimation } from '../../../utils/homeScrollMotion';
 import React, { useMemo, useState, useEffect, useRef, useCallback, startTransition } from 'react';
 import { Image as ExpoImage } from 'expo-image';
 import { addEventListener as addNetInfoListener } from '@react-native-community/netinfo';
@@ -21,6 +22,7 @@ import {
   Pressable,
   Keyboard,
   BackHandler,
+  Platform,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -45,6 +47,7 @@ import { showToast } from '../../../components/Toast';
 import { offerCardDesignOf, drawableOfferCards, offerCardColorOf } from '../../../components/OfferCards/offerCardDesigns';
 import { OfferCardsRail, offerCardWidthFor, offerRailStops } from './OfferCardsRail';
 import ShopModeSelector from './ShopModeSelector';
+import { createHomeHeaderTranslateY, createHomeModesTranslateY, homeModesPinStart } from './homeHeaderMotion';
 import NativeGlassView from '../../../utils/nativeGlass';
 import { colors, typography, fontSizes, lineHeights, spacing, radius, layout } from '../../../theme';
 import HomeIcon from './HomeIcon';
@@ -93,6 +96,16 @@ const fadeColorsFor = (rgb) => TOP_BAR_FADE_ALPHAS.map((a) => `rgba(${rgb}, ${a}
 const DAY_FADE_COLORS = fadeColorsFor(DAY_BAR_RGB);
 const NIGHT_FADE_COLORS = fadeColorsFor(NIGHT_BAR_RGB);
 const RAIN_FADE_COLORS = fadeColorsFor(RAIN_BAR_RGB);
+// Pinned shop modes sit on a blue wash that starts in the bar colour, so the
+// bar runs into them with no edge, and ends in white.
+const PINNED_MODES_BLUES = ['#D3E9F8', '#EAF4FC', '#FFFFFF'];
+const PINNED_MODES_LOCATIONS = [0, 0.35, 0.8, 1];
+// Below them a short white fade, so the page slides under softly. It starts
+// fully white, matching the wash above, so there is no edge where they meet,
+// then thins out quickly.
+const PINNED_MODES_FADE_HEIGHT = spacing.xl + spacing.xs;
+const PINNED_MODES_FADE_ALPHAS = [1, 0.86, 0.64, 0.42, 0.24, 0.11, 0.03, 0];
+const PINNED_MODES_FADE_COLORS = PINNED_MODES_FADE_ALPHAS.map((a) => `rgba(255, 255, 255, ${a})`);
 const TOP_BAR_FADE_LOCATIONS = TOP_BAR_FADE_ALPHAS.map((_, i) => i / (TOP_BAR_FADE_ALPHAS.length - 1));
 
 // Search shows at most 6 buyable items; it fetches more so that dropping
@@ -102,6 +115,8 @@ const PAGE_GUTTER = 10;
 // How far the Common sections (offer cards first) sit up into the fade under
 // the top bar, so the first one starts closer to the bar's cloud edge.
 const COMMON_PULL_UP = spacing.md;
+// The see-through part of the fade under Search (below any closed-shop notice).
+const TOP_FADE_TAIL = spacing.xxl;
 
 // Product rows are short (the admin caps how many cards they show), so every
 // card is drawn up front and stays attached: a swipe then only moves pixels,
@@ -1048,6 +1063,7 @@ export default function HomeScreen() {
   // switching modes never clears or redraws them.
   const [commonSections, setCommonSections] = useState([]);
   const [commonAreaHeight, setCommonAreaHeight] = useState(0);
+  const [shopModesLayout, setShopModesLayout] = useState({ y: 0, height: 0 });
   // How many of the sections are drawn so far (see SECTIONS_INITIAL).
   const [renderedSectionCount, setRenderedSectionCount] = useState(SECTIONS_INITIAL);
   // Bumped when Home hears of a catalog/shop change; the blocks refetch on it.
@@ -1073,7 +1089,7 @@ export default function HomeScreen() {
   const commonUnits = useMemo(() => orderHomeUnits(commonSections, { common: true }), [commonSections]);
   const totalDrawUnits = orderedUnits.length;
   sectionTotalRef.current = totalDrawUnits;
-  const scrollMetricsRef = useRef({ offset: 0, viewport: 0, content: 0 });
+  const scrollMetricsRef = useRef({ offset: 0, top: 0, viewport: 0, content: 0 });
   const drawnCountRef = useRef(renderedSectionCount);
   drawnCountRef.current = renderedSectionCount;
   const drawTimerRef = useRef(null);
@@ -1115,6 +1131,14 @@ export default function HomeScreen() {
   const [topRowHeight, setTopRowHeight] = useState(0);
   const scrollY = useRef(new Animated.Value(0)).current;
   const lastScrollCheckRef = useRef(0);
+  // Android gives a tap made while the page still moves (a fling, or the
+  // stretch at either end) to the scroll view: it only stops the motion, and
+  // the pinned mode row never sees it. Such a tap shows up as a short drag
+  // that does not move; pass it on to the row. Plain taps start no drag.
+  const shopModesRef = useRef(null);
+  const glideTapRef = useRef(null);
+  useFocusEffect(useCallback(() => () => homeScrollMotion.finish(), []));
+  useEffect(() => () => homeScrollMotion.finish(), []);
   const onHomeScroll = useMemo(() => Animated.event(
     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
     {
@@ -1130,6 +1154,7 @@ export default function HomeScreen() {
         const now = Date.now();
         if (now - lastScrollCheckRef.current >= 100) {
           lastScrollCheckRef.current = now;
+          homeScrollMotion.touch();
           drawMoreIfNeeded();
         }
       },
@@ -1704,7 +1729,7 @@ export default function HomeScreen() {
         }),
       ])
     );
-    pulseLoop.start();
+    const stopPulse = runHomeAmbientAnimation(pulseLoop);
 
     // HOT badge subtle pulse (scale 1 -> 1.08)
     const hotPulseLoop = Animated.loop(
@@ -1721,11 +1746,11 @@ export default function HomeScreen() {
         }),
       ])
     );
-    hotPulseLoop.start();
+    const stopHotPulse = runHomeAmbientAnimation(hotPulseLoop);
 
     return () => {
-      pulseLoop.stop();
-      hotPulseLoop.stop();
+      stopPulse();
+      stopHotPulse();
     };
   }, [pulseAnim, hotBadgePulse]);
 
@@ -1848,24 +1873,51 @@ export default function HomeScreen() {
   const topGroupHeight = topRowHeight + searchBarBottom
     + (isSearchOverlayOpen ? searchDropdownHeight : 0) + topFadeHeight;
   const fadeOverlap = !isHomeLoading && homeError ? 0 : topGroupHeight;
+  // Modes pin right under Search once they reach it; both then stay at the
+  // top, and the fade under Search gives way to the modes' own blue wash.
+  const homeScrollPadding = fadeOverlap;
+  const pinnedHeight = topGroupHeight - topRowHeight - TOP_FADE_TAIL;
 
-  // Scrolling up slides the group up by the location row's height and fades
-  // that row out; then it stops, leaving the search bar pinned at the top.
+  // Collapse the location row first; Search then stays pinned at the top.
   const collapseDistance = Math.max(topRowHeight, 1);
   // Common sections on screen (not a permission / no-delivery / loading page).
   const hasCommon = commonUnits.length > 0 && !isHomeLoading && !needsLocationPermission
     && !locationUnresolved && !(isInitialLocationSyncComplete && insideDeliveryZone === false);
-  const topFadeOpacity = useMemo(
-    () => (hasCommon
-      ? scrollY.interpolate({ inputRange: [0, 48], outputRange: [0, 1], extrapolate: 'clamp' })
-      : 1),
-    [hasCommon, scrollY],
+  const headerMeasurements = useMemo(() => ({
+    topRowHeight,
+    pinnedHeight,
+    // No pinning while the error card sits between the top group and the list.
+    shopModesY: shopModesLayout.height > 0 && modes.length > 0 && !isHomeLoading && fadeOverlap > 0
+      ? shopModesLayout.y : null,
+  }), [topRowHeight, pinnedHeight, shopModesLayout.height, shopModesLayout.y, modes.length, isHomeLoading, fadeOverlap]);
+  const topGroupTranslateY = useMemo(
+    () => createHomeHeaderTranslateY(scrollY, headerMeasurements),
+    [scrollY, headerMeasurements],
   );
-  const topGroupTranslateY = useMemo(() => scrollY.interpolate({
-    inputRange: [0, collapseDistance],
-    outputRange: [0, -collapseDistance],
-    extrapolate: 'clamp',
-  }), [scrollY, collapseDistance]);
+  const modesPinStart = homeModesPinStart(headerMeasurements);
+  const shopModesTranslateY = useMemo(
+    () => createHomeModesTranslateY(scrollY, modesPinStart),
+    [scrollY, modesPinStart],
+  );
+  // 0 → 1 over the last stretch before the modes pin, as they rise through
+  // the fade under Search.
+  const shopModesPinProgress = useMemo(() => (modesPinStart == null
+    ? new Animated.Value(0)
+    : scrollY.interpolate({
+      inputRange: [modesPinStart - TOP_FADE_TAIL, modesPinStart],
+      outputRange: [0, 1],
+      extrapolate: 'clamp',
+    })), [scrollY, modesPinStart]);
+  // With Common sections the cloud edge under the bar is the edge, so the fade
+  // only comes in once the page scrolls under the bar. It leaves again as the
+  // modes pin: their blue wash takes over from the bar there.
+  const topFadeOpacity = useMemo(() => Animated.multiply(
+    hasCommon
+      ? scrollY.interpolate({ inputRange: [0, 48], outputRange: [0, 1], extrapolate: 'clamp' })
+      : 1,
+    shopModesPinProgress.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
+  ), [hasCommon, scrollY, shopModesPinProgress]);
+  const pinnedModesColors = useMemo(() => [barColor, ...PINNED_MODES_BLUES], [barColor]);
   const topRowOpacity = useMemo(() => scrollY.interpolate({
     inputRange: [0, collapseDistance * 0.7],
     outputRange: [1, 0],
@@ -1899,6 +1951,17 @@ export default function HomeScreen() {
     () => Animated.event([{ nativeEvent: { contentOffset: { x: commonOfferScrollX } } }], { useNativeDriver: true }),
     [commonOfferScrollX],
   );
+  const shopModesBackdropOffset = commonAreaHeight + fadeOverlap - COMMON_PULL_UP;
+  const commonBackdropProps = {
+    width: windowWidth,
+    height: shopModesBackdropOffset + shopModesLayout.height,
+    barColor,
+    barShadow: isLightBar ? '#5B7A99' : '#1F2329',
+    barBottom: fadeOverlap - topFadeHeight,
+    look: isRainy ? 'rain' : isDaytime ? 'day' : 'night',
+    tint: commonOfferTint,
+    tintScrollX: commonOfferScrollX,
+  };
   // Horizontal-scrolling cards: ~28% of content width so the next card peeks
   // (peek effect — multiple cards visible at once).
   const categoryCardWidth = Math.floor(contentWidth * CATEGORY_CARD_RATIO);
@@ -2114,8 +2177,6 @@ export default function HomeScreen() {
           pointerEvents="none"
           onLayout={(e) => setTopFadeHeight(Math.round(e.nativeEvent.layout.height))}
         >
-          {/* With Common sections the cloud edge under the bar is the edge, so the
-              fade only comes in once the page scrolls under the bar. */}
           <Animated.View style={[StyleSheet.absoluteFill, { opacity: topFadeOpacity }]}>
             <LinearGradient
               colors={barFadeColors}
@@ -2213,12 +2274,37 @@ export default function HomeScreen() {
         // Native Liquid Glass requires fully opaque ancestors. Keep the slide
         // entrance on iOS; the translucent fallback can also use the fade.
         <Animated.ScrollView
-          contentContainerStyle={[styles.scrollContent, { paddingTop: fadeOverlap }]}
+          removeClippedSubviews={false}
+          contentContainerStyle={[styles.scrollContent, { paddingTop: homeScrollPadding }]}
           showsVerticalScrollIndicator={false}
           directionalLockEnabled
-          style={{ marginTop: -fadeOverlap, opacity: NativeGlassView ? 1 : fadeAnim, transform: [{ translateY: slideAnim }] }}
+          style={{ marginTop: -homeScrollPadding, opacity: NativeGlassView ? 1 : fadeAnim, transform: [{ translateY: slideAnim }] }}
+          onTouchStart={({ nativeEvent }) => {
+            glideTapRef.current = Platform.OS === 'android'
+              ? { pageX: nativeEvent.pageX, pageY: nativeEvent.pageY, at: Date.now(), offset: null }
+              : null;
+          }}
+          onScrollBeginDrag={({ nativeEvent }) => {
+            if (glideTapRef.current) glideTapRef.current.offset = nativeEvent.contentOffset.y;
+            homeScrollMotion.beginDrag();
+          }}
+          onScrollEndDrag={({ nativeEvent }) => {
+            homeScrollMotion.endDrag();
+            const tap = glideTapRef.current;
+            glideTapRef.current = null;
+            if (!tap || tap.offset == null || Date.now() - tap.at > 400) return;
+            if (Math.abs(nativeEvent.contentOffset.y - tap.offset) > 8) return;
+            // Only while the row is pinned under Search.
+            if (modesPinStart == null || tap.offset < modesPinStart - 1) return;
+            const rowTop = insets.top + scrollMetricsRef.current.top + pinnedHeight;
+            if (tap.pageY < rowTop || tap.pageY > rowTop + shopModesLayout.height) return;
+            shopModesRef.current?.pressAt(tap.pageX);
+          }}
+          onMomentumScrollBegin={() => homeScrollMotion.touch()}
+          onMomentumScrollEnd={() => homeScrollMotion.touch()}
           onScroll={onHomeScroll}
           onLayout={(event) => {
+            scrollMetricsRef.current.top = event.nativeEvent.layout.y;
             scrollMetricsRef.current.viewport = event.nativeEvent.layout.height;
             drawMoreIfNeeded();
           }}
@@ -2230,7 +2316,7 @@ export default function HomeScreen() {
           keyboardShouldPersistTaps="handled"
           refreshControl={
             <RefreshControl
-              progressViewOffset={fadeOverlap}
+              progressViewOffset={homeScrollPadding}
               refreshing={isRefreshing}
               onRefresh={() => loadHomeData(true)}
               tintColor={colors.primary}
@@ -2242,24 +2328,15 @@ export default function HomeScreen() {
         >
           {/* Offers and shop modes share one backdrop, fading into the catalog. */}
           <View
-            style={[styles.commonSections, commonUnits.length > 0 && { marginTop: -COMMON_PULL_UP }]}
+            style={commonUnits.length > 0 && { marginTop: -COMMON_PULL_UP }}
             onLayout={(e) => setCommonAreaHeight(Math.round(e.nativeEvent.layout.height))}
           >
             {/* Reaches up behind the top group and continues under the modes.
                 It still starts at the very top of the page: the pull-up is
                 taken back off its offset. */}
             {commonUnits.length > 0 ? (
-              <View pointerEvents="none" style={[styles.commonBackdrop, { top: -(fadeOverlap - COMMON_PULL_UP) }]}>
-                <CommonBackdrop
-                  width={windowWidth}
-                  height={commonAreaHeight + fadeOverlap - COMMON_PULL_UP}
-                  barColor={barColor}
-                  barShadow={isLightBar ? '#5B7A99' : '#1F2329'}
-                  barBottom={fadeOverlap - topFadeHeight}
-                  look={isRainy ? 'rain' : isDaytime ? 'day' : 'night'}
-                  tint={commonOfferTint}
-                  tintScrollX={commonOfferScrollX}
-                />
+              <View pointerEvents="none" style={[styles.commonBackdrop, { top: -(fadeOverlap - COMMON_PULL_UP), bottom: -shopModesLayout.height }]}>
+                <CommonBackdrop {...commonBackdropProps} />
               </View>
             ) : null}
             {renderedCommonUnits}
@@ -2273,8 +2350,54 @@ export default function HomeScreen() {
                 style={styles.offerGlassDivider}
               />
             ) : null}
-            <ShopModeSelector modes={modes} selectedMode={storeType} onSelect={selectStoreType} />
           </View>
+          {/* Pins under Search once it reaches it (shopModesTranslateY) and
+              stays drawn over the catalog scrolling below. */}
+          <Animated.View
+            style={[styles.stickyShopModes, { transform: [{ translateY: shopModesTranslateY }] }]}
+            onLayout={({ nativeEvent: { layout: measured } }) => {
+              setShopModesLayout(previous => previous.y === measured.y && previous.height === measured.height
+                ? previous : { y: measured.y, height: measured.height });
+            }}
+          >
+            {/* While the modes rise through the fade, the strip above them
+                carries the bar colour down to their blue wash. */}
+            <Animated.View
+              pointerEvents="none"
+              style={[styles.shopModesFadeFill, { top: -TOP_FADE_TAIL, height: TOP_FADE_TAIL, backgroundColor: barColor, opacity: shopModesPinProgress }]}
+            />
+            {/* Keep the same slice of the offer gradient attached to the
+                selector. Its translucent cards must not turn white on pin. */}
+            <View pointerEvents="none" style={styles.shopModesBackdrop}>
+              {commonUnits.length > 0 ? (
+                <View style={[StyleSheet.absoluteFill, { top: -shopModesBackdropOffset }]}>
+                  <CommonBackdrop {...commonBackdropProps} backgroundOnly />
+                </View>
+              ) : null}
+              <Animated.View style={[StyleSheet.absoluteFill, { opacity: shopModesPinProgress }]}>
+                <LinearGradient
+                  colors={pinnedModesColors}
+                  locations={PINNED_MODES_LOCATIONS}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  style={StyleSheet.absoluteFill}
+                />
+              </Animated.View>
+            </View>
+            <ShopModeSelector ref={shopModesRef} modes={modes} selectedMode={storeType} onSelect={selectStoreType} />
+            <Animated.View
+              pointerEvents="none"
+              style={[styles.pinnedModesFade, { opacity: shopModesPinProgress }]}
+            >
+              <LinearGradient
+                colors={PINNED_MODES_FADE_COLORS}
+                locations={TOP_BAR_FADE_LOCATIONS}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+            </Animated.View>
+          </Animated.View>
 
           {/* Dynamic Sections */}
           <Animated.View style={{ opacity: NativeGlassView ? 1 : sectionsFade }}>
@@ -2452,8 +2575,7 @@ function HomeHeader({
         }),
       ])
     );
-    loop.start();
-    return () => loop.stop();
+    return runHomeAmbientAnimation(loop);
   }, [isSearchOpen, searchIconPulse]);
 
   // Soft left→right nudge on the go chevron while idle (no query)
@@ -2480,8 +2602,7 @@ function HomeHeader({
         }),
       ])
     );
-    loop.start();
-    return () => loop.stop();
+    return runHomeAmbientAnimation(loop);
   }, [searchQuery, searchChevronNudge]);
 
   // Typewriter placeholder: type → pause → backspace → next example.
@@ -2508,6 +2629,10 @@ function HomeHeader({
 
     const tick = () => {
       if (cancelled) return;
+      if (homeScrollMotion.isScrolling()) {
+        typewriterTimerRef.current = setTimeout(tick, 180);
+        return;
+      }
       const word = SEARCH_TYPE_EXAMPLES[wordIndex % SEARCH_TYPE_EXAMPLES.length];
 
       if (!deleting) {
@@ -2567,8 +2692,7 @@ function HomeHeader({
         }),
       ])
     );
-    loop.start();
-    return () => loop.stop();
+    return runHomeAmbientAnimation(loop);
   }, [isSearchOpen, searchQuery, caretBlinkAnim]);
 
   const runSearch = useCallback(async (query) => {
@@ -3140,8 +3264,7 @@ function OfferBannerCarousel({ offers = [], bannerWidth, onOfferPress }) {
         useNativeDriver: true,
       })
     );
-    animation.start();
-    return () => animation.stop();
+    return runHomeAmbientAnimation(animation);
   }, [sweepAnim]);
 
   // Soft pulsing saffron glow under the banner
@@ -3162,15 +3285,14 @@ function OfferBannerCarousel({ offers = [], bannerWidth, onOfferPress }) {
         }),
       ])
     );
-    animation.start();
-    return () => animation.stop();
+    return runHomeAmbientAnimation(animation);
   }, [glowAnim]);
 
   // Auto-advance every 4.5s, pause briefly when user takes over
   useEffect(() => {
     if (visibleOffers.length <= 1) return undefined;
     const interval = setInterval(() => {
-      if (isUserScrolling.current) return;
+      if (isUserScrolling.current || homeScrollMotion.isScrolling()) return;
       const nextIndex = (activeIndexRef.current + 1) % visibleOffers.length;
       activeIndexRef.current = nextIndex;
       // Back to the first banner is a plain cut. Animating it would whip the
@@ -3508,7 +3630,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   topFade: {
-    paddingBottom: spacing.xxl,
+    paddingBottom: TOP_FADE_TAIL,
   },
   homeHeader: {
     paddingHorizontal: PAGE_GUTTER,
@@ -4060,8 +4182,26 @@ const styles = StyleSheet.create({
   productScroll: {
     // FlatList in horizontal mode
   },
-  commonSections: {
+  stickyShopModes: {
     paddingBottom: spacing.sm,
+    zIndex: 10, // over the catalog rows that scroll under it once pinned
+  },
+  shopModesBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: 'hidden',
+    backgroundColor: colors.bgSurface,
+  },
+  shopModesFadeFill: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+  },
+  pinnedModesFade: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: -PINNED_MODES_FADE_HEIGHT,
+    height: PINNED_MODES_FADE_HEIGHT,
   },
   offerGlassDivider: {
     height: 4,

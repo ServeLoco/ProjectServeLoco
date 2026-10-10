@@ -1,3 +1,4 @@
+import { runHomeAmbientAnimation } from '../../utils/homeScrollMotion';
 import React, { useEffect, useRef } from 'react';
 import { StyleSheet, Text, View, Animated, Easing } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -94,12 +95,10 @@ function HeroCategoryCard({ name, imageUri, onPress, style }) {
         toValue: 1,
         duration: 3000,
         easing: Easing.inOut(Easing.cubic),
-        useNativeDriver: true,
+        useNativeDriver: true, isInteraction: false,
       })
     );
-    sweep.start();
-
-    return () => sweep.stop();
+    return runHomeAmbientAnimation(sweep);
   }, [sweepAnim]);
 
   const sweepTranslateX = sweepAnim.interpolate({
@@ -115,7 +114,7 @@ function HeroCategoryCard({ name, imageUri, onPress, style }) {
           toValue: 1,
           friction: 6,
           tension: 120,
-          useNativeDriver: true,
+          useNativeDriver: true, isInteraction: false,
         }).start()
       }
       onPressOut={() =>
@@ -123,7 +122,7 @@ function HeroCategoryCard({ name, imageUri, onPress, style }) {
           toValue: 0,
           friction: 6,
           tension: 120,
-          useNativeDriver: true,
+          useNativeDriver: true, isInteraction: false,
         }).start()
       }
       style={[styles.heroCard, style]}

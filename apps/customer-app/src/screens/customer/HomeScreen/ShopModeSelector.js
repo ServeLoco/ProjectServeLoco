@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import React, { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import { Animated, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AppIcon from '../../../components/AppIcon';
 import PressableScale from '../../../components/PressableScale';
@@ -9,6 +9,14 @@ import { useReducedMotion } from '../../../utils/motionPreferences';
 
 const GUTTER = 16;
 const GAP = 10;
+// Home pins this row under Search with a native-driven transform. On Android
+// React's idea of its position does not follow that (it measured offscreen
+// while pinned), so a finger moving a pixel looked like it left the card and
+// cancelled the tap. Never cancel on vertical movement; scrolling the page
+// still cancels.
+const PINNED_PRESS_RETENTION = Platform.OS === 'android'
+  ? { top: 100000, bottom: 100000, left: 20, right: 20 }
+  : undefined;
 
 function ShopModeCard({ mode, index, width, selected, onSelect, reducedMotion }) {
   const selection = useRef(new Animated.Value(selected ? 1 : 0)).current;
@@ -35,6 +43,7 @@ function ShopModeCard({ mode, index, width, selected, onSelect, reducedMotion })
   return (
     <PressableScale
       onPress={() => { if (!selected) onSelect(mode.slug); }}
+      pressRetentionOffset={PINNED_PRESS_RETENTION}
       scaleTo={0.96}
       accessibilityRole="button"
       accessibilityLabel={label}
@@ -83,10 +92,11 @@ function ShopModeCard({ mode, index, width, selected, onSelect, reducedMotion })
 
 // The Home selector lives on the offer area's backdrop. Only the products
 // below it change: Home owns the selected slug and the catalog request.
-function ShopModeSelector({ modes = [], selectedMode, onSelect }) {
+const ShopModeSelector = forwardRef(function ShopModeSelector({ modes = [], selectedMode, onSelect }, ref) {
   const { width: screenWidth } = useWindowDimensions();
   const reducedMotion = useReducedMotion();
   const rail = useRef(null);
+  const railX = useRef(0);
   const canScroll = modes.length > 3;
   const count = Math.max(1, Math.min(modes.length, 3));
   const availableWidth = screenWidth - GUTTER * 2;
@@ -103,6 +113,19 @@ function ShopModeSelector({ modes = [], selectedMode, onSelect }) {
     });
   }, [canScroll, selectedIndex, cardWidth, availableWidth, reducedMotion]);
 
+  // Home calls this with a tap's screen x when the page's scroll view took
+  // the tap before the card could (see HomeScreen). The row spans the screen.
+  useImperativeHandle(ref, () => ({
+    pressAt(pageX) {
+      const x = pageX + railX.current - GUTTER;
+      const step = cardWidth + GAP;
+      const index = Math.floor(x / step);
+      const mode = modes[index];
+      if (!mode || x < 0 || x - index * step > cardWidth) return;
+      if (mode.slug !== selectedMode) onSelect(mode.slug);
+    },
+  }), [modes, cardWidth, selectedMode, onSelect]);
+
   if (!modes.length) return null;
 
   return (
@@ -114,6 +137,8 @@ function ShopModeSelector({ modes = [], selectedMode, onSelect }) {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.rail}
         keyboardShouldPersistTaps="handled"
+        onScroll={({ nativeEvent }) => { railX.current = nativeEvent.contentOffset.x; }}
+        scrollEventThrottle={16}
       >
         {modes.map((mode, index) => (
           <ShopModeCard
@@ -129,7 +154,7 @@ function ShopModeSelector({ modes = [], selectedMode, onSelect }) {
       </ScrollView>
     </View>
   );
-}
+});
 
 export default React.memo(ShopModeSelector);
 

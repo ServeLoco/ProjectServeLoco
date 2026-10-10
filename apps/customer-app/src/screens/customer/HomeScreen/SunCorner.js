@@ -1,3 +1,4 @@
+import { runHomeAmbientAnimation } from '../../../utils/homeScrollMotion';
 import React, { useEffect, useMemo } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -34,13 +35,12 @@ function Ray({ angle, length, index }) {
     const loop = Animated.loop(
       Animated.sequence([
         Animated.delay(index * RAY_STAGGER_MS),
-        Animated.timing(progress, { toValue: 1, duration: RAY_HALF_CYCLE_MS, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(progress, { toValue: 0, duration: RAY_HALF_CYCLE_MS, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(progress, { toValue: 1, duration: RAY_HALF_CYCLE_MS, easing: Easing.inOut(Easing.sin), useNativeDriver: true, isInteraction: false }),
+        Animated.timing(progress, { toValue: 0, duration: RAY_HALF_CYCLE_MS, easing: Easing.inOut(Easing.sin), useNativeDriver: true, isInteraction: false }),
         Animated.delay((RAY_COUNT - 1 - index) * RAY_STAGGER_MS),
       ])
     );
-    loop.start();
-    return () => loop.stop();
+    return runHomeAmbientAnimation(loop);
   }, [progress, index]);
 
   const opacity = progress.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] });
@@ -78,12 +78,11 @@ export default function SunCorner({ style, width, height }) {
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse, { toValue: 1, duration: 2600, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0, duration: 2600, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1, duration: 2600, easing: Easing.inOut(Easing.sin), useNativeDriver: true, isInteraction: false }),
+        Animated.timing(pulse, { toValue: 0, duration: 2600, easing: Easing.inOut(Easing.sin), useNativeDriver: true, isInteraction: false }),
       ])
     );
-    loop.start();
-    return () => loop.stop();
+    return runHomeAmbientAnimation(loop);
   }, [pulse]);
 
   const discScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] });
