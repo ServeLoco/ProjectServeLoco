@@ -56,11 +56,11 @@ function OfferAddButton({ quantity, color, label = 'ADD', disabled = false, onAd
 
   return (
     <View style={[styles.pill, small && styles.pillSmall, styles.stepper, { backgroundColor: color, borderColor: color }]}>
-      <Pressable onPress={onDecrement} hitSlop={8} style={styles.step} accessibilityRole="button" accessibilityLabel={`Remove one ${name || 'item'}`}>
+      <Pressable onPress={onDecrement} hitSlop={8} style={[styles.step, small && styles.stepSmall]} accessibilityRole="button" accessibilityLabel={`Remove one ${name || 'item'}`}>
         <Text style={styles.stepText}>−</Text>
       </Pressable>
       <Animated.Text style={[styles.qty, { transform: [{ scale: pop }] }]}>{quantity}</Animated.Text>
-      <Pressable onPress={onAdd} hitSlop={8} style={styles.step} accessibilityRole="button" accessibilityLabel={`Add one more ${name || 'item'}`}>
+      <Pressable onPress={onAdd} hitSlop={8} style={[styles.step, small && styles.stepSmall]} accessibilityRole="button" accessibilityLabel={`Add one more ${name || 'item'}`}>
         <Text style={styles.stepText}>+</Text>
       </Pressable>
     </View>
@@ -81,13 +81,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  pillSmall: { width: 60, height: 28, borderRadius: 9 },
+  pillSmall: { width: 54, height: 26, borderRadius: 8 },
   ring: { ...StyleSheet.absoluteFillObject, borderRadius: 10, borderWidth: 2 },
-  ringSmall: { borderRadius: 9 },
+  ringSmall: { borderRadius: 8 },
   addText: { fontSize: 14, fontWeight: '800', letterSpacing: 0.3 },
-  addTextSmall: { fontSize: 12.5 },
+  addTextSmall: { fontSize: 11.5 },
   stepper: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 2 },
   step: { width: 22, height: 28, alignItems: 'center', justifyContent: 'center' },
+  stepSmall: { width: 18, height: 26 },
   stepText: { color: '#FFFFFF', fontSize: 17, fontWeight: '800', lineHeight: 20 },
   qty: { color: '#FFFFFF', fontSize: 14, fontWeight: '800', minWidth: 16, textAlign: 'center' },
   soldOut: { borderColor: '#D6D6DB', backgroundColor: '#F4F4F6' },

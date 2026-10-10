@@ -9,7 +9,7 @@ const AUTO_MOVE_MS = 2000;
 
 // Every offer card type has the same width: one card fills most of the
 // width; with more, the next one peeks.
-export const offerCardWidthFor = (count, contentWidth) => (count === 1 ? contentWidth : Math.floor(contentWidth * 0.75));
+export const offerCardWidthFor = (count, contentWidth) => (count === 1 ? contentWidth : Math.floor(contentWidth * 0.72));
 
 /**
  * Where the row is scrolled to with each card in front: the first card at

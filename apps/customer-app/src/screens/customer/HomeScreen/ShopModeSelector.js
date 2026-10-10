@@ -6,6 +6,7 @@ import PressableScale from '../../../components/PressableScale';
 import RetryingImage from '../../../components/ProductImage/RetryingImage';
 import { resolveModeStyle } from '../../../components/SegmentedControl/modeStyles';
 import { useReducedMotion } from '../../../utils/motionPreferences';
+import NativeGlassView from '../../../utils/nativeGlass';
 
 const GUTTER = 16;
 const GAP = 10;
@@ -53,18 +54,26 @@ function ShopModeCard({ mode, index, width, selected, onSelect, reducedMotion })
       <Animated.View
         style={[
           styles.card,
-          selected && styles.selectedCard,
+          NativeGlassView ? styles.glassCard : selected && styles.selectedCard,
           { transform: [{ translateY: selection.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }] },
         ]}
       >
+        {/* iPhone (Liquid Glass): the same native glass as the tab bar; the
+            selected card gets a white tint instead of a solid white card. */}
+        {NativeGlassView ? (
+          <NativeGlassView
+            glassEffectStyle="regular"
+            colorScheme="light"
+            isInteractive
+            tintColor={selected ? 'rgba(255,255,255,0.6)' : undefined}
+            style={styles.glass}
+          />
+        ) : null}
         <LinearGradient
           pointerEvents="none"
           colors={selected ? [look.color + '26', look.color + '05'] : ['rgba(255,255,255,0.3)', 'rgba(255,255,255,0)']}
           style={styles.cardTint}
         />
-        <Animated.View pointerEvents="none" style={[styles.check, { opacity: selection }]}>
-          <AppIcon name="check" size={10} color="#FFFFFF" strokeWidth={3} />
-        </Animated.View>
         <View style={[styles.iconBadge, { backgroundColor: iconUrl ? '#FFFFFF' : look.color }]}>
           {iconUrl ? (
             <RetryingImage uri={iconUrl} style={styles.iconImage} contentFit="cover" />
@@ -75,7 +84,7 @@ function ShopModeCard({ mode, index, width, selected, onSelect, reducedMotion })
                 colors={['rgba(255,255,255,0.26)', 'rgba(255,255,255,0)']}
                 style={StyleSheet.absoluteFill}
               />
-              <AppIcon name={look.icon} size={38} color={look.iconColor || '#FFFFFF'} strokeWidth={2.2} />
+              <AppIcon name={look.icon} size={28} color={look.iconColor || '#FFFFFF'} strokeWidth={2.2} />
             </>
           )}
         </View>
@@ -162,43 +171,34 @@ const styles = StyleSheet.create({
   container: { paddingTop: 6 },
   rail: { gap: GAP, paddingHorizontal: GUTTER, paddingTop: 6, paddingBottom: 4 },
   card: {
-    height: 130,
-    borderRadius: 24,
-    paddingTop: 10,
+    height: 104,
+    borderRadius: 20,
+    paddingTop: 8,
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.5)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.8)',
   },
   selectedCard: { backgroundColor: '#FFFFFF', borderColor: 'rgba(32,36,49,0.18)' },
-  cardTint: { ...StyleSheet.absoluteFillObject, borderRadius: 23 },
-  check: {
-    position: 'absolute',
-    zIndex: 1,
-    top: 7,
-    right: 7,
-    width: 17,
-    height: 17,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#202431',
-  },
+  // Native glass needs a see-through card; the glass draws its own edge.
+  glassCard: { backgroundColor: 'transparent', borderColor: 'rgba(255,255,255,0.88)', borderWidth: StyleSheet.hairlineWidth },
+  glass: { ...StyleSheet.absoluteFillObject, borderRadius: 20 },
+  cardTint: { ...StyleSheet.absoluteFillObject, borderRadius: 19 },
   iconBadge: {
-    width: 72,
-    height: 72,
-    borderRadius: 22,
+    width: 54,
+    height: 54,
+    borderRadius: 16,
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
   },
   iconImage: { width: '100%', height: '100%' },
-  labelSlot: { height: 32, justifyContent: 'center', paddingHorizontal: 5, marginTop: 4 },
+  labelSlot: { height: 30, justifyContent: 'center', paddingHorizontal: 5, marginTop: 2 },
   label: { fontSize: 12, lineHeight: 16, fontWeight: '600', textAlign: 'center', color: '#535A69' },
   selectedLabel: { color: '#202431', fontWeight: '800' },
   selectionLine: {
     position: 'absolute',
-    bottom: 8,
+    bottom: 6,
     width: 22,
     height: 3,
     borderRadius: 2,

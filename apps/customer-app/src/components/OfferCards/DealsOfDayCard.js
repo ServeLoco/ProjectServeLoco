@@ -85,7 +85,7 @@ export function DayCardHeader({ card, look, width, big = false, reducedMotion })
   return (
     <View style={[styles.head, big && styles.headBig]} onLayout={(e) => setHeadWidth(e.nativeEvent.layout.width)}>
       <View style={styles.titleRow}>
-        <AppIcon name="sparkles" size={big ? 18 : 12} color={look.accentColor} />
+        <AppIcon name="sparkles" size={big ? 18 : 10} color={look.accentColor} />
         <Text
           style={[
             styles.title,
@@ -96,7 +96,7 @@ export function DayCardHeader({ card, look, width, big = false, reducedMotion })
         >
           {card.title}
         </Text>
-        <AppIcon name="sparkles" size={big ? 18 : 12} color={look.accentColor} />
+        <AppIcon name="sparkles" size={big ? 18 : 10} color={look.accentColor} />
       </View>
       {card.subtitle ? (
         <Text style={[styles.subtitle, big && styles.subtitleBig, { color: look.subtitleColor }]} numberOfLines={2}>{card.subtitle}</Text>
@@ -133,7 +133,7 @@ function DayRow({ item, look, quantity, onAdd, onDecrement, reducedMotion, wave 
   }, [wave]);
   return (
     <View style={[styles.row, unavailable && styles.rowUnavailable]}>
-      <ProductImage uri={item.thumbUrl || item.imageUrl} width={40} height={40} borderRadius={9} resizeMode="contain" style={styles.rowImage} />
+      <ProductImage uri={item.thumbUrl || item.imageUrl} width={32} height={32} borderRadius={8} resizeMode="contain" style={styles.rowImage} />
       <View style={styles.rowBody}>
         <Text style={styles.rowName} numberOfLines={2}>{item.name}</Text>
         {label ? <Text style={styles.rowUnit} numberOfLines={1}>{label}</Text> : null}
@@ -270,14 +270,14 @@ export default memo(DealsOfDayCard);
 const styles = StyleSheet.create({
   card: { flex: 1, borderRadius: 18, overflow: 'hidden', borderWidth: 1 }, // as tall as the tallest card in the row
   banner: { backgroundColor: 'transparent' },
-  head: { paddingHorizontal: 10, paddingTop: 9, paddingBottom: 7, alignItems: 'center', overflow: 'hidden' },
+  head: { paddingHorizontal: 10, paddingTop: 7, paddingBottom: 5, alignItems: 'center', overflow: 'hidden' },
   headBig: { paddingTop: 4, paddingBottom: 14 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   title: {
     flexShrink: 1,
     textAlign: 'center',
-    fontSize: 18,
-    lineHeight: 22,
+    fontSize: 15,
+    lineHeight: 19,
     fontWeight: '900',
     fontStyle: 'italic',
     textTransform: 'uppercase',
@@ -290,19 +290,19 @@ const styles = StyleSheet.create({
   subtitleBig: { fontSize: 14, lineHeight: 19, marginTop: 4 },
   shine: { position: 'absolute', top: -30, bottom: -30, left: 0, width: SHINE_WIDTH },
   divider: { height: 1, backgroundColor: 'rgba(255, 255, 255, 0.8)' },
-  list: { flex: 1, paddingHorizontal: 9, paddingTop: 3, marginHorizontal: 6, marginTop: 5, marginBottom: 5, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.58)' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingVertical: 4 },
+  list: { flex: 1, paddingHorizontal: 9, paddingTop: 3, marginHorizontal: 6, marginTop: 4, marginBottom: 4, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.58)' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 3 },
   rowUnavailable: { opacity: 0.5 },
   rowImage: { backgroundColor: '#FFFFFF' },
   rowBody: { flex: 1, minWidth: 0 },
-  rowName: { fontSize: 12, lineHeight: 14.5, fontWeight: '600', color: '#1F1F1F' },
+  rowName: { fontSize: 11.5, lineHeight: 14, fontWeight: '600', color: '#1F1F1F' },
   rowUnit: { fontSize: 10.5, color: '#8A8A8A', marginTop: 1 },
   priceCol: { alignItems: 'flex-end', minWidth: 36 },
   strike: { fontSize: 10.5, color: '#9A9A9A', textDecorationLine: 'line-through' },
-  price: { fontSize: 13.5, fontWeight: '800', color: '#1F1F1F' },
-  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, paddingTop: 4, paddingBottom: 8 },
+  price: { fontSize: 12.5, fontWeight: '800', color: '#1F1F1F' },
+  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, paddingTop: 3, paddingBottom: 6 },
   footerPressed: { opacity: 0.6 },
-  footerText: { fontSize: 13, fontWeight: '800' },
+  footerText: { fontSize: 12, fontWeight: '800' },
   chevrons: { flexDirection: 'row' },
   chevronTwo: { marginLeft: -8 },
 });

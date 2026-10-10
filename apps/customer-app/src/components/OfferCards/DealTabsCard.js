@@ -12,7 +12,7 @@ import { useReducedMotion } from '../../utils';
 
 const SHINE_WIDTH = 70;
 // Every product row is this tall, so the list keeps one height on every tab.
-const ROW_HEIGHT = 46;
+const ROW_HEIGHT = 40;
 const SHIMMER_WIDTH = 46;
 const UNLOCKED_COLOR = '#1E9E5A';
 // The little burst when the deal unlocks: where each spark flies, and its colour.
@@ -52,7 +52,7 @@ function DealRow({ item, look, selected, onSelect }) {
   const label = item.dealVariantLabel || item.unit || '';
   return (
     <View style={[styles.row, unavailable && styles.rowUnavailable]}>
-      <ProductImage uri={item.thumbUrl || item.imageUrl} width={36} height={36} borderRadius={8} resizeMode="contain" style={styles.rowImage} />
+      <ProductImage uri={item.thumbUrl || item.imageUrl} width={30} height={30} borderRadius={7} resizeMode="contain" style={styles.rowImage} />
       <View style={styles.rowBody}>
         <Text style={styles.rowName} numberOfLines={2}>{item.name}</Text>
         {label ? <Text style={styles.rowUnit} numberOfLines={1}>{label}</Text> : null}
@@ -297,7 +297,7 @@ function DealTabsCard({ card, width, onViewAll }) {
           ) : null}
         </View>
         {card.imageUrl ? (
-          <ProductImage uri={card.imageUrl} width={44} height={44} borderRadius={0} resizeMode="contain" fallback={null} style={styles.art} />
+          <ProductImage uri={card.imageUrl} width={38} height={38} borderRadius={0} resizeMode="contain" fallback={null} style={styles.art} />
         ) : null}
       </View>
 
@@ -382,9 +382,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
   },
-  head: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 12, paddingTop: 10, gap: 8 },
+  head: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 12, paddingTop: 8, gap: 8 },
   headText: { flex: 1 },
-  title: { fontSize: 15, lineHeight: 19, fontWeight: '800', letterSpacing: -0.2 },
+  title: { fontSize: 14, lineHeight: 18, fontWeight: '800', letterSpacing: -0.2 },
   subtitle: { fontSize: 11.5, lineHeight: 15, marginTop: 2, fontWeight: '500' },
   art: { backgroundColor: 'transparent' },
   progressWrap: { paddingHorizontal: 12, marginTop: 6, gap: 3 },
@@ -395,14 +395,14 @@ const styles = StyleSheet.create({
   sparkOrigin: { position: 'absolute', left: '50%', top: '50%', width: 0, height: 0 },
   spark: { position: 'absolute', left: -3, top: -3 },
   progressText: { fontSize: 11, fontWeight: '700' },
-  tabs: { flexDirection: 'row', marginTop: 8, marginHorizontal: 6, marginBottom: 6, padding: 4, gap: 4, borderRadius: 14 },
+  tabs: { flexDirection: 'row', marginTop: 6, marginHorizontal: 6, marginBottom: 6, padding: 4, gap: 4, borderRadius: 14 },
   tab: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    paddingVertical: 5,
+    paddingVertical: 4,
     borderRadius: 10,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'transparent',
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
   rowUnavailable: { opacity: 0.5 },
   rowImage: { backgroundColor: '#F6F6F8' },
   rowBody: { flex: 1, minWidth: 0 },
-  rowName: { fontSize: 12, lineHeight: 14.5, fontWeight: '700', color: '#1F1F1F' },
+  rowName: { fontSize: 11.5, lineHeight: 14, fontWeight: '700', color: '#1F1F1F' },
   rowUnit: { fontSize: 10.5, color: '#8A8A8A', marginTop: 1 },
   selectBtn: {
     borderWidth: 1.5,
@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
   selectText: { fontSize: 11.5, fontWeight: '800' },
   priceCol: { alignItems: 'flex-end', minWidth: 34 },
   strike: { fontSize: 10.5, color: '#9A9A9A', textDecorationLine: 'line-through' },
-  dealPrice: { fontSize: 13.5, fontWeight: '800', color: '#1F1F1F' },
-  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2, paddingVertical: 6, marginTop: 'auto' },
-  footerText: { fontSize: 12.5, fontWeight: '800' },
+  dealPrice: { fontSize: 12.5, fontWeight: '800', color: '#1F1F1F' },
+  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2, paddingVertical: 5, marginTop: 'auto' },
+  footerText: { fontSize: 12, fontWeight: '800' },
 });

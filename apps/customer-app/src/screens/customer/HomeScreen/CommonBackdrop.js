@@ -11,6 +11,7 @@ const AREA_COLORS = {
   day: ['#C0E3F8', '#DBEFFB', '#FFFFFF'], // sky, under the sky blue bar
   night: ['#D2CDF8', '#E5E2FC', '#FFFFFF'], // moonlight lavender
   rain: ['#D1DAE6', '#E4EAF1', '#FFFFFF'], // grey-blue
+  evening: ['#FBD0C4', '#FDE5DE', '#FFFFFF'], // sunset peach
 };
 // How much of an offer card's colour goes into the area (the rest is white):
 // at the top, in the middle, and none at the bottom.
@@ -101,7 +102,7 @@ function ConfettiPiece({ left, shape, size, from, to, fall, delay, turns, color 
  * page.
  * Purely decorative.
  *
- * look: 'day' | 'night' | 'rain' (the top bar's look).
+ * look: 'day' | 'evening' | 'night' | 'rain' (the top bar's look).
  * barBottom: where the bar's solid part ends, from the top of this backdrop.
  * tint: { colors, stops } from the offer cards row — each card's colour and
  *   the scroll position where it is in front — or null. With it, the area

@@ -47,7 +47,9 @@ import { showToast } from '../../../components/Toast';
 import { offerCardDesignOf, drawableOfferCards, offerCardColorOf } from '../../../components/OfferCards/offerCardDesigns';
 import { OfferCardsRail, offerCardWidthFor, offerRailStops } from './OfferCardsRail';
 import ShopModeSelector from './ShopModeSelector';
-import { createHomeHeaderTranslateY, createHomeModesTranslateY, homeModesPinStart } from './homeHeaderMotion';
+import {
+  createHomeHeaderTranslateY, createHomeModesTranslateY, homeModesPinStart, homeModesTopPin, homeSearchPushed,
+} from './homeHeaderMotion';
 import NativeGlassView from '../../../utils/nativeGlass';
 import { colors, typography, fontSizes, lineHeights, spacing, radius, layout } from '../../../theme';
 import HomeIcon from './HomeIcon';
@@ -56,8 +58,9 @@ import SunCorner from './SunCorner';
 import SkyBirds from './SkyBirds';
 import SkyCloud from './SkyCloud';
 import NightSky from './NightSky';
+import SunsetSky from './SunsetSky';
 import RainSky from './RainSky';
-import useIsDaytime from './useIsDaytime';
+import useSkyPhase from './useIsDaytime';
 import { useAuthStore, useCartStore, useSettingsStore, useDeliveryLocationStore, useDeliveryZonesStore } from '../../../stores';
 import { useAuthGate, useStoreModes, useHomeLocationPermission, buildAreaETag, applyBootstrapResult, syncDeliveryLocation, syncAreaInfo } from '../../../hooks';
 import { subscribeProductAvailabilityEvents } from '../../../api/realtimeClient';
@@ -89,6 +92,7 @@ import { dashboardLogo } from '../../../assets';
 const DAY_BAR_RGB = '189, 228, 247';
 const NIGHT_BAR_RGB = '75, 79, 87';
 const RAIN_BAR_RGB = '210, 214, 220'; // light grey
+const EVENING_BAR_RGB = '230, 92, 76'; // sunset red, under an orange sky
 // Eased fade: opacity drops slowly at first, fastest in the middle, and
 // slowly again at the end, so there is no visible edge at either side.
 const TOP_BAR_FADE_ALPHAS = [1, 0.94, 0.8, 0.58, 0.34, 0.14, 0.04, 0];
@@ -96,9 +100,12 @@ const fadeColorsFor = (rgb) => TOP_BAR_FADE_ALPHAS.map((a) => `rgba(${rgb}, ${a}
 const DAY_FADE_COLORS = fadeColorsFor(DAY_BAR_RGB);
 const NIGHT_FADE_COLORS = fadeColorsFor(NIGHT_BAR_RGB);
 const RAIN_FADE_COLORS = fadeColorsFor(RAIN_BAR_RGB);
+const EVENING_FADE_COLORS = fadeColorsFor(EVENING_BAR_RGB);
 // Pinned shop modes sit on a blue wash that starts in the bar colour, so the
 // bar runs into them with no edge, and ends in white.
 const PINNED_MODES_BLUES = ['#D3E9F8', '#EAF4FC', '#FFFFFF'];
+// In the evening the wash runs warm instead, from the red bar to white.
+const PINNED_MODES_WARM = ['#F8C9C1', '#FCE6E1', '#FFFFFF'];
 const PINNED_MODES_LOCATIONS = [0, 0.35, 0.8, 1];
 // Below them a short white fade, so the page slides under softly. It starts
 // fully white, matching the wash above, so there is no edge where they meet,
@@ -209,8 +216,8 @@ function HomeSectionsSkeleton({ windowWidth, withBanner = false, modeCount = 2 }
               <LoadingSkeleton
                 key={i}
                 width={skeletonModeWidth}
-                height={130}
-                borderRadius={24}
+                height={104}
+                borderRadius={20}
               />
             ))}
           </View>
@@ -815,16 +822,20 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   // Top bar look. While the admin's rain charge is on, the rain scene wins
   // over the clock: light grey bar with drifting clouds and falling rain.
-  // Otherwise it follows the time of day: day (7 AM – 6 PM IST) is a sky blue
-  // bar with sun, cloud and birds; night is a light black bar with a turning
-  // moon and twinkling stars.
+  // Otherwise it follows the time of day: day (7 AM – 5 PM IST) is a sky blue
+  // bar with sun, cloud and birds; evening (5 PM – 7 PM IST) an orange-to-red
+  // sunset with a setting sun and birds; night is a light black bar with
+  // twinkling stars.
   const rainChargeEnabled = useSettingsStore(state => state.rainChargeEnabled);
   const isRainy = rainChargeEnabled === true;
-  const isDaytime = useIsDaytime();
-  const isLightBar = isRainy || isDaytime;
-  const barRgb = isRainy ? RAIN_BAR_RGB : isDaytime ? DAY_BAR_RGB : NIGHT_BAR_RGB;
+  const skyPhase = useSkyPhase();
+  const isDaytime = skyPhase === 'day';
+  const isEvening = skyPhase === 'evening';
+  const isLightBar = isRainy || isDaytime || isEvening;
+  const barRgb = isRainy ? RAIN_BAR_RGB : isDaytime ? DAY_BAR_RGB : isEvening ? EVENING_BAR_RGB : NIGHT_BAR_RGB;
   const barColor = `rgb(${barRgb})`;
-  const barFadeColors = isRainy ? RAIN_FADE_COLORS : isDaytime ? DAY_FADE_COLORS : NIGHT_FADE_COLORS;
+  const barFadeColors = isRainy ? RAIN_FADE_COLORS : isDaytime ? DAY_FADE_COLORS
+    : isEvening ? EVENING_FADE_COLORS : NIGHT_FADE_COLORS;
   // What sits on the bar flips with it: black on a light bar, white on the dark one.
   const onBarColor = isLightBar ? '#111827' : '#FFFFFF';
   const barButtonBg = isLightBar ? '#111827' : '#FFFFFF';
@@ -1090,6 +1101,12 @@ export default function HomeScreen() {
   const totalDrawUnits = orderedUnits.length;
   sectionTotalRef.current = totalDrawUnits;
   const scrollMetricsRef = useRef({ offset: 0, top: 0, viewport: 0, content: 0 });
+  const homeScrollRef = useRef(null);
+  // Scroll offset where the modes sit pinned at the top (set each render).
+  const modesTopPinRef = useRef(null);
+  // Visible height of the Home list; the sections block is kept at least this
+  // tall (less the modes) so the modes can stay pinned while it is short.
+  const [homeViewportHeight, setHomeViewportHeight] = useState(0);
   const drawnCountRef = useRef(renderedSectionCount);
   drawnCountRef.current = renderedSectionCount;
   const drawTimerRef = useRef(null);
@@ -1127,7 +1144,7 @@ export default function HomeScreen() {
   const [searchDropdownHeight, setSearchDropdownHeight] = useState(0);
   const [topFadeHeight, setTopFadeHeight] = useState(0);
   // Height of the location row — the part that scrolls away. The search bar
-  // below it stays pinned to the top.
+  // below it stays pinned to the top until the shop modes push it out.
   const [topRowHeight, setTopRowHeight] = useState(0);
   const scrollY = useRef(new Animated.Value(0)).current;
   const lastScrollCheckRef = useRef(0);
@@ -1795,6 +1812,12 @@ export default function HomeScreen() {
     setDashboardSections([]);
     setIsLoading(true);
     setStoreType(val);
+    // Scrolled past where the modes pin at the top: go back to that point, so
+    // the modes stay put and the new mode's items start right under them.
+    const topPin = modesTopPinRef.current;
+    if (topPin != null && scrollMetricsRef.current.offset > topPin) {
+      homeScrollRef.current?.scrollTo({ y: topPin, animated: false });
+    }
     sectionsFade.stopAnimation();
     sectionsFade.setValue(0.4);
     Animated.timing(sectionsFade, { toValue: 1, duration: 160, useNativeDriver: true }).start();
@@ -1873,12 +1896,12 @@ export default function HomeScreen() {
   const topGroupHeight = topRowHeight + searchBarBottom
     + (isSearchOverlayOpen ? searchDropdownHeight : 0) + topFadeHeight;
   const fadeOverlap = !isHomeLoading && homeError ? 0 : topGroupHeight;
-  // Modes pin right under Search once they reach it; both then stay at the
-  // top, and the fade under Search gives way to the modes' own blue wash.
+  // Once the modes reach Search they push it up and out and pin at the top in
+  // its place; the fade under Search gives way to the modes' own blue wash.
   const homeScrollPadding = fadeOverlap;
   const pinnedHeight = topGroupHeight - topRowHeight - TOP_FADE_TAIL;
 
-  // Collapse the location row first; Search then stays pinned at the top.
+  // Collapse the location row first; Search then stays pinned until the modes push it out.
   const collapseDistance = Math.max(topRowHeight, 1);
   // Common sections on screen (not a permission / no-delivery / loading page).
   const hasCommon = commonUnits.length > 0 && !isHomeLoading && !needsLocationPermission
@@ -1890,14 +1913,16 @@ export default function HomeScreen() {
     shopModesY: shopModesLayout.height > 0 && modes.length > 0 && !isHomeLoading && fadeOverlap > 0
       ? shopModesLayout.y : null,
   }), [topRowHeight, pinnedHeight, shopModesLayout.height, shopModesLayout.y, modes.length, isHomeLoading, fadeOverlap]);
-  const topGroupTranslateY = useMemo(
-    () => createHomeHeaderTranslateY(scrollY, headerMeasurements),
-    [scrollY, headerMeasurements],
-  );
   const modesPinStart = homeModesPinStart(headerMeasurements);
+  const modesTopPin = homeModesTopPin(modesPinStart, pinnedHeight);
+  modesTopPinRef.current = modesTopPin;
+  const topGroupTranslateY = useMemo(
+    () => createHomeHeaderTranslateY(scrollY, headerMeasurements, modesPinStart),
+    [scrollY, headerMeasurements, modesPinStart],
+  );
   const shopModesTranslateY = useMemo(
-    () => createHomeModesTranslateY(scrollY, modesPinStart),
-    [scrollY, modesPinStart],
+    () => createHomeModesTranslateY(scrollY, modesTopPin),
+    [scrollY, modesTopPin],
   );
   // 0 → 1 over the last stretch before the modes pin, as they rise through
   // the fade under Search.
@@ -1917,7 +1942,21 @@ export default function HomeScreen() {
       : 1,
     shopModesPinProgress.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
   ), [hasCommon, scrollY, shopModesPinProgress]);
-  const pinnedModesColors = useMemo(() => [barColor, ...PINNED_MODES_BLUES], [barColor]);
+  const warmPinnedWash = isEvening && !isRainy;
+  const pinnedModesColors = useMemo(
+    () => [barColor, ...(warmPinnedWash ? PINNED_MODES_WARM : PINNED_MODES_BLUES)],
+    [barColor, warmPinnedWash],
+  );
+  // Search pushed out goes up under the status bar, not over it: the bar colour
+  // covers that strip from the moment the push starts. Hidden before, so the
+  // sun and stars still reach up behind the status bar at the top of the page.
+  const statusBarCoverOpacity = useMemo(() => (modesPinStart == null
+    ? 0
+    : scrollY.interpolate({
+      inputRange: [modesPinStart, modesPinStart + 1],
+      outputRange: [0, 1],
+      extrapolate: 'clamp',
+    })), [scrollY, modesPinStart]);
   const topRowOpacity = useMemo(() => scrollY.interpolate({
     inputRange: [0, collapseDistance * 0.7],
     outputRange: [1, 0],
@@ -1956,9 +1995,9 @@ export default function HomeScreen() {
     width: windowWidth,
     height: shopModesBackdropOffset + shopModesLayout.height,
     barColor,
-    barShadow: isLightBar ? '#5B7A99' : '#1F2329',
+    barShadow: isEvening && !isRainy ? '#A3402F' : isLightBar ? '#5B7A99' : '#1F2329',
     barBottom: fadeOverlap - topFadeHeight,
-    look: isRainy ? 'rain' : isDaytime ? 'day' : 'night',
+    look: isRainy ? 'rain' : isDaytime ? 'day' : isEvening ? 'evening' : 'night',
     tint: commonOfferTint,
     tintScrollX: commonOfferScrollX,
   };
@@ -2048,10 +2087,11 @@ export default function HomeScreen() {
         <View style={[styles.topSolid, { backgroundColor: barColor }]}>
           {/* Decoration, never touchable, fading out with the location row when the
               page scrolls. Rain charge on: grey clouds and falling rain, whatever the
-              time. Otherwise, day (7 AM – 6 PM IST): a sun in the top-right corner
+              time. Otherwise, day (7 AM – 5 PM IST): a sun in the top-right corner
               (reaching up behind the status bar) with thin beams across the bar,
               one small cloud and black birds drifting across the top row, behind
-              the delivery location. Night: a slowly turning moon and twinkling stars. */}
+              the delivery location. Evening (5 PM – 7 PM IST): an orange-to-red
+              sky, a setting orange sun and birds flying home. Night: twinkling stars. */}
           <Animated.View pointerEvents="none" style={[styles.topBarDecor, { opacity: topRowOpacity }]}>
             {isRainy ? (
               <RainSky
@@ -2069,6 +2109,13 @@ export default function HomeScreen() {
                 <SkyCloud top={4} width={windowWidth} />
                 <SkyBirds top={4} width={windowWidth} />
               </>
+            ) : isEvening ? (
+              <SunsetSky
+                width={windowWidth}
+                minY={-insets.top}
+                bottom={topRowHeight + searchBarBottom}
+                barColor={barColor}
+              />
             ) : (
               <NightSky
                 width={windowWidth}
@@ -2193,6 +2240,10 @@ export default function HomeScreen() {
           )}
         </View>
       </Animated.View>
+      <Animated.View
+        pointerEvents="none"
+        style={[styles.statusBarCover, { top: -insets.top, height: insets.top, backgroundColor: barColor, opacity: statusBarCoverOpacity }]}
+      />
       <View style={{ height: topGroupHeight }} />
 
       {/* Search backdrop — dims the dashboard so the dropdown reads clearly */}
@@ -2274,6 +2325,7 @@ export default function HomeScreen() {
         // Native Liquid Glass requires fully opaque ancestors. Keep the slide
         // entrance on iOS; the translucent fallback can also use the fade.
         <Animated.ScrollView
+          ref={homeScrollRef}
           removeClippedSubviews={false}
           contentContainerStyle={[styles.scrollContent, { paddingTop: homeScrollPadding }]}
           showsVerticalScrollIndicator={false}
@@ -2294,9 +2346,10 @@ export default function HomeScreen() {
             glideTapRef.current = null;
             if (!tap || tap.offset == null || Date.now() - tap.at > 400) return;
             if (Math.abs(nativeEvent.contentOffset.y - tap.offset) > 8) return;
-            // Only while the row is pinned under Search.
+            // Only while the row is pushing Search out or pinned in its place.
             if (modesPinStart == null || tap.offset < modesPinStart - 1) return;
-            const rowTop = insets.top + scrollMetricsRef.current.top + pinnedHeight;
+            const rowTop = insets.top + scrollMetricsRef.current.top + pinnedHeight
+              - homeSearchPushed(tap.offset, modesPinStart, pinnedHeight);
             if (tap.pageY < rowTop || tap.pageY > rowTop + shopModesLayout.height) return;
             shopModesRef.current?.pressAt(tap.pageX);
           }}
@@ -2306,6 +2359,7 @@ export default function HomeScreen() {
           onLayout={(event) => {
             scrollMetricsRef.current.top = event.nativeEvent.layout.y;
             scrollMetricsRef.current.viewport = event.nativeEvent.layout.height;
+            setHomeViewportHeight(Math.round(event.nativeEvent.layout.height));
             drawMoreIfNeeded();
           }}
           onContentSizeChange={(_, height) => {
@@ -2351,7 +2405,7 @@ export default function HomeScreen() {
               />
             ) : null}
           </View>
-          {/* Pins under Search once it reaches it (shopModesTranslateY) and
+          {/* Pushes Search out, pins at the top (shopModesTranslateY) and
               stays drawn over the catalog scrolling below. */}
           <Animated.View
             style={[styles.stickyShopModes, { transform: [{ translateY: shopModesTranslateY }] }]}
@@ -2399,7 +2453,10 @@ export default function HomeScreen() {
             </Animated.View>
           </Animated.View>
 
-          {/* Dynamic Sections */}
+          {/* Dynamic Sections — never shorter than the screen below the
+              modes, so a mode switch (sections clear, then load) or a mode
+              with few items does not pull the page down and unpin them. */}
+          <View style={{ minHeight: modesPinStart == null ? 0 : Math.max(0, homeViewportHeight - shopModesLayout.height) }}>
           <Animated.View style={{ opacity: NativeGlassView ? 1 : sectionsFade }}>
           {isSectionsLoading ? (
             <View>
@@ -2424,6 +2481,7 @@ export default function HomeScreen() {
             </View>
           ) : null}
           </Animated.View>
+          </View>
         </Animated.ScrollView>
           )}
         </>
@@ -2899,7 +2957,8 @@ function HomeHeader({
   const hasQuery = searchQuery.trim().length > 0;
 
   const searchBarMotionStyle = {
-    opacity: searchEnterAnim,
+    // Native Liquid Glass needs fully opaque ancestors; keep only the slide.
+    opacity: NativeGlassView ? 1 : searchEnterAnim,
     transform: [
       {
         translateY: searchEnterAnim.interpolate({
@@ -2958,37 +3017,50 @@ function HomeHeader({
         // without any results dropdown under it.
         onLayout={(e) => onBarLayout?.(Math.round(e.nativeEvent.layout.y + e.nativeEvent.layout.height))}
       >
-        <BlurView
-          pointerEvents="none"
-          intensity={40}
-          tint={isDarkGlass ? 'dark' : 'light'}
-          // No experimentalBlurMethod on Android. That prop switches expo-blur to
-          // Dimezis BlurView, which hangs an onPreDraw listener off the window
-          // and, every single frame, draws the WHOLE React root view tree into
-          // its own bitmap to blur it. Doing that out-of-band while the tree is
-          // changing — i.e. while a list under the bar is scrolling — races
-          // ViewGroup's pre-ordered child list and Android throws
-          // IndexOutOfBoundsException out of dispatchDraw, killing the app.
-          // Confirmed in Play Console: the crash stack ends in
-          // eightbitlab.com.blurview.PreDrawBlurController.updateBlur.
-          // Without it expo-blur paints a flat translucent tint of the same
-          // colour, which is what every other BlurView in this app already does.
-          style={StyleSheet.absoluteFill}
-        />
-        <View
-          pointerEvents="none"
-          style={[
-            StyleSheet.absoluteFill,
-            { backgroundColor: isDarkGlass ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.3)' },
-          ]}
-        />
-        <LinearGradient
-          pointerEvents="none"
-          colors={['rgba(255, 255, 255, 0.5)', 'rgba(255, 255, 255, 0)']}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
+        {/* iPhone (Liquid Glass): the same native glass as the tab bar. */}
+        {NativeGlassView ? (
+          <NativeGlassView
+            pointerEvents="none"
+            glassEffectStyle="regular"
+            colorScheme={isDarkGlass ? 'dark' : 'light'}
+            isInteractive
+            style={StyleSheet.absoluteFill}
+          />
+        ) : (
+          <>
+            <BlurView
+              pointerEvents="none"
+              intensity={40}
+              tint={isDarkGlass ? 'dark' : 'light'}
+              // No experimentalBlurMethod on Android. That prop switches expo-blur to
+              // Dimezis BlurView, which hangs an onPreDraw listener off the window
+              // and, every single frame, draws the WHOLE React root view tree into
+              // its own bitmap to blur it. Doing that out-of-band while the tree is
+              // changing — i.e. while a list under the bar is scrolling — races
+              // ViewGroup's pre-ordered child list and Android throws
+              // IndexOutOfBoundsException out of dispatchDraw, killing the app.
+              // Confirmed in Play Console: the crash stack ends in
+              // eightbitlab.com.blurview.PreDrawBlurController.updateBlur.
+              // Without it expo-blur paints a flat translucent tint of the same
+              // colour, which is what every other BlurView in this app already does.
+              style={StyleSheet.absoluteFill}
+            />
+            <View
+              pointerEvents="none"
+              style={[
+                StyleSheet.absoluteFill,
+                { backgroundColor: isDarkGlass ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.3)' },
+              ]}
+            />
+            <LinearGradient
+              pointerEvents="none"
+              colors={['rgba(255, 255, 255, 0.5)', 'rgba(255, 255, 255, 0)']}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+          </>
+        )}
         <Pressable
           style={styles.searchBar}
           onPressIn={focusInput}
@@ -2996,7 +3068,7 @@ function HomeHeader({
           accessibilityLabel="Search products"
         >
           <Animated.View style={[styles.searchIcon, searchIconMotionStyle]}>
-            <HomeIcon name="search" size={20} color={glassMuted} />
+            <HomeIcon name="search" size={17} color={glassMuted} />
           </Animated.View>
           <View style={styles.searchTextWrap}>
             <View style={styles.searchInputRow}>
@@ -3074,7 +3146,7 @@ function HomeHeader({
               hitSlop={8}
             >
               <Animated.View style={searchChevronMotionStyle}>
-                <HomeIcon name="chevronRight" size={18} color={glassMuted} />
+                <HomeIcon name="chevronRight" size={16} color={glassMuted} />
               </Animated.View>
             </TouchableOpacity>
           )}
@@ -3604,7 +3676,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     paddingHorizontal: 16,
-    height: 146,
+    height: 120,
   },
   locationLoadingNotice: {
     ...typography.caption,
@@ -3622,6 +3694,12 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 20,
+  },
+  statusBarCover: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    zIndex: 21, // over the top group (20) once Search is pushed under it
   },
   topSolid: {
     zIndex: 1, // keeps the search dropdown drawn over the fade below
@@ -3768,7 +3846,7 @@ const styles = StyleSheet.create({
   searchBarOuter: {
     marginTop: spacing.sm,
     marginHorizontal: 0, // full width — escapes the card padding
-    borderRadius: 24,
+    borderRadius: 20,
     // See-through: the blur and wash are layered inside (see HomeHeader).
     // Matching radius + overflow hidden so Android draws fully rounded
     // corners. Hairline border (colour set inline per scene), no shadow.
@@ -3780,7 +3858,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'transparent',
-    height: 48,
+    height: 40,
     paddingHorizontal: spacing.md,
   },
   searchIcon: {
@@ -3793,12 +3871,12 @@ const styles = StyleSheet.create({
   searchInputRow: {
     position: 'relative',
     justifyContent: 'center',
-    minHeight: 22,
+    minHeight: 20,
   },
   searchInput: {
     ...typography.body,
     color: colors.textPrimary,
-    fontSize: 14.5,
+    fontSize: 13.5,
     fontWeight: '500',
     padding: 0,
   },
@@ -3810,18 +3888,18 @@ const styles = StyleSheet.create({
   },
   searchTypewriterPrefix: {
     ...typography.body,
-    fontSize: 14.5,
+    fontSize: 13.5,
     fontWeight: '500',
     color: colors.textSecondary,
   },
   searchTypewriterText: {
     ...typography.body,
-    fontSize: 14.5,
+    fontSize: 13.5,
     fontWeight: '500',
     color: colors.textSecondary,
   },
   searchTypewriterCaret: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '400',
     color: colors.textSecondary,
     marginLeft: 1,
@@ -3834,15 +3912,15 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   searchGoButton: {
-    width: 32,
-    height: 32,
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: spacing.xs,
   },
   searchClearButton: {
-    width: 32,
-    height: 32,
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: spacing.xs,

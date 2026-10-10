@@ -4,7 +4,13 @@ import { Animated, Easing, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const SUN_GOLD = '#FFC93C';
-const SUN_GOLD_CLEAR = 'rgba(255, 201, 60, 0)';
+// Day: a golden sun. `colors` swaps the disc, its glow and the beams (the
+// evening sky uses a setting orange sun).
+const DAY_COLORS = { core: SUN_GOLD, glow: 'rgba(255, 201, 60, 0.35)', ray: SUN_GOLD };
+const clearOf = (hex) => {
+  const h = hex.replace('#', '');
+  return `rgba(${parseInt(h.slice(0, 2), 16)}, ${parseInt(h.slice(2, 4), 16)}, ${parseInt(h.slice(4, 6), 16)}, 0)`;
+};
 const RAY_COUNT = 9;
 const RAY_THICKNESS = 2;
 // Beams fan from straight down (90°) to straight left (180°) — clockwise from
@@ -26,7 +32,7 @@ function rayLength(angleDeg, width, height) {
   return Math.max(0, Math.min(toLeft, toBottom));
 }
 
-function Ray({ angle, length, index }) {
+function Ray({ angle, length, index, color }) {
   const progress = useMemo(() => new Animated.Value(0), []);
 
   useEffect(() => {
@@ -57,7 +63,7 @@ function Ray({ angle, length, index }) {
     >
       <Animated.View style={[styles.rayInner, { opacity, transform: [{ scaleX }] }]}>
         <LinearGradient
-          colors={[SUN_GOLD, SUN_GOLD_CLEAR]}
+          colors={[color, clearOf(color)]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={{ marginLeft: length, width: length, height: RAY_THICKNESS }}
@@ -72,7 +78,7 @@ function Ray({ angle, length, index }) {
 // softly. `style` positions the sun's centre (top / right); `width` and
 // `height` are how far the beams may travel (to the left edge / bar bottom).
 // Purely decorative — never touchable.
-export default function SunCorner({ style, width, height }) {
+export default function SunCorner({ style, width, height, colors = DAY_COLORS }) {
   const pulse = useMemo(() => new Animated.Value(0), []);
 
   useEffect(() => {
@@ -98,10 +104,10 @@ export default function SunCorner({ style, width, height }) {
   return (
     <View pointerEvents="none" style={[styles.anchor, style]}>
       {rays.map((ray, i) => (
-        <Ray key={ray.angle} angle={ray.angle} length={ray.length} index={i} />
+        <Ray key={ray.angle} angle={ray.angle} length={ray.length} index={i} color={colors.ray} />
       ))}
-      <Animated.View style={[styles.glow, { transform: [{ scale: discScale }] }]} />
-      <View style={styles.core} />
+      <Animated.View style={[styles.glow, { backgroundColor: colors.glow, transform: [{ scale: discScale }] }]} />
+      <View style={[styles.core, { backgroundColor: colors.core }]} />
     </View>
   );
 }
@@ -129,7 +135,6 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(255, 201, 60, 0.35)',
   },
   core: {
     position: 'absolute',
@@ -138,6 +143,5 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: SUN_GOLD,
   },
 });
