@@ -12,35 +12,32 @@ import {
   Linking,
   ActivityIndicator,
   TextInput,
-  ImageBackground,
-  StatusBar,
+  Image,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useIsFocused } from '@react-navigation/native';
 import {
   AppScreen,
-  TextInputField,
   AppIcon,
 } from '../../../components';
-import { colors, typography, spacing, radius } from '../../../theme';
+import styles from './AuthScreen.styles';
 import { useAuthStore } from '../../../stores';
 import { authApi } from '../../../api';
 import { requestNotificationPermission } from '../../../hooks/useLocalNotifications';
-import { authBg } from '../../../assets';
+import BlurView from '../../../components/BlurView';
+import { useReducedMotion } from '../../../utils/motionPreferences';
+import AuthBackdrop from './AuthBackdrop';
+import useAuthKeyboard from './useAuthKeyboard';
 import { getIdToken, signInWithPhoneNumber } from '@react-native-firebase/auth';
 import { auth } from '../../../config/firebase';
 
 const COUNTRY_CODE = '+91';
 const OTP_LENGTH = 6;
 
-/* Background artwork metrics (Images/auth-bg.png). The VillKro logo + tagline
- * are baked into the image, so we track where they land on screen and slide
- * the whole background up just enough to keep them clear of the drawer. */
-const BG_SIZE = { width: 941, height: 1672 };
-const LOGO_TOP_RATIO = 0.26;
-const LOGO_BOTTOM_RATIO = 0.40;
-const LOGO_CLEARANCE = 14;
-const GLASS_PLACEHOLDER = 'rgba(255,255,255,0.55)';
+const AUTH_LOGO = require('../../../../Images/villkro-auth-wordmark.png');
+const GLASS_PLACEHOLDER = '#BDB7B0';
 
 const POLICY_URLS = {
   privacy: 'https://api.villkro.in/policies/privacy',
@@ -56,6 +53,10 @@ function useAnimatedValue(init) {
 export default function AuthScreen() {
   const setSession = useAuthStore((state) => state.setSession);
   const insets = useSafeAreaInsets();
+  const reducedMotion = useReducedMotion();
+  const focused = useIsFocused();
+  const { width } = useWindowDimensions();
+  const { rootRef, inset: keyboardInset, visible: keyboardVisible, onLayout: onRootLayout } = useAuthKeyboard(reducedMotion);
 
   /*
    * step: 'phone' | 'otp' | 'name'
@@ -73,11 +74,7 @@ export default function AuthScreen() {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [termsAccepted, setTermsAccepted] = useState(false);
 
-  /* Layout metrics — background is pinned to the keyboard-free height so the
-   * IME resize never rescales the artwork under the drawer. */
-  const [layout, setLayout] = useState({ width: 0, fullHeight: 0 });
-  const [kbHeight, setKbHeight] = useState(0);
-  const [cardHeight, setCardHeight] = useState(0);
+  const [focusedField, setFocusedField] = useState(null);
 
   /* Firebase state */
   const [confirmation, setConfirmation] = useState(null);
@@ -95,83 +92,33 @@ export default function AuthScreen() {
   const cardFade = useAnimatedValue(0);
   const cardSlide = useAnimatedValue(40);
 
-  const bgShift = useAnimatedValue(0);
+  const logoSlide = useAnimatedValue(18);
   const shakeAnim = useAnimatedValue(0);
   const stepFade = useAnimatedValue(1);
   const stepSlide = useAnimatedValue(0);
 
   /* ── Entrance animations ── */
   useEffect(() => {
+    if (reducedMotion) {
+      cardFade.setValue(1);
+      cardSlide.setValue(0);
+      logoSlide.setValue(0);
+      return undefined;
+    }
     const common = { easing: Easing.out(Easing.cubic), useNativeDriver: true };
-
-    Animated.parallel([
+    const entrance = Animated.parallel([
       Animated.timing(cardFade, { toValue: 1, duration: 700, ...common }),
-      Animated.timing(cardSlide, { toValue: 0, duration: 700, ...common }),
-    ]).start();
-
-    /* The app draws edge-to-edge, so the Android window is never resized by the
-     * IME and KeyboardAvoidingView cannot restore its own height cleanly (it
-     * came back short by the nav-bar inset, which is the dead space that was
-     * left behind after the keyboard closed). Drive the inset ourselves. */
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-
-    const showListener = Keyboard.addListener(showEvent, (e) => {
-      setKbHeight(e?.endCoordinates?.height || 0);
-    });
-    const hideListener = Keyboard.addListener(hideEvent, () => setKbHeight(0));
-
-    return () => {
-      showListener.remove();
-      hideListener.remove();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  /* ── Layout measurement ── */
-  const onRootLayout = useCallback((e) => {
-    const { width, height } = e.nativeEvent.layout;
-    setLayout((prev) =>
-      prev.width === width && prev.fullHeight >= height
-        ? prev
-        : { width, fullHeight: Math.max(prev.fullHeight, height) }
-    );
-  }, []);
-
-  const onCardLayout = useCallback((e) => {
-    const h = e.nativeEvent.layout.height;
-    setCardHeight((prev) => (Math.abs(prev - h) < 1 ? prev : h));
-  }, []);
-
-  /* ── Keep the background logo above the drawer ──
-   * When the keyboard resizes the window the drawer rises; without this the
-   * drawer swallows the logo baked into the background image. */
-  useEffect(() => {
-    const { width, fullHeight } = layout;
-    if (!width || !fullHeight || !cardHeight) return;
-
-    const scale = Math.max(width / BG_SIZE.width, fullHeight / BG_SIZE.height);
-    const drawnHeight = BG_SIZE.height * scale;
-    const offsetY = (fullHeight - drawnHeight) / 2;
-    const logoTop = offsetY + drawnHeight * LOGO_TOP_RATIO;
-    const logoBottom = offsetY + drawnHeight * LOGO_BOTTOM_RATIO;
-
-    const drawerTop = fullHeight - kbHeight - cardHeight;
-    const needed = logoBottom + LOGO_CLEARANCE - drawerTop;
-    const maxShift = Math.max(0, logoTop - insets.top - 8);
-    const shift = Math.max(0, Math.min(needed, maxShift));
-
-    Animated.timing(bgShift, {
-      toValue: -shift,
-      duration: 220,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  }, [layout, kbHeight, cardHeight, insets.top, bgShift]);
+      Animated.timing(cardSlide, { toValue: 0, duration: 800, ...common }),
+      Animated.timing(logoSlide, { toValue: 0, duration: 900, ...common }),
+    ]);
+    entrance.start();
+    return () => entrance.stop();
+  }, [cardFade, cardSlide, logoSlide, reducedMotion]);
 
   /* ── Shake error ── */
   const triggerShake = useCallback(() => {
     shakeAnim.setValue(0);
+    if (reducedMotion) return;
     Animated.sequence([
       Animated.timing(shakeAnim, { toValue: 12, duration: 60, useNativeDriver: true }),
       Animated.timing(shakeAnim, { toValue: -10, duration: 60, useNativeDriver: true }),
@@ -179,11 +126,18 @@ export default function AuthScreen() {
       Animated.timing(shakeAnim, { toValue: -5, duration: 60, useNativeDriver: true }),
       Animated.timing(shakeAnim, { toValue: 0, duration: 60, useNativeDriver: true }),
     ]).start();
-  }, [shakeAnim]);
+  }, [reducedMotion, shakeAnim]);
 
   /* ── Step transition animation ── */
   const animateToStep = useCallback(
     (newStep) => {
+      if (reducedMotion) {
+        stepFade.setValue(1);
+        stepSlide.setValue(0);
+        setStep(newStep);
+        setErrorMsg('');
+        return;
+      }
       Animated.parallel([
         Animated.timing(stepFade, { toValue: 0, duration: 200, useNativeDriver: true }),
         Animated.timing(stepSlide, { toValue: -16, duration: 200, useNativeDriver: true }),
@@ -197,7 +151,7 @@ export default function AuthScreen() {
         ]).start();
       });
     },
-    [stepFade, stepSlide]
+    [reducedMotion, stepFade, stepSlide]
   );
 
   const handleSuccess = useCallback((token, user, shop = null, rider = null, admin = null) => {
@@ -463,29 +417,26 @@ export default function AuthScreen() {
   /* ── Render: Phone Step ── */
   const renderPhoneStep = () => (
     <View style={styles.form}>
-      <View style={styles.phoneRow}>
-        <View style={styles.countryCode}>
-          <Text style={styles.countryCodeText}>{COUNTRY_CODE}</Text>
-        </View>
-        <View style={styles.phoneInputWrap}>
-          <TextInputField
-            label="Phone Number"
-            placeholder="10-digit mobile number"
-            keyboardType="phone-pad"
-            value={phone}
-            onChangeText={setPhone}
-            editable={!isLoading}
-            returnKeyType="done"
-            onSubmitEditing={sendOtp}
-            inputRef={phoneRef}
-            containerStyle={styles.fieldGap}
-            maxLength={10}
-            labelStyle={styles.fieldLabel}
-            inputWrapStyle={styles.glassInputWrap}
-            inputStyle={styles.glassInputText}
-            placeholderTextColor={GLASS_PLACEHOLDER}
-          />
-        </View>
+      <Text style={styles.fieldLabel}>Phone Number</Text>
+      <View style={[styles.glassInputWrap, focusedField === 'phone' && styles.inputFocused]}>
+        <View style={styles.countryCode}><Text style={styles.countryCodeText}>{COUNTRY_CODE}</Text></View>
+        <TextInput
+          ref={phoneRef}
+          accessibilityLabel="Phone Number"
+          placeholder="10-digit mobile number"
+          keyboardType="phone-pad"
+          value={phone}
+          onChangeText={setPhone}
+          editable={!isLoading}
+          returnKeyType="done"
+          onSubmitEditing={sendOtp}
+          maxLength={10}
+          style={styles.glassInputText}
+          placeholderTextColor={GLASS_PLACEHOLDER}
+          selectionColor="#FFAC3E"
+          onFocus={() => setFocusedField('phone')}
+          onBlur={() => setFocusedField(null)}
+        />
       </View>
       <View style={styles.termsRow}>
         <TouchableOpacity
@@ -497,7 +448,7 @@ export default function AuthScreen() {
           accessibilityState={{ checked: termsAccepted }}
           accessibilityLabel="Accept Terms of Service and Privacy Policy"
         >
-          <AnimatedCheckbox checked={termsAccepted} />
+          <AnimatedCheckbox checked={termsAccepted} reducedMotion={reducedMotion} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={styles.termsText}>
@@ -513,7 +464,7 @@ export default function AuthScreen() {
         </View>
       </View>
       {!!errorMsg && (
-        <View style={styles.alertRow}>
+        <View style={styles.alertRow} accessibilityLiveRegion="polite">
           <Text style={styles.errorText}>{errorMsg}</Text>
         </View>
       )}
@@ -544,7 +495,12 @@ export default function AuthScreen() {
             style={[
               styles.otpBox,
               digit ? styles.otpBoxFilled : null,
+              focusedField === index && styles.inputFocused,
             ]}
+            accessibilityLabel={`OTP digit ${index + 1}`}
+            selectionColor="#FFAC3E"
+            onFocus={() => setFocusedField(index)}
+            onBlur={() => setFocusedField(null)}
             value={digit}
             onChangeText={(text) => handleOtpChange(text, index)}
             onKeyPress={(e) => handleOtpKeyPress(e, index)}
@@ -559,7 +515,7 @@ export default function AuthScreen() {
       </View>
 
       {!!errorMsg && (
-        <View style={styles.alertRow}>
+        <View style={styles.alertRow} accessibilityLiveRegion="polite">
           <Text style={styles.errorText}>{errorMsg}</Text>
         </View>
       )}
@@ -597,24 +553,28 @@ export default function AuthScreen() {
         You're new here. Tell us your name to get started.
       </Text>
 
-      <TextInputField
-        label="Full Name"
-        placeholder="Your full name"
-        value={name}
-        onChangeText={setName}
-        editable={!isLoading}
-        returnKeyType="done"
-        onSubmitEditing={submitName}
-        autoCapitalize="words"
-        containerStyle={styles.fieldGap}
-        labelStyle={styles.fieldLabel}
-        inputWrapStyle={styles.glassInputWrap}
-        inputStyle={styles.glassInputText}
-        placeholderTextColor={GLASS_PLACEHOLDER}
-      />
+      <Text style={styles.fieldLabel}>Full Name</Text>
+      <View style={[styles.glassInputWrap, focusedField === 'name' && styles.inputFocused]}>
+        <TextInput
+          accessibilityLabel="Full Name"
+          placeholder="Your full name"
+          value={name}
+          onChangeText={setName}
+          editable={!isLoading}
+          returnKeyType="done"
+          onSubmitEditing={submitName}
+          autoCapitalize="words"
+          autoCorrect={false}
+          style={styles.glassInputText}
+          placeholderTextColor={GLASS_PLACEHOLDER}
+          selectionColor="#FFAC3E"
+          onFocus={() => setFocusedField('name')}
+          onBlur={() => setFocusedField(null)}
+        />
+      </View>
 
       {!!errorMsg && (
-        <View style={styles.alertRow}>
+        <View style={styles.alertRow} accessibilityLiveRegion="polite">
           <Text style={styles.errorText}>{errorMsg}</Text>
         </View>
       )}
@@ -627,71 +587,55 @@ export default function AuthScreen() {
   const stepOpacity = stepFade.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
   const stepX = stepSlide.interpolate({ inputRange: [-16, 0, 16], outputRange: [-12, 0, 12] });
 
-  return (
-    <AppScreen style={styles.screen} safeAreaTop={false} safeAreaBottom={false} noPadding statusBarStyle="light-content">
-      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
-      <View style={styles.root} onLayout={onRootLayout}>
-        {/* Full-bleed background, pinned to the keyboard-free screen height.
-            The IME resize must not rescale the artwork, otherwise the logo
-            baked into it jumps around and slides under the drawer. */}
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.bgLayer,
-            layout.fullHeight ? { height: layout.fullHeight } : StyleSheet.absoluteFillObject,
-            { transform: [{ translateY: bgShift }] },
-          ]}
-        >
-          <ImageBackground source={authBg} style={styles.flex} resizeMode="cover">
-            <View style={styles.bgScrim} />
-          </ImageBackground>
-        </Animated.View>
+  const logoWidth = Math.min(width - insets.left - insets.right - 48, keyboardVisible ? 230 : 340);
 
-        <View style={styles.flex}>
+  return (
+    <AppScreen bg="#070707" style={styles.screen} safeAreaTop={false} safeAreaBottom={false} noPadding statusBarStyle="light-content">
+      <View ref={rootRef} collapsable={false} style={styles.root} onLayout={onRootLayout}>
+        <AuthBackdrop reducedMotion={reducedMotion} focused={focused} />
+        <Animated.View style={[styles.flex, { paddingBottom: keyboardInset }]}>
           <ScrollView
             ref={scrollRef}
-            contentContainerStyle={[styles.scrollContent, { paddingBottom: kbHeight }]}
+            style={styles.flex}
+            contentContainerStyle={[
+              styles.scrollContent,
+              { paddingTop: insets.top + 12, paddingBottom: keyboardVisible ? 16 : insets.bottom + 24 },
+            ]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
+            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+            automaticallyAdjustKeyboardInsets={false}
             bounces={false}
+            onContentSizeChange={() => {
+              if (keyboardVisible) scrollRef.current?.scrollToEnd({ animated: !reducedMotion });
+            }}
           >
-            {/* ── Glass Bottom Drawer ── */}
-            <Animated.View
-              onLayout={onCardLayout}
-              style={[
-                styles.authCard,
-                {
-                  paddingBottom: spacing.lg + 4 + (kbHeight > 0 ? 0 : insets.bottom),
-                  opacity: cardFade,
-                  transform: [
-                    { translateY: cardSlide },
-                    { translateX: shakeAnim },
-                  ],
-                },
-              ]}
-            >
+            <Animated.View style={[
+              styles.brand,
+              { minHeight: keyboardVisible ? 110 : 200, opacity: cardFade, transform: [{ translateY: logoSlide }] },
+            ]}>
+              <Image source={AUTH_LOGO} accessibilityLabel="VillKro — Eat Explore Enjoy" resizeMode="contain" style={{ width: logoWidth, height: logoWidth * 793 / 1983 }} />
+            </Animated.View>
+            <Animated.View style={[
+              styles.authCard,
+              { opacity: cardFade, transform: [{ translateY: cardSlide }, { translateX: shakeAnim }] },
+            ]}>
+              <BlurView tint="dark" intensity={35} pointerEvents="none" style={StyleSheet.absoluteFillObject} />
               <LinearGradient
-                colors={['rgba(255,255,255,0.18)', 'rgba(255,255,255,0)']}
+                colors={['rgba(255,244,233,0.09)', 'rgba(255,244,233,0)']}
                 start={{ x: 0, y: 0 }}
-                end={{ x: 0.6, y: 0.7 }}
-                style={styles.cardSheen}
+                end={{ x: 0.8, y: 1 }}
+                style={StyleSheet.absoluteFillObject}
                 pointerEvents="none"
               />
-              <View style={styles.drawerHandle} />
-              {/* Form area with animated transition */}
-              <Animated.View
-                style={{
-                  opacity: stepOpacity,
-                  transform: [{ translateX: stepX }],
-                }}
-              >
+              <Animated.View style={{ opacity: stepOpacity, transform: [{ translateX: stepX }] }}>
                 {step === 'phone' && renderPhoneStep()}
                 {step === 'otp' && renderOtpStep()}
                 {step === 'name' && renderNameStep()}
               </Animated.View>
             </Animated.View>
           </ScrollView>
-        </View>
+        </Animated.View>
       </View>
     </AppScreen>
   );
@@ -706,11 +650,12 @@ function GradientButton({ label, onPress, loading, disabled, style }) {
       activeOpacity={0.85}
       onPress={onPress}
       disabled={loading || disabled}
-      accessibilityState={{ disabled: Boolean(disabled) }}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: Boolean(disabled || loading), busy: Boolean(loading) }}
       style={[styles.gradientBtn, disabled && styles.gradientBtnDisabled, style]}
     >
       <LinearGradient
-        colors={[colors.saffronLight, colors.saffron, colors.saffronDark]}
+        colors={['#FFC060', '#FF962F']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFillObject}
@@ -723,9 +668,12 @@ function GradientButton({ label, onPress, loading, disabled, style }) {
       />
       <View style={styles.btnInner}>
         {loading ? (
-          <ActivityIndicator color={colors.textInverse} size="small" />
+          <ActivityIndicator color="#2B1705" size="small" />
         ) : (
-          <Text style={styles.gradientBtnText}>{label}</Text>
+          <>
+            <Text style={styles.gradientBtnText}>{label}</Text>
+            <AppIcon name="chevronRight" size={17} color="#2B1705" />
+          </>
         )}
       </View>
     </TouchableOpacity>
@@ -743,288 +691,25 @@ function NavLink({ label, onPress, disabled }) {
 /**
  * AnimatedCheckbox
  */
-function AnimatedCheckbox({ checked }) {
+function AnimatedCheckbox({ checked, reducedMotion }) {
   const scale = useAnimatedValue(checked ? 1 : 0);
   useEffect(() => {
+    if (reducedMotion) { scale.setValue(checked ? 1 : 0); return; }
     Animated.spring(scale, {
       toValue: checked ? 1 : 0,
       friction: 6,
       tension: 300,
       useNativeDriver: true,
     }).start();
-  }, [checked, scale]);
+  }, [checked, reducedMotion, scale]);
 
   return (
     <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
       {checked && (
         <Animated.View style={{ transform: [{ scale }] }}>
-          <AppIcon name="check" size={11} color={colors.textInverse} />
+          <AppIcon name="check" size={12} color="#2B1705" />
         </Animated.View>
       )}
     </View>
   );
 }
-
-/* ═════════════════ Styling ═════════════════ */
-const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  screen: { flex: 1, backgroundColor: 'transparent' },
-  root: { flex: 1, backgroundColor: colors.palette.primary600 },
-  bgLayer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-  },
-  bgScrim: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(10,8,6,0.18)',
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'flex-end',
-  },
-
-  /* Glass bottom drawer (glassmorphism: near-transparent fill + light border + sheen) */
-  authCard: {
-    backgroundColor: 'rgba(22,16,13,0.38)',
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    paddingTop: spacing.sm,
-    paddingHorizontal: 22,
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderColor: 'rgba(255,255,255,0.32)',
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 14 },
-        shadowOpacity: 0.22,
-        shadowRadius: 26,
-      },
-      android: {
-        elevation: 10,
-      },
-    }),
-  },
-  cardSheen: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: '55%',
-  },
-  drawerHandle: {
-    alignSelf: 'center',
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.5)',
-    marginBottom: spacing.md,
-  },
-
-  /* Forms */
-  form: { gap: spacing.sm - 2 },
-  fieldGap: { marginBottom: 2 },
-  mt: { marginTop: spacing.md + 2 },
-
-  /* Phone row with country code */
-  phoneRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: spacing.sm,
-  },
-  countryCode: {
-    height: 48,
-    paddingHorizontal: 14,
-    borderRadius: radius.input || 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.45)',
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  countryCodeText: {
-    ...typography.body,
-    fontWeight: '600',
-    color: colors.textInverse,
-  },
-  phoneInputWrap: {
-    flex: 1,
-  },
-  fieldLabel: {
-    color: 'rgba(255,255,255,0.85)',
-  },
-  /* Keeps the field see-through even while focused — the component's focus
-   * style otherwise swaps in a solid white surface. Border colour is left to
-   * the component so focus / error highlights still come through. */
-  glassInputWrap: {
-    backgroundColor: 'rgba(255,255,255,0.12)',
-  },
-  glassInputText: {
-    color: colors.textInverse,
-  },
-
-  /* OTP */
-  otpTitle: {
-    ...typography.heading || { fontSize: 20, fontWeight: '700' },
-    color: colors.textInverse,
-    textAlign: 'center',
-    marginBottom: spacing.xs / 2,
-    textShadowColor: 'rgba(0,0,0,0.3)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
-  otpSubtitle: {
-    ...typography.body,
-    color: 'rgba(255,255,255,0.8)',
-    textAlign: 'center',
-    marginBottom: spacing.sm,
-    lineHeight: 20,
-  },
-  otpPhone: {
-    fontWeight: '700',
-    color: colors.textInverse,
-  },
-  otpRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
-    marginBottom: spacing.sm,
-    paddingHorizontal: 2,
-  },
-  otpBox: {
-    flex: 1,
-    maxWidth: 52,
-    minWidth: 36,
-    aspectRatio: 0.82,
-    marginHorizontal: 3,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.45)',
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    textAlign: 'center',
-    fontSize: 22,
-    fontWeight: '700',
-    color: colors.textInverse,
-    paddingVertical: 0,
-  },
-  otpBoxFilled: {
-    borderColor: colors.saffron || colors.primary,
-    backgroundColor: 'rgba(255,255,255,0.22)',
-  },
-  otpActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: spacing.md,
-    paddingHorizontal: 4,
-  },
-  resendText: {
-    ...typography.bodySmall,
-    color: colors.saffronDark || colors.primary,
-    fontWeight: '600',
-  },
-  resendDisabled: {
-    color: 'rgba(255,255,255,0.5)',
-  },
-
-  /* Alerts */
-  alertRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs + 2,
-    marginTop: spacing.xs + 2,
-    marginBottom: spacing.xs + 2,
-    paddingHorizontal: 2,
-  },
-  errorText: {
-    ...typography.caption,
-    color: colors.error,
-    flex: 1,
-  },
-
-  /* Gradient primary button */
-  gradientBtn: {
-    borderRadius: radius.button + 2,
-    height: 52,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.saffronDark,
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.35,
-        shadowRadius: 12,
-      },
-      android: {
-        elevation: 6,
-      },
-    }),
-  },
-  btnInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  gradientBtnDisabled: {
-    opacity: 0.45,
-  },
-  gradientBtnText: {
-    ...typography.buttonLarge,
-    color: colors.textInverse,
-    letterSpacing: 0.4,
-    textShadowColor: 'rgba(0,0,0,0.18)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-
-  navLink: {
-    ...typography.bodySmall,
-    color: 'rgba(255,255,255,0.85)',
-    fontWeight: '600',
-  },
-  navLinkDisabled: {
-    color: 'rgba(255,255,255,0.4)',
-  },
-
-  /* Terms */
-  termsRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-    marginTop: spacing.sm,
-    marginBottom: spacing.xs,
-  },
-  checkbox: {
-    width: 16,
-    height: 16,
-    borderRadius: 4,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.6)',
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 1,
-    flexShrink: 0,
-  },
-  checkboxChecked: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  termsText: {
-    ...typography.caption,
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 11.5,
-    lineHeight: 16,
-  },
-  termsLink: {
-    color: colors.saffronLight,
-    fontWeight: '700',
-  },
-});
