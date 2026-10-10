@@ -19,4 +19,12 @@
 # Mirrored in app.json (expo-build-properties extraProguardRules).
 -keep class expo.modules.adapters.react.apploader.** { *; }
 
+# R8 optimization (proguard-android-optimize.txt) must not rewrite expo
+# modules: their prop and argument conversion inspects Kotlin types through
+# reflection at runtime, and an optimized build broke it — expo-image threw
+# "Cannot cast ... to Either<List<SourceMap>, ...>" for every image source.
+# No allowoptimization here, so expo code is shrunk and renamed exactly as
+# before while everything else is optimized.
+-keep,allowshrinking,allowobfuscation class expo.modules.** { *; }
+
 # Add any project specific keep options here:

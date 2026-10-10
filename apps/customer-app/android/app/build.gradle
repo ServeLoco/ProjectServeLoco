@@ -131,7 +131,10 @@ packagingOptions {
             def enableShrinkResources = findProperty('android.enableShrinkResourcesInReleaseBuilds') ?: 'false'
             shrinkResources enableShrinkResources.toBoolean()
             minifyEnabled enableMinifyInReleaseBuilds
-            proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+            // The -optimize defaults let R8 inline, merge and strip dead code
+            // paths (Play Console flags plain proguard-android.txt, which has
+            // -dontoptimize). Keep rules for reflection live in proguard-rules.pro.
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
             def enablePngCrunchInRelease = findProperty('android.enablePngCrunchInReleaseBuilds') ?: 'true'
             crunchPngs enablePngCrunchInRelease.toBoolean()
             // Upload the native debug symbols so a C++ crash inside
