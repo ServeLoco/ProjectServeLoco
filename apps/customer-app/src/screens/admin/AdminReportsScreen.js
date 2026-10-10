@@ -17,6 +17,8 @@ const unwrap = response => response?.data ?? response;
 const val = reportValue;
 const money = reportMoney;
 const count = reportCount;
+// Top items lists every product sold; show the best sellers only.
+const TOP_ITEMS_LIMIT = 50;
 
 function Choice({ label, selected, onPress, disabled = false, tab = false }) {
   return (
@@ -102,8 +104,9 @@ function Overview({ data }) {
         )) : <Text style={styles.note}>No delivered food items for this period.</Text>}
       </Section>
       <Section title="Top items">
-        {data.products.length ? data.products.map(item => (
-          <View key={`${item.area_id ?? ''}-${item.item_type}-${item.product_id}`} style={styles.entry}>
+        {data.products.length ? data.products.slice(0, TOP_ITEMS_LIMIT).map((item, index) => (
+          // The report groups by name too, so a renamed product can repeat.
+          <View key={`${item.area_id ?? ''}-${item.item_type}-${item.product_id}-${index}`} style={styles.entry}>
             <Text style={styles.entryTitle}>{item.product_name}</Text>
             <Row label="Units sold" value={count(item.total_quantity)} />
             <Row label="Sales" value={money(item.total_sales)} />
@@ -257,7 +260,7 @@ export default function AdminReportsScreen() {
   }, [overviewPeriod]);
   const summary = useAdminReportData(profitActive ? loadSummary : null);
   const insights = useAdminReportData(profitActive ? loadInsights : null);
-  const orders = useAdminReportData(profitActive ? loadOrders : null);
+  const orders = useAdminReportData(profitActive ? loadOrders : null, { keepPreviousData: true });
   const overview = useAdminReportData(view === 'overview' ? loadOverview : null);
   const refreshing = view === 'overview' ? overview.refreshing : summary.refreshing || insights.refreshing || orders.refreshing;
   const refresh = () => view === 'overview' ? overview.refresh() : Promise.all([summary.refresh(), insights.refresh(), orders.refresh()]);
@@ -271,7 +274,7 @@ export default function AdminReportsScreen() {
   const applyRange = () => {
     const error = reportRangeError(from.trim(), to.trim());
     setRangeError(error);
-    if (!error) { setRange({ from: from.trim(), to: to.trim() }); setPage(1); }
+    if (!error) { setRange({ from: from.trim(), to: to.trim() }); setPage(1); setShopId(null); }
   };
 
   return (

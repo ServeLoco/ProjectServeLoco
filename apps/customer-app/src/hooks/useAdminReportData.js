@@ -3,8 +3,10 @@ import { useFocusEffect } from '@react-navigation/native';
 import { subscribeAdminOrderEvents, subscribeAdminRealtimeLifecycle } from '../api';
 
 // One report resource: requests run only while focused, and a slow response
-// from an older period/page can never replace the current report.
-export function useAdminReportData(load) {
+// from an older period/page can never replace the current report. With
+// keepPreviousData, a new page/sort/shop keeps the last list on screen (with
+// the loader) until the new one arrives instead of flashing empty.
+export function useAdminReportData(load, { keepPreviousData = false } = {}) {
   const [state, setState] = useState({ data: null, loading: true, refreshing: false, error: false });
   const refreshRef = useRef(null);
   useFocusEffect(useCallback(() => {
@@ -20,7 +22,7 @@ export function useAdminReportData(load) {
       setState(previous => ({
         ...previous,
         data: mode === 'reset' ? null : previous.data,
-        loading: mode === 'reset' || previous.data == null,
+        loading: mode === 'reset' || mode === 'swap' || previous.data == null,
         refreshing: mode === 'refresh',
         error: false,
       }));
@@ -36,7 +38,7 @@ export function useAdminReportData(load) {
       }
     };
     refreshRef.current = run;
-    run('reset');
+    run(keepPreviousData ? 'swap' : 'reset');
     const queueRefresh = () => {
       clearTimeout(timer);
       timer = setTimeout(() => run(), 300);
@@ -53,7 +55,7 @@ export function useAdminReportData(load) {
       unsubscribeOrders();
       unsubscribeLifecycle();
     };
-  }, [load]));
+  }, [load, keepPreviousData]));
   const refresh = useCallback(() => refreshRef.current?.('refresh'), []);
   return { ...state, refresh };
 }

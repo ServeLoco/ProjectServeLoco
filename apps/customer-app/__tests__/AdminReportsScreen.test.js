@@ -171,3 +171,44 @@ it('debounces live updates, refreshes on foreground, and removes subscriptions o
   expect(mockOrderHandlers).toHaveLength(0);
   expect(mockLifecycleHandlers).toHaveLength(0);
 });
+
+it('clears the shop filter when new custom dates are applied', async () => {
+  await render();
+  await press('Custom');
+  const setDates = (from, to) => act(async () => {
+    tree.root.findByProps({ accessibilityLabel: 'Report start date' }).props.onChangeText(from);
+    tree.root.findByProps({ accessibilityLabel: 'Report end date' }).props.onChangeText(to);
+  });
+  await setDates('2026-02-01', '2026-02-28');
+  await press('Apply dates');
+  await press('Pizza shop');
+  expect(adminApi.reportProfitOrders).toHaveBeenLastCalledWith(expect.objectContaining({ shopId: 2 }));
+  await setDates('2026-03-01', '2026-03-31');
+  await press('Apply dates');
+  expect(adminApi.reportProfitOrders).toHaveBeenLastCalledWith(expect.objectContaining({ period: 'custom', shopId: undefined, page: 1 }));
+});
+
+it('keeps the current orders on screen while the next page loads', async () => {
+  await render();
+  let resolveNext;
+  adminApi.reportProfitOrders.mockImplementationOnce(() => new Promise(resolve => { resolveNext = resolve; }));
+  await press('Next');
+  expect(texts(tree.root)).toContain('#OD-51');
+  expect(texts(tree.root)).toContain('Page 2 of 2');
+  await act(async () => resolveNext({ data: [{ ...order, id: 52, orderNumber: 'OD-52' }], pagination: { page: 2, total: 21, totalPages: 2 } }));
+  expect(texts(tree.root)).toContain('#OD-52');
+  expect(texts(tree.root)).not.toContain('#OD-51');
+});
+
+it('shows each top item once per row, even when a renamed product repeats, up to 50', async () => {
+  const products = Array.from({ length: 60 }, (_, i) => ({ product_id: i < 2 ? 7 : i, item_type: 'product', product_name: `Item ${i}`, total_quantity: 1, total_sales: 10 }));
+  adminApi.reportTopProducts.mockResolvedValue({ data: products });
+  const errors = jest.spyOn(console, 'error').mockImplementation(() => {});
+  await render();
+  await press('Overview');
+  const shown = texts(tree.root).filter(t => /^Item \d+$/.test(t));
+  expect(shown).toHaveLength(50);
+  expect(shown.slice(0, 2)).toEqual(['Item 0', 'Item 1']);
+  expect(errors.mock.calls.join(' ')).not.toContain('same key');
+  errors.mockRestore();
+});
