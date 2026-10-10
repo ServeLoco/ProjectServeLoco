@@ -3,6 +3,9 @@ import ReactTestRenderer, { act } from 'react-test-renderer';
 import AdminReportsScreen from '../src/screens/admin/AdminReportsScreen';
 import { adminApi } from '../src/api';
 
+// The first render compiles the whole screen tree on a cold CI cache (over 5s there).
+jest.setTimeout(20000);
+
 const mockNavigate = jest.fn();
 const mockGoBack = jest.fn();
 let mockOrderHandlers = [];
