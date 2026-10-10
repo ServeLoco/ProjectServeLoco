@@ -1,3 +1,4 @@
+import { adminUi } from '../../theme/adminUi';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View,
@@ -17,14 +18,14 @@ const val = reportValue;
 const money = reportMoney;
 const count = reportCount;
 
-function Choice({ label, selected, onPress, disabled = false }) {
+function Choice({ label, selected, onPress, disabled = false, tab = false }) {
   return (
     <TouchableOpacity
-      style={[styles.chip, selected && styles.chipActive, disabled && styles.disabled]}
+      style={[styles.chip, selected && styles.chipActive, tab && styles.tab, tab && selected && styles.tabActive, disabled && styles.disabled]}
       onPress={onPress} disabled={disabled} accessibilityRole="button"
       accessibilityState={{ selected, disabled }} accessibilityLabel={label}
     >
-      <Text style={[styles.chipText, selected && styles.chipTextActive]}>{label}</Text>
+      <Text style={[styles.chipText, selected && styles.chipTextActive, tab && styles.tabText]}>{label}</Text>
     </TouchableOpacity>
   );
 }
@@ -282,13 +283,13 @@ export default function AdminReportsScreen() {
         <View style={{ flex: 1 }}><Text style={styles.title}>Reports</Text><Text style={styles.note}>Sales, profit and customer feedback</Text></View>
       </View>
       <View style={styles.tabs}>
-        <Choice label="Profit & Payouts" selected={view === 'profit'} onPress={() => setView('profit')} />
-        <Choice label="Overview" selected={view === 'overview'} onPress={() => setView('overview')} />
+        <Choice tab label="Profit & Payouts" selected={view === 'profit'} onPress={() => setView('profit')} />
+        <Choice tab label="Overview" selected={view === 'overview'} onPress={() => setView('overview')} />
       </View>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.saffron} />}>
-        <View style={styles.choices}>
+        <ScrollView key={view} horizontal showsHorizontalScrollIndicator style={styles.periodScroll} contentContainerStyle={styles.periodChoices} accessibilityLabel="Report periods">
           {(view === 'overview' ? OVERVIEW_PERIODS : REPORT_PERIODS).map(period => <Choice key={period.value} label={period.label} selected={(view === 'overview' ? overviewPeriod : profitPeriod) === period.value} onPress={() => selectPeriod(period.value)} />)}
-        </View>
+        </ScrollView>
         {view === 'profit' && profitPeriod === 'custom' && (
           <Section title="Custom date range">
             <Text style={styles.note}>Use dates in IST. Maximum 366 days.</Text>
@@ -318,7 +319,7 @@ export default function AdminReportsScreen() {
                 {[['time', 'Newest'], ['profit', 'Highest profit'], ['value', 'Highest value']].map(([value, label]) => <Choice key={value} label={label} selected={sort === value} onPress={() => { setSort(value); setPage(1); }} />)}
               </View>
               <ScrollView horizontal showsHorizontalScrollIndicator style={styles.shopFilters}>
-                <View style={styles.tabs}>
+                <View style={styles.shopChoiceRow}>
                   <Choice label="All shops" selected={!shopId} onPress={() => { setShopId(null); setPage(1); }} />
                   {summary.data?.shops?.filter(shop => val(shop, 'shopId', 'shop_id') != null).map(shop => (
                     <Choice key={val(shop, 'shopId', 'shop_id')} label={val(shop, 'shopName', 'shop_name')} selected={shopId === val(shop, 'shopId', 'shop_id')} onPress={() => { setShopId(val(shop, 'shopId', 'shop_id')); setPage(1); }} />
@@ -356,39 +357,45 @@ export default function AdminReportsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bgApp },
-  header: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.lg },
+  container: { flex: 1, backgroundColor: adminUi.canvas },
+  header: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: adminUi.gutter, paddingVertical: spacing.md },
   back: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
-  title: { ...typography.display, fontSize: 26, color: colors.textPrimary },
-  tabs: { flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.lg, paddingBottom: spacing.sm },
-  content: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md },
+  title: { ...typography.display, fontSize: 24, color: adminUi.text },
+  tabs: { flexDirection: 'row', gap: 4, marginHorizontal: adminUi.gutter, marginBottom: spacing.md, padding: 4, borderRadius: 16, backgroundColor: adminUi.soft },
+  tab: { flex: 1, minHeight: 44, borderWidth: 0, backgroundColor: 'transparent', alignItems: 'center' },
+  tabActive: { backgroundColor: adminUi.surface, ...adminUi.shadow },
+  tabText: { color: adminUi.text, fontSize: 13 },
+  periodScroll: { flexGrow: 0 },
+  periodChoices: { gap: spacing.sm, paddingBottom: spacing.sm },
+  shopChoiceRow: { flexDirection: 'row', gap: spacing.sm, paddingBottom: spacing.sm },
+  content: { paddingHorizontal: adminUi.gutter, paddingBottom: spacing.xl, gap: spacing.md },
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  chip: { paddingHorizontal: 12, paddingVertical: 10, minHeight: 40, borderRadius: radius.pill, backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.border, justifyContent: 'center' },
+  chip: { paddingHorizontal: 12, paddingVertical: 10, minHeight: 44, borderRadius: adminUi.controlRadius, backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: adminUi.border, justifyContent: 'center' },
   chipActive: { backgroundColor: colors.saffronLight, borderColor: colors.saffron },
-  chipText: { fontWeight: '700', fontSize: 12, color: colors.textSecondary },
+  chipText: { fontWeight: '700', fontSize: 12, color: adminUi.muted },
   chipTextActive: { color: colors.saffronDark },
   disabled: { opacity: 0.45 },
-  card: { padding: spacing.md, borderRadius: radius.lg, backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.border, gap: spacing.sm },
-  cardTitle: { ...typography.h3, color: colors.textPrimary },
+  card: { padding: spacing.md, borderRadius: adminUi.cardRadius, backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: adminUi.border, gap: spacing.sm },
+  cardTitle: { ...typography.h3, fontSize: 17, color: adminUi.text, marginBottom: 4 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, paddingVertical: 4 },
-  rowLabel: { flex: 1, fontSize: 13, color: colors.textSecondary },
-  rowValue: { flexShrink: 1, maxWidth: '55%', fontSize: 13, color: colors.textPrimary, fontWeight: '700', textAlign: 'right', fontVariant: ['tabular-nums'] },
-  note: { fontSize: 12, lineHeight: 18, color: colors.textSecondary },
-  entry: { paddingVertical: spacing.sm, borderTopWidth: 1, borderTopColor: colors.border, gap: 4 },
-  entryTitle: { ...typography.body, fontWeight: '700', color: colors.textPrimary },
+  rowLabel: { flex: 1, fontSize: 13, color: adminUi.muted },
+  rowValue: { flexShrink: 1, maxWidth: '55%', fontSize: 14, color: adminUi.text, fontWeight: '700', textAlign: 'right', fontVariant: ['tabular-nums'] },
+  note: { fontSize: 12, lineHeight: 18, color: adminUi.muted },
+  entry: { paddingVertical: spacing.sm, borderTopWidth: 1, borderTopColor: adminUi.border, gap: 4 },
+  entryTitle: { ...typography.body, fontWeight: '700', color: adminUi.text },
   ratingSummary: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, paddingVertical: spacing.sm },
-  ratingBox: { flex: 1, minWidth: 110, backgroundColor: colors.bgApp, padding: spacing.sm, borderRadius: radius.md },
-  ratingValue: { fontSize: 18, fontWeight: '800', color: colors.textPrimary, marginTop: 4 },
+  ratingBox: { flex: 1, minWidth: 110, backgroundColor: adminUi.canvas, padding: spacing.sm, borderRadius: radius.md },
+  ratingValue: { fontSize: 18, fontWeight: '800', color: adminUi.text, marginTop: 4 },
   danger: { color: colors.error, fontSize: 13 },
   warning: { color: colors.saffronDark, fontSize: 12, lineHeight: 18 },
   errorBox: { padding: spacing.md, borderRadius: radius.md, borderWidth: 1, borderColor: colors.error, gap: spacing.sm },
   retry: { alignSelf: 'flex-start', padding: spacing.sm, minHeight: 40 },
   link: { color: colors.saffronDark, fontWeight: '700' },
   loader: { marginVertical: spacing.md },
-  input: { backgroundColor: colors.bgApp, color: colors.textPrimary, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: spacing.sm, minHeight: 44 },
+  input: { backgroundColor: adminUi.canvas, color: adminUi.text, borderWidth: 1, borderColor: adminUi.border, borderRadius: radius.md, padding: spacing.sm, minHeight: 44 },
   shopFilters: { marginVertical: spacing.sm },
   pagination: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'space-between', alignItems: 'center' },
-  trendRow: { flexDirection: 'row', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border },
-  trendDate: { width: 100, color: colors.textPrimary, fontSize: 12 },
-  trendValue: { width: 100, color: colors.textPrimary, fontSize: 12, textAlign: 'right', fontVariant: ['tabular-nums'] },
+  trendRow: { flexDirection: 'row', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: adminUi.border },
+  trendDate: { width: 100, color: adminUi.text, fontSize: 12 },
+  trendValue: { width: 100, color: adminUi.text, fontSize: 12, textAlign: 'right', fontVariant: ['tabular-nums'] },
 });

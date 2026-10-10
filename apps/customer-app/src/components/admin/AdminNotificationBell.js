@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { colors, spacing, typography, radius, shadows } from '../../theme';
 import AppIcon from '../AppIcon';
+import { adminUi } from '../../theme/adminUi';
 import { adminApi, subscribeAdminRealtime } from '../../api';
 
 const TYPE_LABELS = {
@@ -177,8 +178,8 @@ export default function AdminNotificationBell() {
 
 const styles = StyleSheet.create({
   bellBtn: {
-    marginTop: 4, width: 38, height: 38, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: colors.border, backgroundColor: colors.bgSurface,
+    marginTop: 4, width: 40, height: 40, borderRadius: adminUi.controlRadius, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: adminUi.border, backgroundColor: colors.bgSurface,
   },
   badge: {
     position: 'absolute', top: -4, right: -4, minWidth: 18, height: 18, borderRadius: 9,
@@ -188,27 +189,27 @@ const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' },
   backdropTouch: { flex: 1 },
   panel: {
-    backgroundColor: colors.bgApp, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl,
+    backgroundColor: adminUi.canvas, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl,
     maxHeight: '75%', ...shadows.lg,
   },
   panelHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border,
+    paddingHorizontal: adminUi.gutter, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: adminUi.border,
   },
-  panelTitle: { ...typography.h3, color: colors.textPrimary },
+  panelTitle: { ...typography.h3, color: adminUi.text },
   listContent: { paddingBottom: spacing.xl },
   row: {
-    flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.lg, paddingVertical: spacing.md,
-    borderBottomWidth: 1, borderBottomColor: colors.border,
+    flexDirection: 'row', gap: spacing.sm, paddingHorizontal: adminUi.gutter, paddingVertical: spacing.md,
+    borderBottomWidth: 1, borderBottomColor: adminUi.border,
   },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.saffronDark, marginTop: 6 },
   dotSpacer: { width: 8, height: 8, marginTop: 6 },
   rowType: {
-    fontSize: 10, fontWeight: '700', color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.4,
+    fontSize: 10, fontWeight: '700', color: adminUi.muted, textTransform: 'uppercase', letterSpacing: 0.4,
   },
-  rowTitle: { ...typography.body, fontWeight: '700', color: colors.textPrimary, marginTop: 2 },
-  rowBody: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
-  rowWhen: { fontSize: 11, color: colors.textTertiary, marginTop: 4, fontWeight: '600' },
+  rowTitle: { ...typography.body, fontWeight: '700', color: adminUi.text, marginTop: 2 },
+  rowBody: { fontSize: 12, color: adminUi.muted, marginTop: 2 },
+  rowWhen: { fontSize: 11, color: adminUi.hint, marginTop: 4, fontWeight: '600' },
   emptyState: { alignItems: 'center', paddingVertical: spacing.xl },
-  emptyText: { ...typography.body, color: colors.textSecondary },
+  emptyText: { ...typography.body, color: adminUi.muted },
 });

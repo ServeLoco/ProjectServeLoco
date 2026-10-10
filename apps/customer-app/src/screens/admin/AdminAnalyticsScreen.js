@@ -1,8 +1,9 @@
+import { adminUi } from '../../theme/adminUi';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { colors, spacing, typography, radius, shadows } from '../../theme';
+import { colors, spacing, typography, radius } from '../../theme';
 import { adminApi, getAdminRealtimeConnectionState, subscribeAdminRealtime, subscribeAdminRealtimeLifecycle } from '../../api';
 
 // Poll fallback for the REST-backed sections (summary/products/window
@@ -271,62 +272,62 @@ function ProductList({ title, items }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bgApp },
-  scrollContent: { padding: spacing.lg, paddingBottom: spacing.xl },
+  container: { flex: 1, backgroundColor: adminUi.canvas },
+  scrollContent: { paddingHorizontal: adminUi.gutter, paddingVertical: spacing.md, paddingBottom: spacing.xl },
   headerRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     marginBottom: spacing.md, gap: spacing.sm,
   },
-  title: { ...typography.display, fontSize: 24, color: colors.textPrimary, flexShrink: 1 },
+  title: { ...typography.display, fontSize: 24, color: adminUi.text, flexShrink: 1 },
   dayChips: { flexDirection: 'row', gap: 6, flexShrink: 0 },
   dayChip: {
     borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 8, minHeight: 34,
-    justifyContent: 'center', backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.border,
+    justifyContent: 'center', backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: adminUi.border,
   },
-  dayChipActive: { backgroundColor: colors.saffron, borderColor: colors.saffron },
-  dayChipText: { fontSize: 12, fontWeight: '700', color: colors.textSecondary },
+  dayChipActive: { backgroundColor: adminUi.active, borderColor: adminUi.active },
+  dayChipText: { fontSize: 12, fontWeight: '700', color: adminUi.muted },
   dayChipTextActive: { color: colors.textInverse },
   card: {
-    backgroundColor: colors.bgSurface, borderRadius: radius.xl, padding: spacing.md,
-    borderWidth: 1, borderColor: colors.border, marginBottom: spacing.md, ...shadows.sm,
+    backgroundColor: colors.bgSurface, borderRadius: adminUi.cardRadius, padding: spacing.md,
+    borderWidth: 1, borderColor: adminUi.border, marginBottom: spacing.md, ...adminUi.shadow,
   },
-  cardTitle: { ...typography.h3, color: colors.textPrimary, marginBottom: spacing.sm },
+  cardTitle: { ...typography.h3, color: adminUi.text, marginBottom: spacing.sm },
   liveTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  liveNum: { fontSize: 32, fontWeight: '800', color: colors.textPrimary },
-  liveLabel: { fontSize: 12, color: colors.textSecondary, fontWeight: '600' },
+  liveNum: { fontSize: 32, fontWeight: '800', color: adminUi.text },
+  liveLabel: { fontSize: 12, color: adminUi.muted, fontWeight: '600' },
   socketStatus: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   dot: { width: 8, height: 8, borderRadius: radius.circle },
-  socketStatusText: { fontSize: 12, fontWeight: '700', color: colors.textSecondary },
-  peakText: { fontSize: 12, color: colors.textSecondary, marginTop: spacing.xs, marginBottom: spacing.sm },
+  socketStatusText: { fontSize: 12, fontWeight: '700', color: adminUi.muted },
+  peakText: { fontSize: 12, color: adminUi.muted, marginTop: spacing.xs, marginBottom: spacing.sm },
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginBottom: spacing.sm },
-  infoChip: { backgroundColor: colors.bgApp, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 5 },
-  infoChipText: { fontSize: 11, fontWeight: '700', color: colors.textSecondary },
+  infoChip: { backgroundColor: adminUi.canvas, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 5 },
+  infoChipText: { fontSize: 11, fontWeight: '700', color: adminUi.muted },
   chip: {
     borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 8, minHeight: 34,
-    justifyContent: 'center', backgroundColor: colors.bgApp, borderWidth: 1, borderColor: colors.border,
+    justifyContent: 'center', backgroundColor: adminUi.canvas, borderWidth: 1, borderColor: adminUi.border,
   },
-  chipActive: { backgroundColor: colors.saffron, borderColor: colors.saffron },
-  chipText: { fontSize: 12, fontWeight: '700', color: colors.textSecondary },
+  chipActive: { backgroundColor: adminUi.active, borderColor: adminUi.active },
+  chipText: { fontSize: 12, fontWeight: '700', color: adminUi.muted },
   chipTextActive: { color: colors.textInverse },
   searchInput: {
-    borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, paddingHorizontal: spacing.md,
-    paddingVertical: 12, color: colors.textPrimary, marginBottom: spacing.sm, fontSize: 14,
+    borderWidth: 1, borderColor: adminUi.border, borderRadius: radius.lg, paddingHorizontal: spacing.md,
+    paddingVertical: 12, color: adminUi.text, marginBottom: spacing.sm, fontSize: 14,
   },
-  hint: { fontSize: 11, color: colors.textTertiary, marginBottom: spacing.sm },
-  userRow: { paddingVertical: spacing.sm, borderTopWidth: 1, borderTopColor: colors.border },
-  userName: { fontSize: 13, fontWeight: '700', color: colors.textPrimary },
-  userMeta: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
-  emptyText: { fontSize: 13, color: colors.textSecondary, marginTop: spacing.xs },
+  hint: { fontSize: 11, color: adminUi.hint, marginBottom: spacing.sm },
+  userRow: { paddingVertical: spacing.sm, borderTopWidth: 1, borderTopColor: adminUi.border },
+  userName: { fontSize: 13, fontWeight: '700', color: adminUi.text },
+  userMeta: { fontSize: 12, color: adminUi.muted, marginTop: 2 },
+  emptyText: { fontSize: 13, color: adminUi.muted, marginTop: spacing.xs },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: spacing.sm },
   statCard: {
-    width: '31%', backgroundColor: colors.bgApp, borderRadius: radius.lg,
+    width: '31%', backgroundColor: adminUi.canvas, borderRadius: radius.lg,
     paddingVertical: spacing.sm, paddingHorizontal: 4, alignItems: 'center', minHeight: 64, justifyContent: 'center',
   },
-  statValue: { fontSize: 16, fontWeight: '800', color: colors.textPrimary },
-  statLabel: { fontSize: 10, color: colors.textSecondary, marginTop: 2, textAlign: 'center' },
-  subhead: { fontSize: 12, fontWeight: '700', color: colors.textSecondary, textTransform: 'uppercase', marginBottom: 4 },
-  mutedText: { fontSize: 12, color: colors.textTertiary },
+  statValue: { fontSize: 16, fontWeight: '800', color: adminUi.text },
+  statLabel: { fontSize: 10, color: adminUi.muted, marginTop: 2, textAlign: 'center' },
+  subhead: { fontSize: 12, fontWeight: '700', color: adminUi.muted, textTransform: 'uppercase', marginBottom: 4 },
+  mutedText: { fontSize: 12, color: adminUi.hint },
   productRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 4, gap: spacing.sm },
-  productName: { fontSize: 13, color: colors.textPrimary, flex: 1, minWidth: 0 },
-  productCount: { fontSize: 13, fontWeight: '700', color: colors.textPrimary, flexShrink: 0 },
+  productName: { fontSize: 13, color: adminUi.text, flex: 1, minWidth: 0 },
+  productCount: { fontSize: 13, fontWeight: '700', color: adminUi.text, flexShrink: 0 },
 });

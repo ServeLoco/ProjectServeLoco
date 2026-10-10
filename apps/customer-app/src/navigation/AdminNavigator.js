@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { colors, shadows, radius } from '../theme';
 import AppIcon from '../components/AppIcon';
+import { adminUi } from '../theme/adminUi';
 import { useAdminRealtime } from '../hooks/useAdminRealtime';
 import { ScreenErrorBoundary } from '../components/ErrorBoundary';
 import {
@@ -56,7 +57,7 @@ function AdminTabs() {
           paddingTop: 8,
           ...shadows.navBar,
         },
-        sceneContainerStyle: { backgroundColor: colors.bgApp },
+        sceneContainerStyle: { backgroundColor: adminUi.canvas },
       }}
     >
       <Tab.Screen

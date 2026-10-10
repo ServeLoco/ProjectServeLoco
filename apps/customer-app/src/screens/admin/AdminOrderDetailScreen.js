@@ -1,3 +1,4 @@
+import { adminUi } from '../../theme/adminUi';
 import { isOrderItemBillable, excludedItemLabel } from '../../utils/orderBilling';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -5,7 +6,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
-import { colors, spacing, typography, radius, shadows } from '../../theme';
+import { colors, spacing, typography, radius } from '../../theme';
 import { adminApi, subscribeAdminOrderEvents } from '../../api';
 import AppIcon from '../../components/AppIcon';
 import RiderLiveMap from '../../components/RiderLiveMap';
@@ -465,18 +466,18 @@ function Row({ label, value, valueColor, big }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bgApp },
+  container: { flex: 1, backgroundColor: adminUi.canvas },
   headerBar: {
-    flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md, backgroundColor: colors.bgSurface, borderBottomWidth: 1, borderBottomColor: colors.border,
+    flexDirection: 'row', alignItems: 'center', paddingHorizontal: adminUi.gutter,
+    paddingVertical: spacing.md, backgroundColor: colors.bgSurface, borderBottomWidth: 1, borderBottomColor: adminUi.border,
   },
-  headerTitle: { ...typography.h3, color: colors.textPrimary },
-  headerSubtitle: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
-  scrollContent: { padding: spacing.lg, paddingBottom: spacing.xl },
+  headerTitle: { ...typography.h3, color: adminUi.text },
+  headerSubtitle: { fontSize: 12, color: adminUi.muted, marginTop: 2 },
+  scrollContent: { paddingHorizontal: adminUi.gutter, paddingVertical: spacing.md, paddingBottom: spacing.xl },
   mapHeroBleed: {
     height: 220,
-    marginHorizontal: -spacing.lg,
-    marginTop: -spacing.lg,
+    marginHorizontal: -adminUi.gutter,
+    marginTop: -spacing.md,
     marginBottom: spacing.md,
     width: Dimensions.get('window').width,
     alignSelf: 'center',
@@ -487,43 +488,43 @@ const styles = StyleSheet.create({
   errorBanner: { backgroundColor: colors.errorLight, borderRadius: radius.lg, padding: spacing.sm, marginBottom: spacing.md },
   errorText: { color: colors.error, fontWeight: '600', fontSize: 13 },
   section: {
-    backgroundColor: colors.bgSurface, borderRadius: radius.xl, padding: spacing.md,
-    borderWidth: 1, borderColor: colors.border, marginBottom: spacing.md, ...shadows.sm,
+    backgroundColor: colors.bgSurface, borderRadius: adminUi.cardRadius, padding: spacing.md,
+    borderWidth: 1, borderColor: adminUi.border, marginBottom: spacing.md, ...adminUi.shadow,
   },
   sectionWarning: { borderColor: colors.warning, backgroundColor: colors.warningLight },
   sectionTitle: {
-    ...typography.labelSmall, color: colors.textSecondary, textTransform: 'uppercase',
+    ...typography.labelSmall, color: adminUi.muted, textTransform: 'uppercase',
     letterSpacing: 0.5, marginBottom: spacing.sm,
   },
   row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
-  rowLabel: { fontSize: 13, color: colors.textSecondary },
-  rowValue: { fontSize: 13, color: colors.textPrimary, fontWeight: '700', flexShrink: 1, textAlign: 'right' },
+  rowLabel: { fontSize: 13, color: adminUi.muted },
+  rowValue: { fontSize: 13, color: adminUi.text, fontWeight: '700', flexShrink: 1, textAlign: 'right' },
   rowValueBig: { fontSize: 18, color: colors.saffronDark },
   actionRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm, flexWrap: 'wrap' },
   actionBtn: {
     borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: 8,
-    backgroundColor: colors.bgApp, borderWidth: 1, borderColor: colors.border,
+    backgroundColor: adminUi.canvas, borderWidth: 1, borderColor: adminUi.border,
   },
-  actionBtnText: { fontSize: 12, fontWeight: '700', color: colors.textPrimary },
+  actionBtnText: { fontSize: 12, fontWeight: '700', color: adminUi.text },
   optionsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   optionChip: {
     borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 9, minHeight: 36,
-    justifyContent: 'center', backgroundColor: colors.bgApp, borderWidth: 1, borderColor: colors.border,
+    justifyContent: 'center', backgroundColor: adminUi.canvas, borderWidth: 1, borderColor: adminUi.border,
   },
-  optionChipActive: { backgroundColor: colors.saffron, borderColor: colors.saffron },
+  optionChipActive: { backgroundColor: adminUi.active, borderColor: adminUi.active },
   optionChipDisabled: { opacity: 0.4 },
-  optionChipText: { fontSize: 12, fontWeight: '700', color: colors.textSecondary },
+  optionChipText: { fontSize: 12, fontWeight: '700', color: adminUi.muted },
   optionChipTextActive: { color: colors.textInverse },
   shopBadgesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginBottom: spacing.sm },
   shopBadge: { borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4 },
   shopBadgeText: { fontSize: 11, fontWeight: '700' },
   itemRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
-  itemText: { fontSize: 13, color: colors.textPrimary, flex: 1 },
-  itemTotal: { fontSize: 13, fontWeight: '700', color: colors.textPrimary },
-  totalsBlock: { marginTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.sm },
-  noteText: { fontSize: 14, color: colors.textPrimary },
+  itemText: { fontSize: 13, color: adminUi.text, flex: 1 },
+  itemTotal: { fontSize: 13, fontWeight: '700', color: adminUi.text },
+  totalsBlock: { marginTop: spacing.sm, borderTopWidth: 1, borderTopColor: adminUi.border, paddingTop: spacing.sm },
+  noteText: { fontSize: 14, color: adminUi.text },
   pill: { borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4 },
   pillText: { fontSize: 11, fontWeight: '800', textTransform: 'uppercase' },
   emptyState: { alignItems: 'center', marginTop: spacing.xl },
-  emptyText: { ...typography.body, color: colors.textSecondary },
+  emptyText: { ...typography.body, color: adminUi.muted },
 });

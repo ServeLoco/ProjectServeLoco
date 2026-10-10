@@ -1,7 +1,8 @@
+import { adminUi } from '../../theme/adminUi';
 import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, spacing, radius } from '../../theme';
+import { spacing } from '../../theme';
 import AdminRidersScreen from './AdminRidersScreen';
 import AdminShopsScreen from './AdminShopsScreen';
 import AdminCustomersScreen from './AdminCustomersScreen';
@@ -44,17 +45,18 @@ export default function AdminPeopleScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bgApp },
+  container: { flex: 1, backgroundColor: adminUi.canvas },
   segmentRow: {
-    flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md, paddingBottom: spacing.sm,
+    flexDirection: 'row', gap: 4, marginHorizontal: adminUi.gutter,
+    marginTop: spacing.md, marginBottom: spacing.sm, padding: 4,
+    borderRadius: 16, backgroundColor: adminUi.soft,
   },
   segment: {
-    flex: 1, minWidth: 0, borderRadius: radius.pill, paddingVertical: 11, minHeight: 40,
+    flex: 1, minWidth: 0, borderRadius: adminUi.controlRadius, paddingVertical: 11, minHeight: 44,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.border,
+    backgroundColor: 'transparent',
   },
-  segmentActive: { backgroundColor: colors.saffron, borderColor: colors.saffron },
-  segmentText: { fontWeight: '700', fontSize: 13, color: colors.textSecondary },
-  segmentTextActive: { color: colors.textInverse },
+  segmentActive: { backgroundColor: adminUi.surface, ...adminUi.shadow },
+  segmentText: { fontWeight: '700', fontSize: 13, color: adminUi.muted },
+  segmentTextActive: { color: adminUi.text },
 });

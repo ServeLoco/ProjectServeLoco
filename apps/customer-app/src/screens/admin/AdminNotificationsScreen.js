@@ -1,3 +1,4 @@
+import { adminUi } from '../../theme/adminUi';
 import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator, Alert, FlatList, ScrollView, StyleSheet, Switch,
@@ -5,7 +6,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { colors, spacing, typography, radius, shadows } from '../../theme';
+import { colors, spacing, typography, radius } from '../../theme';
 import { adminApi } from '../../api';
 
 const TYPES = [
@@ -399,69 +400,70 @@ function TemplatesPanel() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bgApp },
+  container: { flex: 1, backgroundColor: adminUi.canvas },
   segmentRow: {
-    flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md, paddingBottom: spacing.sm,
+    flexDirection: 'row', gap: 4, marginHorizontal: adminUi.gutter,
+    marginTop: spacing.md, marginBottom: spacing.sm, padding: 4,
+    borderRadius: 16, backgroundColor: adminUi.soft,
   },
   segment: {
-    flex: 1, minWidth: 0, borderRadius: radius.pill, paddingVertical: 11, minHeight: 40,
+    flex: 1, minWidth: 0, borderRadius: adminUi.controlRadius, paddingVertical: 11, minHeight: 44,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.border,
+    backgroundColor: 'transparent',
   },
-  segmentActive: { backgroundColor: colors.saffron, borderColor: colors.saffron },
-  segmentText: { fontWeight: '700', fontSize: 13, color: colors.textSecondary },
-  segmentTextActive: { color: colors.textInverse },
-  scrollContent: { padding: spacing.lg, paddingBottom: spacing.xl },
-  sectionTitle: { ...typography.h3, color: colors.textPrimary, marginBottom: spacing.sm },
+  segmentActive: { backgroundColor: adminUi.surface, ...adminUi.shadow },
+  segmentText: { fontWeight: '700', fontSize: 13, color: adminUi.muted },
+  segmentTextActive: { color: adminUi.text },
+  scrollContent: { paddingHorizontal: adminUi.gutter, paddingVertical: spacing.md, paddingBottom: spacing.xl },
+  sectionTitle: { ...typography.h3, color: adminUi.text, marginBottom: spacing.sm },
   errorBanner: { backgroundColor: colors.errorLight, borderRadius: radius.lg, padding: spacing.sm, marginBottom: spacing.sm },
   errorText: { color: colors.error, fontWeight: '600', fontSize: 13 },
   successBanner: { backgroundColor: colors.successLight, borderRadius: radius.lg, padding: spacing.sm, marginBottom: spacing.sm },
   successText: { color: colors.successDark, fontWeight: '600', fontSize: 13 },
   fieldLabel: {
-    fontSize: 12, fontWeight: '700', color: colors.textSecondary, marginBottom: spacing.xs,
+    fontSize: 12, fontWeight: '700', color: adminUi.muted, marginBottom: spacing.xs,
     marginTop: spacing.sm, textTransform: 'uppercase',
   },
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   chip: {
     borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 8, minHeight: 34,
-    justifyContent: 'center', backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.border,
+    justifyContent: 'center', backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: adminUi.border,
   },
-  chipActive: { backgroundColor: colors.saffron, borderColor: colors.saffron },
-  chipText: { fontSize: 12, fontWeight: '700', color: colors.textSecondary },
+  chipActive: { backgroundColor: adminUi.active, borderColor: adminUi.active },
+  chipText: { fontSize: 12, fontWeight: '700', color: adminUi.muted },
   chipTextActive: { color: colors.textInverse },
   input: {
-    borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, paddingHorizontal: spacing.md,
-    paddingVertical: 12, color: colors.textPrimary, marginBottom: spacing.xs, fontSize: 14,
+    borderWidth: 1, borderColor: adminUi.border, borderRadius: radius.lg, paddingHorizontal: spacing.md,
+    paddingVertical: 12, color: adminUi.text, marginBottom: spacing.xs, fontSize: 14,
   },
   textArea: {
-    borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, paddingHorizontal: spacing.md,
-    paddingVertical: 12, color: colors.textPrimary, textAlignVertical: 'top', marginBottom: spacing.xs,
+    borderWidth: 1, borderColor: adminUi.border, borderRadius: radius.lg, paddingHorizontal: spacing.md,
+    paddingVertical: 12, color: adminUi.text, textAlignVertical: 'top', marginBottom: spacing.xs,
     minHeight: 88, fontSize: 14,
   },
-  hint: { fontSize: 11, color: colors.textTertiary, marginBottom: spacing.sm },
+  hint: { fontSize: 11, color: adminUi.hint, marginBottom: spacing.sm },
   sendBtn: {
     backgroundColor: colors.saffron, borderRadius: radius.button, paddingVertical: 12,
     alignItems: 'center', marginTop: spacing.md, minHeight: 44, justifyContent: 'center',
   },
   sendBtnText: { color: colors.textInverse, fontWeight: '800' },
-  emptyText: { ...typography.body, color: colors.textSecondary, marginTop: spacing.sm },
+  emptyText: { ...typography.body, color: adminUi.muted, marginTop: spacing.sm },
   broadcastRow: {
-    flexDirection: 'row', gap: spacing.sm, backgroundColor: colors.bgSurface, borderRadius: radius.lg,
-    borderWidth: 1, borderColor: colors.border, padding: spacing.md, marginTop: spacing.sm, ...shadows.sm,
+    flexDirection: 'row', gap: spacing.sm, backgroundColor: colors.bgSurface, borderRadius: adminUi.cardRadius,
+    borderWidth: 1, borderColor: adminUi.border, padding: spacing.md, marginTop: spacing.sm, ...adminUi.shadow,
   },
-  broadcastTitle: { ...typography.body, fontWeight: '700', color: colors.textPrimary },
-  broadcastBody: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
-  broadcastMeta: { fontSize: 11, color: colors.textTertiary, marginTop: 4 },
+  broadcastTitle: { ...typography.body, fontWeight: '700', color: adminUi.text },
+  broadcastBody: { fontSize: 12, color: adminUi.muted, marginTop: 2 },
+  broadcastMeta: { fontSize: 11, color: adminUi.hint, marginTop: 4 },
   deleteLink: { fontSize: 12, fontWeight: '700', color: colors.error, alignSelf: 'flex-start', paddingVertical: 4 },
   templateCard: {
-    backgroundColor: colors.bgSurface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border,
-    padding: spacing.md, marginBottom: spacing.sm, ...shadows.sm,
+    backgroundColor: colors.bgSurface, borderRadius: adminUi.cardRadius, borderWidth: 1, borderColor: adminUi.border,
+    padding: spacing.md, marginBottom: spacing.sm, ...adminUi.shadow,
   },
   templateCardDisabled: { opacity: 0.6 },
   templateHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  templateName: { ...typography.body, fontWeight: '700', color: colors.textPrimary },
-  templatePreview: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+  templateName: { ...typography.body, fontWeight: '700', color: adminUi.text },
+  templatePreview: { fontSize: 12, color: adminUi.muted, marginTop: 2 },
   templateActionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
   smallBtn: {
     backgroundColor: colors.saffron, borderRadius: radius.button, paddingHorizontal: spacing.md,
@@ -470,7 +472,7 @@ const styles = StyleSheet.create({
   smallBtnText: { color: colors.textInverse, fontWeight: '800', fontSize: 12 },
   smallBtnSecondary: {
     borderRadius: radius.button, paddingHorizontal: spacing.md, paddingVertical: 10,
-    borderWidth: 1, borderColor: colors.border, minHeight: 36, justifyContent: 'center',
+    borderWidth: 1, borderColor: adminUi.border, minHeight: 36, justifyContent: 'center',
   },
-  smallBtnSecondaryText: { color: colors.textPrimary, fontWeight: '700', fontSize: 12 },
+  smallBtnSecondaryText: { color: adminUi.text, fontWeight: '700', fontSize: 12 },
 });

@@ -1,10 +1,11 @@
+import { adminUi } from '../../theme/adminUi';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator, Alert, FlatList, Modal, RefreshControl, StyleSheet,
   Text, TextInput, TouchableOpacity, View,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { colors, spacing, typography, radius, shadows } from '../../theme';
+import { colors, spacing, typography, radius } from '../../theme';
 import { adminApi, subscribeAdminRealtimeLifecycle } from '../../api';
 import AppIcon from '../../components/AppIcon';
 
@@ -217,44 +218,44 @@ export default function AdminShopsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bgApp },
-  header: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.sm },
+  container: { flex: 1, backgroundColor: adminUi.canvas },
+  header: { paddingHorizontal: adminUi.gutter, paddingTop: spacing.sm, paddingBottom: spacing.sm },
   addBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
     backgroundColor: colors.saffron, borderRadius: radius.button, paddingVertical: spacing.sm,
   },
   addBtnText: { color: colors.textInverse, fontWeight: '800', fontSize: 14 },
-  errorBanner: { marginHorizontal: spacing.lg, backgroundColor: colors.errorLight, borderRadius: radius.lg, padding: spacing.sm, marginBottom: spacing.sm },
+  errorBanner: { marginHorizontal: adminUi.gutter, backgroundColor: colors.errorLight, borderRadius: radius.lg, padding: spacing.sm, marginBottom: spacing.sm },
   errorText: { color: colors.error, fontWeight: '600', fontSize: 13 },
   listContent: { paddingBottom: spacing.xl },
   row: {
-    flexDirection: 'row', alignItems: 'flex-start', backgroundColor: colors.bgSurface, borderRadius: radius.lg,
-    borderWidth: 1, borderColor: colors.border, padding: spacing.md, marginHorizontal: spacing.lg,
-    marginBottom: spacing.sm, gap: spacing.sm, ...shadows.sm,
+    flexDirection: 'row', alignItems: 'flex-start', backgroundColor: colors.bgSurface, borderRadius: adminUi.cardRadius,
+    borderWidth: 1, borderColor: adminUi.border, padding: spacing.md, marginHorizontal: adminUi.gutter,
+    marginBottom: spacing.sm, gap: spacing.sm, ...adminUi.shadow,
   },
   rowMain: { flex: 1, minWidth: 0 },
   rowActions: { alignItems: 'flex-end', gap: spacing.xs, flexShrink: 0 },
-  name: { ...typography.body, fontWeight: '700', color: colors.textPrimary },
-  meta: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+  name: { ...typography.body, fontWeight: '700', color: adminUi.text },
+  meta: { fontSize: 12, color: adminUi.muted, marginTop: 2 },
   toggle: {
     borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 7, minWidth: 78,
     minHeight: 32, alignItems: 'center', justifyContent: 'center',
   },
   toggleOn: { backgroundColor: colors.successLight },
-  toggleOff: { backgroundColor: colors.bgApp, borderWidth: 1, borderColor: colors.border },
+  toggleOff: { backgroundColor: adminUi.canvas, borderWidth: 1, borderColor: adminUi.border },
   toggleText: { fontWeight: '800', fontSize: 11 },
   toggleOnText: { color: colors.successDark },
-  toggleOffText: { color: colors.textSecondary },
+  toggleOffText: { color: adminUi.muted },
   editLink: { fontSize: 12, fontWeight: '700', color: colors.saffronDark, paddingVertical: 4 },
   emptyState: { alignItems: 'center', paddingTop: spacing.xl },
-  emptyText: { ...typography.body, color: colors.textSecondary },
+  emptyText: { ...typography.body, color: adminUi.muted },
   sheetOverlay: { flex: 1, justifyContent: 'flex-end' },
   sheetBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.overlayDark },
-  sheet: { backgroundColor: colors.bgSurface, borderTopLeftRadius: radius.xxl, borderTopRightRadius: radius.xxl, padding: spacing.lg, paddingBottom: spacing.xl },
-  sheetTitle: { ...typography.h3, color: colors.textPrimary, marginBottom: spacing.md },
-  fieldLabel: { fontSize: 12, fontWeight: '700', color: colors.textSecondary, marginBottom: spacing.xs, textTransform: 'uppercase' },
-  input: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, paddingHorizontal: spacing.md, paddingVertical: 10, marginBottom: spacing.sm, color: colors.textPrimary },
-  hint: { fontSize: 11, color: colors.textTertiary, marginBottom: spacing.md },
+  sheet: { backgroundColor: colors.bgSurface, borderTopLeftRadius: radius.xxl, borderTopRightRadius: radius.xxl, paddingHorizontal: adminUi.gutter, paddingVertical: spacing.md, paddingBottom: spacing.xl },
+  sheetTitle: { ...typography.h3, color: adminUi.text, marginBottom: spacing.md },
+  fieldLabel: { fontSize: 12, fontWeight: '700', color: adminUi.muted, marginBottom: spacing.xs, textTransform: 'uppercase' },
+  input: { borderWidth: 1, borderColor: adminUi.border, borderRadius: radius.lg, paddingHorizontal: spacing.md, paddingVertical: 10, marginBottom: spacing.sm, color: adminUi.text },
+  hint: { fontSize: 11, color: adminUi.hint, marginBottom: spacing.md },
   saveBtn: { backgroundColor: colors.saffron, borderRadius: radius.button, paddingVertical: spacing.sm, alignItems: 'center' },
   saveBtnText: { color: colors.textInverse, fontWeight: '800' },
 });

@@ -1,10 +1,11 @@
+import { adminUi } from '../../theme/adminUi';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator, Alert, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { colors, spacing, typography, radius, shadows } from '../../theme';
+import { colors, spacing, typography, radius } from '../../theme';
 import { adminApi, subscribeAdminOrderEvents, subscribeAdminRealtimeLifecycle } from '../../api';
 import AppIcon from '../../components/AppIcon';
 import AdminNotificationBell from '../../components/admin/AdminNotificationBell';
@@ -35,12 +36,15 @@ function ReportsLink({ onPress }) {
       accessibilityRole="button"
       accessibilityLabel="Open reports"
     >
-      <AppIcon name="analytics" size={24} color={colors.saffronDark} />
+      <View style={styles.reportsIcon}><AppIcon name="analytics" size={22} color={colors.saffronDark} /></View>
       <View style={{ flex: 1 }}>
         <Text style={styles.reportsTitle}>Reports</Text>
         <Text style={styles.subtitle}>Sales, shop payouts and food ratings</Text>
       </View>
-      <Text style={styles.sectionLink}>View</Text>
+      <View style={styles.reportsAction}>
+        <Text style={styles.sectionLink}>View</Text>
+        <AppIcon name="chevronRight" size={16} color={colors.saffronDark} />
+      </View>
     </TouchableOpacity>
   );
 }
@@ -246,18 +250,22 @@ export default function AdminDashboardScreen() {
 
             <View style={styles.metricsGrid}>
               <View style={styles.metricCard}>
+                <AppIcon name="rupee" size={18} color={colors.saffronDark} />
                 <Text style={styles.metricValue}>{formatMoney(sales.todaySales)}</Text>
                 <Text style={styles.metricLabel}>Today's sales</Text>
               </View>
               <View style={styles.metricCard}>
+                <AppIcon name="orders" size={18} color={colors.info} />
                 <Text style={styles.metricValue}>{sales.todayOrders || 0}</Text>
                 <Text style={styles.metricLabel}>Today's orders</Text>
               </View>
               <View style={styles.metricCard}>
+                <AppIcon name="clock" size={18} color={colors.saffronDark} />
                 <Text style={styles.metricValue}>{sales.pendingOrders || 0}</Text>
                 <Text style={styles.metricLabel}>Pending orders</Text>
               </View>
               <View style={styles.metricCard}>
+                <AppIcon name="creditCard" size={18} color={colors.info} />
                 <Text style={styles.metricValue}>{formatMoney(sales.pendingPaymentTotal)}</Text>
                 <Text style={styles.metricLabel}>Pending payments</Text>
               </View>
@@ -282,36 +290,41 @@ export default function AdminDashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bgApp },
+  container: { flex: 1, backgroundColor: adminUi.canvas },
   header: {
     flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm, gap: spacing.md,
+    paddingHorizontal: adminUi.gutter, paddingTop: spacing.md, paddingBottom: spacing.sm, gap: spacing.md,
   },
   headerTextCol: { flex: 1 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  title: { ...typography.display, fontSize: 26, color: colors.textPrimary },
-  subtitle: { ...typography.bodySmall, color: colors.textSecondary, marginTop: 2, fontWeight: '500' },
+  title: { ...typography.display, fontSize: 24, color: adminUi.text },
+  subtitle: { ...typography.bodySmall, color: adminUi.muted, marginTop: 2, fontWeight: '500' },
   logoutBtn: {
     marginTop: 4, paddingHorizontal: 12, paddingVertical: 8, borderRadius: radius.pill,
-    borderWidth: 1, borderColor: colors.border, backgroundColor: colors.bgSurface,
+    borderWidth: 1, borderColor: adminUi.border, backgroundColor: colors.bgSurface,
   },
-  logoutBtnText: { fontWeight: '700', fontSize: 13, color: colors.textSecondary },
+  logoutBtnText: { fontWeight: '700', fontSize: 13, color: adminUi.muted },
   reportsLink: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.md,
-    marginHorizontal: spacing.lg, marginBottom: spacing.md, padding: spacing.md,
-    backgroundColor: colors.bgSurface, borderRadius: radius.lg,
-    borderWidth: 1, borderColor: colors.border,
+    marginHorizontal: adminUi.gutter, marginBottom: spacing.md, padding: spacing.md,
+    backgroundColor: colors.bgSurface, borderRadius: adminUi.cardRadius,
+    borderWidth: 1, borderColor: adminUi.border,
   },
-  reportsTitle: { ...typography.h3, color: colors.textPrimary },
+  reportsTitle: { ...typography.h3, color: adminUi.text },
+  reportsIcon: {
+    width: 42, height: 42, borderRadius: adminUi.controlRadius,
+    backgroundColor: colors.saffronLight, alignItems: 'center', justifyContent: 'center',
+  },
+  reportsAction: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   statusRow: {
-    flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.lg, marginBottom: spacing.md,
+    flexDirection: 'row', gap: spacing.sm, paddingHorizontal: adminUi.gutter, marginBottom: spacing.md,
   },
   statusCard: {
-    flex: 1, minWidth: 0, backgroundColor: colors.bgSurface, borderRadius: radius.xl, padding: spacing.md,
-    borderWidth: 1, borderColor: colors.border, ...shadows.sm,
+    flex: 1, minWidth: 0, backgroundColor: colors.bgSurface, borderRadius: adminUi.cardRadius, padding: spacing.md,
+    borderWidth: 1, borderColor: adminUi.border, ...adminUi.shadow,
   },
   statusLabel: {
-    fontSize: 10, fontWeight: '700', color: colors.textSecondary, letterSpacing: 0.3,
+    fontSize: 10, fontWeight: '700', color: adminUi.muted, letterSpacing: 0.3,
     marginBottom: spacing.xs,
   },
   statusToggle: {
@@ -323,43 +336,43 @@ const styles = StyleSheet.create({
     minHeight: 34, justifyContent: 'center',
   },
   statusOn: { backgroundColor: colors.successLight },
-  statusOff: { backgroundColor: colors.bgApp },
+  statusOff: { backgroundColor: adminUi.canvas },
   statusToggleText: { fontWeight: '800', fontSize: 13 },
   statusOnText: { color: colors.successDark },
-  statusOffText: { color: colors.textSecondary },
-  statusAuto: { fontSize: 10, fontWeight: '700', color: colors.textTertiary, marginTop: 4, letterSpacing: 0.4 },
+  statusOffText: { color: adminUi.muted },
+  statusAuto: { fontSize: 10, fontWeight: '700', color: adminUi.hint, marginTop: 4, letterSpacing: 0.4 },
   metricsGrid: {
-    flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: spacing.lg,
+    flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: adminUi.gutter,
     marginBottom: spacing.lg, justifyContent: 'space-between', rowGap: spacing.sm,
   },
   metricCard: {
-    width: '48%', backgroundColor: colors.bgSurface, borderRadius: radius.xl,
-    paddingVertical: spacing.md, paddingHorizontal: spacing.sm, borderWidth: 1, borderColor: colors.border,
-    alignItems: 'center', justifyContent: 'center', minHeight: 84, ...shadows.sm,
+    width: '48%', backgroundColor: colors.bgSurface, borderRadius: adminUi.cardRadius,
+    padding: 14, borderWidth: 1, borderColor: adminUi.border,
+    alignItems: 'flex-start', justifyContent: 'center', gap: 6, minHeight: 110, ...adminUi.shadow,
   },
-  metricValue: { fontSize: 20, fontWeight: '800', color: colors.textPrimary },
+  metricValue: { fontSize: 24, fontWeight: '800', color: adminUi.text, fontVariant: ['tabular-nums'] },
   metricLabel: {
-    fontSize: 11, color: colors.textSecondary, marginTop: 4, fontWeight: '600', textAlign: 'center',
+    fontSize: 12, color: adminUi.muted, fontWeight: '600',
   },
   sectionHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg, marginBottom: spacing.sm,
+    paddingHorizontal: adminUi.gutter, marginBottom: spacing.sm,
   },
   sectionTitle: {
-    ...typography.labelSmall, fontSize: 13, color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.6,
+    ...typography.labelSmall, fontSize: 13, color: adminUi.muted, textTransform: 'uppercase', letterSpacing: 0.6,
   },
   sectionLink: { color: colors.saffronDark, fontWeight: '700', fontSize: 13, paddingVertical: 4 },
   listContent: { paddingBottom: spacing.xl },
   orderRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm,
-    backgroundColor: colors.bgSurface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border,
-    padding: spacing.md, marginHorizontal: spacing.lg, marginBottom: spacing.sm,
+    backgroundColor: colors.bgSurface, borderRadius: adminUi.cardRadius, borderWidth: 1, borderColor: adminUi.border,
+    padding: spacing.md, marginHorizontal: adminUi.gutter, marginBottom: spacing.sm,
   },
-  orderNumber: { ...typography.body, fontWeight: '700', color: colors.textPrimary },
-  orderMeta: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
-  orderAmount: { ...typography.body, fontWeight: '800', color: colors.textPrimary },
+  orderNumber: { ...typography.body, fontWeight: '700', color: adminUi.text },
+  orderMeta: { fontSize: 12, color: adminUi.muted, marginTop: 2 },
+  orderAmount: { ...typography.body, fontWeight: '800', color: adminUi.text },
   orderStatus: {
-    fontSize: 11, color: colors.textSecondary, marginTop: 2, textTransform: 'uppercase',
+    fontSize: 11, color: adminUi.muted, marginTop: 2, textTransform: 'uppercase',
     fontWeight: '700', textAlign: 'right',
   },
   emptyState: { alignItems: 'center', paddingHorizontal: spacing.xl, marginTop: spacing.xl },
@@ -367,11 +380,11 @@ const styles = StyleSheet.create({
     width: 72, height: 72, borderRadius: radius.circle, backgroundColor: colors.saffronLight,
     alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md,
   },
-  emptyTitle: { ...typography.h3, color: colors.textPrimary },
-  emptyText: { ...typography.body, color: colors.textSecondary },
+  emptyTitle: { ...typography.h3, color: adminUi.text },
+  emptyText: { ...typography.body, color: adminUi.muted },
   retryBtn: {
     marginTop: spacing.md, backgroundColor: colors.saffron, borderRadius: radius.button,
-    paddingHorizontal: spacing.lg, paddingVertical: spacing.sm,
+    paddingHorizontal: adminUi.gutter, paddingVertical: spacing.sm,
   },
   retryBtnText: { color: colors.textInverse, fontWeight: '800' },
 });
