@@ -209,7 +209,7 @@
 .orders-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 960px;
+  min-width: 1060px;
 }
 
 .orders-table th,
@@ -237,15 +237,39 @@
   cursor: pointer;
 }
 
-.orders-table tbody tr:hover {
-  background-color: var(--surface-hover);
-}
-
-.orders-table tbody tr:nth-child(even) {
+.orders-table .order-row-group:nth-of-type(even) {
   background: rgba(148, 163, 184, 0.04);
 }
 
-.orders-table tbody tr:last-child td {
+.orders-table .order-row-group:hover {
+  background-color: var(--surface-hover);
+}
+
+/* Shared table styles stripe/hover individual tr elements. Here the whole
+   tbody represents one order, including cells spanning its product rows. */
+.admin-shell .admin-main .orders-table .order-row-group tr,
+.admin-shell .admin-main .orders-table .order-row-group tr:hover {
+  background: transparent !important;
+}
+
+.admin-shell .admin-main .orders-table .order-row-group tr > td {
+  background: transparent;
+  box-shadow: none;
+}
+
+.admin-shell .admin-main .orders-table .order-row-group:hover tr > td {
+  background: color-mix(in srgb, var(--primary-color) 6%, transparent);
+}
+
+.admin-shell .admin-main .orders-table .order-row-group:hover .order-id {
+  box-shadow: inset 3px 0 0 var(--primary-color);
+}
+
+.admin-shell .admin-main .orders-table .order-row-group tr:hover > td:first-child:not(.order-id) {
+  box-shadow: none;
+}
+
+.orders-table tbody:last-child td {
   border-bottom: none;
 }
 
@@ -309,9 +333,65 @@
   min-width: 260px;
   max-width: 360px;
   white-space: normal;
-  vertical-align: top;
-  padding-top: 1.1rem;
-  padding-bottom: 1.1rem;
+  vertical-align: middle;
+}
+
+.orders-table .order-row-group .items-cell,
+.orders-table .order-row-group .item-rating-cell {
+  padding-top: 0.15rem;
+  padding-bottom: 0.15rem;
+  border-bottom: none;
+}
+
+.orders-table .order-row-group tr:first-child .items-cell,
+.orders-table .order-row-group tr:first-child .item-rating-cell {
+  padding-top: 1rem;
+}
+
+.orders-table .order-row-group tr:last-child .items-cell,
+.orders-table .order-row-group tr:last-child .item-rating-cell {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.orders-table .order-row-group:last-child tr:last-child td {
+  border-bottom: none;
+}
+
+.item-rating-cell {
+  width: 90px;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.item-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: var(--radius-pill, 999px);
+  padding: 0.2rem 0.5rem;
+  color: var(--text-primary);
+  background: rgba(245, 158, 11, 0.12);
+  font-size: 0.78rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.item-rating > span {
+  color: #f59e0b;
+}
+
+.item-rating-low {
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.item-rating-low > span {
+  color: #ef4444;
+}
+
+.item-unrated {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
 }
 
 .item-line {

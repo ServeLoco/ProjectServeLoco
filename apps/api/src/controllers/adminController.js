@@ -1406,12 +1406,21 @@ const getAdminOrders = async (req, res) => {
   const itemsByOrderId = {};
   if (rows.length > 0) {
     const [itemRows] = await pool.query(
-      'SELECT order_id, product_name, variant_label, quantity, unit_price, line_total, shop_rejected_at, shop_billable FROM order_items WHERE order_id IN (?) ORDER BY id ASC',
+      `SELECT oi.id, oi.order_id, oi.product_name, oi.variant_label, oi.quantity,
+              oi.unit_price, oi.line_total, oi.shop_rejected_at, oi.shop_billable,
+              r.stars AS customer_rating
+       FROM order_items oi
+       LEFT JOIN order_item_ratings r ON r.order_item_id = oi.id AND r.area_id = oi.area_id
+       WHERE oi.order_id IN (?) ORDER BY oi.id ASC`,
       [rows.map((row) => row.id)]
     );
     for (const item of itemRows) {
       if (!itemsByOrderId[item.order_id]) itemsByOrderId[item.order_id] = [];
-      itemsByOrderId[item.order_id].push(item);
+      itemsByOrderId[item.order_id].push({
+        ...item,
+        customerRating: item.customer_rating == null ? null : Number(item.customer_rating),
+        customer_rating: item.customer_rating == null ? null : Number(item.customer_rating),
+      });
     }
   }
 

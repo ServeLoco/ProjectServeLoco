@@ -868,65 +868,88 @@ export default function Orders() {
               <th>Date</th>
               <th>Customer</th>
               <th>Items Ordered</th>
+              <th title="Customer rating for each item in this order">Ratings</th>
               <th>Amount</th>
               <th>Status</th>
               <th>Payment</th>
             </tr>
           </thead>
-          <tbody>
-            {loading && orders.length === 0 ? (
-              <tr><td colSpan="7" style={{ textAlign: 'center', padding: '2rem' }}>Loading orders...</td></tr>
-            ) : orders.length === 0 ? (
-              <tr><td colSpan="7" style={{ textAlign: 'center', padding: '2rem' }}>No orders found.</td></tr>
-            ) : (
-              orders.map(order => (
-                <tr key={order.id} onClick={() => handleRowClick(order.id)}>
-                  <td className="order-id">
-                    #{order.order_number}
-                    {(order.deliveryType || order.delivery_type) === 'fast' && (
-                      <span className="fast-delivery-tag"><AdminIcon name="bolt" size={12} strokeWidth={2.2} className="ds-inline-icon" /> Fast</span>
-                    )}
-                    {(order.adminRemark || order.admin_remark) && (
-                      <span className="admin-remark-tag" title={order.adminRemark || order.admin_remark}><AdminIcon name="note" size={12} strokeWidth={2.2} className="ds-inline-icon" /> Note</span>
-                    )}
-                    <span className="row-hint">Open details</span>
-                  </td>
-                  <td className="date-cell">{formatDateTime(order.created_at)}</td>
-                  <td>
-                    <span className="customer-name">{order.customer_name}</span>
-                    <span className="customer-phone">{order.phone}</span>
-                    <CustomerOrderTier order={order} />
-                  </td>
-                  <td className="items-cell">
-                    {(order.items || []).length === 0 ? (
-                      <span className="row-hint">No items</span>
-                    ) : (
-                      order.items.map((item, idx) => (
-                        <div className="item-line" key={idx}>
-                          <span className="item-line-name">
-                            {item.quantity}x {item.product_name}
-                            {(item.shop_rejected_at != null || Number(item.shop_billable ?? 1) === 0) && <span className="item-oos-flag">{item.shop_rejected_at != null ? 'Rejected · not charged' : 'Awaiting acceptance · not charged'}</span>}
-                            {item.variant_label ? ` (${item.variant_label})` : ''}
-                          </span>
-                          <span className="item-line-price">₹{formatMoney(item.shop_rejected_at == null && Number(item.shop_billable ?? 1) === 1 ? item.line_total : 0)}</span>
-                        </div>
-                      ))
-                    )}
-                  </td>
-                  <td className="amount-cell">₹{formatMoney(order.total)}</td>
-                  <td>
-                    <span className={`status-badge ${statusClassName(order.status)}`}>
-                      {getOrderStatusLabel(order.status)}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`payment-pill ${statusClassName(order.payment_status)}`}>{displayPaymentStatus(order.payment_status)}</span>
-                    <span className="payment-method">{order.payment_method}</span>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
+          {loading && orders.length === 0 ? (
+            <tbody><tr><td colSpan="8" style={{ textAlign: 'center', padding: '2rem' }}>Loading orders...</td></tr></tbody>
+          ) : orders.length === 0 ? (
+            <tbody><tr><td colSpan="8" style={{ textAlign: 'center', padding: '2rem' }}>No orders found.</td></tr></tbody>
+          ) : (
+            orders.map(order => {
+              // Share a real table row between each product and its rating:
+              // wrapping names and rejected-item labels cannot shift the stars.
+              const items = order.items?.length ? order.items : [null];
+              return (
+                <tbody className="order-row-group" key={order.id}>
+                  {items.map((item, idx) => {
+                    const stars = item?.customerRating ?? item?.customer_rating;
+                    const rated = stars != null && Number.isInteger(Number(stars)) && Number(stars) >= 1 && Number(stars) <= 5;
+                    return (
+                      <tr key={item?.id ?? idx} onClick={() => handleRowClick(order.id)}>
+                        {idx === 0 && (
+                          <>
+                            <td className="order-id" rowSpan={items.length}>
+                              #{order.order_number}
+                              {(order.deliveryType || order.delivery_type) === 'fast' && (
+                                <span className="fast-delivery-tag"><AdminIcon name="bolt" size={12} strokeWidth={2.2} className="ds-inline-icon" /> Fast</span>
+                              )}
+                              {(order.adminRemark || order.admin_remark) && (
+                                <span className="admin-remark-tag" title={order.adminRemark || order.admin_remark}><AdminIcon name="note" size={12} strokeWidth={2.2} className="ds-inline-icon" /> Note</span>
+                              )}
+                              <span className="row-hint">Open details</span>
+                            </td>
+                            <td className="date-cell" rowSpan={items.length}>{formatDateTime(order.created_at)}</td>
+                            <td rowSpan={items.length}>
+                              <span className="customer-name">{order.customer_name}</span>
+                              <span className="customer-phone">{order.phone}</span>
+                              <CustomerOrderTier order={order} />
+                            </td>
+                          </>
+                        )}
+                        <td className="items-cell">
+                          {item ? (
+                            <div className="item-line">
+                              <span className="item-line-name">
+                                {item.quantity}x {item.product_name}
+                                {item.variant_label ? ` (${item.variant_label})` : ''}
+                                {(item.shop_rejected_at != null || Number(item.shop_billable ?? 1) === 0) && <span className="item-oos-flag">{item.shop_rejected_at != null ? 'Rejected · not charged' : 'Awaiting acceptance · not charged'}</span>}
+                              </span>
+                              <span className="item-line-price">₹{formatMoney(item.shop_rejected_at == null && Number(item.shop_billable ?? 1) === 1 ? item.line_total : 0)}</span>
+                            </div>
+                          ) : <span className="row-hint">No items</span>}
+                        </td>
+                        <td className="item-rating-cell">
+                          {rated ? (
+                            <span className={`item-rating${Number(stars) <= 2 ? ' item-rating-low' : ''}`} aria-label={`${item.product_name}: customer rating ${stars} out of 5`}>
+                              <span aria-hidden="true">★</span> {stars}/5
+                            </span>
+                          ) : <span className="item-unrated">{item ? 'Not rated' : '—'}</span>}
+                        </td>
+                        {idx === 0 && (
+                          <>
+                            <td className="amount-cell" rowSpan={items.length}>₹{formatMoney(order.total)}</td>
+                            <td rowSpan={items.length}>
+                              <span className={`status-badge ${statusClassName(order.status)}`}>
+                                {getOrderStatusLabel(order.status)}
+                              </span>
+                            </td>
+                            <td rowSpan={items.length}>
+                              <span className={`payment-pill ${statusClassName(order.payment_status)}`}>{displayPaymentStatus(order.payment_status)}</span>
+                              <span className="payment-method">{order.payment_method}</span>
+                            </td>
+                          </>
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              );
+            })
+          )}
         </table>
         
         <div className="pagination-controls">
