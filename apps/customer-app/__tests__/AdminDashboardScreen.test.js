@@ -7,8 +7,11 @@ import { Alert } from 'react-native';
 import ReactTestRenderer, { act } from 'react-test-renderer';
 import AdminDashboardScreen from '../src/screens/admin/AdminDashboardScreen';
 
+const mockNavigate = jest.fn();
+let root;
+
 jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({ navigate: jest.fn() }),
+  useNavigation: () => ({ navigate: mockNavigate }),
   useFocusEffect: (cb) => { require('react').useEffect(cb, []); },
 }));
 
@@ -48,6 +51,10 @@ function findAllText(root) {
 }
 
 describe('AdminDashboardScreen', () => {
+  afterEach(async () => {
+    if (root) await act(async () => root.unmount());
+    root = null;
+  });
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -55,7 +62,6 @@ describe('AdminDashboardScreen', () => {
   it('renders KPI values and shop/delivery status from the dashboard payload', async () => {
     adminApi.getDashboard.mockResolvedValue(DASHBOARD_RESPONSE);
 
-    let root;
     await act(async () => {
       root = ReactTestRenderer.create(<AdminDashboardScreen />);
     });
@@ -72,7 +78,6 @@ describe('AdminDashboardScreen', () => {
       confirmBtn?.onPress?.();
     });
 
-    let root;
     await act(async () => {
       root = ReactTestRenderer.create(<AdminDashboardScreen />);
     });
@@ -91,7 +96,6 @@ describe('AdminDashboardScreen', () => {
   it('renders a Log out control on the dashboard header', async () => {
     adminApi.getDashboard.mockResolvedValue(DASHBOARD_RESPONSE);
 
-    let root;
     await act(async () => {
       root = ReactTestRenderer.create(<AdminDashboardScreen />);
     });
@@ -100,15 +104,22 @@ describe('AdminDashboardScreen', () => {
     expect(texts).toEqual(expect.arrayContaining(['Log out']));
   });
 
+  it('opens Reports from the home shortcut', async () => {
+    adminApi.getDashboard.mockResolvedValue(DASHBOARD_RESPONSE);
+    await act(async () => { root = ReactTestRenderer.create(<AdminDashboardScreen />); });
+    const button = root.root.findAll(n => n.props.accessibilityLabel === 'Open reports' && n.props.onPress)[0];
+    await act(async () => button.props.onPress());
+    expect(mockNavigate).toHaveBeenCalledWith('AdminReports');
+  });
+
   it('shows a retry state when the dashboard fails to load', async () => {
     adminApi.getDashboard.mockRejectedValue(new Error('network'));
 
-    let root;
     await act(async () => {
       root = ReactTestRenderer.create(<AdminDashboardScreen />);
     });
 
     const texts = findAllText(root.root);
-    expect(texts).toEqual(expect.arrayContaining(['Could not load dashboard', 'Retry']));
+    expect(texts).toEqual(expect.arrayContaining(['Could not load dashboard', 'Retry', 'Reports']));
   });
 });

@@ -26,6 +26,25 @@ function formatWhen(value) {
   }
 }
 
+function ReportsLink({ onPress }) {
+  return (
+    <TouchableOpacity
+      style={styles.reportsLink}
+      onPress={onPress}
+      activeOpacity={0.85}
+      accessibilityRole="button"
+      accessibilityLabel="Open reports"
+    >
+      <AppIcon name="analytics" size={24} color={colors.saffronDark} />
+      <View style={{ flex: 1 }}>
+        <Text style={styles.reportsTitle}>Reports</Text>
+        <Text style={styles.subtitle}>Sales, shop payouts and food ratings</Text>
+      </View>
+      <Text style={styles.sectionLink}>View</Text>
+    </TouchableOpacity>
+  );
+}
+
 /**
  * AdminDashboardScreen (ADMIN TASK 8) — KPI strip, Delivery Available toggle,
  * read-only Shop Status, and a Latest Orders list. Mirrors apps/admin
@@ -120,6 +139,7 @@ export default function AdminDashboardScreen() {
   if (loading && !data) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
+        <ReportsLink onPress={() => navigation.navigate('AdminReports')} />
         <ActivityIndicator style={{ marginTop: spacing.xl }} color={colors.saffron} />
       </SafeAreaView>
     );
@@ -128,6 +148,7 @@ export default function AdminDashboardScreen() {
   if (error && !data) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
+        <ReportsLink onPress={() => navigation.navigate('AdminReports')} />
         <View style={styles.emptyState}>
           <View style={styles.emptyIconWrap}>
             <AppIcon name="warning" size={32} color={colors.saffronDark} />
@@ -191,6 +212,8 @@ export default function AdminDashboardScreen() {
                 </TouchableOpacity>
               </View>
             </View>
+
+            <ReportsLink onPress={() => navigation.navigate('AdminReports')} />
 
             <View style={styles.statusRow}>
               <View style={styles.statusCard}>
@@ -273,6 +296,13 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: colors.border, backgroundColor: colors.bgSurface,
   },
   logoutBtnText: { fontWeight: '700', fontSize: 13, color: colors.textSecondary },
+  reportsLink: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.md,
+    marginHorizontal: spacing.lg, marginBottom: spacing.md, padding: spacing.md,
+    backgroundColor: colors.bgSurface, borderRadius: radius.lg,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  reportsTitle: { ...typography.h3, color: colors.textPrimary },
   statusRow: {
     flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.lg, marginBottom: spacing.md,
   },

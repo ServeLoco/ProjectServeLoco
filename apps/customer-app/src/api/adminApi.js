@@ -8,6 +8,15 @@ const adminApi = {
 
   // ADMIN TASK 8 — Dashboard
   getDashboard: () => apiClient.get('/admin/dashboard', { auth: 'admin' }),
+  // Reports share the web endpoints and the mobile admin session/area scope.
+  reportSales: (params) => apiClient.get(`/admin/reports/sales${buildQueryString(params)}`, { auth: 'admin' }),
+  reportCustomers: (params) => apiClient.get(`/admin/reports/customers${buildQueryString(params)}`, { auth: 'admin' }),
+  reportTopProducts: (params) => apiClient.get(`/admin/reports/top-products${buildQueryString(params)}`, { auth: 'admin' }),
+  reportFoodRatings: (params) => apiClient.get(`/admin/reports/ratings${buildQueryString(params)}`, { auth: 'admin' }),
+  reportShops: (params) => apiClient.get(`/admin/reports/shops${buildQueryString(params)}`, { auth: 'admin' }),
+  reportProfitSummary: (params) => apiClient.get(`/admin/reports/profit/summary${buildQueryString(params)}`, { auth: 'admin' }),
+  reportProfitInsights: (params) => apiClient.get(`/admin/reports/profit/insights${buildQueryString(params)}`, { auth: 'admin' }),
+  reportProfitOrders: (params) => apiClient.get(`/admin/reports/profit/orders${buildQueryString(params)}`, { auth: 'admin' }),
   // Dashboard only ever sends delivery_available — the full settings form
   // (charges, UPI, app versions…) stays web-only per plan §0 out-of-scope.
   updateSettings: (payload) => apiClient.patch('/admin/settings', payload, { auth: 'admin' }),

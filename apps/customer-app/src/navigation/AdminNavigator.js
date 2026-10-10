@@ -15,6 +15,7 @@ import {
   AdminPeopleScreen,
   AdminNotificationsScreen,
   AdminAnalyticsScreen,
+  AdminReportsScreen,
 } from '../screens/admin';
 
 const Tab = createBottomTabNavigator();
@@ -134,6 +135,7 @@ export default function AdminNavigator() {
       >
         <Stack.Screen name="AdminTabs" component={AdminTabs} />
         <Stack.Screen name="AdminOrderDetail" component={AdminOrderDetailScreen} />
+        <Stack.Screen name="AdminReports" component={AdminReportsScreen} />
       </Stack.Navigator>
       <AdminNewOrderPopup />
       <AdminCancelRequestPopup />

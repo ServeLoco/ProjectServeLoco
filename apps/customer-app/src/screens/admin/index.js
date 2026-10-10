@@ -9,3 +9,4 @@ export { default as AdminShopsScreen } from './AdminShopsScreen';
 export { default as AdminCustomersScreen } from './AdminCustomersScreen';
 export { default as AdminNotificationsScreen } from './AdminNotificationsScreen';
 export { default as AdminAnalyticsScreen } from './AdminAnalyticsScreen';
+export { default as AdminReportsScreen } from './AdminReportsScreen';
