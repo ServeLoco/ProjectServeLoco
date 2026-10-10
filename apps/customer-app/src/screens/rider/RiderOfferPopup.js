@@ -24,7 +24,7 @@ import {
   remainingSecondsFromExpiresAt,
   formatCountdown,
 } from '../../utils/riderOfferTime';
-import { Mapbox, mapboxAvailable } from '../../utils/mapbox';
+import { Mapbox, ensureMapboxToken, mapboxAvailable } from '../../utils/mapbox';
 import { isShopExcluded, isShopRejected } from '../../utils/riderOrderActions';
 
 const numOrNull = (v) => {
@@ -37,6 +37,7 @@ const numOrNull = (v) => {
  * a driving route are added once location resolves, and the camera fits
  * both pins (and the route) into frame so neither is cropped out. */
 function DropoffMap({ latitude, longitude }) {
+  ensureMapboxToken();
   // MapView's native SurfaceView doesn't reliably pick up a percentage/flex
   // width from its RN parent on first mount — it can size to its measured-0
   // layout pass and never re-expand. Measuring the wrap and handing the

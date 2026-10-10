@@ -24,6 +24,7 @@ import { useReducedMotion } from '../../utils';
 import {
   Mapbox,
   DEFAULT_MAP_CENTER,
+  ensureMapboxToken,
   mapboxAvailable,
 } from '../../utils/mapbox';
 import {
@@ -180,6 +181,7 @@ export default function LocationPicker({
   // genuinely centered in the visible map instead.
   centeredPin = false,
 }) {
+  ensureMapboxToken();
   const insets = useSafeAreaInsets();
   const reducedMotion = useReducedMotion();
   const mapRef = useRef(null);

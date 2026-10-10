@@ -17,6 +17,7 @@ import { riderApi } from '../../api';
 import {
   Mapbox,
   DEFAULT_MAP_CENTER,
+  ensureMapboxToken,
   mapboxAvailable,
 } from '../../utils/mapbox';
 import AnimatedRouteLine from '../AnimatedRouteLine';
@@ -239,6 +240,7 @@ function CustomerMarker() {
  * drifts >150 m from the route polyline (MAP locked decision §4.7).
  */
 export default function RiderDeliveryMap({ order, pickedUp, style, onRouteInfo, bottomInset = 0 }) {
+  ensureMapboxToken();
   const insets = useSafeAreaInsets();
   // Edge-to-edge map: push overlays + Mapbox chrome below the status bar.
   // Extra gap so the turn banner/compass never sit under system icons (clock, battery).

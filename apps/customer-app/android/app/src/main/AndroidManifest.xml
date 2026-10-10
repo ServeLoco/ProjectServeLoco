@@ -50,5 +50,10 @@
     <activity android:name=".AlarmActivity" android:screenOrientation="portrait" android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|uiMode" android:theme="@style/AppTheme" android:exported="false" android:launchMode="singleTask" android:taskAffinity="" android:excludeFromRecents="true" android:showWhenLocked="true" android:turnScreenOn="true"/>
     <receiver android:name="app.notifee.core.RebootBroadcastReceiver" tools:node="remove"/>
     <receiver android:name="app.notifee.core.NotificationAlarmReceiver" tools:node="remove"/>
+    <!-- Mapbox registers itself with androidx.startup, which loads the map engine on the main thread at every process start, including a background FCM push that never shows a map (Play Console ANR). MainActivity starts it instead. -->
+    <provider android:name="androidx.startup.InitializationProvider" android:authorities="${applicationId}.androidx-startup" android:exported="false" tools:node="merge">
+      <meta-data android:name="com.mapbox.maps.loader.MapboxMapsInitializer" tools:node="remove"/>
+      <meta-data android:name="com.mapbox.common.MapboxSDKCommonInitializer" tools:node="remove"/>
+    </provider>
   </application>
 </manifest>

@@ -22,6 +22,7 @@ import AnimatedRouteLine from '../AnimatedRouteLine';
 import {
   Mapbox,
   DEFAULT_MAP_CENTER,
+  ensureMapboxToken,
   mapboxAvailable,
 } from '../../utils/mapbox';
 
@@ -401,6 +402,7 @@ export default function RiderLiveMap({
   sheetReserve = 0,
   initialOrder = null,
 }) {
+  ensureMapboxToken();
   const insets = useSafeAreaInsets();
   const mapRef = useRef(null);
   const cameraRef = useRef(null);

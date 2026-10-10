@@ -2,7 +2,10 @@ package com.yashsiwach.villkro
 
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 
+import androidx.startup.AppInitializer
+import androidx.startup.Initializer
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnabled
@@ -17,7 +20,29 @@ class MainActivity : ReactActivity() {
     // full-screen splash artwork as window background, so the artwork stays
     // on screen until the first React screen draws over it.
     setTheme(R.style.Theme_App_Main);
+    startMapbox()
     super.onCreate(null)
+  }
+
+  /**
+   * Mapbox's androidx.startup hook is removed in AndroidManifest.xml, so a
+   * background push or headless task no longer loads the map engine on the
+   * main thread. Start it here instead, once the user actually opens the app;
+   * repeat calls are no-ops.
+   *
+   * Looked up by name because the SDK is a private (implementation)
+   * dependency of @rnmapbox/maps; its own R8 rules keep com.mapbox.maps.**
+   * whole. If this ever fails, Mapbox still starts itself on the first map call.
+   */
+  @Suppress("UNCHECKED_CAST")
+  private fun startMapbox() {
+    try {
+      val initializer = Class.forName("com.mapbox.maps.loader.MapboxMapsInitializer")
+          as Class<out Initializer<Any>>
+      AppInitializer.getInstance(applicationContext).initializeComponent(initializer)
+    } catch (e: Throwable) {
+      Log.w("MainActivity", "Mapbox not started up front; it will start on the first map", e)
+    }
   }
 
   /**

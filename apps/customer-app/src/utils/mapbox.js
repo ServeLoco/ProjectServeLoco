@@ -14,8 +14,23 @@ const token =
 export const mapboxAvailable = Boolean(token && String(token).trim());
 export const mapboxAccessToken = mapboxAvailable ? String(token).trim() : '';
 
-if (mapboxAvailable) {
-  Mapbox.setAccessToken(String(token).trim());
+let tokenApplied = false;
+
+/**
+ * Hand the access token to the native SDK. Call it in the render of any
+ * component that mounts a MapView — never at import time.
+ *
+ * The first native Mapbox call loads the whole map engine (System.loadLibrary),
+ * and rnmapbox applies the token on the Android UI thread. This module is
+ * pulled in by App.js, which index.js also loads for every background FCM
+ * message and headless task, so a module-scope call loaded Mapbox on the main
+ * thread for pushes that never show a map (Play Console ANR, Android 16).
+ * Only the first call does anything.
+ */
+export function ensureMapboxToken() {
+  if (tokenApplied || !mapboxAvailable) return;
+  tokenApplied = true;
+  Mapbox.setAccessToken(mapboxAccessToken);
 }
 
 // Swallow one specific piece of teardown noise.
