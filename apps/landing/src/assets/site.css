@@ -45,7 +45,6 @@
   --green: #1FB574;
   --brand: linear-gradient(100deg, var(--yellow) 0%, var(--amber) 35%, var(--orange) 65%, var(--red) 100%);
   --brand-text: linear-gradient(100deg, #F59E0B 0%, #EA580C 45%, #DC2626 100%);
-  --nav-bg: rgba(251,248,243,0.72);
   --chip-bg: rgba(255,255,255,0.8);
   --shadow: 0 1px 2px rgba(60,40,10,0.05), 0 8px 24px rgba(60,40,10,0.07);
   --shadow-lg: 0 2px 6px rgba(60,40,10,0.06), 0 30px 60px rgba(60,40,10,0.14);
@@ -62,7 +61,21 @@
   --radius: 22px;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --gutter: 24px;
-  --nav-h: 68px;
+  /* Nav capsule */
+  --cap-h: 58px;
+  --cap-gap: 12px;
+  --cap-pad: 9px;
+  --cap-btn: 40px;
+  --nav-h: calc(var(--cap-h) + var(--cap-gap));
+  --cap-bg: rgba(255,253,250,0.58);
+  --cap-bg-2: rgba(255,253,250,0.76);
+  --cap-edge: linear-gradient(170deg, rgba(255,255,255,1), rgba(255,255,255,0.5) 40%, rgba(60,40,10,0.12));
+  --cap-hi: inset 0 1px 0 rgba(255,255,255,0.9);
+  --cap-shadow: 0 0 0 1px rgba(32,24,14,0.05), 0 10px 30px -12px rgba(60,40,10,0.22);
+  --cap-shadow-2: 0 0 0 1px rgba(32,24,14,0.06), 0 1px 2px rgba(60,40,10,0.05), 0 18px 40px -14px rgba(60,40,10,0.30);
+  --pill-bg: rgba(255,255,255,0.95);
+  --pill-shadow: 0 1px 2px rgba(60,40,10,0.08), 0 4px 14px -4px rgba(60,40,10,0.18);
+  --menu-bg: linear-gradient(180deg, #FFFFFF, #FBF7F1);
   /* App screen colours (cream canvas, near-black ink, like the real app) */
   --app-bg: #F9F4E6;
   --app-ink: #0E1116;
@@ -87,7 +100,15 @@
   --accent: #FF9F0A;
   --accent-soft: rgba(255,159,10,0.08);
   --brand-text: var(--brand);
-  --nav-bg: rgba(8,8,11,0.72);
+  --cap-bg: rgba(24,24,30,0.5);
+  --cap-bg-2: rgba(18,18,23,0.72);
+  --cap-edge: linear-gradient(170deg, rgba(255,255,255,0.30), rgba(255,255,255,0.07) 45%, rgba(255,255,255,0.14));
+  --cap-hi: inset 0 1px 0 rgba(255,255,255,0.08);
+  --cap-shadow: 0 12px 34px -12px rgba(0,0,0,0.7);
+  --cap-shadow-2: 0 20px 44px -14px rgba(0,0,0,0.8);
+  --pill-bg: rgba(255,255,255,0.09);
+  --pill-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+  --menu-bg: linear-gradient(180deg, #1D1D23, #141418);
   --chip-bg: rgba(20,20,24,0.82);
   --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 10px 30px rgba(0,0,0,0.35);
   --shadow-lg: 0 30px 70px rgba(0,0,0,0.6);
@@ -126,7 +147,7 @@ button { font: inherit; color: inherit; }
 .skip:focus { top: 12px; }
 
 .container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 var(--gutter); }
-@media (max-width: 640px) { :root { --gutter: 16px; } }
+@media (max-width: 640px) { :root { --gutter: 16px; --cap-h: 56px; --cap-gap: 10px; --cap-pad: 8px; } }
 
 .grad-text {
   background: var(--brand-text);
@@ -156,61 +177,109 @@ button { font: inherit; color: inherit; }
 }
 .scroll-progress { position: fixed; top: 0; left: 0; height: 3px; width: 100%; background: var(--brand); z-index: 100; transform-origin: 0 50%; transform: scaleX(0); }
 
-/* ── Nav ───────────────────────────── */
-.nav { position: sticky; top: 0; z-index: 50; border-bottom: 1px solid transparent; transition: background 0.3s ease, border-color 0.3s ease; view-transition-name: site-nav; }
-.nav.scrolled, .nav.open {
-  background: var(--nav-bg);
-  backdrop-filter: saturate(170%) blur(18px);
-  -webkit-backdrop-filter: saturate(170%) blur(18px);
-  border-bottom-color: var(--line);
+/* ── Nav: a floating glass capsule ───────────────────────────── */
+.nav {
+  position: sticky; top: 0; z-index: 50;
+  padding: var(--cap-gap) var(--gutter) 0;
+  pointer-events: none; /* only the capsule (and the open-menu scrim) take taps */
 }
-.nav-inner { display: flex; align-items: center; justify-content: space-between; height: var(--nav-h); gap: 12px; }
-.brand { display: flex; align-items: center; gap: 10px; flex: none; }
-.brand img { width: 36px; height: 36px; border-radius: 10px; box-shadow: 0 0 0 1px var(--line-2), 0 6px 20px rgba(255,106,0,0.28); transition: transform 0.5s var(--ease); }
-.brand:hover img:first-child { transform: rotate(-8deg) scale(1.06); }
-.brand img.brand-name { width: auto; height: 22px; border-radius: 0; box-shadow: none; }
+.nav .nav-inner {
+  position: relative; z-index: 0;
+  max-width: 1152px; height: var(--cap-h); margin: 0 auto; padding: 0 var(--cap-pad);
+  gap: 10px; border-radius: 999px; pointer-events: auto;
+  background: var(--cap-bg); box-shadow: var(--cap-hi), var(--cap-shadow);
+  backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%);
+  /* The capsule stays still while pages change. The name sits here, not on .nav:
+     a view-transition-name on an ancestor would stop the blur seeing the page. */
+  view-transition-name: site-nav;
+  transition: max-width 0.7s var(--ease), box-shadow 0.4s ease, background 0.4s ease;
+}
+/* Thin light edge: bright at the top, fading round the sides */
+.nav-inner::before {
+  content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit; padding: 1px; pointer-events: none;
+  background: var(--cap-edge);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+.nav.scrolled .nav-inner { max-width: 1000px; }
+.nav.scrolled .nav-inner, .nav.open .nav-inner { background: var(--cap-bg-2); box-shadow: var(--cap-hi), var(--cap-shadow-2); }
+.nav-inner { display: flex; align-items: center; justify-content: space-between; }
+.brand { display: flex; align-items: center; gap: 10px; flex: none; border-radius: 999px; }
+.brand img { width: var(--cap-btn); height: var(--cap-btn); border-radius: 50%; box-shadow: 0 0 0 1px var(--line-2), 0 6px 18px rgba(255,106,0,0.3); transition: transform 0.5s var(--ease); }
+.brand:hover img:first-child { transform: rotate(-10deg) scale(1.06); }
+.brand img.brand-name { width: auto; height: 21px; border-radius: 0; box-shadow: none; }
 :root:not([data-theme="dark"]) .brand img.brand-name, :root:not([data-theme="dark"]) .foot-wordmark { filter: invert(1) hue-rotate(180deg) saturate(1.4); }
-.nav-links { display: flex; align-items: center; gap: 2px; margin-left: auto; }
-.nav-links a:not(.btn) { color: var(--text-2); font-weight: 600; font-size: 14.5px; padding: 8px 12px; border-radius: 999px; transition: color 0.2s, background 0.2s; white-space: nowrap; }
-.nav-links a:not(.btn):hover { color: var(--text); background: var(--glass-2); }
+.nav-links { position: relative; z-index: 0; display: flex; align-items: center; gap: 2px; margin-left: auto; }
+.nav-links a:not(.btn) { color: var(--text-2); font-weight: 600; font-size: 14.5px; padding: 9px 14px; border-radius: 999px; transition: color 0.2s, background 0.2s; white-space: nowrap; }
+.nav-links a:not(.btn):hover, .nav-links a[aria-current] { color: var(--text); }
+.nav-links:not(.has-pill) a:not(.btn):hover, .nav-links:not(.has-pill) a[aria-current] { background: var(--pill-bg); }
+/* Glass pill that slides to the link under the pointer (added by site.js) */
+.nav-pill {
+  position: absolute; left: 0; top: 50%; z-index: -1; width: 0; height: 38px; margin-top: -19px;
+  border-radius: 999px; background: var(--pill-bg); box-shadow: var(--pill-shadow);
+  opacity: 0; pointer-events: none;
+  transition: transform 0.5s var(--ease), width 0.5s var(--ease), opacity 0.25s ease;
+}
 .nav-links .menu-only { display: none; }
 .lang-link { display: inline-flex; align-items: center; gap: 6px; }
 .lang-link svg { width: 16px; height: 16px; }
-.nav-links .btn { margin-left: 8px; }
-.nav-tools { display: flex; align-items: center; gap: 8px; flex: none; }
+.nav-links .btn { margin-left: 8px; min-height: var(--cap-btn); padding: 0 20px; font-size: 14.5px; box-shadow: 0 6px 20px rgba(255,106,0,0.32), inset 0 1px 0 rgba(255,255,255,0.45); }
+.nav-tools { display: flex; align-items: center; gap: 6px; flex: none; }
 .theme-btn, .menu-btn {
-  width: 42px; height: 42px; border-radius: 12px; padding: 0; cursor: pointer;
-  background: var(--glass-2); border: 1px solid var(--line-2);
-  display: grid; place-items: center; transition: transform 0.3s var(--ease), border-color 0.2s;
+  width: var(--cap-btn); height: var(--cap-btn); border-radius: 50%; padding: 0; cursor: pointer; color: inherit;
+  background: var(--pill-bg); border: 0; box-shadow: var(--pill-shadow);
+  display: grid; place-items: center; transition: transform 0.4s var(--ease), background 0.2s;
 }
-.theme-btn:hover { border-color: var(--amber); transform: rotate(-12deg); }
-.theme-btn svg { width: 19px; height: 19px; grid-area: 1 / 1; transition: transform 0.5s var(--ease), opacity 0.3s; }
+.theme-btn:hover { transform: rotate(-14deg) scale(1.06); }
+.theme-btn:active, .menu-btn:active { transform: scale(0.92); }
+.theme-btn svg { width: 18px; height: 18px; grid-area: 1 / 1; transition: transform 0.5s var(--ease), opacity 0.3s; }
 .theme-btn .ic-sun { opacity: 0; transform: rotate(-90deg) scale(0.5); }
 :root[data-theme="dark"] .theme-btn .ic-sun { opacity: 1; transform: none; color: var(--yellow); }
 :root[data-theme="dark"] .theme-btn .ic-moon { opacity: 0; transform: rotate(90deg) scale(0.5); }
 .menu-btn { display: none; flex-direction: column; }
-.menu-btn span { display: block; width: 18px; height: 2px; background: var(--text); border-radius: 2px; transition: transform 0.3s var(--ease), opacity 0.2s; }
+.menu-btn span { display: block; width: 16px; height: 2px; background: var(--text); border-radius: 2px; transition: transform 0.35s var(--ease), opacity 0.2s; }
 .menu-btn span + span { margin-top: 4px; }
 .nav.open .menu-btn span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
-.nav.open .menu-btn span:nth-child(2) { opacity: 0; }
+.nav.open .menu-btn span:nth-child(2) { opacity: 0; transform: scaleX(0); }
 .nav.open .menu-btn span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
 @media (max-width: 1080px) {
+  .nav .nav-inner, .nav.scrolled .nav-inner { max-width: 640px; }
   .menu-btn { display: flex; align-items: center; justify-content: center; }
+  .nav-pill { display: none; }
+  /* Tinted scrim behind the open menu; tapping it closes the menu */
+  .nav::before {
+    content: ""; position: fixed; inset: 0; z-index: -1; background: rgba(12,9,6,0.34);
+    opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+  }
+  .nav.open::before { opacity: 1; pointer-events: auto; }
+  /* The menu drops down as a glass card under the capsule */
   .nav-links {
-    position: fixed; top: var(--nav-h); left: 0; right: 0; height: calc(100dvh - var(--nav-h));
-    flex-direction: column; align-items: stretch; gap: 0; margin: 0; overflow-y: auto;
-    padding: 12px var(--gutter) calc(24px + env(safe-area-inset-bottom));
-    background: var(--bg);
-    opacity: 0; transform: translateY(-10px); pointer-events: none; visibility: hidden;
-    transition: opacity 0.25s ease, transform 0.35s var(--ease), visibility 0s linear 0.35s;
+    position: absolute; top: calc(100% + 10px); left: 0; right: 0; z-index: 0;
+    max-height: calc(100dvh - var(--nav-h) - 24px); overflow-y: auto; overscroll-behavior: contain;
+    flex-direction: column; align-items: stretch; gap: 2px; margin: 0; padding: 10px;
+    /* Solid: inside the capsule's glass, any see-through colour shows the page too strongly */
+    border-radius: 30px; background: var(--menu-bg); box-shadow: var(--cap-shadow-2), var(--cap-hi), 0 0 0 1px var(--line);
+    opacity: 0; transform: translateY(-10px) scale(0.97); transform-origin: 50% 0; pointer-events: none; visibility: hidden;
+    transition: opacity 0.25s ease, transform 0.45s var(--ease), visibility 0s linear 0.45s;
   }
   .nav.open .nav-links { opacity: 1; transform: none; pointer-events: auto; visibility: visible; transition-delay: 0s; }
-  .nav-links a:not(.btn) { padding: 16px 4px; font-size: 21px; font-weight: 700; color: var(--text); border-radius: 0; border-bottom: 1px solid var(--line); }
-  .nav-links a:not(.btn):hover { background: none; }
+  .nav-links a:not(.btn) { padding: 15px 18px; font-size: 18px; font-weight: 700; color: var(--text); border-radius: 20px; }
+  .nav-links a:not(.btn):hover, .nav-links a[aria-current] { background: var(--pill-bg); }
   .nav-links .menu-only { display: block; }
-  .nav-links .btn { margin: 24px 0 0; justify-content: center; padding: 16px; font-size: 17px; }
+  .nav-links .btn { margin: 8px 0 0; justify-content: center; min-height: 54px; font-size: 16px; }
+  /* Items slide in one after another */
+  .nav-links > a { opacity: 0; transform: translateY(-6px); transition: opacity 0.3s ease, transform 0.45s var(--ease), background 0.2s; }
+  .nav.open .nav-links > a { opacity: 1; transform: none; }
+  .nav.open .nav-links > a:nth-of-type(2) { transition-delay: 0.03s; }
+  .nav.open .nav-links > a:nth-of-type(3) { transition-delay: 0.06s; }
+  .nav.open .nav-links > a:nth-of-type(4) { transition-delay: 0.09s; }
+  .nav.open .nav-links > a:nth-of-type(5) { transition-delay: 0.12s; }
+  .nav.open .nav-links > a:nth-of-type(6) { transition-delay: 0.15s; }
+  .nav.open .nav-links > a:nth-of-type(7) { transition-delay: 0.18s; }
+  .nav.open .nav-links > a:nth-of-type(8) { transition-delay: 0.21s; }
   body.menu-open { overflow: hidden; }
 }
+@media (max-width: 640px) { .nav .nav-inner { gap: 6px; } .brand { gap: 8px; } .brand img.brand-name { height: 19px; } }
 
 /* ── Buttons & store badges ───────────────────────────── */
 .btn {
@@ -348,7 +417,14 @@ h2 { font-size: clamp(30px, 4.8vw, 52px); line-height: 1.08; letter-spacing: -0.
 .hero.has-media h1, .hero.has-media .lead { text-shadow: 0 2px 28px rgba(0,0,0,0.4); }
 .hero.has-media + .sheets { margin-top: -48px; }
 /* Nav reads white while it floats over the video */
-.home .nav:not(.scrolled):not(.open) { color: #fff; --text: #fff; --text-2: rgba(255,255,255,0.88); --glass-2: rgba(255,255,255,0.12); --line-2: rgba(255,255,255,0.26); }
+.home .nav:not(.scrolled):not(.open) {
+  color: #fff; --text: #fff; --text-2: rgba(255,255,255,0.88); --line-2: rgba(255,255,255,0.26);
+  --cap-bg: rgba(20,14,8,0.24);
+  --cap-edge: linear-gradient(170deg, rgba(255,255,255,0.5), rgba(255,255,255,0.1) 45%, rgba(255,255,255,0.22));
+  --cap-hi: inset 0 1px 0 rgba(255,255,255,0.16);
+  --cap-shadow: 0 14px 36px -14px rgba(0,0,0,0.55);
+  --pill-bg: rgba(255,255,255,0.16); --pill-shadow: inset 0 1px 0 rgba(255,255,255,0.14);
+}
 .home .nav:not(.scrolled):not(.open) .brand img.brand-name { filter: none; }
 @media (max-aspect-ratio: 4/5) {
   .hero-media { bottom: auto; height: 100svh; background-image: url(/assets/media/hero-tall.webp); background-position: 50% 45%; }

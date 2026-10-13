@@ -55,6 +55,39 @@
       a.addEventListener('click', function () { setMenu(false); });
     });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setMenu(false); });
+    // A tap on the scrim around the open menu closes it
+    nav.addEventListener('click', function (e) { if (e.target === nav) setMenu(false); });
+  }
+
+  // Nav pill: a glass pill slides to the link under the pointer and rests on
+  // the current page's link (desktop; the CSS hides it in the phone menu).
+  var navLinks = $('navLinks');
+  if (navLinks) {
+    var pill = document.createElement('span');
+    pill.className = 'nav-pill';
+    pill.setAttribute('aria-hidden', 'true');
+    navLinks.insertBefore(pill, navLinks.firstChild);
+    navLinks.classList.add('has-pill');
+    var currentLink = navLinks.querySelector('a[aria-current]');
+    var pillShown = false;
+    var movePill = function (a) {
+      if (!a || !a.offsetWidth) { pill.style.opacity = '0'; pillShown = false; return; }
+      if (!pillShown) pill.style.transition = 'none'; // appear in place, don't slide in from the left
+      pill.style.width = a.offsetWidth + 'px';
+      pill.style.transform = 'translateX(' + a.offsetLeft + 'px)';
+      if (!pillShown) { void pill.offsetWidth; pill.style.transition = ''; }
+      pill.style.opacity = '1';
+      pillShown = true;
+    };
+    navLinks.querySelectorAll('a:not(.btn)').forEach(function (a) {
+      a.addEventListener('mouseenter', function () { movePill(a); });
+      a.addEventListener('focus', function () { movePill(a); });
+    });
+    navLinks.addEventListener('mouseleave', function () { movePill(currentLink); });
+    navLinks.addEventListener('focusout', function (e) { if (!navLinks.contains(e.relatedTarget)) movePill(currentLink); });
+    window.addEventListener('resize', function () { pillShown = false; movePill(currentLink); });
+    movePill(currentLink);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { pillShown = false; movePill(currentLink); });
   }
 
   // Stacked sheets: each one sticks when its bottom reaches the bottom of the

@@ -60,9 +60,9 @@
         <a href="{{ pre }}/#dishes">{{ t.nav.dishes }}</a>
         <a href="{{ pre }}/#shops">{{ t.nav.shops }}</a>
         <a href="{{ pre }}/#areas">{{ t.nav.areas }}</a>
-        <a href="{{ pre }}/sell-on-villkro/">{{ t.nav.sell }}</a>
-        <a class="menu-only" href="{{ pre }}/deliver-with-villkro/">{{ t.nav.deliver }}</a>
-        <a href="{{ pre }}/about/">{{ t.nav.about }}</a>
+        <a href="{{ pre }}/sell-on-villkro/"{% if p.path == pre ~ "/sell-on-villkro/" %} aria-current="page"{% endif %}>{{ t.nav.sell }}</a>
+        <a class="menu-only" href="{{ pre }}/deliver-with-villkro/"{% if p.path == pre ~ "/deliver-with-villkro/" %} aria-current="page"{% endif %}>{{ t.nav.deliver }}</a>
+        <a href="{{ pre }}/about/"{% if p.path == pre ~ "/about/" %} aria-current="page"{% endif %}>{{ t.nav.about }}</a>
         {% if other_lang %}
         <a class="lang-link" href="{{ other_lang }}" hreflang="{{ 'en' if t.lang == 'hi' else 'hi' }}" lang="{{ 'en' if t.lang == 'hi' else 'hi' }}" aria-label="{{ t.nav.lang_aria }}">{{ m.icon("i-globe") }}{{ t.nav.lang_label }}</a>
         {% endif %}
