@@ -66,8 +66,8 @@ jobs:
 
           sitemap = ET.fromstring(get('/sitemap.xml'))
           urls = [node.text for node in sitemap.findall('{*}url/{*}loc')]
-          assert set(urls) == {'https://villkro.in/', 'https://villkro.in/app/'}
-          assert len(urls) == 2
+          assert set(urls) == {'https://villkro.in/', 'https://villkro.in/app/', 'https://villkro.in/delivery/gorakhpur-haryana/'}
+          assert len(urls) == 3
           for url in urls:
               html = get(url.removeprefix('https://villkro.in'))
               page = Metadata()
@@ -75,6 +75,8 @@ jobs:
               assert page.h1 == 1 and page.canonical == [url], url
               assert all('noindex' not in value for value in page.robots), url
               assert page.schemas, url
+              assert 'href="/delivery/gorakhpur-haryana/"' in html or url.endswith('/delivery/gorakhpur-haryana/'), url
+              assert 'sizes="192x192" href="/icon.png"' in html, url
               for schema in page.schemas: json.loads(schema)
               assert 'com.yashsiwach.villkro' in html and 'id6800449391' in html
 
@@ -82,7 +84,7 @@ jobs:
           helper.feed(get('/get/'))
           assert any('noindex' in value for value in helper.robots)
           assert 'Sitemap: https://villkro.in/sitemap.xml' in get('/robots.txt')
-          for asset in ['/logo.png', '/og-image.png', '/qr-download.svg']:
+          for asset in ['/logo.png', '/icon.png', '/og-image.png', '/qr-download.svg', '/content.css']:
               with urlopen(base + asset, timeout=10) as response:
                   assert response.status == 200 and response.read(), asset
           try:

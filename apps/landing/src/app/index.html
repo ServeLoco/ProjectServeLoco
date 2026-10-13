@@ -38,33 +38,7 @@
     ]
   }
   </script>
-  <style>
-    :root { color-scheme: dark; --bg: #0B0B0C; --text: #F5F5F7; --muted: #A1A1AA; --brand: #FFD60A; }
-    * { box-sizing: border-box; }
-    body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; line-height: 1.7; }
-    .container { width: min(960px, 100% - 40px); margin: auto; }
-    a { color: var(--brand); text-underline-offset: 4px; }
-    a:focus-visible { outline: 2px solid var(--brand); outline-offset: 5px; }
-    header { padding: 24px 0; border-bottom: 1px solid #29292D; }
-    nav { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
-    .brand { display: flex; align-items: center; gap: 12px; color: var(--text); text-decoration: none; font-size: 22px; font-weight: 800; }
-    .brand img { border-radius: 10px; }
-    main { padding: 64px 0; }
-    .eyebrow { color: var(--brand); font-weight: 700; }
-    h1 { font-size: clamp(32px, 6vw, 56px); line-height: 1.15; margin: 16px 0 24px; letter-spacing: -1px; }
-    h2 { font-size: 25px; line-height: 1.3; margin-top: 0; }
-    p, li { color: var(--muted); }
-    .lead { font-size: 20px; max-width: 720px; }
-    .stores { display: flex; flex-wrap: wrap; gap: 16px; margin: 28px 0 16px; }
-    .button { background: var(--brand); color: #0B0B0C; border-radius: 12px; padding: 13px 22px; font-weight: 750; text-decoration: none; }
-    .button.secondary { background: #1D1D22; color: var(--text); border: 1px solid #45454A; }
-    section { margin-top: 48px; padding-top: 32px; border-top: 1px solid #29292D; }
-    li { margin-bottom: 12px; }
-    strong { color: var(--text); }
-    footer { padding: 28px 0; border-top: 1px solid #29292D; }
-    footer nav { flex-wrap: wrap; justify-content: flex-start; }
-    @media (max-width: 480px) { main { padding-top: 36px; } .stores { flex-direction: column; } .button { text-align: center; } }
-  </style>
+  <link rel="stylesheet" href="/content.css">
 </head>
 <body>
   <header>
@@ -75,7 +49,7 @@
   </header>
   <main class="container">
     <span class="eyebrow">VillKro for Android and iPhone</span>
-    <h1>Local groceries and food, ordered from your phone.</h1>
+    <h1>Download VillKro for local groceries and food.</h1>
     <p class="lead">VillKro connects you with nearby shops for groceries, food, dairy and daily essentials. Set your delivery location in the app to see the shops and products available to you.</p>
     <div class="stores" aria-label="Download the VillKro app">
       <a class="button" href="https://play.google.com/store/apps/details?id=com.yashsiwach.villkro" target="_blank" rel="noopener">Get VillKro on Google Play</a>
@@ -100,13 +74,14 @@
       </ol>
     </section>
     <section aria-labelledby="availability-heading">
-      <h2 id="availability-heading">Check delivery availability before ordering</h2>
+      <h2 id="availability-heading">Delivery near Gorakhpur, Haryana</h2>
+      <p>VillKro serves near Gorakhpur in the Hisar area, Haryana 125047. See our <a href="/delivery/gorakhpur-haryana/">local delivery guide</a> for categories, ordering hours and help checking your address.</p>
       <p>Shops, products and delivery availability depend on your location. A shop may also be closed or temporarily unavailable. The app shows your current options after you set your location.</p>
       <p>Delivery time depends on shop preparation, distance and rider availability. Follow your order status in VillKro for updates.</p>
     </section>
     <section aria-labelledby="support-heading">
       <h2 id="support-heading">App support and account information</h2>
-      <p>For help, email <a href="mailto:decodelabsofficial@gmail.com">decodelabsofficial@gmail.com</a>. Include a description of the issue so the team can help.</p>
+      <p>For help, <a href="https://wa.me/918295445939">WhatsApp VillKro on +91 82954 45939</a> or email <a href="mailto:decodelabsofficial@gmail.com">decodelabsofficial@gmail.com</a>. Include a description of the issue so the team can help.</p>
       <p>Read the <a href="https://api.villkro.in/policies/privacy">Privacy Policy</a> and <a href="https://api.villkro.in/policies/terms">Terms of Service</a>. To learn how to remove your account and data, see <a href="https://api.villkro.in/policies/delete-account">account deletion instructions</a>.</p>
       <p><a href="/">Explore VillKro features and delivery information</a></p>
     </section>
@@ -115,6 +90,7 @@
     <nav class="container" aria-label="Footer navigation">
       <span>&copy; 2026 VillKro</span>
       <a href="/">Home</a>
+      <a href="/delivery/gorakhpur-haryana/">Gorakhpur delivery</a>
       <a href="/#faq">Frequently asked questions</a>
       <a href="https://instagram.com/villkro" target="_blank" rel="noopener">Instagram</a>
     </nav>
