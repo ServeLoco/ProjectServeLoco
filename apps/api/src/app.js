@@ -63,20 +63,23 @@ app.use(compression({ threshold: 1024 }));
 app.use(helmet());
 app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" })); // Allow image loading across origins
 
-// Public policy pages (privacy policy + terms of service) — required for Google Play listing.
-// Mounted before /api routes so a request to /policies/* resolves to a static HTML file.
-// index() is overridden so /policies (no trailing file) renders index.html.
-// Mounted before the CORS check on purpose: these are public pages, so a request
-// with an unlisted Origin must still get the page, not a 500 "Not allowed by CORS".
-app.use('/policies', express.static(path.join(__dirname, '..', 'public', 'policies'), {
-  index: 'index.html',
-  // extensions: ['html'] makes /policies/privacy resolve to /policies/privacy.html
-  // and /policies/terms resolve to /policies/terms.html. Without this,
-  // express.static looks for a file literally named privacy (no extension)
-  // and 404s. Same for /policies/terms.
-  extensions: ['html'],
-  fallthrough: false,
-}));
+// The policy pages (privacy, terms, account deletion) now live on the website,
+// villkro.in. Older app versions and store listings still link to
+// /policies/*, so those addresses send a permanent redirect there.
+// Mounted before the CORS check on purpose: a browser opening the old link
+// with an unlisted Origin must still be redirected, not get a CORS 500.
+const POLICY_PAGES = {
+  '': '/',
+  privacy: '/privacy/',
+  terms: '/terms/',
+  'delete-account': '/delete-account/',
+};
+app.get(['/policies', '/policies/:page'], (req, res) => {
+  const page = (req.params.page || '').replace(/\.html$/, '').replace(/^index$/, '');
+  const target = POLICY_PAGES[page];
+  if (target === undefined) return res.status(404).type('text/plain').send('Not found');
+  res.redirect(301, `https://villkro.in${target}`);
+});
 
 const allowedOrigins = config.CORS_ORIGIN ? config.CORS_ORIGIN.split(',') : [];
 const corsOptions = {

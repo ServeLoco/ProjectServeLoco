@@ -9,7 +9,6 @@ WHATSAPP = "918295445939"
 WHATSAPP_SHOWN = "+91 82954 45939"
 EMAIL = "decodelabsofficial@gmail.com"
 INSTAGRAM = "https://instagram.com/villkro"
-POLICY = "https://api.villkro.in/policies"
 
 # A town is "live" when customers can order there today, "soon" when the
 # delivery zone exists but no shops sell yet. Change status by hand: the

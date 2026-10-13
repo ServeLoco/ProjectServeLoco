@@ -140,7 +140,7 @@ EN = {
             ["How fast is delivery?", "Delivery time depends on shop preparation, distance and rider availability. Check order updates and track your rider live in the app."],
             ["What are the ordering hours?", "You can order daily from 9 AM to 11 PM. Individual shops can have different hours or be temporarily closed; the app shows which shops are open."],
             ["Can my shop join VillKro?", "Yes, if your shop is in an area VillKro serves. See <a href=\"/sell-on-villkro/\">Sell on VillKro</a> or message us on WhatsApp."],
-            ["How do I delete my account?", "You can delete your account from the app at any time. See <a href=\"https://api.villkro.in/policies/delete-account\">account &amp; data deletion</a> for details."],
+            ["How do I delete my account?", "You can delete your account from the app at any time. See <a href=\"/delete-account/\">account &amp; data deletion</a> for details."],
         ],
         "cta_sub": "Free on Android and iPhone. Set your address to check delivery in Gorakhpur and nearby villages.",
         "cta_h": "Download VillKro <span class=\"grad-text\">today.</span>",
@@ -222,7 +222,7 @@ EN = {
         "where_p": "VillKro delivers in Gorakhpur and nearby villages in Hisar district, Haryana. Agroha is opening soon. Shops, products and delivery depend on your location; the app shows your options after you set your location.",
         "support_h": "App support and account information",
         "support": ["For help, <a href=\"https://wa.me/918295445939\">WhatsApp VillKro on +91 82954 45939</a> or email <a href=\"mailto:decodelabsofficial@gmail.com\">decodelabsofficial@gmail.com</a>.",
-                    "Read the <a href=\"https://api.villkro.in/policies/privacy\">Privacy Policy</a> and <a href=\"https://api.villkro.in/policies/terms\">Terms of Service</a>. To remove your account and data, see <a href=\"https://api.villkro.in/policies/delete-account\">account deletion</a>. VillKro is for people aged 18 and above."],
+                    "Read the <a href=\"/privacy/\">Privacy Policy</a> and <a href=\"/terms/\">Terms of Service</a>. To remove your account and data, see <a href=\"/delete-account/\">account deletion</a>. VillKro is for people aged 18 and above."],
     },
 
     "about": {
@@ -385,7 +385,7 @@ HI = {
             ["डिलीवरी कितनी जल्दी होती है?", "डिलीवरी का समय दुकान की तैयारी, दूरी और राइडर की उपलब्धता पर निर्भर करता है। ऐप में ऑर्डर अपडेट देखें और राइडर को लाइव ट्रैक करें।"],
             ["ऑर्डर का समय क्या है?", "आप रोज़ सुबह 9 बजे से रात 11 बजे तक ऑर्डर कर सकते हैं। हर दुकान का समय अलग हो सकता है; ऐप दिखाता है कि कौन-सी दुकान खुली है।"],
             ["क्या मेरी दुकान VillKro से जुड़ सकती है?", "हाँ, अगर आपकी दुकान ऐसे एरिया में है जहाँ VillKro चलता है। <a href=\"/hi/sell-on-villkro/\">VillKro पर बेचें</a> देखें या हमें WhatsApp करें।"],
-            ["अकाउंट कैसे डिलीट करें?", "आप ऐप से कभी भी अपना अकाउंट डिलीट कर सकते हैं। ज़्यादा जानकारी के लिए <a href=\"https://api.villkro.in/policies/delete-account\">अकाउंट और डेटा डिलीट</a> देखें।"],
+            ["अकाउंट कैसे डिलीट करें?", "आप ऐप से कभी भी अपना अकाउंट डिलीट कर सकते हैं। ज़्यादा जानकारी के लिए <a href=\"/delete-account/\">अकाउंट और डेटा डिलीट</a> देखें।"],
         ],
         "cta_sub": "Android और iPhone पर मुफ़्त। गोरखपुर और आसपास के गाँवों में डिलीवरी देखने के लिए अपना पता डालें।",
         "cta_h": "आज ही <span class=\"grad-text\">VillKro डाउनलोड करें।</span>",
@@ -467,7 +467,7 @@ HI = {
         "where_p": "VillKro हिसार ज़िला, हरियाणा में गोरखपुर और आसपास के गाँवों में डिलीवरी करता है। अग्रोहा जल्द आ रहा है। दुकानें, सामान और डिलीवरी आपकी लोकेशन पर निर्भर करते हैं; लोकेशन डालने के बाद ऐप आपके विकल्प दिखाता है।",
         "support_h": "ऐप सपोर्ट और अकाउंट की जानकारी",
         "support": ["मदद के लिए <a href=\"https://wa.me/918295445939\">VillKro को +91 82954 45939 पर WhatsApp करें</a> या <a href=\"mailto:decodelabsofficial@gmail.com\">decodelabsofficial@gmail.com</a> पर ईमेल करें।",
-                    "<a href=\"https://api.villkro.in/policies/privacy\">प्राइवेसी पॉलिसी</a> और <a href=\"https://api.villkro.in/policies/terms\">सेवा की शर्तें</a> पढ़ें। अकाउंट और डेटा हटाने के लिए <a href=\"https://api.villkro.in/policies/delete-account\">अकाउंट डिलीट</a> देखें। VillKro 18 साल और उससे ज़्यादा उम्र के लोगों के लिए है।"],
+                    "<a href=\"/privacy/\">प्राइवेसी पॉलिसी</a> और <a href=\"/terms/\">सेवा की शर्तें</a> पढ़ें। अकाउंट और डेटा हटाने के लिए <a href=\"/delete-account/\">अकाउंट डिलीट</a> देखें। VillKro 18 साल और उससे ज़्यादा उम्र के लोगों के लिए है।"],
     },
 
     "about": {
