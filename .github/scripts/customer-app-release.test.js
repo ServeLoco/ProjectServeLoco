@@ -10,7 +10,7 @@ const config = (over = {}) => ({
   runtimeVersion: '1.9.10',
   android: 48,
   ios: 19,
-  gradle: { versionCode: 48, versionName: '1.9.10' },
+  gradle: { versionCode: 48, versionName: '1.9.10', runtimeVersion: '1.9.10' },
   ...over,
 });
 
@@ -66,7 +66,7 @@ test('falls back to git when EAS has no fingerprint', async () => {
 });
 
 test('new numbers with a new runtimeVersion start a store build', async () => {
-  const c = config({ android: 49, ios: 20, runtimeVersion: '1.9.11', version: '1.9.11', gradle: { versionCode: 49, versionName: '1.9.11' } });
+  const c = config({ android: 49, ios: 20, runtimeVersion: '1.9.11', version: '1.9.11', gradle: { versionCode: 49, versionName: '1.9.11', runtimeVersion: '1.9.11' } });
   assert.strictEqual((await run({ config: c })).decision, 'build');
   assert.strictEqual((await run({ config: c, platform: 'ios' })).decision, 'build');
 });
@@ -91,7 +91,7 @@ test('runtimeVersion changed without a new number is refused', async () => {
 });
 
 test('a failed build is reported, not retried', async () => {
-  const c = config({ android: 49, runtimeVersion: '1.9.11', version: '1.9.11', gradle: { versionCode: 49, versionName: '1.9.11' } });
+  const c = config({ android: 49, runtimeVersion: '1.9.11', version: '1.9.11', gradle: { versionCode: 49, versionName: '1.9.11', runtimeVersion: '1.9.11' } });
   const builds = {
     android: [build('android', 49, { status: 'ERRORED', runtime: { version: '1.9.11' }, error: { message: 'Gradle failed' } }), build('android', 48)],
     ios: [build('ios', 19)],
@@ -101,7 +101,7 @@ test('a failed build is reported, not retried', async () => {
 });
 
 test('a build still in the queue counts: no second build, OTA allowed when native matches', async () => {
-  const c = config({ android: 49, ios: 20, runtimeVersion: '1.9.11', version: '1.9.11', gradle: { versionCode: 49, versionName: '1.9.11' } });
+  const c = config({ android: 49, ios: 20, runtimeVersion: '1.9.11', version: '1.9.11', gradle: { versionCode: 49, versionName: '1.9.11', runtimeVersion: '1.9.11' } });
   const builds = {
     android: [build('android', 49, { status: 'IN_QUEUE', runtime: { version: '1.9.11' } }), build('android', 48)],
     ios: [build('ios', 20, { status: 'IN_PROGRESS', runtime: { version: '1.9.11' } }), build('ios', 19)],
@@ -111,7 +111,7 @@ test('a build still in the queue counts: no second build, OTA allowed when nativ
 });
 
 test('old binaries on another runtime do not block an OTA for the new runtime', async () => {
-  const c = config({ android: 49, ios: 20, runtimeVersion: '1.9.11', version: '1.9.11', gradle: { versionCode: 49, versionName: '1.9.11' } });
+  const c = config({ android: 49, ios: 20, runtimeVersion: '1.9.11', version: '1.9.11', gradle: { versionCode: 49, versionName: '1.9.11', runtimeVersion: '1.9.11' } });
   const builds = {
     android: [build('android', 49, { runtime: { version: '1.9.11' } }), build('android', 48, { fingerprint: { hash: 'old' } })],
     ios: [build('ios', 20, { runtime: { version: '1.9.11' } }), build('ios', 19, { fingerprint: { hash: 'old' } })],
@@ -120,7 +120,7 @@ test('old binaries on another runtime do not block an OTA for the new runtime', 
 });
 
 test('OTA is fine when iOS has no binary on this runtime yet (its build failed)', async () => {
-  const c = config({ android: 49, ios: 20, runtimeVersion: '1.9.11', version: '1.9.11', gradle: { versionCode: 49, versionName: '1.9.11' } });
+  const c = config({ android: 49, ios: 20, runtimeVersion: '1.9.11', version: '1.9.11', gradle: { versionCode: 49, versionName: '1.9.11', runtimeVersion: '1.9.11' } });
   const builds = {
     android: [build('android', 49, { runtime: { version: '1.9.11' } })],
     ios: [build('ios', 20, { status: 'ERRORED', runtime: { version: '1.9.11' }, fingerprint: { hash: 'whatever' } }), build('ios', 19)],
@@ -162,4 +162,9 @@ test('retry_failed_submit re-submits the existing build instead', async () => {
 
 test('retry_failed_submit does nothing special when the submit was fine', async () => {
   assert.strictEqual((await run({ retryFailedSubmit: true })).decision, 'ota');
+});
+
+test('strings.xml runtime out of step with app.json is refused', async () => {
+  const c = config({ android: 49, runtimeVersion: '1.9.11', version: '1.9.11', gradle: { versionCode: 49, versionName: '1.9.11', runtimeVersion: '1.9.10' } });
+  await rejectsWith(run({ config: c }), /strings\.xml has expo_runtime_version 1\.9\.10/);
 });

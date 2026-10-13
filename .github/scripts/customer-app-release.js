@@ -100,6 +100,11 @@ function readConfig(appDir) {
       versionCode: code ? Number(code[1]) : null,
       versionName: name ? name[1] : null,
     };
+    const stringsPath = path.join(appDir, 'android', 'app', 'src', 'main', 'res', 'values', 'strings.xml');
+    if (fs.existsSync(stringsPath)) {
+      const rt = fs.readFileSync(stringsPath, 'utf8').match(/name="expo_runtime_version">([^<]*)</);
+      config.gradle.runtimeVersion = rt ? rt[1] : null;
+    }
   }
   return config;
 }
@@ -212,6 +217,16 @@ async function decide({
             `android/ is committed, so the Android build takes its version from android/app/build.gradle,`,
             `which says versionCode ${versionCode} / versionName "${versionName}" while app.json says`,
             `${number} / "${config.version}". Make them match. Nothing was built or published.`,
+          ].join('\n')
+        );
+      }
+      if ('runtimeVersion' in config.gradle && config.gradle.runtimeVersion !== config.runtimeVersion) {
+        throw new ReleaseError(
+          [
+            `android/app/src/main/res/values/strings.xml has expo_runtime_version ${config.gradle.runtimeVersion},`,
+            `but app.json has runtimeVersion ${config.runtimeVersion}. Run in apps/customer-app:`,
+            'npx expo-updates configuration:syncnative --platform android --workflow generic',
+            'and commit the result. Nothing was built or published.',
           ].join('\n')
         );
       }
