@@ -1,14 +1,23 @@
 name: Play Store (VillKro customer app)
 
-# Triggered only when the customer app changes AND only on main.
-# Manual trigger is available for emergency rebuilds.
+# Triggered only when the customer app changes AND only on main. Each run
+# either starts a Play Store build (EAS auto-submits it) or publishes an OTA to
+# our xprem server — .github/scripts/customer-app-release.js decides which from
+# app.json's version numbers and the builds that already exist on EAS, and
+# stops the run with a plain-English error when either would be unsafe.
 on:
   push:
     branches: ["main"]
     paths:
       - "apps/customer-app/**"
       - ".github/workflows/playstore.yml"
+      - ".github/scripts/customer-app-release.js"
   workflow_dispatch:
+    inputs:
+      retry_failed_build:
+        description: "Start the store build again after a failed one"
+        type: boolean
+        default: false
 
 # Cancel in-progress runs for the same branch on a new push.
 concurrency:
@@ -47,108 +56,17 @@ jobs:
       - run: npm run lint
       - run: npm test -- --ci
 
-  # ── 2. Decide whether this merge is a major (native changed) or minor. ─────
-  detect-bump:
-    name: Detect bump (major vs minor)
+  # ── 2. Store build or OTA. ──────────────────────────────────────────────────
+  release:
+    name: Release (store build or OTA)
     runs-on: ubuntu-latest
     needs: ci
-    env:
-      FORCE_MAJOR: ${{ vars.FORCE_MAJOR }}
-    outputs:
-      bump: ${{ steps.decide.outputs.bump }}
-      message: ${{ steps.decide.outputs.message }}
     steps:
       - uses: actions/checkout@v5
         with:
-          fetch-depth: 50
-
-      - name: Determine baseline range (HEAD~1..HEAD)
-        id: baseline
-        run: |
-          set -euo pipefail
-          # Compare this commit against its immediate parent. The bump detector
-          # decides major/minor from this single-commit delta.
-          RANGE="HEAD~1..HEAD"
-          echo "Comparing $RANGE"
-          echo "range=$RANGE" >> "$GITHUB_OUTPUT"
-
-      - name: Read commit messages in range
-        id: msgs
-        run: |
-          set -euo pipefail
-          MSGS="$(git log --pretty=format:'%s' ${{ steps.baseline.outputs.range }} | head -20 || true)"
-          {
-            echo "msgs<<EOF"
-            echo "$MSGS"
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Check if customer-app native configuration changed
-        id: pkg
-        run: |
-          set -euo pipefail
-          CHANGED="$(git diff --name-only ${{ steps.baseline.outputs.range }} -- ${{ env.APP_DIR }}/package.json ${{ env.APP_DIR }}/app.json ${{ env.APP_DIR }}/android ${{ env.APP_DIR }}/ios || true)"
-          echo "Native configuration changed files: $CHANGED"
-          if [ -n "$CHANGED" ]; then
-            echo "pkg_changed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "pkg_changed=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Decide bump type
-        id: decide
-        env:
-          MSGS: ${{ steps.msgs.outputs.msgs }}
-          PKG_CHANGED: ${{ steps.pkg.outputs.pkg_changed }}
-        run: |
-          set -euo pipefail
-
-          BUMP="minor"
-          REASON="no native dep change detected"
-
-          # Override: set the repo variable FORCE_MAJOR=true to force a major build.
-          if [ "${FORCE_MAJOR:-false}" = "true" ]; then
-            BUMP="major"
-            REASON="FORCE_MAJOR=true set on the repo"
-          fi
-
-          # The first-deploy bootstrap that used to sit here is gone. It keyed
-          # off a marker file under /home/linux-server/Documents/builds/, which
-          # only ever meant anything while this job ran on one specific machine.
-          # A hosted runner starts empty: the mkdir would fail outright under
-          # set -e, and if it somehow did not, the marker would be missing on
-          # every run and force every release to major — no OTA would ship
-          # again. Its purpose is served anyway; both stores have had a binary
-          # since 1.8.x. To force a rebuild now, set the repo variable
-          # FORCE_MAJOR=true (handled above).
-
-          if [ "$PKG_CHANGED" = "true" ]; then
-            BUMP="major"
-            REASON="native dependencies or configuration changed in apps/customer-app"
-          fi
-          if echo "$MSGS" | grep -Eqi '^(feat|breaking)(\(.+\))?!?:'; then
-            BUMP="major"
-            REASON="commit prefix is feat: or BREAKING"
-          fi
-
-          echo "Decision: $BUMP ($REASON)"
-          echo "bump=$BUMP" >> "$GITHUB_OUTPUT"
-
-          # Use heredoc to safely write multi-line commit messages with
-          # special characters (parens, colons) to GITHUB_OUTPUT.
-          {
-            echo "message<<EOF"
-            echo "$MSGS"
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
-
-  # ── 3. Build (EAS cloud) + Submit + Update. ─────────────────────────────────
-  build-submit-update:
-    name: Build / Submit / Update
-    runs-on: ubuntu-latest
-    needs: detect-bump
-    steps:
-      - uses: actions/checkout@v5
+          # Full history: when EAS has no fingerprint for a build, the release
+          # script diffs native paths against that build's commit.
+          fetch-depth: 0
       - uses: actions/setup-node@v5
         with:
           node-version: "22"
@@ -162,7 +80,45 @@ jobs:
       - name: Install EAS CLI
         run: npm install -g eas-cli@latest
 
+      - name: Verify EAS authentication
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: eas whoami
+
+      - name: Configure git for EAS
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name  "github-actions[bot]"
+
+      # Replaces the old detect-bump job, which looked only at HEAD~1..HEAD
+      # (so a native change earlier in a multi-commit push went out as an OTA),
+      # missed patches/, plugins/ and icons, and forced a store build on any
+      # feat: commit even though autoIncrement is off and the number was
+      # already used. See the script header for the rules.
+      - name: Decide store build or OTA
+        id: decide
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          RETRY_FAILED_BUILD: ${{ inputs.retry_failed_build }}
+        run: node ../../.github/scripts/customer-app-release.js android
+
+      # ─── STORE BUILD: EAS cloud build + Play Store submit ─────────────────
+      # Build runs on EAS's own infra, this runner only orchestrates.
+      # EXPO_PUBLIC_* vars must be set as EAS environment variables/secrets on
+      # the project — job-level env below does NOT reach a cloud build.
+      #
+      # --auto-submit --no-wait: EAS submits to Play itself once the build
+      # finishes, so this runner exits as soon as the build is queued instead
+      # of sitting idle for the whole EAS queue + build (16–88 min a run, all
+      # of it billed as Actions minutes once the repo is private). eas-cli
+      # creates the submission before it returns and reads
+      # /tmp/play-store-key.json (eas.json serviceAccountKeyPath) at that
+      # moment, sending its contents along — so deleting the file afterwards
+      # is fine. A build that fails on EAS makes the next run of this workflow
+      # stop with a red error that links to it; check expo.dev for the submit.
       - name: Materialize Play Store service account key
+        if: steps.decide.outputs.decision == 'build'
         env:
           GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
         run: |
@@ -172,50 +128,9 @@ jobs:
             exit 1
           fi
           printf '%s' "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" > /tmp/play-store-key.json
-          ls -la /tmp/play-store-key.json
 
-      - name: Verify EAS authentication
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: |
-          set -euo pipefail
-          # Debug: show PATH and eas location
-          echo "=== Diagnostics ==="
-          echo "PATH=$PATH"
-          echo "eas location: $(which eas 2>&1 || echo 'NOT FOUND')"
-          echo "eas version: $(eas --version 2>&1 || echo 'CANNOT RUN')"
-          echo "node version: $(node --version)"
-          echo "npm prefix -g: $(npm prefix -g 2>&1 || echo 'CANNOT')"
-          echo "=== End diagnostics ==="
-          # With EXPO_TOKEN env var set, EAS CLI authenticates automatically.
-          eas whoami 2>&1 || echo "eas whoami failed"
-
-      - name: Configure git for EAS
-        run: |
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git config --global user.name  "github-actions[bot]"
-
-      # ─── MAJOR PATH: EAS cloud build + Play Store submit ──────────────────
-      # Mirrors appstore.yml: build runs on EAS's own infra, this runner only
-      # orchestrates. EXPO_PUBLIC_* vars must be set as EAS environment
-      # variables/secrets on the project — job-level env below does NOT reach
-      # a cloud build (it only ever reached the old `--local` build).
-      #
-      # --auto-submit --no-wait: EAS submits to Play itself once the build
-      # finishes, so this runner exits as soon as the build is queued instead
-      # of sitting idle for the whole EAS queue + build (16–88 min a run, all
-      # of it billed as Actions minutes once the repo is private). The
-      # submission is created right here, before the CLI returns, and the CLI
-      # reads /tmp/play-store-key.json at that moment and sends its contents
-      # along — so the cleanup step below deleting the file is fine. Build or
-      # submit failures now show up on expo.dev and in Expo's email, not as a
-      # red run here.
-      #
-      # The old "Persist the version EAS used" step is gone: it needed the
-      # finished build, autoIncrement is off (app.json's versionCode is what
-      # ships), and its push to main was always rejected by branch protection.
       - name: Build Android .aab on EAS cloud and auto-submit to Google Play
-        if: needs.detect-bump.outputs.bump == 'major'
+        if: steps.decide.outputs.decision == 'build'
         working-directory: ${{ env.APP_DIR }}
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
@@ -224,12 +139,11 @@ jobs:
           eas build --platform android --profile production --non-interactive \
             --auto-submit --no-wait
 
-      # ─── MINOR PATH: skip the build, just publish the OTA ──────────────────
-      # Minor ONLY. An OTA is JS with no native side, so publishing one on a
-      # major release hands every phone already on the old binary a bundle
-      # whose native modules it does not have — and it arrives within seconds,
-      # long before the Play rollout it belongs to. A major release ships its
-      # JS inside the .aab; there is nothing here left to push.
+      # ─── OTA: no store build needed, just publish the JS ──────────────────
+      # Only when the script found a store build for the current numbers and
+      # the native fingerprint still matches every store build on this
+      # runtimeVersion (Android and iOS — one OTA serves both). A store build
+      # run ships its JS inside the binary; there is nothing here to push.
       #
       # OTA updates are served by our own xprem server (ota.serveloco.app), not
       # EAS Update — EAS's free tier only reaches 1,000 users a month. Builds
@@ -237,7 +151,7 @@ jobs:
       # (app.json updates.url); older binaries still ask EAS and get no new
       # OTAs until they update from the store.
       - name: Publish OTA update to xprem (production channel)
-        if: needs.detect-bump.outputs.bump == 'minor'
+        if: steps.decide.outputs.decision == 'ota'
         working-directory: ${{ env.APP_DIR }}
         env:
           # App-scoped API token from the xprem dashboard (API tokens page).
@@ -247,14 +161,14 @@ jobs:
           RELEASE_CHANNEL: production
           EXPO_PUBLIC_API_BASE_URL: https://api.villkro.in/api
           EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN: ${{ secrets.EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN }}
-          BUMP_MESSAGE: ${{ needs.detect-bump.outputs.message }}
+          OTA_MESSAGE: ${{ steps.decide.outputs.ota_message }}
         run: |
           set -euo pipefail
           if [ -z "$EOO_TOKEN" ]; then
             echo "::error::EOO_TOKEN secret is empty — create an API token in the xprem dashboard (https://ota.serveloco.app/dashboard) and add it as a repo secret"
             exit 1
           fi
-          MSG=$(printf '%s' "$BUMP_MESSAGE" | head -1)
+          MSG=$(printf '%s' "$OTA_MESSAGE" | head -1)
           if [ -z "$MSG" ]; then MSG="auto-update from main"; fi
           # Pinned to the server's version (docker-compose.prod.yml, service
           # `ota`): a server on v3.2+ refuses a publish from another CLI version.
