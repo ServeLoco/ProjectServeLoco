@@ -18,6 +18,10 @@ on:
         description: "Start the store build again after a failed one"
         type: boolean
         default: false
+      retry_failed_submit:
+        description: "Upload the current build to the store again after a failed upload"
+        type: boolean
+        default: false
 
 # Cancel in-progress runs for the same branch on a new push.
 concurrency:
@@ -101,6 +105,7 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           RETRY_FAILED_BUILD: ${{ inputs.retry_failed_build }}
+          RETRY_FAILED_SUBMIT: ${{ inputs.retry_failed_submit }}
         run: node ../../.github/scripts/customer-app-release.js android
 
       # ─── STORE BUILD: EAS cloud build + Play Store submit ─────────────────
@@ -115,10 +120,10 @@ jobs:
       # creates the submission before it returns and reads
       # /tmp/play-store-key.json (eas.json serviceAccountKeyPath) at that
       # moment, sending its contents along — so deleting the file afterwards
-      # is fine. A build that fails on EAS makes the next run of this workflow
-      # stop with a red error that links to it; check expo.dev for the submit.
+      # is fine. A build or upload that fails on EAS makes the next run of
+      # this workflow stop with a red error that links to it.
       - name: Materialize Play Store service account key
-        if: steps.decide.outputs.decision == 'build'
+        if: steps.decide.outputs.decision == 'build' || steps.decide.outputs.decision == 'submit'
         env:
           GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
         run: |
@@ -138,6 +143,16 @@ jobs:
           set -euo pipefail
           eas build --platform android --profile production --non-interactive \
             --auto-submit --no-wait
+
+      # Manual re-run only (retry_failed_submit): upload the existing build
+      # again, e.g. after renewing the Play service account key.
+      - name: Submit the existing build to Google Play again
+        if: steps.decide.outputs.decision == 'submit'
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          BUILD_ID: ${{ steps.decide.outputs.build_id }}
+        run: eas submit --platform android --id "$BUILD_ID" --non-interactive --no-wait
 
       # ─── OTA: no store build needed, just publish the JS ──────────────────
       # Only when the script found a store build for the current numbers and
@@ -174,6 +189,18 @@ jobs:
           # `ota`): a server on v3.2+ refuses a publish from another CLI version.
           npx --yes eoas@3.2.5 publish --branch production --message "$MSG" \
             --nonInteractive --disableRepositoryCheck
+
+      # Runs after the OTA on purpose: a failed store upload does not make the
+      # JS unsafe, so it should not hold the OTA back, but it must not pass
+      # quietly either — with --no-wait nothing else would show it.
+      - name: Report a failed store upload
+        if: steps.decide.outputs.submit_problem != ''
+        env:
+          SUBMIT_PROBLEM: ${{ steps.decide.outputs.submit_problem }}
+        run: |
+          echo "::error::$SUBMIT_PROBLEM"
+          echo "::error::Fix the cause (open the build link above, Submissions tab), then: Actions → this workflow → Run workflow, tick \"Upload the current build to the store again after a failed upload\"."
+          exit 1
 
       - name: Clean up service account key
         if: always()

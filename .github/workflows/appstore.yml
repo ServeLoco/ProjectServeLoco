@@ -25,6 +25,10 @@ on:
         description: "Start the store build again after a failed one"
         type: boolean
         default: false
+      retry_failed_submit:
+        description: "Upload the current build to the store again after a failed upload"
+        type: boolean
+        default: false
 
 concurrency:
   group: appstore-${{ github.ref }}
@@ -92,6 +96,7 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           RETRY_FAILED_BUILD: ${{ inputs.retry_failed_build }}
+          RETRY_FAILED_SUBMIT: ${{ inputs.retry_failed_submit }}
         run: node ../../.github/scripts/customer-app-release.js ios
 
       # The build itself runs on EAS macOS infrastructure. Credentials
@@ -110,9 +115,8 @@ jobs:
       # the build finishes, so this runner exits as soon as the build is
       # queued instead of sitting idle for the whole EAS queue + build (10–84
       # min a run, all of it billed as Actions minutes once the repo is
-      # private). A build that fails on EAS makes the next run of this
-      # workflow stop with a red error that links to it; check expo.dev for
-      # the submit.
+      # private). A build or upload that fails on EAS makes the next run of
+      # this workflow stop with a red error that links to it.
       #
       # This uploads to App Store Connect only; it does NOT release to users.
       # Submitting for review and releasing stay manual in App Store Connect.
@@ -125,3 +129,24 @@ jobs:
           set -euo pipefail
           eas build --platform ios --profile production --non-interactive \
             --auto-submit --no-wait
+
+      # Manual re-run only (retry_failed_submit): upload the existing build
+      # again, e.g. after accepting a new Apple agreement.
+      - name: Submit the existing build to App Store Connect again
+        if: steps.decide.outputs.decision == 'submit'
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          BUILD_ID: ${{ steps.decide.outputs.build_id }}
+        run: eas submit --platform ios --id "$BUILD_ID" --non-interactive --no-wait
+
+      # With --no-wait nothing else would show a failed upload, so the next
+      # run after it stops red until it is fixed and re-submitted.
+      - name: Report a failed store upload
+        if: steps.decide.outputs.submit_problem != ''
+        env:
+          SUBMIT_PROBLEM: ${{ steps.decide.outputs.submit_problem }}
+        run: |
+          echo "::error::$SUBMIT_PROBLEM"
+          echo "::error::Fix the cause (open the build link above, Submissions tab), then: Actions → this workflow → Run workflow, tick \"Upload the current build to the store again after a failed upload\"."
+          exit 1

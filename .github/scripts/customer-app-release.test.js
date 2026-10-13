@@ -36,6 +36,7 @@ const run = (over) =>
     builds: { android: [build('android', 48)], ios: [build('ios', 19)] },
     getLocalFingerprint: async (p) => `fp-${p}`,
     nativeChangedSince: async () => false,
+    getSubmissions: async () => [{ status: 'FINISHED' }],
     ...over,
   });
 
@@ -125,4 +126,40 @@ test('OTA is fine when iOS has no binary on this runtime yet (its build failed)'
     ios: [build('ios', 20, { status: 'ERRORED', runtime: { version: '1.9.11' }, fingerprint: { hash: 'whatever' } }), build('ios', 19)],
   };
   assert.strictEqual((await run({ config: c, builds })).decision, 'ota');
+});
+
+test('a failed store upload is reported but the OTA still goes out', async () => {
+  const r = await run({ getSubmissions: async () => [{ status: 'ERRORED', error: { message: 'Google Api Error: forbidden' } }] });
+  assert.strictEqual(r.decision, 'ota');
+  assert.match(r.submitProblem, /Play Store upload of Play Store build 48 .* ended as ERRORED: Google Api Error: forbidden/);
+});
+
+test('a build that was never submitted is reported', async () => {
+  const r = await run({ platform: 'ios', getSubmissions: async () => [] });
+  assert.strictEqual(r.decision, 'nothing');
+  assert.match(r.submitProblem, /never submitted to the App Store/);
+});
+
+test('a later successful re-submit clears the problem', async () => {
+  const r = await run({ getSubmissions: async () => [{ status: 'ERRORED' }, { status: 'FINISHED' }] });
+  assert.strictEqual(r.submitProblem, '');
+});
+
+test('a submit still waiting for its build is fine', async () => {
+  const builds = { android: [build('android', 48, { status: 'IN_PROGRESS' })], ios: [build('ios', 19)] };
+  let asked = false;
+  const r = await run({ builds, getSubmissions: async () => { asked = true; return []; } });
+  assert.strictEqual(r.decision, 'ota');
+  assert.strictEqual(r.submitProblem || '', '');
+  assert.strictEqual(asked, false);
+});
+
+test('retry_failed_submit re-submits the existing build instead', async () => {
+  const r = await run({ retryFailedSubmit: true, getSubmissions: async () => [{ status: 'CANCELED' }] });
+  assert.strictEqual(r.decision, 'submit');
+  assert.match(r.buildId, /^b\d+$/);
+});
+
+test('retry_failed_submit does nothing special when the submit was fine', async () => {
+  assert.strictEqual((await run({ retryFailedSubmit: true })).decision, 'ota');
 });

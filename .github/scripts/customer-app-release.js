@@ -5,6 +5,7 @@
 //   ota     – publish an OTA to our xprem server (Android workflow only; one
 //             OTA serves both platforms)
 //   nothing – iOS workflow when there is nothing to build
+//   submit  – manual re-run only: submit the existing build to the store again
 //
 // or fails the job with a plain-English ::error:: when going ahead would ship
 // something unsafe. The answer comes from state, not from commit messages or
@@ -22,13 +23,17 @@
 //     same runtimeVersion, so every store build that changes native code needs
 //     a new one, and an OTA must never be published while the code on main has
 //     native changes that a binary on that runtimeVersion lacks.
-//   - With --no-wait nobody watches the EAS build. A failed one is reported on
-//     the next run instead of being retried on every push (each retry would
-//     use one of the free plan's builds).
+//   - With --no-wait nobody watches the EAS build or its auto-submit. A failed
+//     build is reported on the next run instead of being retried on every push
+//     (each retry would use one of the free plan's builds). A failed submit is
+//     reported too (submit_problem), but does not hold back the OTA: it says
+//     nothing about whether the JS is safe to ship.
 //
 // Usage (from apps/customer-app, EXPO_TOKEN set):
 //   node ../../.github/scripts/customer-app-release.js android|ios
-// Env: RETRY_FAILED_BUILD=true lets a build start again after a failed one.
+// Env: RETRY_FAILED_BUILD=true lets a build start again after a failed one;
+//      RETRY_FAILED_SUBMIT=true submits the current build again after a
+//      failed submit.
 
 'use strict';
 
@@ -37,6 +42,7 @@ const fs = require('fs');
 const path = require('path');
 
 const FAILED = new Set(['ERRORED', 'CANCELED', 'PENDING_CANCEL']);
+const SUBMIT_PENDING = new Set(['AWAITING_BUILD', 'IN_QUEUE', 'IN_PROGRESS']);
 const STORE = { android: 'Play Store', ios: 'App Store' };
 const NUMBER_FIELD = {
   android: 'expo.android.versionCode in app.json',
@@ -135,9 +141,32 @@ function nativeChangedMessage(problems, config) {
   ].join('\n');
 }
 
+// Did the store upload of `build` go through? Returns a problem string, or ''
+// when it is fine or still running. Order-independent: any finished or
+// pending submission counts as fine.
+async function checkSubmit(platform, build, getSubmissions) {
+  if (build.status !== 'FINISHED') return '';
+  const subs = await getSubmissions(build.id);
+  if (subs.some((s) => s.status === 'FINISHED' || SUBMIT_PENDING.has(s.status))) return '';
+  const where = `${STORE[platform]} build ${build.appBuildVersion} (${buildUrl(build)})`;
+  if (subs.length === 0) return `${where} was never submitted to the ${STORE[platform]}.`;
+  const last = subs[subs.length - 1];
+  const why = last.error && last.error.message ? `: ${last.error.message}` : '';
+  return `The ${STORE[platform]} upload of ${where} ended as ${last.status}${why}`;
+}
+
 // Pure decision. `builds` holds production-profile builds per platform, newest
 // first, as `eas build:list --json` returns them.
-async function decide({ platform, retryFailedBuild, config, builds, getLocalFingerprint, nativeChangedSince }) {
+async function decide({
+  platform,
+  retryFailedBuild,
+  retryFailedSubmit,
+  config,
+  builds,
+  getLocalFingerprint,
+  nativeChangedSince,
+  getSubmissions,
+}) {
   const ctx = { config, builds, getLocalFingerprint, nativeChangedSince };
   const number = config[platform];
   const own = builds[platform];
@@ -214,13 +243,22 @@ async function decide({ platform, retryFailedBuild, config, builds, getLocalFing
     throw err;
   }
 
+  const submitProblem = await checkSubmit(platform, current, getSubmissions);
+  if (submitProblem && retryFailedSubmit) {
+    return { decision: 'submit', buildId: current.id, reason: submitProblem, submitProblem: '' };
+  }
   if (platform === 'android') {
     return {
       decision: 'ota',
       reason: `store build ${number} (${current.status}) matches the native code; JS-only change`,
+      submitProblem,
     };
   }
-  return { decision: 'nothing', reason: `App Store build ${number} already exists and matches the native code` };
+  return {
+    decision: 'nothing',
+    reason: `App Store build ${number} already exists and matches the native code`,
+    submitProblem,
+  };
 }
 
 // ── CLI ─────────────────────────────────────────────────────────────────────
@@ -231,6 +269,34 @@ function eas(args) {
     stdio: ['ignore', 'pipe', 'inherit'],
     maxBuffer: 64 * 1024 * 1024,
   });
+}
+
+// eas-cli has no command that lists a build's submissions, so ask the same
+// GraphQL API it uses (BuildQuery.withSubmissionsByIdAsync), with the same
+// auth: EXPO_TOKEN in CI, the `eas login` session for a local run.
+async function getSubmissions(buildId) {
+  const headers = { 'content-type': 'application/json' };
+  if (process.env.EXPO_TOKEN) {
+    headers.authorization = `Bearer ${process.env.EXPO_TOKEN}`;
+  } else {
+    const state = path.join(require('os').homedir(), '.expo', 'state.json');
+    headers['expo-session'] = JSON.parse(fs.readFileSync(state, 'utf8')).auth.sessionSecret;
+  }
+  const res = await fetch('https://api.expo.dev/graphql', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      query: `query ($buildId: ID!) {
+        builds { byId(buildId: $buildId) { id submissions { id status error { errorCode message } } } }
+      }`,
+      variables: { buildId },
+    }),
+  });
+  const body = await res.json();
+  if (!res.ok || body.errors) {
+    throw new Error(`Expo API ${res.status}: ${JSON.stringify(body.errors || body).slice(0, 300)}`);
+  }
+  return body.data.builds.byId.submissions || [];
 }
 
 function setOutput(name, value) {
@@ -299,10 +365,20 @@ async function main() {
     result = await decide({
       platform,
       retryFailedBuild: process.env.RETRY_FAILED_BUILD === 'true',
+      retryFailedSubmit: process.env.RETRY_FAILED_SUBMIT === 'true',
       config,
       builds,
       getLocalFingerprint,
       nativeChangedSince,
+      // A failed lookup must not hold back an OTA that is otherwise safe.
+      getSubmissions: async (id) => {
+        try {
+          return await getSubmissions(id);
+        } catch (err) {
+          console.log(`::warning::Could not check the store submit on Expo: ${err.message}`);
+          return [{ status: 'FINISHED' }];
+        }
+      },
     });
   } catch (err) {
     if (err instanceof ReleaseError && err.problems) {
@@ -322,6 +398,8 @@ async function main() {
 
   console.log(`Decision: ${result.decision} (${result.reason})`);
   setOutput('decision', result.decision);
+  setOutput('build_id', result.buildId || '');
+  setOutput('submit_problem', result.submitProblem || '');
   // Subject of the newest non-merge commit, so an OTA is never labelled
   // "Merge branch …".
   const message = execFileSync('git', ['log', '-1', '--no-merges', '--format=%s'], { encoding: 'utf8' }).trim();
@@ -335,4 +413,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { decide, readConfig, ReleaseError };
+module.exports = { decide, readConfig, getSubmissions, ReleaseError };
