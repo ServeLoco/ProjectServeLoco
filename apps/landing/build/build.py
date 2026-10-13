@@ -153,7 +153,7 @@ def org_ld():
             "email": D.EMAIL, "telephone": "+" + D.WHATSAPP,
             "address": {"@type": "PostalAddress", "addressLocality": "Gorakhpur", "addressRegion": "Haryana",
                         "postalCode": "125047", "addressCountry": "IN"},
-            "areaServed": [{"@type": "City", "name": "Gorakhpur, Hisar, Haryana"}],
+            "areaServed": [{"@type": "Place", "name": "Gorakhpur, Fatehabad district, Haryana"}],
             "sameAs": [D.INSTAGRAM]}
 
 
@@ -166,7 +166,7 @@ def app_ld():
 
 
 def service_ld(town, url):
-    places = [{"@type": "City", "name": "Gorakhpur, Hisar, Haryana"}] + \
+    places = [{"@type": "Place", "name": "Gorakhpur, Fatehabad district, Haryana"}] + \
              [{"@type": "Place", "name": f"{v}, near Gorakhpur, Haryana"} for v in town["villages"]]
     return {"@type": "Service", "@id": D.SITE + url + "#service",
             "name": "VillKro food and grocery delivery in Gorakhpur, Haryana",

@@ -18,7 +18,9 @@ TOWNS = {
         "status": "live",
         "zone": "Gorakhpur In",       # zone whose centre is used to read the catalog
         "postal": "125047",
-        "district": "Hisar",
+        # Census village Gorakhpur(52) is in Fatehabad district. The 125047
+        # postal division is Hissar, which is easy to mistake for the district.
+        "district": "Fatehabad",
     },
     "agroha-haryana": {
         "status": "soon",
