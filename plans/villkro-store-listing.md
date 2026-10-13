@@ -3,7 +3,10 @@
 Written 14 October 2026 for Google Play and the App Store. Nothing here has been submitted;
 the owner pastes it in Play Console and App Store Connect. Every field was length-checked with a script.
 
-Rules this copy follows: real facts only (towns Gorakhpur + Agroha, daily 9 AM–11 PM, UPI or cash
+**Update 14 October 2026 (later the same day):** Agroha has a delivery zone but **no shops yet**, so it is
+"opening soon". Nothing below says VillKro delivers in Agroha. When Agroha shops go live, add it back.
+
+Rules this copy follows: real facts only (Gorakhpur and nearby villages, daily 9 AM–11 PM, UPI or cash
 where offered, live rider tracking). No "#1", no "fastest", no promised delivery minutes, no ratings or
 download counts, no competitor names, no keyword stuffing. Keep the app ID and the store name
 **VillKro: Food & Essentials** (both stores were renamed to it on 13 October).
@@ -14,10 +17,10 @@ download counts, no competitor names, no keyword stuffing. Keep the app ID and t
 
 **Short description (80)** — pick one:
 
-- A (79, names the towns): `Groceries, food & sweets from local shops in Agroha & Gorakhpur. Live tracking.`
-- B (80, works if more towns are added later): `Order groceries, food & sweets from local shops near you. Track your rider live.`
+- A (77, names the town): `Sweets, pizza, food & groceries from local shops in Gorakhpur. Live tracking.`
+- B (80, town-neutral): `Order groceries, food & sweets from local shops near you. Track your rider live.`
 
-Recommendation: **A** now. Change to B when VillKro opens in more towns.
+Recommendation: **B** now (it stays true when Agroha opens). Use A only if you want the town in the line.
 
 **Full description (≤4000)** — paste as is:
 
@@ -26,8 +29,8 @@ VillKro brings your local shops to your phone. Order groceries, fast food, sweet
 
 NOW DELIVERING IN
 • Gorakhpur, Hisar, Haryana 125047
-• Agroha, Hisar district, Haryana
-Set your exact address in the app to see the shops that deliver to you.
+• Nearby villages: Siwani, Chaubara, Mochi, Khajuri, Jandli, Dahaman, Kumariya, Saberwas
+Agroha is opening soon. Set your exact address in the app to see the shops that deliver to you.
 
 WHAT YOU CAN ORDER
 • Groceries and kirana: atta, dal, rice, oil, spices and snacks
@@ -79,11 +82,11 @@ Use real app screenshots under these captions. Do not label a mockup as a screen
 
 **Subtitle (30):** `Grocery & Sweets Delivery` (25)
 
-**Keywords (100):** `kirana,sabzi,milk,dairy,bakery,mithai,snacks,meals,order,hisar,agroha,gorakhpur,haryana,upi,cod` (95)
+**Keywords (100):** `kirana,sabzi,mithai,pizza,chaat,snacks,meals,order,hisar,gorakhpur,haryana,siwani,upi,cod` (89)
 Commas, no spaces, and no words already in the name or subtitle (Apple reads all three together).
 
 **Promotional text (170):**
-`Now delivering in Gorakhpur and Agroha, Haryana. Order groceries, food, sweets and daily essentials from local shops and track your rider live.` (143)
+`Now delivering in Gorakhpur and nearby villages, Haryana. Order sweets, pizza, food and groceries from local shops and track your rider live.` (141)
 Promotional text can be changed any time without a new app review, so use it for news (a new town, a festival offer that is really live).
 
 **Description:** use the same full description as Google Play.
@@ -95,7 +98,7 @@ Promotional text can be changed any time without a new app review, so use it for
 - [ ] App Store Connect → Support URL / Marketing URL: `https://villkro.in/app/` and `https://villkro.in/`.
 - [ ] Reply to every review, good or bad, within a few days. Fix the real problems they mention.
 - [ ] Ask real customers for honest reviews. Never buy reviews or reward only good ratings.
-- [ ] Google Business Profile: finish the pending verification, then add Agroha to the service areas.
+- [ ] Google Business Profile: finish the pending verification. Add the nearby villages as service areas now; add Agroha only when its shops are live.
 - [ ] Use the same name, logo, phone and `https://villkro.in/` on Instagram and any directory listings.
 
 ## Why these choices (short)
@@ -105,8 +108,8 @@ Promotional text can be changed any time without a new app review, so use it for
   reviews matter as much as text.
 - The App Store reads the name, subtitle and the hidden 100-character keyword field as one pool, so
   words are not repeated across them.
-- Town names in the short description help people in those towns find the app and tell everyone else
-  straight away whether VillKro serves them.
+- A town name in the short description helps people there find the app, but it must stay true. Agroha is
+  left out until it has shops.
 
 Sources: Play discovery and listing guidance (support.google.com/googleplay/android-developer/answer/9958766
 and /13393723), AppRadar and AppTweak ranking-factor guides (2026), App Store keyword-field guides (2026).
