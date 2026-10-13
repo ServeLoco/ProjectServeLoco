@@ -121,7 +121,7 @@ jobs:
 
           # Every root-relative link and asset on the pages must resolve.
           internal.discard('/')
-          for asset in sorted(internal | {'/logo.png', '/icon.png', '/og-image.png', '/qr-download.svg', '/favicon-32.png'}):
+          for asset in sorted(internal | {'/logo.png', '/icon.png', '/og-image.png', '/qr-download.svg', '/favicon-32.png', '/assets/media/hero-wide.mp4', '/assets/media/hero-tall.mp4'}):
               body, _ = fetch(asset)
               assert body, asset
 

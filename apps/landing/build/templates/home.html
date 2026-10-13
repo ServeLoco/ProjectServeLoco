@@ -6,8 +6,16 @@
 {% set phone_shops = (gk.shops|selectattr("name", "in", ["Sharma Misthan", "Pizza House", "Relax Hotel"])|list or gk.shops[:3]) %}
 {% set cart_shop = phone_shops[0] %}
 {% block body_class %}page home{% endblock %}
+{% block head %}
+  <link rel="preload" as="image" href="/assets/media/hero-wide.webp" media="(min-aspect-ratio: 4/5)" fetchpriority="high">
+  <link rel="preload" as="image" href="/assets/media/hero-tall.webp" media="(max-aspect-ratio: 4/5)" fetchpriority="high">
+{% endblock %}
 {% block main %}
-    <section class="hero">
+    <section class="hero has-media">
+      <!-- Background food video (AI-generated with Gemini). Loads after the page, never on Save-Data or reduced motion. -->
+      <div class="hero-media" aria-hidden="true">
+        <video id="heroVideo" muted loop playsinline preload="none" disablepictureinpicture disableremoteplayback data-wide="/assets/media/hero-wide.mp4" data-tall="/assets/media/hero-tall.mp4"></video>
+      </div>
       <div class="speed" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
       <div class="container hero-grid">
         <div class="hero-copy">

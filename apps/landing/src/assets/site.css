@@ -322,6 +322,43 @@ h2 { font-size: clamp(30px, 4.8vw, 52px); line-height: 1.08; letter-spacing: -0.
 .hero-meta span { display: inline-flex; align-items: center; gap: 6px; }
 .hero-meta svg { width: 16px; height: 16px; color: var(--green); }
 
+/* Homepage hero over a full-bleed food video (Zomato-style): dark tint,
+   white text, sits under the transparent nav; the first sheet overlaps its
+   bottom edge. The poster image shows until the video plays. */
+.hero.has-media {
+  isolation: isolate;
+  margin-top: calc(var(--nav-h) * -1);
+  padding: calc(var(--nav-h) + 56px) 0 150px;
+  color: #fff;
+  --text: #fff; --text-2: rgba(255,255,255,0.84); --text-3: rgba(255,255,255,0.68);
+  --line: rgba(255,255,255,0.12); --line-2: rgba(255,255,255,0.22);
+  --glass-2: rgba(255,255,255,0.12); --chip-bg: rgba(18,14,10,0.62);
+  --accent: #FFB547; --accent-soft: rgba(255,159,10,0.2); --brand-text: var(--brand);
+  --shadow-lg: 0 24px 60px rgba(0,0,0,0.45);
+}
+.hero-media { position: absolute; inset: 0; z-index: -2; overflow: hidden; background: #0B0907 url(/assets/media/hero-wide.webp) 70% 50% / cover no-repeat; }
+.hero-media video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 70% 50%; opacity: 0; transition: opacity 1.2s ease; }
+.hero-media video.playing { opacity: 1; }
+.hero-media::after {
+  content: ""; position: absolute; inset: 0;
+  background:
+    linear-gradient(90deg, rgba(8,6,4,0.88) 0%, rgba(8,6,4,0.66) 38%, rgba(8,6,4,0.3) 68%, rgba(8,6,4,0.38) 100%),
+    linear-gradient(180deg, rgba(8,6,4,0.6) 0%, transparent 24%, transparent 72%, rgba(8,6,4,0.55) 100%);
+}
+.hero.has-media h1, .hero.has-media .lead { text-shadow: 0 2px 28px rgba(0,0,0,0.4); }
+.hero.has-media + .sheets { margin-top: -48px; }
+/* Nav reads white while it floats over the video */
+.home .nav:not(.scrolled):not(.open) { color: #fff; --text: #fff; --text-2: rgba(255,255,255,0.88); --glass-2: rgba(255,255,255,0.12); --line-2: rgba(255,255,255,0.26); }
+.home .nav:not(.scrolled):not(.open) .brand img.brand-name { filter: none; }
+@media (max-aspect-ratio: 4/5) {
+  .hero-media { bottom: auto; height: 100svh; background-image: url(/assets/media/hero-tall.webp); background-position: 50% 45%; }
+  .hero-media video { object-position: 50% 45%; }
+  .hero-media::after { background: linear-gradient(180deg, rgba(8,6,4,0.74) 0%, rgba(8,6,4,0.68) 45%, rgba(8,6,4,0.74) 80%, var(--bg) 100%); }
+  .hero.has-media { padding-bottom: 120px; }
+  /* Below the video the hero sits on the normal page colour again */
+  .hero.has-media .phone-wrap { --text: #F5F5F7; }
+}
+
 .speed { position: absolute; inset: 0; pointer-events: none; z-index: -1; overflow: hidden; }
 .speed i { position: absolute; left: -30%; height: 8px; border-radius: 8px; background: linear-gradient(90deg, transparent, var(--amber), var(--red)); opacity: 0; animation: dash 5.5s var(--ease) infinite; }
 .speed i:nth-child(1) { top: 20%; width: 220px; animation-delay: 0.2s; }

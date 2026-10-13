@@ -35,6 +35,7 @@
       root.style.setProperty('--ty', (r.top + r.height / 2) + 'px');
       root.classList.add('theme-anim');
       var vt = document.startViewTransition(function () { setTheme(next); });
+      vt.ready.catch(function () { /* skipped: the theme still changed */ });
       vt.finished.finally(function () { root.classList.remove('theme-anim'); });
     });
   }
@@ -128,7 +129,10 @@
   function clearMorph() {
     document.querySelectorAll('[data-morph-img], [data-morph-title], .vt-title, .vt-img').forEach(function (el) { el.style.viewTransitionName = ''; });
   }
+  // A skipped transition (hidden tab, fast clicks) rejects "ready"; that is fine.
+  function quiet(vt) { if (vt && vt.ready) vt.ready.catch(function () {}); }
   window.addEventListener('pageswap', function (e) {
+    quiet(e.viewTransition);
     if (!e.viewTransition || !morphFrom) return;
     var to = e.activation && e.activation.entry && e.activation.entry.url;
     if (!to || to.split('#')[0] !== morphFrom.href.split('#')[0]) return;
@@ -162,6 +166,38 @@
     }
   } else {
     targets.forEach(show);
+  }
+
+  // Homepage food video: the poster shows first; the video loads after the
+  // page, picks the tall or wide file by screen shape, and never loads on
+  // Save-Data, 2G or reduced motion. It pauses while off screen.
+  var hv = $('heroVideo');
+  if (hv) {
+    var conn = navigator.connection || {};
+    var skipVideo = reduce || conn.saveData || /(^|-)2g$/.test(conn.effectiveType || '');
+    if (!skipVideo) {
+      var heroOnScreen = true;
+      var playVideo = function () {
+        if (!hv.src || document.hidden || !heroOnScreen) return;
+        var p = hv.play();
+        if (p && p.catch) p.catch(function () { /* autoplay blocked: the poster stays */ });
+      };
+      var startVideo = function () {
+        var tall = window.matchMedia('(max-aspect-ratio: 4/5)').matches;
+        hv.addEventListener('playing', function () { hv.classList.add('playing'); }, { once: true });
+        hv.src = hv.getAttribute(tall ? 'data-tall' : 'data-wide');
+        playVideo();
+      };
+      if (document.readyState === 'complete') setTimeout(startVideo, 200);
+      else window.addEventListener('load', function () { setTimeout(startVideo, 200); });
+      if ('IntersectionObserver' in window) {
+        new IntersectionObserver(function (entries) {
+          heroOnScreen = entries[0].isIntersecting;
+          if (heroOnScreen) playVideo(); else hv.pause();
+        }).observe(hv);
+      }
+      document.addEventListener('visibilitychange', function () { if (document.hidden) hv.pause(); else playVideo(); });
+    }
   }
 
   // Card spotlight follows the pointer
