@@ -1,5 +1,5 @@
 /**
- * ServeLoco Motion Tokens
+ * VillKro Motion Tokens
  *
  * All durations in milliseconds. All animations use the single
  * `easing` exported here for consistency.

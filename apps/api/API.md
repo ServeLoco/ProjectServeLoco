@@ -1,4 +1,4 @@
-# ServeLoco Backend V1 API Contract
+# VillKro Backend API Contract
 
 ## 1. Local Setup and Environment
 

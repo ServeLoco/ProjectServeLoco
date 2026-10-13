@@ -776,7 +776,7 @@ export function useLocalNotifications(navigationRef) {
         return;
       }
 
-      const title = payload?.title ?? 'ServeLoco';
+      const title = payload?.title ?? 'VillKro';
       const body  = payload?.body  ?? payload?.message ?? '';
       const orderId = extractOrderId(payload);
 

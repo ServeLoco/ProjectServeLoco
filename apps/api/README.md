@@ -13,7 +13,7 @@ npm start
 
 All logging goes through `src/utils/logger.js` (pino) — no `console.*` calls
 remain in `src/`. Every log line is JSON with a level, ISO timestamp and
-`service: "serveloco-api"`, so it's filterable in `docker logs` or any log
+`service: "villkro-api"`, so it's filterable in `docker logs` or any log
 shipper. Requests are logged by `pino-http` (one structured line per
 request); 5xx handling logs via `src/middleware/errorHandler.js`.
 

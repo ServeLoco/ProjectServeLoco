@@ -662,7 +662,7 @@ export default function RiderDashboardScreen({ navigation }) {
             <View style={{ flex: 1 }}>
               <Text style={styles.overlayBannerTitle}>See offers over other apps</Text>
               <Text style={styles.overlayBannerText}>
-                Allow ServeLoco to show the accept/reject card even while
+                Allow VillKro to show the accept/reject card even while
                 you&apos;re using another app.
               </Text>
             </View>

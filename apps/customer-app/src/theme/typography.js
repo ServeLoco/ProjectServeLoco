@@ -1,5 +1,5 @@
 /**
- * ServeLoco Typography Tokens
+ * VillKro Typography Tokens
  *
  * Uses system font stack for React Native (SF Pro on iOS, Roboto on Android).
  * Falls back to 'System' for cross-platform consistency.

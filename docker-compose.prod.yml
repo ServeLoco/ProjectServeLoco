@@ -8,10 +8,10 @@
 #
 # Databases are NOT here — they live on Azure MySQL + MongoDB Atlas (managed).
 #
-#   proxy (nginx, port 80)  ->  landing:80 (serveloco.app, www.serveloco.app)
-#                           ->  api:3000    (api.serveloco.app)
-#                           ->  admin:80    (admin.serveloco.app)
-#                           ->  ota:3000    (ota.serveloco.app, OTA updates)
+#   proxy (nginx, port 80)  ->  landing:80 (villkro.in)
+#                           ->  api:3000    (api.villkro.in)
+#                           ->  admin:80    (admin.villkro.in)
+#                           ->  ota:3000    (ota.villkro.in, OTA updates)
 #
 # HTTPS is provided by Cloudflare in front of port 80.
 

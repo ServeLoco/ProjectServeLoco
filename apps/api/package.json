@@ -1,7 +1,7 @@
 {
-  "name": "serveloco-backend",
+  "name": "villkro-api",
   "version": "1.0.0",
-  "description": "Backend for ServeLoco V1",
+  "description": "Backend for VillKro",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",

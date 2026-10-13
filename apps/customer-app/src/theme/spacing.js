@@ -1,5 +1,5 @@
 /**
- * ServeLoco Spacing Tokens
+ * VillKro Spacing Tokens
  * Base unit: 4px
  */
 

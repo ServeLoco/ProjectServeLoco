@@ -1,4 +1,4 @@
-# Landing page for serveloco.app
+# Landing page for villkro.in
 # Serves the static landing page, its logo/icon images and /get/.
 
 FROM nginx:alpine

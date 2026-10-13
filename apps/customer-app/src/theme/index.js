@@ -1,5 +1,5 @@
 /**
- * ServeLoco Theme — Central Export
+ * VillKro Theme — Central Export
  *
  * Import from here everywhere:
  *   import { colors, typography, spacing, radius, shadows, motion, layout } from '../../theme';

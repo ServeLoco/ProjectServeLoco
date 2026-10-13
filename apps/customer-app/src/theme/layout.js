@@ -1,5 +1,5 @@
 /**
- * ServeLoco Layout Tokens
+ * VillKro Layout Tokens
  *
  * Shared screen padding, safe-area constants, and min touch targets.
  */

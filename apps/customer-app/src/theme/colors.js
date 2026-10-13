@@ -1,5 +1,5 @@
 /**
- * ServeLoco Color Tokens
+ * VillKro Color Tokens
  *
  * Background  : off-white / white
  * Text        : deep charcoal

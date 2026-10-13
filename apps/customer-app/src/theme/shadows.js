@@ -1,5 +1,5 @@
 /**
- * ServeLoco Shadow Tokens
+ * VillKro Shadow Tokens
  *
  * Cross-platform shadows (iOS shadowProps + Android elevation).
  * Usage: spread with { ...shadows.card } on a View.

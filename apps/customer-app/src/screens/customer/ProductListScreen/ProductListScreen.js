@@ -722,7 +722,7 @@ export default function ProductListScreen() {
                 onRefresh={handleRefresh}
                 tintColor={colors.primary}
                 colors={[colors.primary, colors.success, colors.saffron]}
-                title="Refreshing ServeLoco"
+                title="Refreshing VillKro"
                 titleColor={colors.textSecondary}
               />
             }

@@ -158,7 +158,7 @@ export function useNetworkStatus({
         scheduleNext();
         return;
       }
-      // The API base URL ends in '/api' (e.g. https://api.serveloco.app/api).
+      // The API base URL ends in '/api' (e.g. https://api.villkro.in/api).
       // The health endpoint is mounted at the root, NOT under /api
       // (see apps/api/src/app.js:114 — `app.get('/health', ...)`).
       // Strip the trailing /api so we ping the real health endpoint;

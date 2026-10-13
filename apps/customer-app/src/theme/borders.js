@@ -1,5 +1,5 @@
 /**
- * ServeLoco Border & Radius Tokens
+ * VillKro Border & Radius Tokens
  *
  * Cards: 8px (default)
  * Pills / platform controls: 100px
