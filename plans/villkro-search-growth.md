@@ -47,6 +47,7 @@ Candidate phrases are based on the product and owner-confirmed location, not fab
 | VillKro, VillKro app | Homepage: clear brand identity and purpose |
 | Download VillKro, VillKro Android, VillKro iPhone | `/app/`: direct store links and installation/order help |
 | Grocery delivery near Gorakhpur Haryana, food delivery Gorakhpur Hisar, sweets delivery near Gorakhpur | One useful local page; exact address availability, categories and support |
+| Food delivery Agroha, grocery delivery Agroha, sweets delivery Agroha | `/delivery/agroha-haryana/`: its own copy, ordering steps, hours, coverage help |
 | Customer support or delivery availability | Visible contact and local guide; keep private account/order information out of public pages |
 
 Use Haryana/125047 to disambiguate the location. Do not target Gorakhpur, Uttar Pradesh or all of Hisar unless actual coverage expands. Do not add misspellings, repetitive keyword blocks, fabricated ratings, hidden text, bought links or bulk thin articles. Extra metadata cannot substitute for reliable service and real local information.
@@ -89,3 +90,16 @@ Rank #1 cannot be promised. Branded search already showed the official site firs
 ## Validation before pull request
 
 Local execution of Landing CI's crawler assertions passed against the HTTP preview. All root-relative HTML links/assets resolve. Desktop and 390px mobile previews passed for the local page, app page and homepage delivery navigation; mobile pages have no horizontal overflow. Focused reviewer found no actionable issues. Local Docker/nginx are unavailable; the production image and nginx checks run in GitHub Landing CI. No production deployment performed.
+
+## 14 October 2026 update: redesign, Agroha page, store text
+
+Owner confirmed VillKro delivers in **Gorakhpur and Agroha** (Hisar district). Changes on this branch:
+
+- **New design for every page**: dark black + saffron look, animated hero phone (coded Home → Cart → Live tracking screens, labelled as an illustration), live delivery map, animated how-it-works and feature cards, mobile menu and sticky "Get the app" bar. One shared `/assets/site.css` and `/assets/site.js` (replaces `content.css`). All text stays in the HTML; motion is CSS plus a small script and respects reduced motion.
+- **New page** `/delivery/agroha-haryana/` with its own copy, Service + BreadcrumbList data and `areaServed` Agroha. Gorakhpur page keeps its reviewed copy in the new design and links to Agroha. Homepage title, description, map, footer and FAQ name both towns. Sitemap has four URLs.
+- **App visibility on the web**: iOS Smart App Banner (`apple-itunes-app`) on every indexable page; `site.webmanifest` with both stores in `related_applications`; new 1200×630 `og-image.png` in the new style.
+- **Speed**: Plus Jakarta Sans self-hosted (two woff2 files, no Google Fonts requests); WebP logo/wordmarks at display size; deferred script; homepage first load about 80 KB compressed. nginx caches css/js/webp/woff2 for 7 days (css/js links carry `?v=`), serves the manifest with its own type, and adds `X-Content-Type-Options` and `Referrer-Policy`.
+- **Landing CI** now checks four sitemap pages, links to both towns, the Smart App Banner, the manifest type, security/cache headers and that every root-relative link or asset resolves.
+- **Store text** for Play and the App Store is in `plans/villkro-store-listing.md` (not submitted).
+
+After deployment: inspect `/delivery/agroha-haryana/` and `/` in Search Console and request indexing once; check that `sitemap.xml` was re-read with four URLs; add Agroha to the Business Profile service area after verification.
