@@ -107,8 +107,8 @@ packagingOptions {
         // android/ is committed, so Gradle is the Android binary's version
         // source for both local and EAS builds. Keep these exact values in
         // step with app.json; production EAS autoIncrement is disabled.
-        versionCode 48
-        versionName "1.9.10"
+        versionCode 49
+        versionName "1.9.11"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
