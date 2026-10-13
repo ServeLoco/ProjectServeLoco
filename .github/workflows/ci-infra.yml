@@ -13,6 +13,7 @@ on:
       - 'deploy/**'
       - 'apps/*/nginx.conf'
       - '.github/workflows/**'
+      - '.github/scripts/**'
   pull_request:
     branches: [ "main" ]
     paths:
@@ -20,12 +21,16 @@ on:
       - 'deploy/**'
       - 'apps/*/nginx.conf'
       - '.github/workflows/**'
+      - '.github/scripts/**'
 
 jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+
+      - name: Customer-app release decision tests
+        run: node --test .github/scripts/*.test.js
 
       - name: Compose files resolve
         run: |
