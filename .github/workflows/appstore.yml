@@ -25,7 +25,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   APP_DIR: apps/customer-app
@@ -156,35 +156,12 @@ jobs:
       - name: Install EAS CLI
         run: npm install -g eas-cli@latest
 
-      # "Persist the version EAS used" below runs `git commit`. On the old
-      # self-hosted box that worked by accident, off a global ~/.gitconfig some
-      # human had set up long ago. A hosted runner has no identity, so the
-      # commit would abort with "Author identity unknown" AFTER the build and
-      # the App Store upload had already succeeded — a green release reported
-      # as a failure. playstore.yml has always configured git here; this file
-      # never did, and only got away with it because of that machine.
-      - name: Configure git for EAS
-        run: |
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git config --global user.name  "github-actions[bot]"
-
       - name: Verify EAS authentication
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
           set -euo pipefail
           eas whoami
-
-      # The build itself runs on EAS macOS infrastructure. Credentials
-      # (distribution cert, provisioning profile) are managed remotely, so no
-      # Apple secrets are needed for this step — only for the submit below.
-      - name: Build iOS .ipa on EAS cloud
-        working-directory: ${{ env.APP_DIR }}
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: |
-          set -euo pipefail
-          eas build --platform ios --profile production --non-interactive --wait
 
       - name: Materialize App Store Connect API key
         env:
@@ -197,7 +174,27 @@ jobs:
           fi
           printf '%s' "$APPLE_ASC_API_KEY_P8" > /tmp/asc-api-key.p8
 
-      - name: Submit to App Store Connect
+      # The build itself runs on EAS macOS infrastructure. Credentials
+      # (distribution cert, provisioning profile) are managed remotely, so no
+      # Apple secrets are needed to build — only the API key for the submit.
+      #
+      # --auto-submit --no-wait: EAS uploads to App Store Connect itself once
+      # the build finishes, so this runner exits as soon as the build is
+      # queued instead of sitting idle for the whole EAS queue + build (10–84
+      # min a run, all of it billed as Actions minutes once the repo is
+      # private). The submission is created right here, before the CLI
+      # returns, and the CLI reads the .p8 at that moment and sends its
+      # contents along — so the cleanup step below deleting it is fine. Build
+      # or submit failures now show up on expo.dev and in Expo's email, not as
+      # a red run here.
+      #
+      # This uploads to App Store Connect only; it does NOT release to users.
+      # Submitting for review and releasing stay manual in App Store Connect.
+      #
+      # The old "Persist the version EAS used" step is gone: it needed the
+      # finished build, autoIncrement is off (app.json's buildNumber is what
+      # ships), and its push to main was always rejected by branch protection.
+      - name: Build iOS .ipa on EAS cloud and auto-submit to App Store Connect
         working-directory: ${{ env.APP_DIR }}
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
@@ -213,51 +210,8 @@ jobs:
           EXPO_ASC_API_KEY_ISSUER_ID: ${{ secrets.ASC_KEY_ISSUER_ID }}
         run: |
           set -euo pipefail
-          # Submits the build produced above. This uploads to App Store
-          # Connect only; it does NOT release to users. Submitting for review
-          # and releasing stay manual in App Store Connect.
-          eas submit --platform ios --latest --non-interactive
-
-      # ─── Persist the version EAS actually used ─────────────────────────────
-      # autoIncrement bumps the version inside EAS's cloud checkout, which
-      # never comes back here — so app.json kept proposing a number Google
-      # Play already had and every release died on "You've already submitted
-      # this version" (burned 37, burned 39). Read what the finished build
-      # used and write it back. [skip ci] so this bookkeeping commit does not
-      # re-trigger the whole pipeline.
-      - name: Persist the version EAS used
-        if: needs.detect-bump.outputs.bump == 'major'
-        working-directory: ${{ env.APP_DIR }}
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: |
-          set -euo pipefail
-          CODE=$(eas build:list --platform ios --limit 1 --status finished --json --non-interactive \
-            | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{const b=JSON.parse(s)[0];process.stdout.write(String(b.appBuildVersion||''))}catch(e){process.stdout.write('')}})")
-          if [ -z "$CODE" ]; then
-            echo "::warning::could not read the build version from EAS — buildNumber left as-is"
-            exit 0
-          fi
-          CODE="$CODE" node -e "
-            const fs=require('fs');
-            const p='app.json';
-            const j=JSON.parse(fs.readFileSync(p,'utf8'));
-            j.expo.ios.buildNumber = String(process.env.CODE);
-            fs.writeFileSync(p, JSON.stringify(j,null,2)+'\n');
-          "
-          if git diff --quiet -- app.json; then
-            echo "app.json already records $CODE — nothing to persist"
-            exit 0
-          fi
-          git add app.json
-          git commit -m "chore: record ios buildNumber $CODE used by EAS [skip ci]" || {
-            echo "::warning::could not commit the buildNumber — skipping the write-back"
-            exit 0
-          }
-          git push origin HEAD:main || {
-            echo "::warning::could not push the version bump back to main (branch protection?) — app.json still says the old value, next release will collide"
-            exit 0
-          }
+          eas build --platform ios --profile production --non-interactive \
+            --auto-submit --no-wait
 
       - name: Clean up App Store Connect API key
         if: always()

@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   APP_DIR: apps/customer-app
@@ -195,67 +195,34 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name  "github-actions[bot]"
 
-      # ─── MAJOR PATH: EAS cloud build + Play Store submit + OTA ─────────────
+      # ─── MAJOR PATH: EAS cloud build + Play Store submit ──────────────────
       # Mirrors appstore.yml: build runs on EAS's own infra, this runner only
       # orchestrates. EXPO_PUBLIC_* vars must be set as EAS environment
       # variables/secrets on the project — job-level env below does NOT reach
       # a cloud build (it only ever reached the old `--local` build).
-      - name: Build Android .aab on EAS cloud
+      #
+      # --auto-submit --no-wait: EAS submits to Play itself once the build
+      # finishes, so this runner exits as soon as the build is queued instead
+      # of sitting idle for the whole EAS queue + build (16–88 min a run, all
+      # of it billed as Actions minutes once the repo is private). The
+      # submission is created right here, before the CLI returns, and the CLI
+      # reads /tmp/play-store-key.json at that moment and sends its contents
+      # along — so the cleanup step below deleting the file is fine. Build or
+      # submit failures now show up on expo.dev and in Expo's email, not as a
+      # red run here.
+      #
+      # The old "Persist the version EAS used" step is gone: it needed the
+      # finished build, autoIncrement is off (app.json's versionCode is what
+      # ships), and its push to main was always rejected by branch protection.
+      - name: Build Android .aab on EAS cloud and auto-submit to Google Play
         if: needs.detect-bump.outputs.bump == 'major'
         working-directory: ${{ env.APP_DIR }}
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
           set -euo pipefail
-          eas build --platform android --profile production --non-interactive --wait
-
-      - name: Submit .aab to Google Play (Production track)
-        if: needs.detect-bump.outputs.bump == 'major'
-        working-directory: ${{ env.APP_DIR }}
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: |
-          set -euo pipefail
-          eas submit --platform android --latest --non-interactive
-          echo "✓ Submit succeeded"
-
-      # ─── Persist the version EAS actually used ─────────────────────────────
-      # autoIncrement bumps the version inside EAS's cloud checkout, which
-      # never comes back here — so app.json kept proposing a number Google
-      # Play already had and every release died on "You've already submitted
-      # this version" (burned 37, burned 39). Read what the finished build
-      # used and write it back. [skip ci] so this bookkeeping commit does not
-      # re-trigger the whole pipeline.
-      - name: Persist the version EAS used
-        if: needs.detect-bump.outputs.bump == 'major'
-        working-directory: ${{ env.APP_DIR }}
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: |
-          set -euo pipefail
-          CODE=$(eas build:list --platform android --limit 1 --status finished --json --non-interactive \
-            | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{const b=JSON.parse(s)[0];process.stdout.write(String(b.appBuildVersion||''))}catch(e){process.stdout.write('')}})")
-          if [ -z "$CODE" ]; then
-            echo "::warning::could not read the build version from EAS — versionCode left as-is"
-            exit 0
-          fi
-          CODE="$CODE" node -e "
-            const fs=require('fs');
-            const p='app.json';
-            const j=JSON.parse(fs.readFileSync(p,'utf8'));
-            j.expo.android.versionCode = Number(process.env.CODE);
-            fs.writeFileSync(p, JSON.stringify(j,null,2)+'\n');
-          "
-          if git diff --quiet -- app.json; then
-            echo "app.json already records $CODE — nothing to persist"
-            exit 0
-          fi
-          git add app.json
-          git commit -m "chore: record android versionCode $CODE used by EAS [skip ci]"
-          git push origin HEAD:main || {
-            echo "::warning::could not push the version bump back to main (branch protection?) — app.json still says the old value, next release will collide"
-            exit 0
-          }
+          eas build --platform android --profile production --non-interactive \
+            --auto-submit --no-wait
 
       # ─── MINOR PATH: skip the build, just publish the OTA ──────────────────
       # Minor ONLY. An OTA is JS with no native side, so publishing one on a
