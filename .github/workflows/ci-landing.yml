@@ -39,15 +39,17 @@ jobs:
           import xml.etree.ElementTree as ET
 
           base = 'http://127.0.0.1:8080'
-          def get(path):
+          def fetch(path):
               with urlopen(base + path, timeout=10) as response:
                   assert response.status == 200, path
-                  return response.read().decode()
+                  return response.read(), response.headers
+          def get(path):
+              return fetch(path)[0].decode()
 
           class Metadata(HTMLParser):
               def __init__(self):
                   super().__init__()
-                  self.canonical, self.robots, self.schemas = [], [], []
+                  self.canonical, self.robots, self.schemas, self.links = [], [], [], []
                   self.h1, self.in_schema = 0, False
               def handle_starttag(self, tag, attrs):
                   attrs = dict(attrs)
@@ -59,40 +61,64 @@ jobs:
                   if tag == 'script' and attrs.get('type') == 'application/ld+json':
                       self.in_schema = True
                       self.schemas.append('')
+                  for key in ('href', 'src'):
+                      value = attrs.get(key) or ''
+                      if value.startswith('/') and not value.startswith('//'):
+                          self.links.append(value.split('#')[0].split('?')[0])
               def handle_data(self, data):
                   if self.in_schema: self.schemas[-1] += data
               def handle_endtag(self, tag):
                   if tag == 'script': self.in_schema = False
 
+          towns = ['/delivery/gorakhpur-haryana/', '/delivery/agroha-haryana/']
           sitemap = ET.fromstring(get('/sitemap.xml'))
           urls = [node.text for node in sitemap.findall('{*}url/{*}loc')]
-          assert set(urls) == {'https://villkro.in/', 'https://villkro.in/app/', 'https://villkro.in/delivery/gorakhpur-haryana/'}
-          assert len(urls) == 3
+          assert set(urls) == {'https://villkro.in/', 'https://villkro.in/app/'} | {'https://villkro.in' + t for t in towns}
+          assert len(urls) == 4
+          internal = set()
           for url in urls:
-              html = get(url.removeprefix('https://villkro.in'))
+              path = url.removeprefix('https://villkro.in')
+              html = get(path)
               page = Metadata()
               page.feed(html)
               assert page.h1 == 1 and page.canonical == [url], url
               assert all('noindex' not in value for value in page.robots), url
               assert page.schemas, url
-              assert 'href="/delivery/gorakhpur-haryana/"' in html or url.endswith('/delivery/gorakhpur-haryana/'), url
-              assert 'sizes="192x192" href="/icon.png"' in html, url
               for schema in page.schemas: json.loads(schema)
-              assert 'com.yashsiwach.villkro' in html and 'id6800449391' in html
+              for town in towns:
+                  assert path == town or f'href="{town}"' in html, (url, town)
+              assert 'sizes="192x192" href="/icon.png"' in html, url
+              assert '<meta name="apple-itunes-app" content="app-id=6800449391">' in html, url
+              assert 'href="/assets/site.css' in html and 'href="/site.webmanifest"' in html, url
+              assert 'com.yashsiwach.villkro' in html and 'id6800449391' in html, url
+              internal.update(page.links)
 
           helper = Metadata()
           helper.feed(get('/get/'))
           assert any('noindex' in value for value in helper.robots)
+          internal.update(helper.links)
           assert 'Sitemap: https://villkro.in/sitemap.xml' in get('/robots.txt')
-          for asset in ['/logo.png', '/icon.png', '/og-image.png', '/qr-download.svg', '/content.css']:
-              with urlopen(base + asset, timeout=10) as response:
-                  assert response.status == 200 and response.read(), asset
+
+          # Every root-relative link and asset on the pages must resolve.
+          internal.discard('/')
+          for asset in sorted(internal | {'/logo.png', '/icon.png', '/og-image.png', '/qr-download.svg', '/favicon-32.png'}):
+              body, _ = fetch(asset)
+              assert body, asset
+
+          manifest, headers = fetch('/site.webmanifest')
+          assert headers.get('Content-Type', '').startswith('application/manifest+json'), headers.get('Content-Type')
+          assert json.loads(manifest)['related_applications']
+          for path in ['/', '/assets/site.css']:
+              _, headers = fetch(path)
+              assert headers.get('X-Content-Type-Options') == 'nosniff', path
+          _, headers = fetch('/assets/fonts/jakarta-latin.woff2')
+          assert 'max-age=' in headers.get('Cache-Control', ''), headers
           try:
               get('/this-page-does-not-exist')
               raise AssertionError('Missing page must return 404')
           except HTTPError as error:
               assert error.code == 404
-          print('Canonical pages, schema, sitemap, download helper and 404 passed')
+          print('Canonical pages, schema, sitemap, links, assets, headers, download helper and 404 passed')
       - name: Clean up
         if: always()
         run: docker rm -f landing-ci || true
