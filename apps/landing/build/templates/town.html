@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% set tt = t.town %}
+{% set lang = t.lang %}
+{% set fmt = {"shops": gk.shops|length, "items": gk.items_round, "villages": gk.villages|length, "date": ctx.fetched} %}
+{% block main %}
+    <section class="page-hero">
+      <div class="container">
+        {{ m.crumbs(p) }}
+        <div class="ph-grid">
+          <div>
+            <span class="eyebrow"><span class="live-dot"></span>{{ tt.eyebrow }}</span>
+            <h1 class="vt-title">{{ tt.h1 }}</h1>
+            <p class="lead">{{ tt.lead.format(**fmt) }}</p>
+            {{ m.stores() }}
+            {{ m.facts(tt.facts, fmt) }}
+          </div>
+          <div class="mosaic" aria-hidden="true">
+            {% for d in gk.dishes[:4] %}<figure class="tile-{{ loop.index }}"><img src="{{ d.cover[0].img }}" alt="" width="320" height="320"><figcaption>{{ d[lang].short }}</figcaption></figure>{% endfor %}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" aria-labelledby="dishes-h">
+      <div class="container">
+        <div class="head left reveal">
+          <h2 id="dishes-h">{{ tt.dishes_h }}</h2>
+          <p class="sub">{{ tt.dishes_sub }}</p>
+        </div>
+        <div class="dish-rail stagger">
+          {% for d in gk.dishes %}{{ m.dish_card(d, lang) }}{% endfor %}
+        </div>
+      </div>
+    </section>
+
+    <section class="block" aria-labelledby="shops-h">
+      <div class="container">
+        <div class="head left reveal">
+          <h2 id="shops-h">{{ tt.shops_h }}</h2>
+          <p class="sub">{{ tt.shops_sub.format(**fmt) }}</p>
+        </div>
+        <div class="shop-grid stagger">
+          {% for s in gk.shops %}{{ m.shop_card(s, t.home.shop_items, t.home.shop_go) }}{% endfor %}
+        </div>
+      </div>
+    </section>
+
+    <section class="block" id="villages" aria-labelledby="villages-h">
+      <div class="container">
+        <div class="two-col">
+          <div class="panel reveal">
+            <h2 id="villages-h">{{ tt.villages_h }}</h2>
+            <p>{{ tt.villages_p }}</p>
+            <ul class="chips big">
+              <li class="hub">{{ m.icon("i-store") }}{{ tt.crumb }}</li>
+              {% for v in gk.villages %}<li>{{ m.icon("i-pin") }}{{ S.VILLAGES_HI[v] if lang == "hi" else v }}</li>{% endfor %}
+            </ul>
+          </div>
+          <div class="map-col reveal">{% include "_map.html" %}</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" aria-labelledby="how-h">
+      <div class="container stack">
+        <div class="notice reveal">{{ m.icon("i-pin") }}<p>{{ tt.notice|safe }}</p></div>
+        <div class="two-col">
+          <div class="panel reveal">
+            <h2 id="how-h">{{ tt.how_h }}</h2>
+            <ol class="steps">{% for s in tt.how %}<li>{{ s|safe }}</li>{% endfor %}</ol>
+          </div>
+          <div class="panel reveal">
+            <h2>{{ tt.hours_h }}</h2>
+            {% for s in tt.hours %}<p>{{ s|safe }}</p>{% endfor %}
+          </div>
+        </div>
+        <div class="panel reveal">
+          <h2>{{ tt.cover_h }}</h2>
+          {% for s in tt.cover %}<p>{{ s|safe }}</p>{% endfor %}
+        </div>
+      </div>
+    </section>
+
+    <section class="block" aria-labelledby="more-h">
+      <div class="container">
+        <h2 class="h-sm reveal" id="more-h">{{ tt.more_h }}</h2>
+        <div class="related stagger">
+          {{ m.area_card(pre ~ ag.url, t.agroha.crumb, "soon", tt.ag_p, tt.ag_go) }}
+          <a class="area" href="{{ pre }}/app/">
+            <div class="top"><h3>{{ tt.app_h }}</h3></div>
+            <p>{{ tt.app_p }}</p>
+            <span class="go">{{ tt.app_go }} {{ m.icon("i-arrow") }}</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    {{ m.cta() }}
+{% endblock %}

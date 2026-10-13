@@ -1,0 +1,98 @@
+{% import "_macros.html" as m with context %}
+<!doctype html>
+<html lang="{{ t.lang }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#FBF8F3" id="themeColor">
+  <script>try{if(localStorage.getItem("vk-theme")==="dark"){document.documentElement.setAttribute("data-theme","dark");document.getElementById("themeColor").content="#08080B"}}catch(e){}</script>
+  <title>{{ p.title }}</title>
+  <meta name="description" content="{{ p.desc }}">
+  <link rel="canonical" href="{{ D.SITE }}{{ p.path }}">
+  {% for lang, href in p.alts.items() %}
+  <link rel="alternate" hreflang="{{ lang }}" href="{{ D.SITE }}{{ href }}">
+  {% endfor %}
+  <meta name="robots" content="index, follow">
+  <meta name="apple-itunes-app" content="app-id=6800449391">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="VillKro">
+  <meta property="og:locale" content="{{ t.locale }}">
+  <meta property="og:url" content="{{ D.SITE }}{{ p.path }}">
+  <meta property="og:title" content="{{ p.title }}">
+  <meta property="og:description" content="{{ p.desc }}">
+  <meta property="og:image" content="{{ D.SITE }}/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="VillKro app showing local shops and live order tracking">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ p.title }}">
+  <meta name="twitter:description" content="{{ p.desc }}">
+  <meta name="twitter:image" content="{{ D.SITE }}/og-image.png">
+
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="preload" href="/assets/fonts/jakarta-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/assets/site.css?v={{ v }}">
+  <script src="/assets/site.js?v={{ v }}" defer></script>
+  <script type="speculationrules">
+  {"prerender": [{"where": {"and": [{"href_matches": "/*"}, {"not": {"href_matches": "/get/*"}}]}, "eagerness": "moderate"}]}
+  </script>
+  <script type="application/ld+json">
+{{ graph|ld|safe }}
+  </script>
+</head>
+<body class="{% block body_class %}page{% endblock %}">
+  <a class="skip" href="#main">{{ t.skip }}</a>
+  {% include "_sprite.html" %}
+  <div class="backdrop" aria-hidden="true"><i></i><i></i><i></i></div>
+  <div class="scroll-progress" id="progress" aria-hidden="true"></div>
+
+  <header class="nav" id="nav">
+    <div class="container nav-inner">
+      <a href="{{ pre }}/" class="brand" aria-label="{{ t.nav.home_aria }}">
+        <img src="/assets/logo.webp" alt="" width="36" height="36">
+        <img class="brand-name" src="/assets/wordmark-name.webp" alt="VillKro" width="92" height="22">
+      </a>
+      <nav class="nav-links" id="navLinks" aria-label="{{ t.nav.main }}">
+        <a href="{{ pre }}/#dishes">{{ t.nav.dishes }}</a>
+        <a href="{{ pre }}/#shops">{{ t.nav.shops }}</a>
+        <a href="{{ pre }}/#areas">{{ t.nav.areas }}</a>
+        <a href="{{ pre }}/sell-on-villkro/">{{ t.nav.sell }}</a>
+        <a class="menu-only" href="{{ pre }}/deliver-with-villkro/">{{ t.nav.deliver }}</a>
+        <a href="{{ pre }}/about/">{{ t.nav.about }}</a>
+        {% if other_lang %}
+        <a class="lang-link" href="{{ other_lang }}" hreflang="{{ 'en' if t.lang == 'hi' else 'hi' }}" lang="{{ 'en' if t.lang == 'hi' else 'hi' }}" aria-label="{{ t.nav.lang_aria }}">{{ m.icon("i-globe") }}{{ t.nav.lang_label }}</a>
+        {% endif %}
+        <a href="#download" class="btn btn-brand">{{ t.nav.get_app }}</a>
+      </nav>
+      <div class="nav-tools">
+        <button class="theme-btn" id="themeBtn" type="button" aria-label="{{ t.nav.to_dark }}" data-to-dark="{{ t.nav.to_dark }}" data-to-light="{{ t.nav.to_light }}">
+          {{ m.icon("i-moon", "ic-moon") }}{{ m.icon("i-sun", "ic-sun") }}
+        </button>
+        <button class="menu-btn" id="menuBtn" type="button" aria-label="{{ t.nav.menu_open }}" data-open="{{ t.nav.menu_open }}" data-close="{{ t.nav.menu_close }}" aria-expanded="false" aria-controls="navLinks">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+{% block main %}{% endblock %}
+  </main>
+
+  {% include "_explore.html" %}
+  {% include "_footer.html" %}
+
+  <button class="to-top" id="toTop" type="button" aria-label="{{ t.to_top }}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+  </button>
+
+  <div class="mbar" id="mbar">
+    <img src="/assets/logo.webp" alt="" width="38" height="38">
+    <div><strong>VillKro</strong><small>{{ t.mbar.sub }}</small></div>
+    <a class="btn btn-brand" data-store-link href="/get/">{{ t.mbar.btn }}</a>
+  </div>
+</body>
+</html>

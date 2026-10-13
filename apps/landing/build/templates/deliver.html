@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% set td = t.deliver %}
+{% set fmt = {"shops": gk.shops|length} %}
+{% block main %}
+    <section class="page-hero">
+      <div class="container">
+        {{ m.crumbs(p) }}
+        <div class="ph-grid">
+          <div>
+            <span class="eyebrow">{{ m.icon("i-scooter") }}{{ td.eyebrow }}</span>
+            <h1 class="vt-title">{{ td.h1 }}</h1>
+            <p class="lead">{{ td.lead }}</p>
+            <div class="btn-row">{{ m.wa_button(td.msg, td.btn) }}</div>
+            {{ m.facts(td.facts, fmt) }}
+          </div>
+          <div class="ph-orb" aria-hidden="true">
+            <div class="orbit"></div><div class="orbit o2"></div>
+            <div class="orb-core">{{ m.icon("i-scooter") }}</div>
+            <div class="chip c1"><span class="ic"><svg><use href="#i-bolt"/></svg></span><span>{{ td.perks[1][0] }}</span></div>
+            <div class="chip c2"><span class="ic"><svg><use href="#i-nav"/></svg></span><span>{{ td.perks[3][0] }}</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" aria-labelledby="get-h">
+      <div class="container stack">
+        <div class="panel reveal">
+          <h2 id="get-h">{{ td.perks_h }}</h2>
+          <div class="tiles">
+            {% for g in td.perks %}
+            <article class="tile-card"><div class="icon">{{ m.icon(["i-bolt", "i-bell", "i-wallet", "i-nav", "i-list", "i-map"][loop.index0]) }}</div><h3>{{ g[0] }}</h3><p>{{ g[1] }}</p></article>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="two-col">
+          <div class="panel reveal">
+            <h2>{{ td.steps_h }}</h2>
+            <ol class="steps">{% for s in td.steps %}<li>{{ s|safe }}</li>{% endfor %}</ol>
+            {{ m.wa_button(td.msg, td.btn) }}
+          </div>
+          <div class="panel reveal">
+            <h2>{{ td.need_h }}</h2>
+            <ul class="ticks">{% for s in td.need %}<li>{{ m.icon("i-check") }}{{ s }}</li>{% endfor %}</ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {{ m.cta() }}
+{% endblock %}

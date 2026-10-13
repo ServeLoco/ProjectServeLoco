@@ -17,6 +17,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check the generated pages are up to date
+        run: |
+          python -m pip install --quiet jinja2==3.1.6
+          python apps/landing/build/build.py --check
       - name: Build the production website
         run: docker build -t villkro-landing-ci apps/landing
       - name: Start and validate nginx
@@ -50,12 +57,15 @@ jobs:
               def __init__(self):
                   super().__init__()
                   self.canonical, self.robots, self.schemas, self.links = [], [], [], []
+                  self.alternates = {}
                   self.h1, self.in_schema = 0, False
               def handle_starttag(self, tag, attrs):
                   attrs = dict(attrs)
                   if tag == 'h1': self.h1 += 1
                   if tag == 'link' and attrs.get('rel') == 'canonical':
                       self.canonical.append(attrs.get('href'))
+                  if tag == 'link' and attrs.get('rel') == 'alternate' and attrs.get('hreflang'):
+                      self.alternates[attrs['hreflang']] = attrs.get('href')
                   if tag == 'meta' and attrs.get('name') == 'robots':
                       self.robots.append(attrs.get('content', '').lower())
                   if tag == 'script' and attrs.get('type') == 'application/ld+json':
@@ -73,9 +83,10 @@ jobs:
           towns = ['/delivery/gorakhpur-haryana/', '/delivery/agroha-haryana/']
           sitemap = ET.fromstring(get('/sitemap.xml'))
           urls = [node.text for node in sitemap.findall('{*}url/{*}loc')]
-          assert set(urls) == {'https://villkro.in/', 'https://villkro.in/app/'} | {'https://villkro.in' + t for t in towns}
-          assert len(urls) == 4
-          internal = set()
+          must = {'/', '/app/', '/about/', '/sell-on-villkro/', '/deliver-with-villkro/', '/hi/'} | set(towns)
+          assert must <= {u.removeprefix('https://villkro.in') for u in urls}, 'core pages missing from sitemap'
+          assert len(urls) == len(set(urls)) and len(urls) >= 20, len(urls)
+          internal, alternates = set(), {}
           for url in urls:
               path = url.removeprefix('https://villkro.in')
               html = get(path)
@@ -86,12 +97,21 @@ jobs:
               assert page.schemas, url
               for schema in page.schemas: json.loads(schema)
               for town in towns:
-                  assert path == town or f'href="{town}"' in html, (url, town)
+                  assert town in html, (url, town)
+              assert ('<html lang="hi">' in html) == path.startswith('/hi/'), url
               assert 'sizes="192x192" href="/icon.png"' in html, url
               assert '<meta name="apple-itunes-app" content="app-id=6800449391">' in html, url
               assert 'href="/assets/site.css' in html and 'href="/site.webmanifest"' in html, url
               assert 'com.yashsiwach.villkro' in html and 'id6800449391' in html, url
+              alternates[url] = page.alternates
               internal.update(page.links)
+
+          # Hindi and English twins must point at each other.
+          for url, alts in alternates.items():
+              if not alts: continue
+              assert url in alts.values() and 'x-default' in alts, url
+              for lang, other in alts.items():
+                  assert alternates.get(other) == alts, (url, lang, other)
 
           helper = Metadata()
           helper.feed(get('/get/'))
@@ -118,7 +138,7 @@ jobs:
               raise AssertionError('Missing page must return 404')
           except HTTPError as error:
               assert error.code == 404
-          print('Canonical pages, schema, sitemap, links, assets, headers, download helper and 404 passed')
+          print(f'{len(urls)} pages: canonical, schema, hreflang, sitemap, links, assets, headers, download helper and 404 passed')
       - name: Clean up
         if: always()
         run: docker rm -f landing-ci || true

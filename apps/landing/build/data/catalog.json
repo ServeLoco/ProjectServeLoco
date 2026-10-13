@@ -1,0 +1,1997 @@
+{
+ "fetched": "2026-10-14",
+ "towns": {
+  "gorakhpur-haryana": {
+   "centre": [
+    29.44832,
+    75.66905
+   ],
+   "shops": [
+    {
+     "id": 2,
+     "name": "Ranoliya Conf.",
+     "slug": "ranoliya-conf",
+     "items": [
+      {
+       "id": 1,
+       "name": "Chowmein Burger",
+       "category": "Burgers & Sandwiches",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1781952520145-181872019.png",
+       "img": "/assets/items/1.webp"
+      },
+      {
+       "id": 2,
+       "name": "Aloo Tikki Burger",
+       "category": "Burgers & Sandwiches",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783606724902-7629916.jpg",
+       "img": "/assets/items/2.webp"
+      },
+      {
+       "id": 3,
+       "name": "Paneer Tikki Burger",
+       "category": "Burgers & Sandwiches",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783605764434-561281885.jpg",
+       "img": "/assets/items/3.webp"
+      },
+      {
+       "id": 4,
+       "name": "Chowmein",
+       "category": "Chinese",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1781953359255-598449130.png",
+       "img": "/assets/items/4.webp"
+      },
+      {
+       "id": 6,
+       "name": "Mountain Dew",
+       "category": "Cold Drinks",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783558069580-709671380.jpg",
+       "img": "/assets/items/6.webp"
+      },
+      {
+       "id": 7,
+       "name": "Coca-Cola",
+       "category": "Cold Drinks",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783606673733-660173416.jpg",
+       "img": "/assets/items/7.webp"
+      },
+      {
+       "id": 8,
+       "name": "Mirinda",
+       "category": "Cold Drinks",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783606232729-423290363.jpg",
+       "img": "/assets/items/8.webp"
+      },
+      {
+       "id": 26,
+       "name": "Vegetable Sandwich",
+       "category": "Burgers & Sandwiches",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783869469884-185515147.jpg",
+       "img": "/assets/items/26.webp"
+      },
+      {
+       "id": 27,
+       "name": "Cheese Pizza",
+       "category": "Pizzas & Fries",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783602822756-760300014.jpg",
+       "img": "/assets/items/27.webp"
+      },
+      {
+       "id": 30,
+       "name": "Pepsi",
+       "category": "Cold Drinks",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783607435480-761712040.jpg",
+       "img": "/assets/items/30.webp"
+      },
+      {
+       "id": 31,
+       "name": "Sprite",
+       "category": "Cold Drinks",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783607662516-281407303.jpg",
+       "img": "/assets/items/31.webp"
+      },
+      {
+       "id": 32,
+       "name": "Sting Energy",
+       "category": "Energy Drinks",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783607895562-618991176.jpg",
+       "img": "/assets/items/32.webp"
+      },
+      {
+       "id": 33,
+       "name": "Diet Coca Cola Can",
+       "category": "Cold Drinks",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783607793593-840058636.jpg",
+       "img": "/assets/items/33.webp"
+      },
+      {
+       "id": 35,
+       "name": "Appy FIZZ",
+       "category": "Cold Drinks",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783600428839-574267309.jpg",
+       "img": "/assets/items/35.webp"
+      },
+      {
+       "id": 36,
+       "name": "Banana Shake",
+       "category": "Shakes",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783600263772-731396475.jpg",
+       "img": "/assets/items/36.webp"
+      },
+      {
+       "id": 37,
+       "name": "Mango Shake",
+       "category": "Shakes",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783600025669-499734642.jpg",
+       "img": "/assets/items/37.webp"
+      },
+      {
+       "id": 38,
+       "name": "Lahori ZEERA",
+       "category": "Cold Drinks",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783599927556-583975010.jpg",
+       "img": "/assets/items/38.webp"
+      },
+      {
+       "id": 39,
+       "name": "Amul Milk",
+       "category": "Dairy Products",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1782189144830-12741056.jpg",
+       "img": "/assets/items/39.webp"
+      },
+      {
+       "id": 40,
+       "name": "Dahi",
+       "category": "Dairy Products",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1782189401398-639813861.jpg",
+       "img": "/assets/items/40.webp"
+      },
+      {
+       "id": 41,
+       "name": "Raita",
+       "category": "Dairy Products",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1782189543683-903018866.jpg",
+       "img": "/assets/items/41.webp"
+      },
+      {
+       "id": 42,
+       "name": "Amul Lassi",
+       "category": "Dairy Products",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1782189244822-54079916.jpg",
+       "img": "/assets/items/42.webp"
+      },
+      {
+       "id": 43,
+       "name": "Chilli Paneer",
+       "category": "Others",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783558339550-227895917.jpg",
+       "img": "/assets/items/43.webp"
+      },
+      {
+       "id": 44,
+       "name": "Soda",
+       "category": "Drinks",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1782188714719-222446581.jpg",
+       "img": "/assets/items/44.webp"
+      },
+      {
+       "id": 45,
+       "name": "Pomegranate juice",
+       "category": "Juices",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1782188458067-563534132.jpg",
+       "img": "/assets/items/45.webp"
+      },
+      {
+       "id": 46,
+       "name": "Guava Juice",
+       "category": "Juices",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1782188520159-512782956.jpg",
+       "img": "/assets/items/46.webp"
+      },
+      {
+       "id": 47,
+       "name": "Monster Energy",
+       "category": "Energy Drinks",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1782187108652-432344162.jpg",
+       "img": "/assets/items/47.webp"
+      },
+      {
+       "id": 48,
+       "name": "Monster Energy Ultra",
+       "category": "Energy Drinks",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1782188128627-144637832.jpg",
+       "img": "/assets/items/48.webp"
+      },
+      {
+       "id": 49,
+       "name": "Kesar Badam Milkshake",
+       "category": "Drinks",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1782186489109-698951055.jpg",
+       "img": "/assets/items/49.webp"
+      },
+      {
+       "id": 50,
+       "name": "Red Bull",
+       "category": "Energy Drinks",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1782187364177-346784157.jpg",
+       "img": "/assets/items/50.webp"
+      },
+      {
+       "id": 51,
+       "name": "Strawberry Ice Cream",
+       "category": "Ice Cream",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1782358130015-357230362.jpg",
+       "img": "/assets/items/51.webp"
+      },
+      {
+       "id": 52,
+       "name": "Butterscotch Bliss",
+       "category": "Ice Cream",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1782358543644-599266116.jpg",
+       "img": "/assets/items/52.webp"
+      },
+      {
+       "id": 53,
+       "name": "American Nuts",
+       "category": "Ice Cream",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1782359897216-578501154.jpg",
+       "img": "/assets/items/53.webp"
+      },
+      {
+       "id": 54,
+       "name": "Onion pizza",
+       "category": "Pizzas & Fries",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783602003499-555359202.jpg",
+       "img": "/assets/items/54.webp"
+      },
+      {
+       "id": 55,
+       "name": "Capicum Pizza",
+       "category": "Pizzas & Fries",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783602331276-539369534.jpg",
+       "img": "/assets/items/55.webp"
+      },
+      {
+       "id": 58,
+       "name": "Paneer Pizza",
+       "category": "Pizzas & Fries",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783603818001-776531999.jpg",
+       "img": "/assets/items/58.webp"
+      },
+      {
+       "id": 62,
+       "name": "Cheese Burger",
+       "category": "Burgers & Sandwiches",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783604784920-650771037.jpg",
+       "img": "/assets/items/62.webp"
+      },
+      {
+       "id": 64,
+       "name": "Tomato + Sweet Corn Pizza",
+       "category": "Pizzas & Fries",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783605647297-514128029.jpg",
+       "img": "/assets/items/64.webp"
+      },
+      {
+       "id": 73,
+       "name": "Finger Chips",
+       "category": "Pizzas & Fries",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783608929233-768714189.jpg",
+       "img": "/assets/items/73.webp"
+      },
+      {
+       "id": 74,
+       "name": "Pattis",
+       "category": "Burgers & Sandwiches",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783609251300-882157142.jpg",
+       "img": "/assets/items/74.webp"
+      },
+      {
+       "id": 87,
+       "name": "Salted Peanuts",
+       "category": "Bujia",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783695552916-635120367.jpg",
+       "img": "/assets/items/87.webp"
+      },
+      {
+       "id": 88,
+       "name": "Khatta Meetha",
+       "category": "Bujia",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783695762697-517763450.jpg",
+       "img": "/assets/items/88.webp"
+      },
+      {
+       "id": 89,
+       "name": "Moong Dal",
+       "category": "Bujia",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783695841234-676788276.jpg",
+       "img": "/assets/items/89.webp"
+      },
+      {
+       "id": 90,
+       "name": "Nutty Tasty Peanuts",
+       "category": "Bujia",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783695975751-157033683.jpg",
+       "img": "/assets/items/90.webp"
+      },
+      {
+       "id": 91,
+       "name": "Chana Dal",
+       "category": "Bujia",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783696073253-416809551.jpg",
+       "img": "/assets/items/91.webp"
+      },
+      {
+       "id": 92,
+       "name": "All In One",
+       "category": "Bujia",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783696161054-622378333.jpg",
+       "img": "/assets/items/92.webp"
+      },
+      {
+       "id": 93,
+       "name": "Aloo Bhujia",
+       "category": "Bujia",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783696266079-558235703.jpg",
+       "img": "/assets/items/93.webp"
+      },
+      {
+       "id": 94,
+       "name": "Bikaneri Bhujia",
+       "category": "Bujia",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783696390890-938173161.jpg",
+       "img": "/assets/items/94.webp"
+      },
+      {
+       "id": 95,
+       "name": "Bhujia",
+       "category": "Bujia",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783697352840-329299995.jpg",
+       "img": "/assets/items/95.webp"
+      },
+      {
+       "id": 96,
+       "name": "Panchrattan",
+       "category": "Bujia",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783697670118-765797570.jpg",
+       "img": "/assets/items/96.webp"
+      },
+      {
+       "id": 97,
+       "name": "Navrattan",
+       "category": "Bujia",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783697866868-580867531.jpg",
+       "img": "/assets/items/97.webp"
+      },
+      {
+       "id": 98,
+       "name": "Sour Cream & Onion Chips",
+       "category": "Chips",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783699444333-829546349.jpg",
+       "img": "/assets/items/98.webp"
+      },
+      {
+       "id": 99,
+       "name": "Pudina Treat Chips",
+       "category": "Chips",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783699514634-993649649.jpg",
+       "img": "/assets/items/99.webp"
+      },
+      {
+       "id": 100,
+       "name": "Yellow Chips",
+       "category": "Chips",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783699602979-258572122.jpg",
+       "img": "/assets/items/100.webp"
+      },
+      {
+       "id": 101,
+       "name": "Blue Mast Masala Chips",
+       "category": "Chips",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783699677905-786108766.jpg",
+       "img": "/assets/items/101.webp"
+      },
+      {
+       "id": 102,
+       "name": "Taka Tak",
+       "category": "Chips",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783699785544-71461347.jpg",
+       "img": "/assets/items/102.webp"
+      },
+      {
+       "id": 103,
+       "name": "Daimond kurkure",
+       "category": "Chips",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783699873886-690456183.jpg",
+       "img": "/assets/items/103.webp"
+      },
+      {
+       "id": 104,
+       "name": "Punjabi Tadka",
+       "category": "Chips",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783700065110-202770897.jpg",
+       "img": "/assets/items/104.webp"
+      },
+      {
+       "id": 105,
+       "name": "Maaza",
+       "category": "Cold Drinks",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783701834501-926478651.jpg",
+       "img": "/assets/items/105.webp"
+      },
+      {
+       "id": 106,
+       "name": "Slice",
+       "category": "Cold Drinks",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783702047141-966910304.jpg",
+       "img": "/assets/items/106.webp"
+      },
+      {
+       "id": 107,
+       "name": "Packed water bottle",
+       "category": "Drinks",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783702134342-141954094.jpg",
+       "img": "/assets/items/107.webp"
+      },
+      {
+       "id": 108,
+       "name": "Paneer",
+       "category": "Dairy Products",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783702688181-548577472.jpg",
+       "img": "/assets/items/108.webp"
+      },
+      {
+       "id": 109,
+       "name": "Safal Matar",
+       "category": "Dairy Products",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783703178275-384057258.jpg",
+       "img": "/assets/items/109.webp"
+      },
+      {
+       "id": 111,
+       "name": "Vanilla",
+       "category": "Ice Cream",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783703588701-116659235.jpg",
+       "img": "/assets/items/111.webp"
+      },
+      {
+       "id": 113,
+       "name": "Afghan Fruits",
+       "category": "Ice Cream",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783703861847-718845209.jpg",
+       "img": "/assets/items/113.webp"
+      },
+      {
+       "id": 114,
+       "name": "Butterscotch Corn",
+       "category": "Ice Cream",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783704147799-689032333.jpg",
+       "img": "/assets/items/114.webp"
+      },
+      {
+       "id": 115,
+       "name": "Butterscotch Gold Corn",
+       "category": "Ice Cream",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783704221879-3120903.jpg",
+       "img": "/assets/items/115.webp"
+      },
+      {
+       "id": 116,
+       "name": "Disposable Glass",
+       "category": "Others",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783704619692-261345366.jpg",
+       "img": "/assets/items/116.webp"
+      },
+      {
+       "id": 117,
+       "name": "Chocolate Cake",
+       "category": "Cake & Pastry",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783776526172-645019052.jpg",
+       "img": "/assets/items/117.webp"
+      },
+      {
+       "id": 118,
+       "name": "Vanilla Cake",
+       "category": "Cake & Pastry",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783776773858-612577456.jpg",
+       "img": "/assets/items/118.webp"
+      },
+      {
+       "id": 119,
+       "name": "Butterscotch Cake",
+       "category": "Cake & Pastry",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783776925031-69236536.jpg",
+       "img": "/assets/items/119.webp"
+      },
+      {
+       "id": 120,
+       "name": "Strawberry Cake",
+       "category": "Cake & Pastry",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783777131200-629360100.jpg",
+       "img": "/assets/items/120.webp"
+      },
+      {
+       "id": 121,
+       "name": "Pineapple Cake",
+       "category": "Cake & Pastry",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783777275358-760755711.jpg",
+       "img": "/assets/items/121.webp"
+      },
+      {
+       "id": 122,
+       "name": "2x Pastry",
+       "category": "Cake & Pastry",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783777447369-539256443.jpg",
+       "img": "/assets/items/122.webp"
+      },
+      {
+       "id": 123,
+       "name": "Snac lite",
+       "category": "Chips",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783778303856-635500780.jpg",
+       "img": "/assets/items/123.webp"
+      },
+      {
+       "id": 124,
+       "name": "Ice Cube",
+       "category": "Drinks",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783778509397-649663928.jpg",
+       "img": "/assets/items/124.webp"
+      },
+      {
+       "id": 125,
+       "name": "Mosambi Juice",
+       "category": "Shakes",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783779139666-330703491.jpg",
+       "img": "/assets/items/125.webp"
+      },
+      {
+       "id": 127,
+       "name": "Sweet Corn Chat",
+       "category": "Salads",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783780643672-316654105.jpg",
+       "img": "/assets/items/127.webp"
+      },
+      {
+       "id": 128,
+       "name": "Makkhan Bite",
+       "category": "Biscuits",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783862777110-640805901.jpg",
+       "img": "/assets/items/128.webp"
+      },
+      {
+       "id": 129,
+       "name": "Oreo",
+       "category": "Biscuits",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783863452505-810591232.jpg",
+       "img": "/assets/items/129.webp"
+      },
+      {
+       "id": 130,
+       "name": "Good Day",
+       "category": "Biscuits",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783863577068-908840405.jpg",
+       "img": "/assets/items/130.webp"
+      },
+      {
+       "id": 131,
+       "name": "American Coconut Cookies",
+       "category": "Biscuits",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783867424359-624540946.jpg",
+       "img": "/assets/items/131.webp"
+      },
+      {
+       "id": 132,
+       "name": "American Butter Cookies",
+       "category": "Biscuits",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783867763981-717597828.jpg",
+       "img": "/assets/items/132.webp"
+      },
+      {
+       "id": 133,
+       "name": "Coconut Cookies",
+       "category": "Biscuits",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783868283611-629761800.jpg",
+       "img": "/assets/items/133.webp"
+      },
+      {
+       "id": 134,
+       "name": "Jam Cookies",
+       "category": "Biscuits",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783868376149-78553082.jpg",
+       "img": "/assets/items/134.webp"
+      },
+      {
+       "id": 135,
+       "name": "Classic Bourbon",
+       "category": "Biscuits",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783868705340-109149520.jpg",
+       "img": "/assets/items/135.webp"
+      },
+      {
+       "id": 145,
+       "name": "Kele (Banana)",
+       "category": "Fruits",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784177892469-812205751.jpg",
+       "img": "/assets/items/145.webp"
+      },
+      {
+       "id": 158,
+       "name": "Paneer Chowmein",
+       "category": "Chinese",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784203528172-507160062.jpg",
+       "img": "/assets/items/158.webp"
+      },
+      {
+       "id": 159,
+       "name": "Chilli Potato",
+       "category": "Chinese",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784203733666-747923906.jpg",
+       "img": "/assets/items/159.webp"
+      },
+      {
+       "id": 160,
+       "name": "Onion + Sweet Corn",
+       "category": "Pizzas & Fries",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784285249142-174964763.jpg",
+       "img": "/assets/items/160.webp"
+      },
+      {
+       "id": 161,
+       "name": "Cheese + Paneer Pizza",
+       "category": "Pizzas & Fries",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784285378325-72557496.jpg",
+       "img": "/assets/items/161.webp"
+      },
+      {
+       "id": 184,
+       "name": "Tomato Pizza",
+       "category": "Pizzas & Fries",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784369154169-131353216.jpg",
+       "img": "/assets/items/184.webp"
+      },
+      {
+       "id": 185,
+       "name": "Sweet corn Pizza",
+       "category": "Pizzas & Fries",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784373172513-255312686.jpg",
+       "img": "/assets/items/185.webp"
+      },
+      {
+       "id": 186,
+       "name": "Tanduri Pizza",
+       "category": "Pizzas & Fries",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784373496676-921964234.jpg",
+       "img": "/assets/items/186.webp"
+      },
+      {
+       "id": 195,
+       "name": "Mix juice",
+       "category": "Juices",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784638273068-425192362.jpg",
+       "img": "/assets/items/195.webp"
+      },
+      {
+       "id": 250,
+       "name": "Hell Drink",
+       "category": "Energy Drinks",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1786007146116-468647638.jpg",
+       "img": "/assets/items/250.webp"
+      },
+      {
+       "id": 251,
+       "name": "Hell Black Cherry",
+       "category": "Cold Drinks",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1787743269364-214523581.jpg",
+       "img": "/assets/items/251.webp"
+      },
+      {
+       "id": 252,
+       "name": "Coca Cola can",
+       "category": "Cold Drinks",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1787743835797-58469968.jpg",
+       "img": "/assets/items/252.webp"
+      }
+     ]
+    },
+    {
+     "id": 6,
+     "name": "Relax Hotel",
+     "slug": "relax-hotel",
+     "items": [
+      {
+       "id": 126,
+       "name": "Chana Chat",
+       "category": "Salads",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783780492798-907367370.jpg",
+       "img": "/assets/items/126.webp"
+      },
+      {
+       "id": 202,
+       "name": "Yellow Dal",
+       "category": "Veg Gravy",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785903559258-80825080.jpg",
+       "img": "/assets/items/202.webp"
+      },
+      {
+       "id": 203,
+       "name": "Soya Tandoori Chaap",
+       "category": "Veg Food",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785905227995-410423735.jpg",
+       "img": "/assets/items/203.webp"
+      },
+      {
+       "id": 204,
+       "name": "Soya Malai Chaap",
+       "category": "Veg Food",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785905336748-600626320.jpg",
+       "img": "/assets/items/204.webp"
+      },
+      {
+       "id": 205,
+       "name": "Shahi paneer",
+       "category": "Veg Gravy",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785905532521-225379799.jpg",
+       "img": "/assets/items/205.webp"
+      },
+      {
+       "id": 206,
+       "name": "Sev Bhaji",
+       "category": "Veg Gravy",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785905649891-288981785.jpg",
+       "img": "/assets/items/206.webp"
+      },
+      {
+       "id": 207,
+       "name": "Salad",
+       "category": "Veg Food",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785905731321-927549435.jpg",
+       "img": "/assets/items/207.webp"
+      },
+      {
+       "id": 208,
+       "name": "Pyaz Roti",
+       "category": "Roti's and Naan",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785905802242-462306240.jpg",
+       "img": "/assets/items/208.webp"
+      },
+      {
+       "id": 209,
+       "name": "Pyaz Paratha",
+       "category": "Paratha",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785905991053-985832739.jpg",
+       "img": "/assets/items/209.webp"
+      },
+      {
+       "id": 210,
+       "name": "Plain Roti",
+       "category": "Roti's and Naan",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785906050398-704417735.jpg",
+       "img": "/assets/items/210.webp"
+      },
+      {
+       "id": 211,
+       "name": "Paneer Butter Masala",
+       "category": "Veg Gravy",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785906227175-131362249.jpg",
+       "img": "/assets/items/211.webp"
+      },
+      {
+       "id": 212,
+       "name": "Paneer Tikka Butter Masala",
+       "category": "Veg Gravy",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785906341494-453226672.jpg",
+       "img": "/assets/items/212.webp"
+      },
+      {
+       "id": 213,
+       "name": "Paneer Paratha",
+       "category": "Paratha",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785906437755-110261594.jpg",
+       "img": "/assets/items/213.webp"
+      },
+      {
+       "id": 214,
+       "name": "Paneer Do Pyaza",
+       "category": "Veg Gravy",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785906546005-243005077.jpg",
+       "img": "/assets/items/214.webp"
+      },
+      {
+       "id": 215,
+       "name": "Paneer Chat",
+       "category": "Veg Food",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785906627527-290582586.jpg",
+       "img": "/assets/items/215.webp"
+      },
+      {
+       "id": 216,
+       "name": "Naan",
+       "category": "Roti's and Naan",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785906740433-77079821.jpg",
+       "img": "/assets/items/216.webp"
+      },
+      {
+       "id": 217,
+       "name": "Mix Veg",
+       "category": "Veg Gravy",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785906960448-401612192.jpg",
+       "img": "/assets/items/217.webp"
+      },
+      {
+       "id": 218,
+       "name": "Mix Ryta",
+       "category": "Veg Food",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785907032065-161136551.jpg",
+       "img": "/assets/items/218.webp"
+      },
+      {
+       "id": 219,
+       "name": "Mix Roti",
+       "category": "Roti's and Naan",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785907093176-701361178.jpg",
+       "img": "/assets/items/219.webp"
+      },
+      {
+       "id": 220,
+       "name": "Mix Paratha",
+       "category": "Paratha",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785907191998-610273364.jpg",
+       "img": "/assets/items/220.webp"
+      },
+      {
+       "id": 221,
+       "name": "Messi Roti",
+       "category": "Roti's and Naan",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785907551445-392342245.jpg",
+       "img": "/assets/items/221.webp"
+      },
+      {
+       "id": 222,
+       "name": "Matar Paneer",
+       "category": "Veg Gravy",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785907672937-501560267.jpg",
+       "img": "/assets/items/222.webp"
+      },
+      {
+       "id": 223,
+       "name": "Mashroom Do Pyaza",
+       "category": "Veg Gravy",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785907985586-232035622.jpg",
+       "img": "/assets/items/223.webp"
+      },
+      {
+       "id": 224,
+       "name": "Lacha Paratha",
+       "category": "Paratha",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785908053333-724029478.jpg",
+       "img": "/assets/items/224.webp"
+      },
+      {
+       "id": 225,
+       "name": "Kadai Paneer",
+       "category": "Veg Gravy",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785908141655-431604786.jpg",
+       "img": "/assets/items/225.webp"
+      },
+      {
+       "id": 226,
+       "name": "Dal Makhni",
+       "category": "Veg Gravy",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785908234603-553075008.jpg",
+       "img": "/assets/items/226.webp"
+      },
+      {
+       "id": 227,
+       "name": "Chana Masala",
+       "category": "Veg Food",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785908360120-232470017.jpg",
+       "img": "/assets/items/227.webp"
+      },
+      {
+       "id": 228,
+       "name": "Butter Roti",
+       "category": "Roti's and Naan",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785908422118-154766908.jpg",
+       "img": "/assets/items/228.webp"
+      },
+      {
+       "id": 229,
+       "name": "Boondi Ryta",
+       "category": "Veg Food",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785908514567-960300190.jpg",
+       "img": "/assets/items/229.webp"
+      },
+      {
+       "id": 230,
+       "name": "Aalu Paratha",
+       "category": "Paratha",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785908652981-689233221.jpg",
+       "img": "/assets/items/230.webp"
+      },
+      {
+       "id": 231,
+       "name": "Anda Curry",
+       "category": "Non-Veg Gravy",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785912520197-569610955.jpg",
+       "img": "/assets/items/231.webp"
+      },
+      {
+       "id": 232,
+       "name": "Boneless KBC Pakoda",
+       "category": "Non-Veg Food",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785912782408-98456105.jpg",
+       "img": "/assets/items/232.webp"
+      },
+      {
+       "id": 233,
+       "name": "Butter chicken",
+       "category": "Non-Veg Gravy",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785912977979-807983431.jpg",
+       "img": "/assets/items/233.webp"
+      },
+      {
+       "id": 234,
+       "name": "Chicken Masala",
+       "category": "Non-Veg Gravy",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785913145715-673684535.jpg",
+       "img": "/assets/items/234.webp"
+      },
+      {
+       "id": 235,
+       "name": "Chicken Malai Tikka",
+       "category": "Non-Veg Food",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785913339427-810639104.jpg",
+       "img": "/assets/items/235.webp"
+      },
+      {
+       "id": 236,
+       "name": "Chicken Pakoda",
+       "category": "Non-Veg Food",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785913407621-394707564.jpg",
+       "img": "/assets/items/236.webp"
+      },
+      {
+       "id": 237,
+       "name": "Chicken",
+       "category": "Non-Veg Gravy",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785913532853-740619367.jpg",
+       "img": "/assets/items/237.webp"
+      },
+      {
+       "id": 238,
+       "name": "Chicken Tikka",
+       "category": "Non-Veg Food",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785913631580-295129744.jpg",
+       "img": "/assets/items/238.webp"
+      },
+      {
+       "id": 239,
+       "name": "Chilly Chicken",
+       "category": "Non-Veg Food",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785913762557-855679615.jpg",
+       "img": "/assets/items/239.webp"
+      },
+      {
+       "id": 240,
+       "name": "Chilly Chicken Boneless",
+       "category": "Non-Veg Food",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785913889411-492393724.jpg",
+       "img": "/assets/items/240.webp"
+      },
+      {
+       "id": 241,
+       "name": "Fish Curry",
+       "category": "Non-Veg Gravy",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785913953633-49757321.jpg",
+       "img": "/assets/items/241.webp"
+      },
+      {
+       "id": 242,
+       "name": "Fish Pakoda",
+       "category": "Non-Veg Food",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785914051363-89631485.jpg",
+       "img": "/assets/items/242.webp"
+      },
+      {
+       "id": 243,
+       "name": "Kadai Chicken",
+       "category": "Non-Veg Gravy",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785914150014-342838204.jpg",
+       "img": "/assets/items/243.webp"
+      },
+      {
+       "id": 244,
+       "name": "KBC Chicken Pakoda",
+       "category": "Non-Veg Food",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785914402433-397298429.jpg",
+       "img": "/assets/items/244.webp"
+      },
+      {
+       "id": 245,
+       "name": "Lemon Chicken",
+       "category": "Non-Veg Gravy",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785914615600-450929152.jpg",
+       "img": "/assets/items/245.webp"
+      },
+      {
+       "id": 246,
+       "name": "Mutton",
+       "category": "Non-Veg Gravy",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785914737839-201957362.jpg",
+       "img": "/assets/items/246.webp"
+      },
+      {
+       "id": 247,
+       "name": "Tandoori Chicken",
+       "category": "Non-Veg Food",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785914867936-119103595.jpg",
+       "img": "/assets/items/247.webp"
+      },
+      {
+       "id": 248,
+       "name": "Tarri Chicken",
+       "category": "Non-Veg Gravy",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785914990136-951620682.jpg",
+       "img": "/assets/items/248.webp"
+      },
+      {
+       "id": 249,
+       "name": "Home Style Chicken",
+       "category": "Non-Veg Gravy",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785915106594-269250591.jpg",
+       "img": "/assets/items/249.webp"
+      },
+      {
+       "id": 303,
+       "name": "KFC Chaap",
+       "category": "Non-Veg Food",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1790142711971-17107101.jpg",
+       "img": "/assets/items/303.webp"
+      },
+      {
+       "id": 304,
+       "name": "Afghani Chaap",
+       "category": "Veg Food",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1790143121871-508805953.jpg",
+       "img": "/assets/items/304.webp"
+      },
+      {
+       "id": 305,
+       "name": "Chilli Paneer",
+       "category": "Others",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1790144371179-233923516.jpg",
+       "img": "/assets/items/305.webp"
+      },
+      {
+       "id": 306,
+       "name": "Chicken Biryani",
+       "category": "Non-Veg Food",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1790144831336-995771253.jpg",
+       "img": "/assets/items/306.webp"
+      },
+      {
+       "id": 307,
+       "name": "Veg Biryani",
+       "category": "Veg Food",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1790145054635-709199416.jpg",
+       "img": "/assets/items/307.webp"
+      }
+     ]
+    },
+    {
+     "id": 1,
+     "name": "Pizza House",
+     "slug": "pizza-house",
+     "items": [
+      {
+       "id": 56,
+       "name": "Tomato Pizza",
+       "category": "Pizzas & Fries",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783603180477-682137239.jpg",
+       "img": "/assets/items/56.webp"
+      },
+      {
+       "id": 60,
+       "name": "Onion + Paneer Pizza",
+       "category": "Pizzas & Fries",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783604609017-239915606.jpg",
+       "img": "/assets/items/60.webp"
+      },
+      {
+       "id": 61,
+       "name": "Veg Burger",
+       "category": "Burgers & Sandwiches",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783604616074-729044701.jpg",
+       "img": "/assets/items/61.webp"
+      },
+      {
+       "id": 65,
+       "name": "Mix Veg Pizza",
+       "category": "Pizzas & Fries",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783606420959-627180428.jpg",
+       "img": "/assets/items/65.webp"
+      },
+      {
+       "id": 66,
+       "name": "Paneer + Corn Pizza",
+       "category": "Pizzas & Fries",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783606578658-965624241.jpg",
+       "img": "/assets/items/66.webp"
+      },
+      {
+       "id": 68,
+       "name": "Tanduri Paneer Pizza",
+       "category": "Pizzas & Fries",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783607310342-761922626.jpg",
+       "img": "/assets/items/68.webp"
+      },
+      {
+       "id": 70,
+       "name": "Paneer Makhni",
+       "category": "Pizzas & Fries",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783607876054-116976680.jpg",
+       "img": "/assets/items/70.webp"
+      },
+      {
+       "id": 71,
+       "name": "Double Cheese Pizza",
+       "category": "Pizzas & Fries",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783608161791-478403089.jpg",
+       "img": "/assets/items/71.webp"
+      },
+      {
+       "id": 162,
+       "name": "Tangy Paneer Taco",
+       "category": "Chinese",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784285757050-520990578.jpg",
+       "img": "/assets/items/162.webp"
+      },
+      {
+       "id": 163,
+       "name": "Vegi Heaven Taco",
+       "category": "Chinese",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784285810035-317867968.jpg",
+       "img": "/assets/items/163.webp"
+      },
+      {
+       "id": 166,
+       "name": "Onion Pizza",
+       "category": "Pizzas & Fries",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784364773601-879059367.jpg",
+       "img": "/assets/items/166.webp"
+      },
+      {
+       "id": 167,
+       "name": "Capicum Pizza",
+       "category": "Pizzas & Fries",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784364887403-443900379.jpg",
+       "img": "/assets/items/167.webp"
+      },
+      {
+       "id": 168,
+       "name": "Sweet Corn Pizza",
+       "category": "Pizzas & Fries",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784365075670-871421493.jpg",
+       "img": "/assets/items/168.webp"
+      },
+      {
+       "id": 169,
+       "name": "Paneer Pizza",
+       "category": "Pizzas & Fries",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784365592508-545980698.jpg",
+       "img": "/assets/items/169.webp"
+      },
+      {
+       "id": 170,
+       "name": "Onion + Capsicum",
+       "category": "Pizzas & Fries",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784365687430-852351432.jpg",
+       "img": "/assets/items/170.webp"
+      },
+      {
+       "id": 172,
+       "name": "Onion + Sweet Corn",
+       "category": "Pizzas & Fries",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784365988040-773921722.jpg",
+       "img": "/assets/items/172.webp"
+      },
+      {
+       "id": 173,
+       "name": "Tomato + Sweet Corn Pizza",
+       "category": "Pizzas & Fries",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784366257611-87014108.jpg",
+       "img": "/assets/items/173.webp"
+      },
+      {
+       "id": 174,
+       "name": "Mix Veg Pizza",
+       "category": "Pizzas & Fries",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784366532283-933465272.jpg",
+       "img": "/assets/items/174.webp"
+      },
+      {
+       "id": 176,
+       "name": "Corn Crunch Pizza",
+       "category": "Pizzas & Fries",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784367131267-574898260.jpg",
+       "img": "/assets/items/176.webp"
+      },
+      {
+       "id": 177,
+       "name": "Paneer Bite Pizza",
+       "category": "Pizzas & Fries",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784367392710-194741723.jpg",
+       "img": "/assets/items/177.webp"
+      },
+      {
+       "id": 179,
+       "name": "Spicy Treet Pizza",
+       "category": "Pizzas & Fries",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784367616060-12041808.jpg",
+       "img": "/assets/items/179.webp"
+      },
+      {
+       "id": 182,
+       "name": "Mexicen Hunger Pizza",
+       "category": "Pizzas & Fries",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784368067723-885715550.jpg",
+       "img": "/assets/items/182.webp"
+      },
+      {
+       "id": 189,
+       "name": "Cheese Burger",
+       "category": "Burgers & Sandwiches",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784620257046-788527100.jpg",
+       "img": "/assets/items/189.webp"
+      },
+      {
+       "id": 190,
+       "name": "Cheese Paneer Burger",
+       "category": "Burgers & Sandwiches",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784620541843-535560774.jpg",
+       "img": "/assets/items/190.webp"
+      },
+      {
+       "id": 191,
+       "name": "Double Veg Burger",
+       "category": "Burgers & Sandwiches",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784620744889-486068992.jpg",
+       "img": "/assets/items/191.webp"
+      },
+      {
+       "id": 192,
+       "name": "Veg Sandwich",
+       "category": "Burgers & Sandwiches",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784621816060-733380950.jpg",
+       "img": "/assets/items/192.webp"
+      },
+      {
+       "id": 193,
+       "name": "Paneer Sandwich",
+       "category": "Burgers & Sandwiches",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784621908101-126446236.jpg",
+       "img": "/assets/items/193.webp"
+      },
+      {
+       "id": 194,
+       "name": "Cheese Paneer Sandwich",
+       "category": "Burgers & Sandwiches",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784622014331-838630593.jpg",
+       "img": "/assets/items/194.webp"
+      }
+     ]
+    },
+    {
+     "id": 4,
+     "name": "Veg",
+     "slug": "veg",
+     "items": [
+      {
+       "id": 136,
+       "name": "Aalu (Potato)",
+       "category": "Vegetables",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784176799589-960526956.jpg",
+       "img": "/assets/items/136.webp"
+      },
+      {
+       "id": 137,
+       "name": "Tamatar (Tomato)",
+       "category": "Vegetables",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784177129973-463558367.jpg",
+       "img": "/assets/items/137.webp"
+      },
+      {
+       "id": 138,
+       "name": "Hari Mirch",
+       "category": "Vegetables",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784177257177-853622836.jpg",
+       "img": "/assets/items/138.webp"
+      },
+      {
+       "id": 139,
+       "name": "Tez Hari Mirch",
+       "category": "Vegetables",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784177366964-631317026.jpg",
+       "img": "/assets/items/139.webp"
+      },
+      {
+       "id": 140,
+       "name": "Nimbu(Lemon)",
+       "category": "Vegetables",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784177500738-473968984.jpg",
+       "img": "/assets/items/140.webp"
+      },
+      {
+       "id": 141,
+       "name": "Bindi",
+       "category": "Vegetables",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784177624947-292303273.jpg",
+       "img": "/assets/items/141.webp"
+      },
+      {
+       "id": 142,
+       "name": "Kheera",
+       "category": "Vegetables",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784177690548-224814777.jpg",
+       "img": "/assets/items/142.webp"
+      },
+      {
+       "id": 143,
+       "name": "Giya",
+       "category": "Vegetables",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784177745726-821706489.jpg",
+       "img": "/assets/items/143.webp"
+      },
+      {
+       "id": 144,
+       "name": "Pyaz (Onion)",
+       "category": "Vegetables",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784177815116-706461116.jpg",
+       "img": "/assets/items/144.webp"
+      },
+      {
+       "id": 146,
+       "name": "Lasan",
+       "category": "Vegetables",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784177961405-327566643.jpg",
+       "img": "/assets/items/146.webp"
+      },
+      {
+       "id": 147,
+       "name": "Papita",
+       "category": "Fruits",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784178038275-951179676.jpg",
+       "img": "/assets/items/147.webp"
+      },
+      {
+       "id": 148,
+       "name": "Apple",
+       "category": "Fruits",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784178152642-812559061.jpg",
+       "img": "/assets/items/148.webp"
+      },
+      {
+       "id": 150,
+       "name": "Mosami",
+       "category": "Fruits",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784178310360-343966034.jpg",
+       "img": "/assets/items/150.webp"
+      },
+      {
+       "id": 151,
+       "name": "Shimla Mirchi",
+       "category": "Vegetables",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784178394209-260479172.jpg",
+       "img": "/assets/items/151.webp"
+      },
+      {
+       "id": 152,
+       "name": "Karela",
+       "category": "Vegetables",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784178480862-408103877.jpg",
+       "img": "/assets/items/152.webp"
+      },
+      {
+       "id": 153,
+       "name": "Tinda",
+       "category": "Vegetables",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784178565362-791851267.jpg",
+       "img": "/assets/items/153.webp"
+      },
+      {
+       "id": 154,
+       "name": "Tori",
+       "category": "Vegetables",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784178641966-386258811.jpg",
+       "img": "/assets/items/154.webp"
+      },
+      {
+       "id": 155,
+       "name": "Arbi",
+       "category": "Vegetables",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784178700510-128257219.jpg",
+       "img": "/assets/items/155.webp"
+      },
+      {
+       "id": 156,
+       "name": "Petha",
+       "category": "Vegetables",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784178770743-870007469.jpg",
+       "img": "/assets/items/156.webp"
+      },
+      {
+       "id": 157,
+       "name": "Kadu",
+       "category": "Vegetables",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784178852248-371668652.jpg",
+       "img": "/assets/items/157.webp"
+      },
+      {
+       "id": 196,
+       "name": "Kiwi",
+       "category": "Fruits",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785061582392-491868723.jpg",
+       "img": "/assets/items/196.webp"
+      },
+      {
+       "id": 197,
+       "name": "Bagan",
+       "category": "Vegetables",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785062678176-108813508.jpg",
+       "img": "/assets/items/197.webp"
+      },
+      {
+       "id": 198,
+       "name": "Adrak",
+       "category": "Vegetables",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785063029796-50198486.jpg",
+       "img": "/assets/items/198.webp"
+      },
+      {
+       "id": 199,
+       "name": "Makki",
+       "category": "Vegetables",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785063452553-38393393.jpg",
+       "img": "/assets/items/199.webp"
+      },
+      {
+       "id": 200,
+       "name": "Naspathi",
+       "category": "Fruits",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785063914945-471552907.jpg",
+       "img": "/assets/items/200.webp"
+      },
+      {
+       "id": 201,
+       "name": "Anar",
+       "category": "Fruits",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1785064350597-299782305.jpg",
+       "img": "/assets/items/201.webp"
+      }
+     ]
+    },
+    {
+     "id": 9,
+     "name": "Manoj Misthan",
+     "slug": "manoj-misthan",
+     "items": [
+      {
+       "id": 75,
+       "name": "Samosa",
+       "category": "Snacks 1",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783609743621-634598883.jpg",
+       "img": "/assets/items/75.webp"
+      },
+      {
+       "id": 309,
+       "name": "Bread Pakoda",
+       "category": "Snacks 1",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1791264092479-510908721.jpg",
+       "img": "/assets/items/309.webp"
+      },
+      {
+       "id": 310,
+       "name": "Chola Samosa",
+       "category": "Snacks 1",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1791264663645-369554458.jpg",
+       "img": "/assets/items/310.webp"
+      },
+      {
+       "id": 311,
+       "name": "Pakoda Mix",
+       "category": "Snacks 1",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1791264872255-935101679.jpg",
+       "img": "/assets/items/311.webp"
+      },
+      {
+       "id": 312,
+       "name": "Paneer Pakoda",
+       "category": "Snacks 1",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1791265071693-548080008.jpg",
+       "img": "/assets/items/312.webp"
+      },
+      {
+       "id": 313,
+       "name": "Aloo Pakoda",
+       "category": "Snacks 1",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1791265739733-614314615.jpg",
+       "img": "/assets/items/313.webp"
+      },
+      {
+       "id": 314,
+       "name": "Chole Bhature",
+       "category": "Snacks 1",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1791266431503-529102303.jpg",
+       "img": "/assets/items/314.webp"
+      },
+      {
+       "id": 315,
+       "name": "Mawa Barfi",
+       "category": "Milk Sweets",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1791266764998-770123555.jpg",
+       "img": "/assets/items/315.webp"
+      },
+      {
+       "id": 317,
+       "name": "Peda",
+       "category": "Sweets",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1791267060568-936405494.jpg",
+       "img": "/assets/items/317.webp"
+      },
+      {
+       "id": 318,
+       "name": "Kalakand",
+       "category": "Sweets",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1791267561420-466036443.jpg",
+       "img": "/assets/items/318.webp"
+      },
+      {
+       "id": 319,
+       "name": "Kaju Katli",
+       "category": "Sweets",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1791267837074-432027504.jpg",
+       "img": "/assets/items/319.webp"
+      },
+      {
+       "id": 320,
+       "name": "Paneer Jalebi",
+       "category": "Sweets",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1791268254706-924053454.jpg",
+       "img": "/assets/items/320.webp"
+      },
+      {
+       "id": 321,
+       "name": "Jalebi",
+       "category": "Sweets",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1791268354093-928961646.jpg",
+       "img": "/assets/items/321.webp"
+      },
+      {
+       "id": 322,
+       "name": "Rasgulla",
+       "category": "Sweets",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1791268520232-611539840.jpg",
+       "img": "/assets/items/322.webp"
+      },
+      {
+       "id": 323,
+       "name": "Gulab Jamun",
+       "category": "Sweets",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783689452005-926747765.jpg",
+       "img": "/assets/items/323.webp"
+      },
+      {
+       "id": 324,
+       "name": "Rasmalai",
+       "category": "Sweets",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1791268800101-48861554.jpg",
+       "img": "/assets/items/324.webp"
+      },
+      {
+       "id": 325,
+       "name": "Besan Barfi",
+       "category": "Barfi",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1791269091541-76358682.jpg",
+       "img": "/assets/items/325.webp"
+      }
+     ]
+    },
+    {
+     "id": 3,
+     "name": "Sharma Misthan",
+     "slug": "sharma-misthan",
+     "items": [
+      {
+       "id": 76,
+       "name": "Rasgulla",
+       "category": "Fresh & Hot",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783689153528-860054219.jpg",
+       "img": "/assets/items/76.webp"
+      },
+      {
+       "id": 77,
+       "name": "Gulab Jamun",
+       "category": "Fresh & Hot",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783689452005-926747765.jpg",
+       "img": "/assets/items/77.webp"
+      },
+      {
+       "id": 78,
+       "name": "Kalakand",
+       "category": "Milk Sweets",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783689760517-399255277.jpg",
+       "img": "/assets/items/78.webp"
+      },
+      {
+       "id": 79,
+       "name": "Mawa Barfi",
+       "category": "Barfi",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783690396988-595928201.jpg",
+       "img": "/assets/items/79.webp"
+      },
+      {
+       "id": 80,
+       "name": "Kaju Katli",
+       "category": "Barfi",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783690641534-102054822.jpg",
+       "img": "/assets/items/80.webp"
+      },
+      {
+       "id": 81,
+       "name": "Jalebi",
+       "category": "Fresh & Hot",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783691055204-798602498.jpg",
+       "img": "/assets/items/81.webp"
+      },
+      {
+       "id": 82,
+       "name": "Besan Barfi",
+       "category": "Barfi",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783691223644-150690536.jpg",
+       "img": "/assets/items/82.webp"
+      },
+      {
+       "id": 83,
+       "name": "Boondi Laddu",
+       "category": "Laddus",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783691721322-504833848.jpg",
+       "img": "/assets/items/83.webp"
+      },
+      {
+       "id": 84,
+       "name": "Boondi",
+       "category": "Traditional",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783692012815-897130422.jpg",
+       "img": "/assets/items/84.webp"
+      },
+      {
+       "id": 85,
+       "name": "Peda",
+       "category": "Milk Sweets",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783692372615-627638429.jpg",
+       "img": "/assets/items/85.webp"
+      },
+      {
+       "id": 86,
+       "name": "Soan Papdi",
+       "category": "Traditional",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1783692928089-819058368.jpg",
+       "img": "/assets/items/86.webp"
+      },
+      {
+       "id": 188,
+       "name": "Mawa Gewar",
+       "category": "Sweets",
+       "available": false,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784464836397-115992061.jpg",
+       "img": "/assets/items/188.webp"
+      }
+     ]
+    },
+    {
+     "id": 7,
+     "name": "Balaji Fruit Chaat",
+     "slug": "balaji-fruit-chaat",
+     "items": [
+      {
+       "id": 149,
+       "name": "Nariyal Pani (coconut)",
+       "category": "Chaat !",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1784178240563-693835446.jpg",
+       "img": "/assets/items/149.webp"
+      },
+      {
+       "id": 254,
+       "name": "Mix Chana Chaat",
+       "category": "Chaat !",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1788676631507-789494656.jpg",
+       "img": "/assets/items/254.webp"
+      },
+      {
+       "id": 255,
+       "name": "Sweet Corn Chaat",
+       "category": "Chaat !",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1788676874340-307469759.jpg",
+       "img": "/assets/items/255.webp"
+      },
+      {
+       "id": 256,
+       "name": "Peanut Chaat",
+       "category": "Chaat !",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1788677020137-150211172.jpg",
+       "img": "/assets/items/256.webp"
+      },
+      {
+       "id": 257,
+       "name": "Mix Furit Chaat",
+       "category": "Chaat !",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1788677313650-298839705.jpg",
+       "img": "/assets/items/257.webp"
+      },
+      {
+       "id": 258,
+       "name": "Pine Apple Chaat",
+       "category": "Chaat !",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1788677587435-837703636.jpg",
+       "img": "/assets/items/258.webp"
+      },
+      {
+       "id": 259,
+       "name": "Apple Chaat",
+       "category": "Chaat !",
+       "available": true,
+       "src": "https://villkro-images-prod.s3.ap-south-1.amazonaws.com/image-1788677742281-210004100.jpg",
+       "img": "/assets/items/259.webp"
+      }
+     ]
+    }
+   ]
+  },
+  "agroha-haryana": {
+   "centre": [
+    29.3303,
+    75.62748
+   ],
+   "shops": []
+  }
+ }
+}

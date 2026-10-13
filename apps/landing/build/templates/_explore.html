@@ -1,0 +1,39 @@
+{% import "_macros.html" as m with context %}
+{% set lang = t.lang %}
+<section class="explore" aria-labelledby="explore-h">
+  <div class="container">
+    <h2 id="explore-h">{{ t.explore.title }}</h2>
+    <div class="explore-list">
+      <details class="acc">
+        <summary>{{ t.explore.dishes }}{{ m.icon("i-chev") }}</summary>
+        <ul class="links">
+          {% for d in gk.dishes %}<li><a href="{{ d.url }}">{{ d[lang].name }}{{ t.explore.dish_suffix }}</a></li>{% endfor %}
+        </ul>
+      </details>
+      <details class="acc">
+        <summary>{{ t.explore.shops }}{{ m.icon("i-chev") }}</summary>
+        <ul class="links">
+          {% for s in gk.shops %}<li><a href="{{ s.url }}">{{ s.name }}</a></li>{% endfor %}
+        </ul>
+      </details>
+      <details class="acc">
+        <summary>{{ t.explore.villages }}{{ m.icon("i-chev") }}</summary>
+        <ul class="links plain">
+          {% for v in gk.villages %}<li>{{ S.VILLAGES_HI[v] if lang == 'hi' else v }}</li>{% endfor %}
+          <li><a href="{{ pre }}{{ gk.url }}#villages">{{ t.explore.villages_link }}</a></li>
+        </ul>
+      </details>
+      <details class="acc">
+        <summary>{{ t.explore.company }}{{ m.icon("i-chev") }}</summary>
+        <ul class="links">
+          <li><a href="{{ pre }}/about/">{{ t.foot.about }}</a></li>
+          <li><a href="{{ pre }}/sell-on-villkro/">{{ t.foot.sell }}</a></li>
+          <li><a href="{{ pre }}/deliver-with-villkro/">{{ t.foot.deliver }}</a></li>
+          <li><a href="{{ pre }}/app/">{{ t.foot.app }}</a></li>
+          <li><a href="{{ pre }}{{ gk.url }}">{{ t.foot.gorakhpur }}</a></li>
+          <li><a href="{{ pre }}{{ ag.url }}">{{ t.foot.agroha }}</a></li>
+        </ul>
+      </details>
+    </div>
+  </div>
+</section>

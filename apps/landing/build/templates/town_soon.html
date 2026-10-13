@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% set ta = t.agroha %}
+{% set fmt = {"shops": gk.shops|length} %}
+{% block main %}
+    <section class="page-hero">
+      <div class="container">
+        {{ m.crumbs(p) }}
+        <div class="ph-grid">
+          <div>
+            <span class="eyebrow"><span class="soon-dot"></span>{{ ta.eyebrow }}</span>
+            <h1 class="vt-title">{{ ta.h1 }}</h1>
+            <p class="lead">{{ ta.lead }}</p>
+            <div class="btn-row">
+              {{ m.wa_button(ta.want_msg, ta.want_btn) }}
+              <a class="btn btn-ghost" href="{{ pre }}/sell-on-villkro/">{{ m.icon("i-store") }}{{ ta.shop_btn }}</a>
+            </div>
+            {{ m.facts(ta.facts, fmt) }}
+          </div>
+          <div class="ph-orb" aria-hidden="true">
+            <div class="orbit"></div><div class="orbit o2"></div>
+            <div class="orb-core soon">{{ m.icon("i-clock") }}<span>{{ t.soon }}</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" aria-labelledby="now-h">
+      <div class="container stack">
+        <div class="panel reveal">
+          <h2 id="now-h">{{ ta.now_h }}</h2>
+          {% for s in ta.now %}<p>{{ s.format(**fmt) }}</p>{% endfor %}
+        </div>
+        <div class="two-col">
+          <div class="panel reveal">
+            <h2>{{ ta.want_h }}</h2>
+            <p>{{ ta.want_p }}</p>
+            {{ m.wa_button(ta.want_msg, ta.want_btn) }}
+          </div>
+          <div class="panel reveal">
+            <h2>{{ ta.shop_h }}</h2>
+            <p>{{ ta.shop_p }}</p>
+            <a class="btn btn-ghost" href="{{ pre }}/sell-on-villkro/">{{ m.icon("i-store") }}{{ ta.shop_btn }}</a>
+          </div>
+        </div>
+        <div class="panel reveal">
+          <h2>{{ ta.will_h }}</h2>
+          <div class="tiles">
+            {% for w in ta.will %}
+            <article class="tile-card"><div class="icon">{{ m.icon(["i-basket", "i-bowl", "i-candy", "i-carrot"][loop.index0]) }}</div><h3>{{ w[0] }}</h3><p>{{ w[1] }}</p></article>
+            {% endfor %}
+          </div>
+          <p class="small-note">{{ ta.will_note }}</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="container">
+        <div class="related stagger">
+          {{ m.area_card(pre ~ gk.url, ta.gk_h, "live", ta.gk_p.format(**fmt), ta.gk_go) }}
+          <a class="area" href="{{ pre }}/app/">
+            <div class="top"><h3>{{ ta.app_h }}</h3></div>
+            <p>{{ ta.app_p }}</p>
+            <span class="go">{{ ta.app_go }} {{ m.icon("i-arrow") }}</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    {{ m.cta() }}
+{% endblock %}

@@ -2,6 +2,9 @@ node_modules
 .expo
 dist
 build
+# The website generator lives in a folder called build; keep it (not its Python cache).
+!apps/landing/build/
+apps/landing/build/__pycache__/
 .env
 .env.local
 .env.*

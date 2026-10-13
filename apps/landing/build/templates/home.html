@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% set h = t.home %}
+{% set lang = t.lang %}
+{% set fmt = {"shops": gk.shops|length, "items": gk.items_round, "villages": gk.villages|length} %}
+{% set phone_shops = (gk.shops|selectattr("name", "in", ["Sharma Misthan", "Pizza House", "Relax Hotel"])|list or gk.shops[:3]) %}
+{% set cart_shop = phone_shops[0] %}
+{% block body_class %}page home{% endblock %}
+{% block main %}
+    <section class="hero">
+      <div class="speed" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <span class="eyebrow"><span class="live-dot"></span><span>{{ h.eyebrow|safe }}</span></span>
+          <h1>
+            <span class="line"><span><span class="rot grad-static" id="rot" data-words="{{ h.words }}">{{ h.words.split("|")[0] }}</span></span></span>
+            <span class="line"><span>{{ h.line2 }}</span></span>
+            <span class="line"><span>{{ h.line3 }}</span></span>
+          </h1>
+          <p class="lead">{{ h.lead.format(**fmt) }}</p>
+          {{ m.stores() }}
+          <div class="hero-meta">
+            {% for x in h.meta %}<span>{{ m.icon("i-check") }}{{ x }}</span>{% endfor %}
+          </div>
+        </div>
+
+        <!-- Animated phone: browse, cart, live tracking (illustration with real shops and items) -->
+        <div class="phone-wrap" aria-hidden="true">
+          <div class="phone-glow"></div>
+          <div class="orbit"></div>
+          <div class="orbit o2"></div>
+          <div class="chip c1"><span class="ic"><svg><use href="#i-okc"/></svg></span><span>{{ h.chip1 }}<small>{{ h.chip1_s }}</small></span></div>
+          <div class="chip c2"><span class="ic"><svg><use href="#i-nav"/></svg></span><span>{{ h.chip2 }}<small>{{ h.chip2_s }}</small></span></div>
+          {% for f in ctx.hero[:3] %}
+          <div class="food f{{ loop.index }}"><img src="{{ f.img|thumb(true) }}" alt="" width="160" height="160"><span>{{ f.name }}<small>{{ f.shop }}</small></span></div>
+          {% endfor %}
+
+          <div class="phone" id="phone">
+            <div class="screen">
+              <div class="notch"></div>
+              <div class="s-status"><span>9:41</span><i></i></div>
+
+              <div class="scr active" data-screen="home">
+                <div class="a-top">
+                  <div class="a-loc"><small>Deliver to</small><strong><svg><use href="#i-pin"/></svg>Gorakhpur, Haryana</strong></div>
+                  <div class="a-cart"><svg><use href="#i-bag"/></svg><b id="cartBadge">2</b></div>
+                </div>
+                <div class="a-search"><svg><use href="#i-search"/></svg>Search sweets, pizza, groceries</div>
+                <div class="a-chips">
+                  {% for d in gk.dishes[:4] %}<span{% if loop.first %} class="on"{% endif %}><img src="{{ d.cover[0].img|thumb(true) }}" alt="" width="40" height="40">{{ d.en.short }}</span>{% endfor %}
+                </div>
+                <div class="a-title">Shops near you <small>See all</small></div>
+                {% for s in phone_shops %}
+                <div class="a-shop"><img class="tile" src="{{ s.cover[0].img|thumb(true) }}" alt="" width="48" height="48"><div><strong>{{ s.name }}</strong><small><i></i>{{ s.label }}</small></div>{% if loop.first %}<span class="a-add" id="addBtn">ADD</span>{% endif %}</div>
+                {% endfor %}
+                <div class="a-tabbar">
+                  <span class="on"><svg><use href="#i-home"/></svg>Home</span>
+                  <span><svg><use href="#i-search"/></svg>Search</span>
+                  <span><svg><use href="#i-bag"/></svg>Orders</span>
+                  <span><svg><use href="#i-user"/></svg>Profile</span>
+                </div>
+              </div>
+
+              <div class="scr" data-screen="cart">
+                <div class="a-head"><span class="back">&#8592;</span>Your cart</div>
+                <div class="a-card">
+                  <h4>Sample order · {{ cart_shop.name }}</h4>
+                  {% for it in cart_shop['items'][:3] %}
+                  <div class="a-item"><img src="{{ it.img|thumb(true) }}" alt="" width="40" height="40"><span>{{ it.name }}<small>{{ it.category }}</small></span><span class="a-qty">&minus; {{ loop.index if loop.index < 3 else 1 }} +</span></div>
+                  {% endfor %}
+                </div>
+                <div class="a-card">
+                  <h4>Pay with</h4>
+                  <div class="a-pay"><span class="on">UPI</span><span>Cash</span></div>
+                </div>
+                <div class="a-card">
+                  <div class="a-row"><span>Deliver to</span><b>Home · Gorakhpur</b></div>
+                  <div class="a-row"><span>Total</span><b>Shown before you pay</b></div>
+                </div>
+                <div class="a-cta" id="payBtn">Place order</div>
+              </div>
+
+              <div class="scr" data-screen="track">
+                <div class="a-map">
+                  <span class="s-pill"><i></i>Live tracking</span>
+                  <svg viewBox="0 0 300 210" preserveAspectRatio="xMidYMid slice">
+                    <rect width="300" height="210" fill="#E6ECDD"/>
+                    <path d="M0 140 H300 M0 72 H300 M84 0 V210 M206 0 V210" stroke="#fff" stroke-width="12"/>
+                    <rect x="100" y="16" width="86" height="40" rx="6" fill="#D5E2CA"/>
+                    <rect x="220" y="86" width="70" height="40" rx="6" fill="#D5E2CA"/>
+                    <rect x="12" y="86" width="58" height="40" rx="6" fill="#DCE5D2"/>
+                    <circle cx="246" cy="182" r="22" fill="#CDE0C0"/>
+                    <path d="M40 170 C 90 170, 90 105, 150 105 S 222 52, 262 52" fill="none" stroke="#C9C9C9" stroke-width="4" stroke-linecap="round" stroke-dasharray="2 8"/>
+                    <path class="route-live" d="M40 170 C 90 170, 90 105, 150 105 S 222 52, 262 52" fill="none" stroke="#FF6A00" stroke-width="4" stroke-linecap="round"/>
+                    <g transform="translate(40 170)"><circle r="11" fill="#0E1116"/><text y="4" text-anchor="middle" font-size="11">&#127978;</text></g>
+                    <g transform="translate(262 52)"><circle r="11" fill="#FF6A00"/><text y="4" text-anchor="middle" font-size="11">&#127968;</text></g>
+                    <g class="rider"><circle r="13" fill="#fff" stroke="#FF6A00" stroke-width="3"/><text y="4.5" text-anchor="middle" font-size="12">&#128757;</text></g>
+                  </svg>
+                </div>
+                <div class="a-sheet">
+                  <span class="grab"></span>
+                  <div class="a-status">
+                    <div><small>Your order</small><strong id="trackTitle">Order accepted</strong></div>
+                    <div class="a-live">Live<span>status</span></div>
+                  </div>
+                  <div class="a-bar"><i id="trackBar"></i></div>
+                  <ul class="a-steps">
+                    <li><span class="dot"><svg><use href="#i-check"/></svg></span>Order accepted</li>
+                    <li><span class="dot"><svg><use href="#i-check"/></svg></span>Packed at the shop</li>
+                    <li><span class="dot"><svg><use href="#i-check"/></svg></span>Out for delivery</li>
+                    <li><span class="dot"><svg><use href="#i-check"/></svg></span>Delivered</li>
+                  </ul>
+                  <div class="a-rider"><em>&#128757;</em><span>Your rider<small>On the way to you</small></span><b><svg><use href="#i-phone"/></svg></b></div>
+                </div>
+              </div>
+            </div>
+            <div class="screen-dots" id="screenDots"><i class="on"></i><i></i><i></i></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="sheets">
+      <span class="anchor" id="dishes"></span>
+      <section class="sheet">
+        <div class="container">
+          <div class="head reveal">
+            <span class="kicker">{{ h.dishes_k }}</span>
+            <h2>{{ h.dishes_h|safe }}</h2>
+            <p class="sub">{{ h.dishes_sub }}</p>
+          </div>
+          <div class="dish-rail stagger">
+            {% for d in gk.dishes %}{{ m.dish_card(d, lang) }}{% endfor %}
+          </div>
+        </div>
+      </section>
+
+      <span class="anchor" id="shops"></span>
+      <section class="sheet alt">
+        <div class="container">
+          <div class="head reveal">
+            <span class="kicker">{{ h.shops_k }}</span>
+            <h2>{{ h.shops_h|safe }}</h2>
+            <p class="sub">{{ h.shops_sub.format(**fmt) }}</p>
+          </div>
+          <div class="shop-grid stagger">
+            {% for s in gk.shops %}{{ m.shop_card(s, h.shop_items, h.shop_go) }}{% endfor %}
+          </div>
+        </div>
+      </section>
+
+      <span class="anchor" id="areas"></span>
+      <section class="sheet">
+        <div class="container">
+          <div class="head reveal">
+            <span class="kicker">{{ h.areas_k }}</span>
+            <h2>{{ h.areas_h|safe }}</h2>
+            <p class="sub">{{ h.areas_sub }}</p>
+          </div>
+          <div class="areas-grid">
+            <div class="map-col">
+              {% include "_map.html" %}
+              <div class="legend" aria-hidden="true"><span><i></i>{{ h.legend[0] }}</span><span><i class="h"></i>{{ h.legend[1] }}</span><span><i class="r"></i>{{ h.legend[2] }}</span><span class="note">{{ h.legend[3] }}</span></div>
+            </div>
+            <div class="area-list stagger">
+              {{ m.area_card(pre ~ gk.url, t.town.crumb, "live", h.gk_p.format(**fmt), h.gk_go) }}
+              <div class="villages-box">
+                <h3>{{ h.villages_label }}</h3>
+                <ul class="chips">{% for v in gk.villages %}<li>{{ m.icon("i-pin") }}{{ S.VILLAGES_HI[v] if lang == "hi" else v }}</li>{% endfor %}</ul>
+              </div>
+              {{ m.area_card(pre ~ ag.url, t.agroha.crumb, "soon", h.ag_p, h.ag_go) }}
+              <p class="area-note">{{ h.area_note|safe }}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <span class="anchor" id="how"></span>
+      <section class="sheet alt">
+        <div class="container">
+          <div class="head reveal">
+            <span class="kicker">{{ h.how_k }}</span>
+            <h2>{{ h.how_h|safe }}</h2>
+          </div>
+          <div class="how reveal">
+            <div class="how-line" aria-hidden="true"><i></i></div>
+            {% for step in h.how %}
+            <div class="how-step">
+              <div class="how-num">{{ loop.index }}</div>
+              <div>
+                <h3>{{ step[0] }}</h3>
+                <p>{{ step[1] }}</p>
+                <div class="mini" aria-hidden="true">
+                  {% if loop.index == 1 %}
+                  <svg viewBox="0 0 280 132">
+                    <rect x="16" y="14" width="248" height="30" rx="15" class="mk-surf"/>
+                    <circle cx="36" cy="29" r="6" fill="none" stroke="#FF9F0A" stroke-width="2.4"/><path d="m40.5 33.5 4 4" stroke="#FF9F0A" stroke-width="2.4" stroke-linecap="round"/>
+                    <rect x="54" y="25" width="90" height="8" rx="4" class="mk-bar"/>
+                    <rect class="m-scan" x="16" y="56" width="74" height="62" rx="12" fill="rgba(255,159,10,0.10)" stroke="#FF9F0A" stroke-opacity="0.6"/>
+                    {% for d in gk.dishes[:3] %}
+                    <g class="m-pop{% if not loop.first %} d{{ loop.index0 }}{% endif %}"><image href="{{ d.cover[0].img|thumb(true) }}" x="{{ 22 + loop.index0 * 87 }}" y="62" width="62" height="50" preserveAspectRatio="xMidYMid slice" clip-path="inset(0 round 10px)"/></g>
+                    {% endfor %}
+                  </svg>
+                  {% elif loop.index == 2 %}
+                  <svg viewBox="0 0 280 132">
+                    <g class="m-pop"><rect x="16" y="14" width="160" height="22" rx="8" class="mk-surf"/><rect x="26" y="22" width="80" height="6" rx="3" class="mk-bar"/><rect x="146" y="20" width="22" height="10" rx="5" fill="#FF6A00"/></g>
+                    <g class="m-pop d1"><rect x="16" y="42" width="160" height="22" rx="8" class="mk-surf"/><rect x="26" y="50" width="60" height="6" rx="3" class="mk-bar"/><rect x="146" y="48" width="22" height="10" rx="5" fill="#FF6A00"/></g>
+                    <g class="m-pop d2"><rect x="16" y="70" width="160" height="22" rx="8" class="mk-surf"/><rect x="26" y="78" width="70" height="6" rx="3" class="mk-bar"/><rect x="146" y="76" width="22" height="10" rx="5" fill="#FF6A00"/></g>
+                    <rect x="16" y="102" width="160" height="20" rx="10" fill="url(#btnGrad)"/>
+                    <defs><linearGradient id="btnGrad" x1="0" x2="1"><stop offset="0" stop-color="#FFD60A"/><stop offset="0.5" stop-color="#FF9F0A"/><stop offset="1" stop-color="#FF3B1F"/></linearGradient></defs>
+                    <circle cx="226" cy="66" r="34" fill="rgba(47,216,146,0.10)" stroke="#2FD892" stroke-opacity="0.5"/>
+                    <path class="m-pop d2" d="m212 66 10 10 18-20" fill="none" stroke="#1FB574" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  {% else %}
+                  <svg class="smil" viewBox="0 0 280 132">
+                    <path id="miniRoute" d="M30 104 C 80 104, 90 40, 150 52 S 220 30, 250 30" fill="none" class="mk-route" stroke-width="4" stroke-linecap="round" stroke-dasharray="2 9"/>
+                    <rect x="20" y="94" width="20" height="20" rx="5" fill="#FF9F0A"/>
+                    <circle cx="250" cy="30" r="12" fill="rgba(255,106,0,0.2)"/><circle cx="250" cy="30" r="6" class="mk-home"/>
+                    <circle r="11" fill="#FF3B1F" opacity="0.35"><animateMotion dur="3.6s" repeatCount="indefinite"><mpath href="#miniRoute"/></animateMotion></circle>
+                    <circle r="6" fill="#FF3B1F"><animateMotion dur="3.6s" repeatCount="indefinite"><mpath href="#miniRoute"/></animateMotion></circle>
+                  </svg>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+
+      <span class="anchor" id="features"></span>
+      <section class="sheet">
+        <div class="container">
+          <div class="head reveal">
+            <span class="kicker">{{ h.feat_k }}</span>
+            <h2>{{ h.feat_h|safe }}</h2>
+            <p class="sub">{{ h.feat_sub }}</p>
+          </div>
+          <div class="bento stagger">
+            <article class="card wide">
+              <div class="icon">{{ m.icon("i-store") }}</div>
+              <h3>{{ h.feat.shops[0] }}</h3>
+              <p>{{ h.feat.shops[1] }}</p>
+              <div class="shops-row" aria-hidden="true">
+                {% for s in gk.shops[:4] %}<span><img src="{{ s.cover[0].img|thumb(true) }}" alt="" width="44" height="44" loading="lazy">{{ s.name }}</span>{% endfor %}
+              </div>
+            </article>
+            <article class="card wide">
+              <div class="icon">{{ m.icon("i-pin") }}</div>
+              <h3>{{ h.feat.track[0] }}</h3>
+              <p>{{ h.feat.track[1] }}</p>
+              <div class="mini-track" aria-hidden="true">
+                <svg class="smil" viewBox="0 0 400 86" preserveAspectRatio="xMidYMid slice">
+                  <path id="trackLine" d="M24 62 C 110 62, 120 24, 200 30 S 320 60, 376 26" fill="none" stroke="rgba(255,159,10,0.5)" stroke-width="3" stroke-linecap="round" class="flow"/>
+                  <rect x="14" y="52" width="20" height="20" rx="5" fill="#FF9F0A"/>
+                  <circle cx="376" cy="26" r="7" class="mk-home"/><circle cx="376" cy="26" r="14" fill="none" class="mk-ring pulse"/>
+                  <circle r="7" fill="#FF3B1F"><animateMotion dur="4s" repeatCount="indefinite"><mpath href="#trackLine"/></animateMotion></circle>
+                </svg>
+              </div>
+            </article>
+            <article class="card">
+              <div class="icon">{{ m.icon("i-wallet") }}</div>
+              <h3>{{ h.feat.pay[0] }}</h3>
+              <p>{{ h.feat.pay[1] }}</p>
+              <div class="toggle" aria-hidden="true"><i></i><span>UPI</span><span>Cash</span></div>
+            </article>
+            <article class="card">
+              <div class="icon">{{ m.icon("i-home") }}</div>
+              <h3>{{ h.feat.addr[0] }}</h3>
+              <p>{{ h.feat.addr[1] }}</p>
+            </article>
+            <article class="card">
+              <div class="icon">{{ m.icon("i-shield") }}</div>
+              <h3>{{ h.feat.data[0] }}</h3>
+              <p>{{ h.feat.data[1] }}</p>
+            </article>
+            <article class="card wide">
+              <div class="icon">{{ m.icon("i-bell") }}</div>
+              <h3>{{ h.feat.notif[0] }}</h3>
+              <p>{{ h.feat.notif[1] }}</p>
+              <div class="notif" aria-hidden="true">
+                <div><img src="/assets/logo.webp" alt="" width="22" height="22">{{ h.notifs[0] }}<span>{{ h.now }}</span></div>
+                <div><img src="/assets/logo.webp" alt="" width="22" height="22">{{ h.notifs[1] }}</div>
+                <div><img src="/assets/logo.webp" alt="" width="22" height="22">{{ h.notifs[2] }}</div>
+              </div>
+            </article>
+            <article class="card wide">
+              <div class="icon">{{ m.icon("i-gift") }}</div>
+              <h3>{{ h.feat.offers[0] }}</h3>
+              <p>{{ h.feat.offers[1] }}</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <span class="anchor" id="partners"></span>
+      <section class="sheet ink">
+        <div class="container">
+          <div class="head reveal">
+            <span class="kicker">{{ h.partner_k }}</span>
+            <h2>{{ h.partner_h|safe }}</h2>
+            <p class="sub">{{ h.partner_sub }}</p>
+          </div>
+          <div class="partner-grid stagger">
+            <a class="partner" href="{{ pre }}/sell-on-villkro/">
+              <span class="icon">{{ m.icon("i-store") }}</span>
+              <h3>{{ h.sell_h }}</h3>
+              <p>{{ h.sell_p }}</p>
+              <span class="go">{{ h.sell_h }} {{ m.icon("i-arrow") }}</span>
+            </a>
+            <a class="partner" href="{{ pre }}/deliver-with-villkro/">
+              <span class="icon">{{ m.icon("i-scooter") }}</span>
+              <h3>{{ h.deliver_h }}</h3>
+              <p>{{ h.deliver_p }}</p>
+              <span class="go">{{ h.deliver_h }} {{ m.icon("i-arrow") }}</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section class="sheet alt last" id="faq">
+        {{ m.cta(h.cta_h, h.cta_sub) }}
+        <div class="container faq-wrap">
+          <div class="head reveal">
+            <span class="kicker">{{ h.faq_k }}</span>
+            <h2>{{ h.faq_h|safe }}</h2>
+          </div>
+          <div class="faq stagger">
+            {% for q in h.faq %}
+            <details>
+              <summary>{{ q[0] }}</summary>
+              <div class="ans">{{ q[1]|safe }}</div>
+            </details>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+    </div>
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% set d = ctx.dish %}
+{% set e = d.en %}
+{% block body_class %}page catalog{% endblock %}
+{% block main %}
+    <section class="page-hero">
+      <div class="container">
+        {{ m.crumbs(p) }}
+        <div class="ph-grid">
+          <div>
+            <span class="eyebrow">{{ m.icon(d.icon) }}{{ d['items']|length }} items · {{ d.shops|length }} {{ "shop" if d.shops|length == 1 else "shops" }} · Gorakhpur</span>
+            <h1 class="vt-title">{{ e.name }} delivery in Gorakhpur, Haryana</h1>
+            <p class="lead">{{ e.intro }}</p>
+            {{ m.stores() }}
+            <div class="facts">
+              {% for s in d.shops %}<a class="fact-link" href="{{ s.url }}">{{ m.icon("i-store") }}{{ s.name }}</a>{% endfor %}
+            </div>
+          </div>
+          <div class="mosaic dish-mosaic" aria-hidden="true">
+            {% for it in d.cover %}<figure class="tile-{{ loop.index }}"><img {% if loop.first %}class="vt-img"{% endif %} src="{{ it.img }}" alt="" width="320" height="320"><figcaption>{{ it.name }}</figcaption></figure>{% endfor %}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" aria-labelledby="items-h">
+      <div class="container">
+        <div class="head left reveal">
+          <h2 id="items-h">{{ e.name }} on VillKro in Gorakhpur</h2>
+          <p class="sub">{{ t.catalog_note.format(date=ctx.fetched) }}</p>
+        </div>
+        <ul class="item-grid stagger" role="list">
+          {% for it in d['items'] %}{{ m.item_card(it, True) }}{% endfor %}
+        </ul>
+      </div>
+    </section>
+
+    <section class="block" aria-labelledby="shops-h">
+      <div class="container">
+        <h2 class="h-sm reveal" id="shops-h">Shops selling {{ e.name|lower }} in Gorakhpur</h2>
+        <div class="shop-grid stagger">
+          {% for s in d.shops %}{{ m.shop_card(s, t.home.shop_items, t.home.shop_go) }}{% endfor %}
+        </div>
+      </div>
+    </section>
+
+    <section class="block" aria-labelledby="how-h">
+      <div class="container two-col">
+        <div class="panel reveal">
+          <h2 id="how-h">How to order {{ e.name|lower }} in Gorakhpur</h2>
+          <ol class="steps">
+            <li><strong>Get the VillKro app</strong> on Android or iPhone and sign in with your phone number.</li>
+            <li><strong>Set your address</strong> in Gorakhpur or a nearby village to see the shops that deliver to you.</li>
+            <li><strong>Pick your items</strong>, check the total and choose UPI or cash where offered.</li>
+            <li><strong>Track your rider live</strong> until the order reaches your door.</li>
+          </ol>
+        </div>
+        <div class="panel reveal">
+          <h2>More to order in Gorakhpur</h2>
+          <div class="dish-rail small">
+            {% for o in gk.dishes if o.slug != d.slug %}{{ m.dish_card(o, "en") }}{% endfor %}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {{ m.cta() }}
+{% endblock %}

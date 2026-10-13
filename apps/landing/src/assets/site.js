@@ -1,10 +1,43 @@
 // VillKro website behaviour. Every page works without this file; it only
-// adds the menu, scroll effects and the animated app screens.
+// adds the theme switch, menu, scroll effects, page-transition morphs and
+// the animated app screens.
 (function () {
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var PLAY = 'https://play.google.com/store/apps/details?id=com.yashsiwach.villkro';
   var APPLE = 'https://apps.apple.com/in/app/villkro-smart-food-delivery/id6800449391';
+  var root = document.documentElement;
   function $(id) { return document.getElementById(id); }
+
+  // Light / dark theme. Light is the default; the choice is remembered on
+  // this device only (the head script applies it before first paint).
+  var themeBtn = $('themeBtn');
+  function isDark() { return root.getAttribute('data-theme') === 'dark'; }
+  function syncThemeBtn() {
+    if (!themeBtn) return;
+    var dark = isDark();
+    themeBtn.setAttribute('aria-label', themeBtn.getAttribute(dark ? 'data-to-light' : 'data-to-dark'));
+    themeBtn.setAttribute('aria-pressed', dark ? 'true' : 'false');
+    var meta = $('themeColor');
+    if (meta) meta.content = dark ? '#08080B' : '#FBF8F3';
+  }
+  function setTheme(dark) {
+    if (dark) root.setAttribute('data-theme', 'dark'); else root.removeAttribute('data-theme');
+    try { localStorage.setItem('vk-theme', dark ? 'dark' : 'light'); } catch (e) { /* private mode */ }
+    syncThemeBtn();
+  }
+  if (themeBtn) {
+    syncThemeBtn();
+    themeBtn.addEventListener('click', function () {
+      var next = !isDark();
+      if (!document.startViewTransition || reduce) { setTheme(next); return; }
+      var r = themeBtn.getBoundingClientRect();
+      root.style.setProperty('--tx', (r.left + r.width / 2) + 'px');
+      root.style.setProperty('--ty', (r.top + r.height / 2) + 'px');
+      root.classList.add('theme-anim');
+      var vt = document.startViewTransition(function () { setTheme(next); });
+      vt.finished.finally(function () { root.classList.remove('theme-anim'); });
+    });
+  }
 
   // Mobile menu
   var nav = $('nav');
@@ -13,7 +46,7 @@
     nav.classList.toggle('open', open);
     document.body.classList.toggle('menu-open', open);
     menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
-    menuBtn.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+    menuBtn.setAttribute('aria-label', menuBtn.getAttribute(open ? 'data-close' : 'data-open'));
   }
   if (nav && menuBtn) {
     menuBtn.addEventListener('click', function () { setMenu(!nav.classList.contains('open')); });
@@ -22,6 +55,32 @@
     });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setMenu(false); });
   }
+
+  // Stacked sheets: each one sticks when its bottom reaches the bottom of the
+  // screen, and the next slides over it while it shrinks and dims a little.
+  var sheets = Array.prototype.slice.call(document.querySelectorAll('.sheet'));
+  var stackOn = sheets.length > 1 && !reduce;
+  function placeSheets() {
+    if (!stackOn) return;
+    var vh = window.innerHeight;
+    sheets.forEach(function (s) {
+      // Only sticky sheets get an offset; on the last (relative) one a top would shift it.
+      s.style.top = getComputedStyle(s).position === 'sticky' ? Math.min(0, vh - s.offsetHeight) + 'px' : '';
+    });
+  }
+  function coverSheets() {
+    if (!stackOn) return;
+    var vh = window.innerHeight;
+    for (var i = 0; i < sheets.length - 1; i++) {
+      var p = (vh - sheets[i + 1].getBoundingClientRect().top) / vh;
+      p = p < 0 ? 0 : (p > 1 ? 1 : p);
+      sheets[i].style.setProperty('--cover', p.toFixed(3));
+      sheets[i].style.transform = p > 0 ? 'scale(' + (1 - p * 0.05).toFixed(4) + ')' : '';
+    }
+  }
+  placeSheets();
+  window.addEventListener('resize', function () { placeSheets(); coverSheets(); });
+  window.addEventListener('load', placeSheets);
 
   // Scroll-linked UI
   var progress = $('progress');
@@ -43,6 +102,7 @@
       }
       mbar.classList.toggle('show', y > 500 && !near);
     }
+    coverSheets();
     ticking = false;
   }
   window.addEventListener('scroll', function () {
@@ -56,6 +116,31 @@
   var store = /iPhone|iPad|iPod/i.test(ua) ? APPLE : (/Android/i.test(ua) ? PLAY : null);
   if (store) document.querySelectorAll('[data-store-link]').forEach(function (a) { a.href = store; });
 
+  // Page transitions: the tapped dish or shop card's photo and name morph
+  // into the next page's hero. Names are set only for the link being
+  // followed, and the old page's own hero names are cleared, because two
+  // elements with one name would cancel the transition.
+  var morphFrom = null;
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('a[data-morph]');
+    morphFrom = (a && !e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) ? a : null;
+  }, true);
+  function clearMorph() {
+    document.querySelectorAll('[data-morph-img], [data-morph-title], .vt-title, .vt-img').forEach(function (el) { el.style.viewTransitionName = ''; });
+  }
+  window.addEventListener('pageswap', function (e) {
+    if (!e.viewTransition || !morphFrom) return;
+    var to = e.activation && e.activation.entry && e.activation.entry.url;
+    if (!to || to.split('#')[0] !== morphFrom.href.split('#')[0]) return;
+    document.querySelectorAll('.vt-title, .vt-img').forEach(function (el) { el.style.viewTransitionName = 'none'; });
+    var img = morphFrom.querySelector('[data-morph-img]');
+    var title = morphFrom.querySelector('[data-morph-title]');
+    if (img) img.style.viewTransitionName = 'page-img';
+    if (title) title.style.viewTransitionName = 'page-title';
+    e.viewTransition.finished.finally(clearMorph);
+  });
+  window.addEventListener('pageshow', function (e) { if (e.persisted) clearMorph(); });
+
   // Reveal on scroll
   var targets = document.querySelectorAll('.reveal, .stagger');
   function show(el) { el.classList.add('in'); }
@@ -65,10 +150,14 @@
         entries.forEach(function (e) {
           if (e.isIntersecting) { show(e.target); io.unobserve(e.target); }
         });
-      }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
-      targets.forEach(function (el) { el.classList.add('will-reveal'); io.observe(el); });
+      }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+      targets.forEach(function (el) {
+        // Things already on screen at load stay put (no flash on page change).
+        if (el.getBoundingClientRect().top < window.innerHeight * 0.9) { show(el); return; }
+        el.classList.add('will-reveal');
+        io.observe(el);
+      });
     } catch (error) {
-      // Keep content readable if animation setup fails.
       targets.forEach(show);
     }
   } else {

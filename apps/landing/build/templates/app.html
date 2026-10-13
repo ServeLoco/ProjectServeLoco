@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% set ta = t.app %}
+{% set fmt = {"shops": gk.shops|length} %}
+{% block main %}
+    <section class="page-hero">
+      <div class="container">
+        {{ m.crumbs(p) }}
+        <div class="ph-grid">
+          <div>
+            <span class="eyebrow">{{ m.icon("i-phone") }}{{ ta.eyebrow }}</span>
+            <h1 class="vt-title">{{ ta.h1 }}</h1>
+            <p class="lead">{{ ta.lead }}</p>
+            {{ m.stores() }}
+            {{ m.facts(ta.facts, fmt) }}
+          </div>
+          <div class="ph-orb" aria-hidden="true">
+            <div class="orbit"></div><div class="orbit o2"></div>
+            <div class="orb-core"><img src="/assets/logo.webp" alt="" width="96" height="96"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" aria-labelledby="feat-h">
+      <div class="container stack">
+        <div class="panel reveal">
+          <h2 id="feat-h">{{ ta.feat_h }}</h2>
+          <p>{{ ta.feat_p }}</p>
+          <div class="tiles">
+            {% for f in ta.feat %}
+            <article class="tile-card"><div class="icon">{{ m.icon(["i-bell", "i-wallet", "i-pin", "i-shield"][loop.index0]) }}</div><h3>{{ f[0] }}</h3><p>{{ f[1] }}</p></article>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="two-col">
+          <div class="panel reveal">
+            <h2>{{ ta.order_h }}</h2>
+            <ol class="steps">{% for s in ta.order %}<li>{{ s|safe }}</li>{% endfor %}</ol>
+          </div>
+          <div class="panel reveal">
+            <h2>{{ ta.where_h }}</h2>
+            <p>{{ ta.where_p }}</p>
+            <div class="related compact">
+              {{ m.area_card(pre ~ gk.url, t.town.crumb, "live", t.home.gk_p.format(**fmt), t.home.gk_go) }}
+              {{ m.area_card(pre ~ ag.url, t.agroha.crumb, "soon", t.home.ag_p, t.home.ag_go) }}
+            </div>
+          </div>
+        </div>
+        <div class="panel reveal">
+          <h2>{{ ta.support_h }}</h2>
+          {% for s in ta.support %}<p>{{ s|safe }}</p>{% endfor %}
+        </div>
+      </div>
+    </section>
+
+    {{ m.cta() }}
+{% endblock %}

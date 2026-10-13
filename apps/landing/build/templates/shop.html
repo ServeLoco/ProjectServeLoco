@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% set s = ctx.shop %}
+{% block body_class %}page catalog{% endblock %}
+{% block main %}
+    <section class="page-hero">
+      <div class="container">
+        {{ m.crumbs(p) }}
+        <div class="ph-grid">
+          <div>
+            <span class="eyebrow">{{ m.icon("i-store") }}{{ s.label }} · Gorakhpur, Haryana</span>
+            <h1 class="vt-title">{{ s.name }}, Gorakhpur</h1>
+            <p class="lead">Order from {{ s.name }} on VillKro. {{ s['items']|length }} items on the menu, delivered by VillKro riders in Gorakhpur and nearby villages, with live tracking.</p>
+            {{ m.stores() }}
+            {% if s.dishes %}
+            <div class="facts">
+              {% for d in s.dishes %}<a class="fact-link" href="{{ d.url }}">{{ m.icon(d.icon) }}{{ d.en.name }}</a>{% endfor %}
+            </div>
+            {% endif %}
+          </div>
+          <div class="mosaic shop-mosaic" aria-hidden="true">
+            {% for it in (s['items']|selectattr("img")|list)[:4] %}<figure class="tile-{{ loop.index }}"><img {% if loop.first %}class="vt-img"{% endif %} src="{{ it.img }}" alt="" width="320" height="320"><figcaption>{{ it.name }}</figcaption></figure>{% endfor %}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" aria-labelledby="menu-h">
+      <div class="container">
+        <div class="head left reveal">
+          <h2 id="menu-h">{{ s.name }} menu</h2>
+          <p class="sub">{{ t.catalog_note.format(date=ctx.fetched) }}</p>
+        </div>
+        {% if s.menu|length > 1 %}
+        <nav class="menu-tabs" aria-label="Menu sections">
+          {% for cat, items in s.menu.items() %}<a href="#cat-{{ loop.index }}">{{ cat }} <small>{{ items|length }}</small></a>{% endfor %}
+        </nav>
+        {% endif %}
+        {% for cat, items in s.menu.items() %}
+        <div class="menu-group" id="cat-{{ loop.index }}">
+          <h3>{{ cat }}</h3>
+          <ul class="item-grid stagger" role="list">
+            {% for it in items %}{{ m.item_card(it) }}{% endfor %}
+          </ul>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="block" aria-labelledby="more-h">
+      <div class="container">
+        <h2 class="h-sm reveal" id="more-h">More shops on VillKro in Gorakhpur</h2>
+        <div class="shop-grid stagger">
+          {% for o in gk.shops if o.slug != s.slug %}{{ m.shop_card(o, t.home.shop_items, t.home.shop_go) }}{% endfor %}
+        </div>
+      </div>
+    </section>
+
+    {{ m.cta() }}
+{% endblock %}

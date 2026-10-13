@@ -1,19 +1,169 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://villkro.in/</loc>
+    <xhtml:link rel="alternate" hreflang="en-IN" href="https://villkro.in/"/>
+    <xhtml:link rel="alternate" hreflang="hi-IN" href="https://villkro.in/hi/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://villkro.in/"/>
+    <lastmod>2026-10-14</lastmod>
+  </url>
+  <url>
+    <loc>https://villkro.in/about/</loc>
+    <xhtml:link rel="alternate" hreflang="en-IN" href="https://villkro.in/about/"/>
+    <xhtml:link rel="alternate" hreflang="hi-IN" href="https://villkro.in/hi/about/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://villkro.in/about/"/>
     <lastmod>2026-10-14</lastmod>
   </url>
   <url>
     <loc>https://villkro.in/app/</loc>
+    <xhtml:link rel="alternate" hreflang="en-IN" href="https://villkro.in/app/"/>
+    <xhtml:link rel="alternate" hreflang="hi-IN" href="https://villkro.in/hi/app/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://villkro.in/app/"/>
     <lastmod>2026-10-14</lastmod>
   </url>
   <url>
-    <loc>https://villkro.in/delivery/gorakhpur-haryana/</loc>
+    <loc>https://villkro.in/deliver-with-villkro/</loc>
+    <xhtml:link rel="alternate" hreflang="en-IN" href="https://villkro.in/deliver-with-villkro/"/>
+    <xhtml:link rel="alternate" hreflang="hi-IN" href="https://villkro.in/hi/deliver-with-villkro/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://villkro.in/deliver-with-villkro/"/>
     <lastmod>2026-10-14</lastmod>
   </url>
   <url>
     <loc>https://villkro.in/delivery/agroha-haryana/</loc>
+    <xhtml:link rel="alternate" hreflang="en-IN" href="https://villkro.in/delivery/agroha-haryana/"/>
+    <xhtml:link rel="alternate" hreflang="hi-IN" href="https://villkro.in/hi/delivery/agroha-haryana/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://villkro.in/delivery/agroha-haryana/"/>
+    <lastmod>2026-10-14</lastmod>
+  </url>
+  <url>
+    <loc>https://villkro.in/delivery/gorakhpur-haryana/</loc>
+    <xhtml:link rel="alternate" hreflang="en-IN" href="https://villkro.in/delivery/gorakhpur-haryana/"/>
+    <xhtml:link rel="alternate" hreflang="hi-IN" href="https://villkro.in/hi/delivery/gorakhpur-haryana/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://villkro.in/delivery/gorakhpur-haryana/"/>
+    <lastmod>2026-10-14</lastmod>
+  </url>
+  <url>
+    <loc>https://villkro.in/delivery/gorakhpur-haryana/burgers-sandwiches/</loc>
+    <lastmod>2026-10-14</lastmod>
+  </url>
+  <url>
+    <loc>https://villkro.in/delivery/gorakhpur-haryana/cakes/</loc>
+    <lastmod>2026-10-14</lastmod>
+  </url>
+  <url>
+    <loc>https://villkro.in/delivery/gorakhpur-haryana/chaat-samosa/</loc>
+    <lastmod>2026-10-14</lastmod>
+  </url>
+  <url>
+    <loc>https://villkro.in/delivery/gorakhpur-haryana/chicken/</loc>
+    <lastmod>2026-10-14</lastmod>
+  </url>
+  <url>
+    <loc>https://villkro.in/delivery/gorakhpur-haryana/cold-drinks/</loc>
+    <lastmod>2026-10-14</lastmod>
+  </url>
+  <url>
+    <loc>https://villkro.in/delivery/gorakhpur-haryana/indian-food/</loc>
+    <lastmod>2026-10-14</lastmod>
+  </url>
+  <url>
+    <loc>https://villkro.in/delivery/gorakhpur-haryana/namkeen-chips/</loc>
+    <lastmod>2026-10-14</lastmod>
+  </url>
+  <url>
+    <loc>https://villkro.in/delivery/gorakhpur-haryana/pizza/</loc>
+    <lastmod>2026-10-14</lastmod>
+  </url>
+  <url>
+    <loc>https://villkro.in/delivery/gorakhpur-haryana/shops/balaji-fruit-chaat/</loc>
+    <lastmod>2026-10-14</lastmod>
+  </url>
+  <url>
+    <loc>https://villkro.in/delivery/gorakhpur-haryana/shops/manoj-misthan/</loc>
+    <lastmod>2026-10-14</lastmod>
+  </url>
+  <url>
+    <loc>https://villkro.in/delivery/gorakhpur-haryana/shops/pizza-house/</loc>
+    <lastmod>2026-10-14</lastmod>
+  </url>
+  <url>
+    <loc>https://villkro.in/delivery/gorakhpur-haryana/shops/ranoliya-conf/</loc>
+    <lastmod>2026-10-14</lastmod>
+  </url>
+  <url>
+    <loc>https://villkro.in/delivery/gorakhpur-haryana/shops/relax-hotel/</loc>
+    <lastmod>2026-10-14</lastmod>
+  </url>
+  <url>
+    <loc>https://villkro.in/delivery/gorakhpur-haryana/shops/sharma-misthan/</loc>
+    <lastmod>2026-10-14</lastmod>
+  </url>
+  <url>
+    <loc>https://villkro.in/delivery/gorakhpur-haryana/shops/veg/</loc>
+    <lastmod>2026-10-14</lastmod>
+  </url>
+  <url>
+    <loc>https://villkro.in/delivery/gorakhpur-haryana/sweets/</loc>
+    <lastmod>2026-10-14</lastmod>
+  </url>
+  <url>
+    <loc>https://villkro.in/delivery/gorakhpur-haryana/vegetables-fruits/</loc>
+    <lastmod>2026-10-14</lastmod>
+  </url>
+  <url>
+    <loc>https://villkro.in/sell-on-villkro/</loc>
+    <xhtml:link rel="alternate" hreflang="en-IN" href="https://villkro.in/sell-on-villkro/"/>
+    <xhtml:link rel="alternate" hreflang="hi-IN" href="https://villkro.in/hi/sell-on-villkro/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://villkro.in/sell-on-villkro/"/>
+    <lastmod>2026-10-14</lastmod>
+  </url>
+  <url>
+    <loc>https://villkro.in/hi/</loc>
+    <xhtml:link rel="alternate" hreflang="en-IN" href="https://villkro.in/"/>
+    <xhtml:link rel="alternate" hreflang="hi-IN" href="https://villkro.in/hi/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://villkro.in/"/>
+    <lastmod>2026-10-14</lastmod>
+  </url>
+  <url>
+    <loc>https://villkro.in/hi/about/</loc>
+    <xhtml:link rel="alternate" hreflang="en-IN" href="https://villkro.in/about/"/>
+    <xhtml:link rel="alternate" hreflang="hi-IN" href="https://villkro.in/hi/about/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://villkro.in/about/"/>
+    <lastmod>2026-10-14</lastmod>
+  </url>
+  <url>
+    <loc>https://villkro.in/hi/app/</loc>
+    <xhtml:link rel="alternate" hreflang="en-IN" href="https://villkro.in/app/"/>
+    <xhtml:link rel="alternate" hreflang="hi-IN" href="https://villkro.in/hi/app/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://villkro.in/app/"/>
+    <lastmod>2026-10-14</lastmod>
+  </url>
+  <url>
+    <loc>https://villkro.in/hi/deliver-with-villkro/</loc>
+    <xhtml:link rel="alternate" hreflang="en-IN" href="https://villkro.in/deliver-with-villkro/"/>
+    <xhtml:link rel="alternate" hreflang="hi-IN" href="https://villkro.in/hi/deliver-with-villkro/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://villkro.in/deliver-with-villkro/"/>
+    <lastmod>2026-10-14</lastmod>
+  </url>
+  <url>
+    <loc>https://villkro.in/hi/delivery/agroha-haryana/</loc>
+    <xhtml:link rel="alternate" hreflang="en-IN" href="https://villkro.in/delivery/agroha-haryana/"/>
+    <xhtml:link rel="alternate" hreflang="hi-IN" href="https://villkro.in/hi/delivery/agroha-haryana/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://villkro.in/delivery/agroha-haryana/"/>
+    <lastmod>2026-10-14</lastmod>
+  </url>
+  <url>
+    <loc>https://villkro.in/hi/delivery/gorakhpur-haryana/</loc>
+    <xhtml:link rel="alternate" hreflang="en-IN" href="https://villkro.in/delivery/gorakhpur-haryana/"/>
+    <xhtml:link rel="alternate" hreflang="hi-IN" href="https://villkro.in/hi/delivery/gorakhpur-haryana/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://villkro.in/delivery/gorakhpur-haryana/"/>
+    <lastmod>2026-10-14</lastmod>
+  </url>
+  <url>
+    <loc>https://villkro.in/hi/sell-on-villkro/</loc>
+    <xhtml:link rel="alternate" hreflang="en-IN" href="https://villkro.in/sell-on-villkro/"/>
+    <xhtml:link rel="alternate" hreflang="hi-IN" href="https://villkro.in/hi/sell-on-villkro/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://villkro.in/sell-on-villkro/"/>
     <lastmod>2026-10-14</lastmod>
   </url>
 </urlset>

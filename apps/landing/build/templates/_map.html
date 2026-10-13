@@ -1,0 +1,66 @@
+{# Delivery map illustration. Village positions follow the real delivery-zone
+   centres around Gorakhpur (distances squeezed to fit; Agroha is further). #}
+{% set hi = t.lang == "hi" %}
+{% set V = S.VILLAGES_HI if hi else {} %}
+{% set villages = [
+  ("r-siwani", "M410 190 Q 440 232 443 279", 443, 279, "Siwani", 455, 284, "start"),
+  ("r-chaubara", "M410 190 Q 398 140 415 97", 415, 97, "Chaubara · Mochi", 428, 101, "start"),
+  ("r-khajuri", "M410 190 Q 330 172 282 122", 282, 122, "Khajuri", 270, 126, "end"),
+  ("r-jandli", "M410 190 Q 352 122 320 67", 320, 67, "Jandli", 308, 71, "end"),
+  ("r-dahaman", "M410 190 Q 470 162 531 178", 531, 178, "Dahaman", 543, 183, "start"),
+  ("r-kumariya", "M410 190 Q 342 232 317 292", 317, 292, "Kumariya · Saberwas", 305, 297, "end"),
+] %}
+<div class="map-card zoom-in" aria-hidden="true">
+  <svg class="smil" viewBox="0 0 800 460" preserveAspectRatio="xMidYMid slice">
+    <defs>
+      <pattern id="mapDots" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.2" class="m-dot"/></pattern>
+      <radialGradient id="hubGlow"><stop offset="0" stop-color="#FF9F0A" stop-opacity="0.5"/><stop offset="1" stop-color="#FF6A00" stop-opacity="0"/></radialGradient>
+      <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+    </defs>
+    <rect width="800" height="460" fill="url(#mapDots)"/>
+    <path class="m-road-soon" d="M410 190 C 392 270, 352 330, 341 414" fill="none" stroke-width="3" stroke-dasharray="5 9" stroke-linecap="round"/>
+    <g class="m-road" fill="none" stroke-width="9" stroke-linecap="round">
+      {% for v in villages %}<path id="{{ v[0] }}" d="{{ v[1] }}"/>{% endfor %}
+    </g>
+    <g fill="none" stroke="#FF9F0A" stroke-opacity="0.55" stroke-width="2" class="flow">
+      {% for v in villages %}<path d="{{ v[1] }}"/>{% endfor %}
+    </g>
+    <g transform="translate(410 190)">
+      <circle r="78" fill="url(#hubGlow)"/>
+      <circle r="18" fill="none" stroke="#FF9F0A" stroke-width="2" class="pulse"/>
+      <circle r="18" fill="none" stroke="#FF9F0A" stroke-width="2" class="pulse d2"/>
+      <circle r="10" fill="#FF6A00"/><circle r="4.5" fill="#fff"/>
+    </g>
+    <g class="m-shop">
+      <rect x="392" y="170" width="11" height="11" rx="3"/><rect x="420" y="200" width="11" height="11" rx="3"/><rect x="396" y="203" width="11" height="11" rx="3"/><rect x="421" y="172" width="11" height="11" rx="3"/>
+    </g>
+    {% for v in villages %}
+    <g class="m-village"><circle cx="{{ v[2] }}" cy="{{ v[3] }}" r="7"/><circle cx="{{ v[2] }}" cy="{{ v[3] }}" r="2.6" class="m-village-core"/></g>
+    {% endfor %}
+    <g class="m-home">
+      <circle cx="458" cy="262" r="3.5"/><circle cx="430" cy="292" r="3.5"/><circle cx="398" cy="86" r="3.5"/><circle cx="296" cy="112" r="3.5"/>
+      <circle cx="334" cy="58" r="3.5"/><circle cx="546" cy="168" r="3.5"/><circle cx="330" cy="304" r="3.5"/><circle cx="300" cy="282" r="3.5"/>
+    </g>
+    <g>
+      {% for v in villages %}
+      <circle r="5.5" fill="{{ '#FFD60A' if loop.index is even else '#FF3B1F' }}"><animateMotion dur="{{ 3.4 + loop.index * 0.35 }}s" begin="-{{ loop.index * 0.7 }}s" repeatCount="indefinite" keyPoints="0;1;1;0;0" keyTimes="0;0.45;0.55;0.95;1" calcMode="linear"><mpath href="#{{ v[0] }}"/></animateMotion></circle>
+      {% endfor %}
+      <circle r="10" fill="#FF3B1F" opacity="0.45" filter="url(#glow)"><animateMotion dur="3.75s" begin="-0.7s" repeatCount="indefinite" keyPoints="0;1;1;0;0" keyTimes="0;0.45;0.55;0.95;1" calcMode="linear"><mpath href="#r-siwani"/></animateMotion></circle>
+    </g>
+    <g transform="translate(341 414)" class="m-soon">
+      <circle r="16" fill="none" stroke-width="2" stroke-dasharray="3 5" class="spin-slow"/>
+      <circle r="7"/>
+    </g>
+    <g class="m-labels" font-family="Plus Jakarta Sans, Noto Sans Devanagari, sans-serif" font-weight="700" font-size="14">
+      {% for v in villages %}
+      <text x="{{ v[5] }}" y="{{ v[6] }}" text-anchor="{{ v[7] }}">{% for n in v[4].split(" · ") %}{{ V[n] if hi else n }}{% if not loop.last %} · {% endif %}{% endfor %}</text>
+      {% endfor %}
+    </g>
+    <g font-family="Plus Jakarta Sans, Noto Sans Devanagari, sans-serif" font-weight="800">
+      <rect x="436" y="212" width="124" height="34" rx="17" class="m-pill"/>
+      <text x="498" y="234" font-size="16" text-anchor="middle" class="m-pill-text">{{ "गोरखपुर" if hi else "Gorakhpur" }}</text>
+      <rect x="362" y="398" width="{{ 150 if hi else 196 }}" height="32" rx="16" class="m-pill soon"/>
+      <text x="{{ 437 if hi else 460 }}" y="419" font-size="14" text-anchor="middle" class="m-pill-text muted">{{ "अग्रोहा · जल्द" if hi else "Agroha · opening soon" }}</text>
+    </g>
+  </svg>
+</div>

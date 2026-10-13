@@ -1,0 +1,52 @@
+{% import "_macros.html" as m with context %}
+<footer id="contact">
+  <div class="container">
+    <div class="foot">
+      <div>
+        <a href="{{ pre }}/" aria-label="{{ t.nav.home_aria }}"><img class="foot-wordmark" src="/assets/wordmark.webp" alt="{{ t.foot.wordmark_alt }}" width="220" height="89" loading="lazy"></a>
+        <p>{{ t.foot.tagline }}</p>
+      </div>
+      <div>
+        <h2>{{ t.foot.product }}</h2>
+        <ul>
+          <li><a href="{{ pre }}/#how">{{ t.foot.how }}</a></li>
+          <li><a href="{{ pre }}/#faq">{{ t.foot.faq }}</a></li>
+          <li><a href="{{ pre }}/app/">{{ t.foot.app }}</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>{{ t.foot.company }}</h2>
+        <ul>
+          <li><a href="{{ pre }}/about/">{{ t.foot.about }}</a></li>
+          <li><a href="{{ pre }}/sell-on-villkro/">{{ t.foot.sell }}</a></li>
+          <li><a href="{{ pre }}/deliver-with-villkro/">{{ t.foot.deliver }}</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>{{ t.foot.areas }}</h2>
+        <ul>
+          <li><a href="{{ pre }}{{ gk.url }}">{{ t.foot.gorakhpur }}</a></li>
+          <li><a href="{{ pre }}{{ ag.url }}">{{ t.foot.agroha }}</a></li>
+        </ul>
+        <h2 class="mt">{{ t.foot.legal }}</h2>
+        <ul>
+          <li><a href="{{ D.POLICY }}/privacy">{{ t.foot.privacy }}</a></li>
+          <li><a href="{{ D.POLICY }}/terms">{{ t.foot.terms }}</a></li>
+          <li><a href="{{ D.POLICY }}/delete-account">{{ t.foot.delete }}</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>{{ t.foot.contact }}</h2>
+        <ul>
+          <li><a href="https://wa.me/{{ D.WHATSAPP }}">WhatsApp: {{ D.WHATSAPP_SHOWN }}</a></li>
+          <li><a href="mailto:{{ D.EMAIL }}">{{ D.EMAIL }}</a></li>
+          <li><a href="{{ D.INSTAGRAM }}" target="_blank" rel="noopener">Instagram · @villkro</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>{{ t.foot.copyright }}</span>
+      <span>{{ t.foot.made }}</span>
+    </div>
+  </div>
+</footer>

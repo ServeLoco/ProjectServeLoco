@@ -1,0 +1,90 @@
+{% macro icon(name, cls="") %}<svg class="{{ cls }}" aria-hidden="true"><use href="#{{ name }}"/></svg>{% endmacro %}
+
+{% macro stores() %}
+<div class="stores">
+  <a class="store" href="{{ D.PLAY }}" target="_blank" rel="noopener" aria-label="{{ t.store.play_aria }}">
+    {{ icon("i-play") }}
+    <span><small>{{ t.store.play_small }}</small><strong>{{ t.store.play }}</strong></span>
+  </a>
+  <a class="store" href="{{ D.APPLE }}" target="_blank" rel="noopener" aria-label="{{ t.store.apple_aria }}">
+    {{ icon("i-apple-logo") }}
+    <span><small>{{ t.store.apple_small }}</small><strong>{{ t.store.apple }}</strong></span>
+  </a>
+</div>
+{% endmacro %}
+
+{% macro crumbs(p) %}
+<nav class="breadcrumbs" aria-label="Breadcrumb">
+  {% for name, href in p.crumbs %}
+    {% if loop.last %}<span aria-current="page">{{ name }}</span>{% else %}<a href="{{ href }}">{{ name }}</a><span aria-hidden="true">/</span>{% endif %}
+  {% endfor %}
+</nav>
+{% endmacro %}
+
+{% macro facts(list, fmt) %}
+<div class="facts">
+  {% for f in list %}<span>{{ icon("i-check") }}{{ f.format(**fmt) }}</span>{% endfor %}
+</div>
+{% endmacro %}
+
+{% macro cta(h=None, sub=None) %}
+<section id="download" class="cta-wrap">
+  <div class="container">
+    <div class="cta reveal">
+      <div>
+        <img class="cta-logo" src="/assets/logo.webp" alt="VillKro logo" width="72" height="72" loading="lazy">
+        <span class="kicker">{{ t.cta.kicker }}</span>
+        <h2>{{ (h or t.cta.title)|safe }}</h2>
+        <p class="sub">{{ sub or t.cta.sub }}</p>
+        {{ stores() }}
+      </div>
+      <div class="qr-card">
+        <img src="/qr-download.svg?v=villkro-in" alt="{{ t.cta.qr_alt }}" width="180" height="180" loading="lazy">
+        <p>{{ t.cta.qr }}</p>
+      </div>
+    </div>
+  </div>
+</section>
+{% endmacro %}
+
+{# Round photo card for a dish page (Zomato-style "what's on your mind"). #}
+{% macro dish_card(d, lang="en") %}
+<a class="dish" href="{{ d.url }}" data-morph>
+  <span class="dish-img"><img data-morph-img src="{{ d.cover[0].img|thumb(true) }}" alt="" width="160" height="160" loading="lazy" decoding="async"></span>
+  <span class="dish-name" data-morph-title>{{ d[lang].short }}</span>
+  <small>{{ d['items']|length }} {{ t.home.dish_items if t.home is defined else "items" }}</small>
+</a>
+{% endmacro %}
+
+{% macro shop_card(s, items_label, go_label) %}
+<a class="shop" href="{{ s.url }}" data-morph>
+  <span class="collage">
+    {% for it in s.cover %}<img {% if loop.first %}data-morph-img{% endif %} src="{{ it.img if loop.first else it.img|thumb(true) }}" alt="" width="{{ 320 if loop.first else 160 }}" height="{{ 320 if loop.first else 160 }}" loading="lazy" decoding="async">{% endfor %}
+  </span>
+  <span class="shop-body">
+    <strong data-morph-title>{{ s.name }}</strong>
+    <small>{{ s.label }}</small>
+    <span class="shop-meta"><b>{{ s['items']|length }}</b> {{ items_label }}<span class="go">{{ go_label }} {{ icon("i-arrow") }}</span></span>
+  </span>
+</a>
+{% endmacro %}
+
+{% macro item_card(it, show_shop=False) %}
+<li class="item">
+  <span class="item-img">{% if it.img %}<img src="{{ it.img }}" alt="{{ it.name }}" width="320" height="320" loading="lazy" decoding="async">{% endif %}</span>
+  <span class="item-name">{{ it.name }}</span>
+  {% if show_shop %}<a class="item-shop" href="{{ it.shop_url }}">{{ it.shop }}</a>{% endif %}
+</li>
+{% endmacro %}
+
+{% macro area_card(href, name, status, text, go) %}
+<a class="area{% if status != 'live' %} soon{% endif %}" href="{{ href }}">
+  <div class="top"><h3>{{ name }}</h3><span class="badge {{ status }}"><i></i>{{ t.live if status == 'live' else t.soon }}</span></div>
+  <p>{{ text }}</p>
+  <span class="go">{{ go }} {{ icon("i-arrow") }}</span>
+</a>
+{% endmacro %}
+
+{% macro wa_button(text, label, cls="btn btn-brand") %}
+<a class="{{ cls }}" href="{{ wa(text) }}" target="_blank" rel="noopener">{{ icon("i-whatsapp") }}{{ label }}</a>
+{% endmacro %}
