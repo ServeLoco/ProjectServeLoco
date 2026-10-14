@@ -2,11 +2,11 @@
 
 {% macro stores() %}
 <div class="stores">
-  <a class="store" href="{{ D.PLAY }}" target="_blank" rel="noopener" aria-label="{{ t.store.play_aria }}">
+  <a class="store" href="{{ D.PLAY }}" target="_blank" rel="noopener">
     {{ icon("i-play") }}
     <span><small>{{ t.store.play_small }}</small><strong>{{ t.store.play }}</strong></span>
   </a>
-  <a class="store" href="{{ D.APPLE }}" target="_blank" rel="noopener" aria-label="{{ t.store.apple_aria }}">
+  <a class="store" href="{{ D.APPLE }}" target="_blank" rel="noopener">
     {{ icon("i-apple-logo") }}
     <span><small>{{ t.store.apple_small }}</small><strong>{{ t.store.apple }}</strong></span>
   </a>
@@ -69,9 +69,9 @@
 </a>
 {% endmacro %}
 
-{% macro item_card(it, show_shop=False) %}
+{% macro item_card(it, show_shop=False, shop_name="") %}
 <li class="item">
-  <span class="item-img">{% if it.img %}<img src="{{ it.img }}" alt="{{ it.name }}" width="320" height="320" loading="lazy" decoding="async">{% endif %}</span>
+  <span class="item-img">{% if it.img %}<img src="{{ it.img }}" alt="{{ it.name }}{% if shop_name %} from {{ shop_name }}{% endif %}" width="320" height="320" loading="lazy" decoding="async">{% endif %}</span>
   <span class="item-name">{{ it.name }}</span>
   {% if show_shop %}<a class="item-shop" href="{{ it.shop_url }}">{{ it.shop }}</a>{% endif %}
 </li>

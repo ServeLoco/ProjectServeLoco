@@ -40,7 +40,7 @@
         <div class="menu-group" id="cat-{{ loop.index }}">
           <h3>{{ cat }}</h3>
           <ul class="item-grid stagger" role="list">
-            {% for it in items %}{{ m.item_card(it) }}{% endfor %}
+            {% for it in items %}{{ m.item_card(it, shop_name=s.name) }}{% endfor %}
           </ul>
         </div>
         {% endfor %}
