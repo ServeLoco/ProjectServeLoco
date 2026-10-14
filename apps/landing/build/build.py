@@ -178,6 +178,34 @@ def service_ld(town, url):
                                "opens": "09:00", "closes": "23:00"}}
 
 
+# Dish groups that are goods, not a style of cooking (kept out of servesCuisine).
+PACKED_GROUPS = {"vegetables-fruits", "dairy", "cold-drinks", "namkeen-chips"}
+
+
+def shop_ld(shop):
+    """The shop itself, so Google can show it for local searches. Address is the
+    town only (the app has no street address); the menu has names, no prices."""
+    ld = {"@type": "FoodEstablishment", "@id": D.SITE + shop["url"] + "#shop", "name": shop["name"],
+          "url": D.SITE + shop["url"],
+          "address": {"@type": "PostalAddress", "addressLocality": "Gorakhpur", "addressRegion": "Haryana",
+                      "postalCode": "125047", "addressCountry": "IN"},
+          "areaServed": {"@type": "Place", "name": "Gorakhpur, Fatehabad district, Haryana"}}
+    if shop["cover"]:
+        ld["image"] = [D.SITE + i["img"] for i in shop["cover"]]
+    if shop["group_slugs"] == ["vegetables-fruits"]:
+        ld["@type"] = "GroceryStore"
+        return ld
+    cuisine = [S.DISHES["en"][g]["short"] for g in shop["group_slugs"] if g not in PACKED_GROUPS]
+    if cuisine:
+        ld["servesCuisine"] = cuisine
+    ld["hasMenu"] = {"@type": "Menu", "name": shop["name"] + " menu", "hasMenuSection": [
+        {"@type": "MenuSection", "name": cat,
+         "hasMenuItem": [{"@type": "MenuItem", "name": i["name"], **({"image": D.SITE + i["img"]} if i["img"] else {})}
+                         for i in items]}
+        for cat, items in shop["menu"].items()]}
+    return ld
+
+
 def itemlist_ld(url, name, entries):
     return {"@type": "ItemList", "@id": D.SITE + url + "#list", "name": name,
             "itemListElement": [{"@type": "ListItem", "position": n + 1, "name": e["name"], "url": D.SITE + e["url"]}
@@ -245,8 +273,10 @@ def all_pages(gk, ag):
         desc = (f"See the {s['name']} menu on VillKro: {len(s['items'])} items including "
                 f"{', '.join(i['name'] for i in s['items'][:3])}. Order in the VillKro app for delivery in Gorakhpur, Haryana.")
         crumbs = [(t["crumb_home"], "/"), (t["town"]["crumb"], gk["url"]), (s["name"], s["url"])]
+        ld = webpage_ld(s["url"], title, desc, "en")
+        ld["about"] = {"@id": D.SITE + s["url"] + "#shop"}
         pages.append(page(s["url"], "shop.html", "en", title, desc, crumbs, [
-            webpage_ld(s["url"], title, desc, "en"), breadcrumb_ld(s["url"], crumbs)], shop=s, fetched=fetched))
+            ld, breadcrumb_ld(s["url"], crumbs), shop_ld(s)], shop=s, fetched=fetched))
     return pages
 
 
