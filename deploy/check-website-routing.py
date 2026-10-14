@@ -12,9 +12,9 @@ class NoRedirect(HTTPRedirectHandler):
 client = build_opener(NoRedirect())
 
 
-def request(host, path, method="GET"):
+def request(host, path, method="GET", headers=None):
     req = Request("http://127.0.0.1:8080" + path,
-                  headers={"Host": host}, method=method)
+                  headers={"Host": host, **(headers or {})}, method=method)
     try:
         response = client.open(req, timeout=5)
     except HTTPError as error:
@@ -58,6 +58,18 @@ for path in ("/", "/app/", "/get/", "/robots.txt", "/sitemap.xml"):
     assert request("villkro.in", path)[0] == 200, path
 assert request("villkro.in", "/missing-routing-check")[0] == 404
 
+# Visitors on http:// (as Cloudflare reports it) go to https://; https
+# visitors and requests that did not come through Cloudflare are served.
+for path in ("/", "/app/?utm_source=legacy"):
+    status, headers, _ = request("villkro.in", path, headers={"CF-Visitor": '{"scheme":"http"}'})
+    assert status == 301, (path, status)
+    assert headers.get("Location") == "https://villkro.in" + path, headers
+assert request("villkro.in", "/", headers={"CF-Visitor": '{"scheme":"https"}'})[0] == 200
+# The redirect is for the website only: apps reach the API and OTA hosts.
+for host in ("api.villkro.in", "ota.villkro.in"):
+    status, headers, _ = request(host, "/health", headers={"CF-Visitor": '{"scheme":"http"}'})
+    assert status == 200 and "Location" not in headers, (host, status)
+
 for suffix in ("villkro.in",):
     for service, path, method in (
         ("api", "/health", "GET"),
@@ -75,4 +87,4 @@ for suffix in ("villkro.in",):
         status, headers, body = request(host, path, method)
         assert status == 200 and "Location" not in headers, (host, status, headers)
         assert body == "compatibility upstream " + method + " " + host + path, body
-print("www redirects; villkro.in service routes pass; serveloco.app is refused")
+print("www and http redirect; villkro.in service routes pass; serveloco.app is refused")
