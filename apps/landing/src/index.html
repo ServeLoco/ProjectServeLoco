@@ -35,8 +35,8 @@
   <link rel="preload" href="/assets/fonts/jakarta-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" as="image" href="/assets/media/hero-wide.webp" media="(min-aspect-ratio: 4/5)" fetchpriority="high">
   <link rel="preload" as="image" href="/assets/media/hero-tall.webp" media="(max-aspect-ratio: 4/5)" fetchpriority="high">
-  <link rel="stylesheet" href="/assets/site.css?v=10379306">
-  <script src="/assets/site.js?v=10379306" defer></script>
+  <link rel="stylesheet" href="/assets/site.css?v=1d2667f2">
+  <script src="/assets/site.js?v=1d2667f2" defer></script>
   <script type="speculationrules">
   {"prerender": [{"where": {"and": [{"href_matches": "/*"}, {"not": {"href_matches": "/get/*"}}]}, "eagerness": "moderate"}]}
   </script>
@@ -110,18 +110,90 @@
    "name": "VillKro | Food & Grocery Delivery in Gorakhpur, Haryana",
    "description": "Order pizza, sweets, Indian food, chaat and groceries from 7 local shops in Gorakhpur and nearby villages, Haryana. Free VillKro app for Android and iPhone.",
    "inLanguage": "en-IN",
+   "dateModified": "2026-10-14",
    "isPartOf": {
     "@id": "https://villkro.in/#website"
    },
    "publisher": {
     "@id": "https://villkro.in/#organization"
    }
+  },
+  {
+   "@type": "FAQPage",
+   "@id": "https://villkro.in/#faq",
+   "mainEntity": [
+    {
+     "@type": "Question",
+     "name": "What is VillKro?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "VillKro is a local delivery app for towns and villages in Haryana. Order groceries, food, sweets and daily essentials from nearby shops, and follow your rider live in the app."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Where does VillKro deliver?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "VillKro delivers in and around Gorakhpur, Fatehabad district, Haryana 125047, including nearby villages like Siwani, Jandli and Dahaman. See the Gorakhpur delivery guide, then set your exact address in the app to see available shops. Agroha is opening soon."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "What can I order?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Sweets, pizza, burgers, Indian food, chicken, chaat, cakes, vegetables, fruits, namkeen and cold drinks from local shops. The app shows what is available for your address right now."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "How do I pay?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Choose UPI or cash on delivery where available. Cash may be unavailable in some areas or at certain times. Review payment options, your order total and applicable charges at checkout. The app is free to download."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "How fast is delivery?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Delivery time depends on shop preparation, distance and rider availability. Check order updates and track your rider live in the app."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "What are the ordering hours?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "You can order daily from 9 AM to 11 PM. Individual shops can have different hours or be temporarily closed; the app shows which shops are open."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Can my shop join VillKro?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Yes, if your shop is in an area VillKro serves. See Sell on VillKro or message us on WhatsApp."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "How do I delete my account?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "You can delete your account from the app at any time. See account & data deletion for details."
+     }
+    }
+   ]
   }
  ]
 }
   </script>
 </head>
 <body class="page home">
+<!--email_off-->
   <a class="skip" href="#main">Skip to content</a>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
@@ -265,13 +337,13 @@
               <div class="scr" data-screen="cart">
                 <div class="a-head"><span class="back">&#8592;</span>Your cart</div>
                 <div class="a-card">
-                  <h4>Sample order · Relax Hotel</h4>
+                  <p class="a-label">Sample order · Relax Hotel</p>
                   <div class="a-item"><img src="/assets/items/126-s.webp" alt="" width="40" height="40"><span>Chana Chat<small>Salads</small></span><span class="a-qty">&minus; 1 +</span></div>
                   <div class="a-item"><img src="/assets/items/202-s.webp" alt="" width="40" height="40"><span>Yellow Dal<small>Veg Gravy</small></span><span class="a-qty">&minus; 2 +</span></div>
                   <div class="a-item"><img src="/assets/items/203-s.webp" alt="" width="40" height="40"><span>Soya Tandoori Chaap<small>Veg Food</small></span><span class="a-qty">&minus; 1 +</span></div>
                 </div>
                 <div class="a-card">
-                  <h4>Pay with</h4>
+                  <p class="a-label">Pay with</p>
                   <div class="a-pay"><span class="on">UPI</span><span>Cash</span></div>
                 </div>
                 <div class="a-card">
@@ -879,5 +951,6 @@
     <div><strong>VillKro</strong><small>Android &amp; iPhone</small></div>
     <a class="btn btn-brand" data-store-link href="/get/">Get the app</a>
   </div>
+<!--/email_off-->
 </body>
 </html>

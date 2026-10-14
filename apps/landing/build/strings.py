@@ -147,7 +147,7 @@ EN = {
 
     "town": {
         "title": "Food & Grocery Delivery in Gorakhpur, Haryana | VillKro",
-        "desc": "Order from {shops} local shops in Gorakhpur, Haryana 125047 and nearby villages: pizza, sweets, Indian food, chaat, groceries and more. Daily 9 AM–11 PM in the VillKro app.",
+        "desc": "Order from {shops} local shops in Gorakhpur, Haryana 125047 and nearby villages: pizza, sweets, Indian food, chaat and groceries, daily 9 AM–11 PM.",
         "crumb": "Gorakhpur, Haryana", "eyebrow": "Local shops · Local riders · Haryana 125047",
         "h1": "Food and grocery delivery in Gorakhpur, Haryana.",
         "lead": "Order from {shops} local shops in Gorakhpur and nearby villages with VillKro: sweets, pizza, Indian food, chaat, groceries and everyday essentials, brought to your door by local riders.",
@@ -176,7 +176,7 @@ EN = {
     },
 
     "agroha": {
-        "title": "Food & Grocery Delivery in Agroha, Haryana: Opening Soon | VillKro",
+        "title": "Agroha, Haryana: Food Delivery Opening Soon | VillKro",
         "desc": "VillKro is coming to Agroha, Hisar district, Haryana. Local shops are joining now. Tell us you want VillKro in Agroha, or join as a shop owner.",
         "crumb": "Agroha, Haryana", "eyebrow": "Opening soon · Hisar district, Haryana",
         "h1": "Food and grocery delivery in Agroha, Haryana is coming soon.",
@@ -201,7 +201,7 @@ EN = {
 
     "app": {
         "title": "VillKro App: Food & Essentials Delivery for Android & iPhone",
-        "desc": "Download the free VillKro app for Android and iPhone. Order food, sweets, groceries and daily essentials from local shops in Gorakhpur, Haryana and track your rider live.",
+        "desc": "Download the free VillKro app for Android and iPhone. Order food, sweets and groceries from local shops in Gorakhpur, Haryana and track your rider live.",
         "crumb": "VillKro app", "eyebrow": "VillKro for Android and iPhone",
         "h1": "Download VillKro for local groceries and food.",
         "lead": "VillKro connects you with nearby shops for groceries, food, sweets and daily essentials. Set your delivery location in the app to see the shops and products available to you.",
@@ -226,7 +226,7 @@ EN = {
 
     "about": {
         "title": "About VillKro | Local Shop Delivery from Haryana",
-        "desc": "VillKro Private Limited makes the VillKro app, which brings local shops in Haryana to your phone: food, sweets, groceries and essentials with live rider tracking.",
+        "desc": "VillKro Private Limited makes the VillKro app, which brings local shops in Haryana to your phone: food, sweets, groceries and essentials, tracked live.",
         "crumb": "About us", "eyebrow": "VillKro Private Limited · Gorakhpur, Haryana",
         "h1": "We bring your local shops to your phone.",
         "lead": "VillKro is a delivery app for towns and villages. We help the sweet shops, kitchens and stores you already trust take orders online, and local riders bring those orders to your door.",
@@ -254,7 +254,7 @@ EN = {
 
     "sell": {
         "title": "Sell on VillKro: Online Orders for Local Shops in Haryana",
-        "desc": "Run a sweet shop, kirana store or eatery in Gorakhpur or Agroha? Sell on VillKro: get order alerts, manage your products and open hours, and let VillKro riders deliver.",
+        "desc": "Run a sweet shop, kirana store or eatery in Gorakhpur or Agroha? Sell on VillKro: get order alerts, manage products and hours, and let our riders deliver.",
         "crumb": "Sell on VillKro", "eyebrow": "For shop owners",
         "h1": "Sell on VillKro. Get orders from customers near you.",
         "lead": "List your shop on VillKro and customers nearby can order from you in the app. You pack the order; a VillKro rider picks it up and delivers it.",
@@ -280,7 +280,7 @@ EN = {
 
     "deliver": {
         "title": "Deliver with VillKro: Become a Delivery Rider in Haryana",
-        "desc": "Want to deliver food and groceries in Gorakhpur or Agroha? Become a VillKro rider: go online when you want, see what you'll receive before you accept, and get directions.",
+        "desc": "Deliver food and groceries in Gorakhpur or Agroha as a VillKro rider: go online when you want, see what you'll get before you accept, and get directions.",
         "crumb": "Deliver with VillKro", "eyebrow": "For riders",
         "h1": "Deliver with VillKro. Ride in your own area.",
         "lead": "VillKro riders pick up orders from local shops and bring them to customers nearby. Everything happens in the VillKro app.",
@@ -420,7 +420,7 @@ HI = {
     },
 
     "agroha": {
-        "title": "अग्रोहा, हरियाणा में खाना और राशन की डिलीवरी: जल्द आ रहा है | VillKro",
+        "title": "अग्रोहा, हरियाणा: खाना और राशन डिलीवरी जल्द | VillKro",
         "desc": "VillKro जल्द ही अग्रोहा, हिसार ज़िला, हरियाणा में आ रहा है। लोकल दुकानें अभी जुड़ रही हैं। हमें बताएँ कि आप अग्रोहा में VillKro चाहते हैं, या अपनी दुकान जोड़ें।",
         "crumb": "अग्रोहा, हरियाणा", "eyebrow": "जल्द आ रहा है · हिसार ज़िला, हरियाणा",
         "h1": "अग्रोहा, हरियाणा में खाना और राशन की डिलीवरी जल्द आ रही है।",
@@ -445,7 +445,7 @@ HI = {
 
     "app": {
         "title": "VillKro ऐप: Android और iPhone के लिए खाना और राशन डिलीवरी",
-        "desc": "Android और iPhone के लिए मुफ़्त VillKro ऐप डाउनलोड करें। गोरखपुर, हरियाणा की लोकल दुकानों से खाना, मिठाई, राशन और रोज़ का सामान मँगाएँ और राइडर को लाइव ट्रैक करें।",
+        "desc": "Android और iPhone के लिए मुफ़्त VillKro ऐप डाउनलोड करें। गोरखपुर, हरियाणा की लोकल दुकानों से खाना, मिठाई और राशन मँगाएँ और राइडर को लाइव ट्रैक करें।",
         "crumb": "VillKro ऐप", "eyebrow": "Android और iPhone के लिए VillKro",
         "h1": "लोकल राशन और खाने के लिए VillKro डाउनलोड करें।",
         "lead": "VillKro आपको पास की दुकानों से राशन, खाना, मिठाई और रोज़ के सामान के लिए जोड़ता है। ऐप में डिलीवरी लोकेशन डालें और देखें कौन-सी दुकानें और सामान आपके लिए उपलब्ध हैं।",
@@ -470,7 +470,7 @@ HI = {
 
     "about": {
         "title": "VillKro के बारे में | हरियाणा से लोकल दुकानों की डिलीवरी",
-        "desc": "VillKro Private Limited, VillKro ऐप बनाती है जो हरियाणा की लोकल दुकानों को आपके फ़ोन पर लाता है: खाना, मिठाई, राशन और ज़रूरी सामान, राइडर की लाइव ट्रैकिंग के साथ।",
+        "desc": "VillKro Private Limited, VillKro ऐप बनाती है जो हरियाणा की लोकल दुकानों को आपके फ़ोन पर लाता है: खाना, मिठाई, राशन और ज़रूरी सामान, लाइव ट्रैकिंग के साथ।",
         "crumb": "हमारे बारे में", "eyebrow": "VillKro Private Limited · गोरखपुर, हरियाणा",
         "h1": "हम आपकी लोकल दुकानों को आपके फ़ोन पर लाते हैं।",
         "lead": "VillKro कस्बों और गाँवों के लिए डिलीवरी ऐप है। हम उन मिठाई की दुकानों, किचन और स्टोर को ऑनलाइन ऑर्डर लेने में मदद करते हैं जिन पर आप पहले से भरोसा करते हैं, और लोकल राइडर वो ऑर्डर आपके घर तक लाते हैं।",
@@ -497,7 +497,7 @@ HI = {
     },
 
     "sell": {
-        "title": "VillKro पर बेचें: हरियाणा की लोकल दुकानों के लिए ऑनलाइन ऑर्डर",
+        "title": "VillKro पर बेचें: हरियाणा की दुकानों के लिए ऑनलाइन ऑर्डर",
         "desc": "गोरखपुर या अग्रोहा में मिठाई की दुकान, किराना या खाने की दुकान है? VillKro पर बेचें: ऑर्डर अलर्ट पाएँ, सामान और समय संभालें, और डिलीवरी VillKro राइडर करें।",
         "crumb": "VillKro पर बेचें", "eyebrow": "दुकानदारों के लिए",
         "h1": "VillKro पर बेचें। अपने आसपास के ग्राहकों से ऑर्डर पाएँ।",

@@ -71,13 +71,13 @@
               <div class="scr" data-screen="cart">
                 <div class="a-head"><span class="back">&#8592;</span>Your cart</div>
                 <div class="a-card">
-                  <h4>Sample order · {{ cart_shop.name }}</h4>
+                  <p class="a-label">Sample order · {{ cart_shop.name }}</p>
                   {% for it in cart_shop['items'][:3] %}
                   <div class="a-item"><img src="{{ it.img|thumb(true) }}" alt="" width="40" height="40"><span>{{ it.name }}<small>{{ it.category }}</small></span><span class="a-qty">&minus; {{ loop.index if loop.index < 3 else 1 }} +</span></div>
                   {% endfor %}
                 </div>
                 <div class="a-card">
-                  <h4>Pay with</h4>
+                  <p class="a-label">Pay with</p>
                   <div class="a-pay"><span class="on">UPI</span><span>Cash</span></div>
                 </div>
                 <div class="a-card">

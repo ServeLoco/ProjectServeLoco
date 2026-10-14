@@ -45,6 +45,10 @@
   </script>
 </head>
 <body class="{% block body_class %}page{% endblock %}">
+{# Cloudflare would otherwise rewrite every email address into a link to
+   /cdn-cgi/l/email-protection, which crawlers see as a broken link. The
+   address is public anyway (Organization schema). #}
+<!--email_off-->
   <a class="skip" href="#main">{{ t.skip }}</a>
   {% include "_sprite.html" %}
   <div class="backdrop" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -95,5 +99,6 @@
     <div><strong>VillKro</strong><small>{{ t.mbar.sub }}</small></div>
     <a class="btn btn-brand" data-store-link href="/get/">{{ t.mbar.btn }}</a>
   </div>
+<!--/email_off-->
 </body>
 </html>

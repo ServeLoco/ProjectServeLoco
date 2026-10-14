@@ -511,7 +511,7 @@ h2 { font-size: clamp(30px, 4.8vw, 52px); line-height: 1.08; letter-spacing: -0.
 .a-head { display: flex; align-items: center; gap: 0.6em; font-weight: 800; font-size: 1.15em; letter-spacing: -0.02em; }
 .a-head .back { width: 2.2em; height: 2.2em; border-radius: 0.8em; background: #fff; display: grid; place-items: center; font-size: 0.8em; box-shadow: 0 1px 0 var(--app-line); }
 .a-card { background: #fff; border-radius: 1.1em; padding: 0.8em; box-shadow: 0 1px 0 var(--app-line); }
-.a-card h4 { margin: 0 0 0.5em; font-size: 0.72em; color: var(--app-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.a-card .a-label { margin: 0 0 0.5em; font-size: 0.72em; color: var(--app-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
 .a-item { display: flex; align-items: center; gap: 0.6em; padding: 0.4em 0; font-size: 0.8em; font-weight: 700; }
 .a-item + .a-item { border-top: 1px dashed var(--app-line); }
 .a-item img { width: 2.4em; height: 2.4em; border-radius: 0.6em; object-fit: cover; flex: none; }

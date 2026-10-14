@@ -9,6 +9,7 @@ Needs Jinja2 (pip install jinja2==3.1.6).
 """
 import argparse
 import hashlib
+import html as htmllib
 import json
 import re
 import sys
@@ -138,9 +139,14 @@ def breadcrumb_ld(url, crumbs):
     return {"@type": "BreadcrumbList", "@id": D.SITE + url + "#breadcrumb", "itemListElement": items}
 
 
+# webpage_ld leaves this in the page; main() swaps in the page's lastmod after
+# hashing, so a date alone never makes a page look changed.
+LASTMOD_MARK = "@@lastmod@@"
+
+
 def webpage_ld(url, title, desc, lang, crumbs=True):
     out = {"@type": "WebPage", "@id": D.SITE + url, "url": D.SITE + url, "name": title, "description": desc,
-           "inLanguage": "hi-IN" if lang == "hi" else "en-IN",
+           "inLanguage": "hi-IN" if lang == "hi" else "en-IN", "dateModified": LASTMOD_MARK,
            "isPartOf": {"@id": D.SITE + "/#website"}, "publisher": {"@id": D.SITE + "/#organization"}}
     if crumbs:
         out["breadcrumb"] = {"@id": D.SITE + url + "#breadcrumb"}
@@ -206,6 +212,14 @@ def shop_ld(shop):
     return ld
 
 
+def faq_ld(url, qa):
+    """Questions and answers already shown on the page (answers may hold links)."""
+    return {"@type": "FAQPage", "@id": D.SITE + url + "#faq", "mainEntity": [
+        {"@type": "Question", "name": q,
+         "acceptedAnswer": {"@type": "Answer", "text": htmllib.unescape(re.sub(r"<[^>]+>", "", a))}}
+        for q, a in qa]}
+
+
 def itemlist_ld(url, name, entries):
     return {"@type": "ItemList", "@id": D.SITE + url + "#list", "name": name,
             "itemListElement": [{"@type": "ListItem", "position": n + 1, "name": e["name"], "url": D.SITE + e["url"]}
@@ -227,7 +241,8 @@ def all_pages(gk, ag):
         pages.append(page(url, "home.html", lang, title, desc, schema=[
             org_ld(), {"@type": "WebSite", "@id": D.SITE + "/#website", "name": "VillKro", "url": D.SITE + "/",
                        "inLanguage": ["en-IN", "hi-IN"], "publisher": {"@id": D.SITE + "/#organization"}},
-            app_ld(), webpage_ld(url, title, desc, lang, crumbs=False)], hero=hero_picks(gk)))
+            app_ld(), webpage_ld(url, title, desc, lang, crumbs=False), faq_ld(url, t["home"]["faq"])],
+            hero=hero_picks(gk)))
 
         # Gorakhpur
         url = pre + gk["url"]
@@ -236,7 +251,8 @@ def all_pages(gk, ag):
         crumbs = [(home, pre + "/"), (tt["crumb"], url)]
         pages.append(page(url, "town.html", lang, title, desc, crumbs, [
             webpage_ld(url, title, desc, lang), breadcrumb_ld(url, crumbs), service_ld(gk, url),
-            itemlist_ld(url, "Shops on VillKro in Gorakhpur", gk["shops"])], fetched=fetched))
+            itemlist_ld(url, "Shops on VillKro in Gorakhpur", gk["shops"]),
+            faq_ld(url, [(tt["cover_h"], " ".join(tt["cover"]))])], fetched=fetched))
 
         # Agroha (opening soon)
         url = pre + ag["url"]
@@ -264,14 +280,22 @@ def all_pages(gk, ag):
     for d in gk["dishes"]:
         e = d["en"]
         title = f"{e['name']} Delivery in Gorakhpur, Haryana | VillKro"
+        if len(title) > 60:
+            title = f"{e['short'].title()} Delivery in Gorakhpur, Haryana | VillKro"
         desc = e["desc"].format(n=len(d["items"]), shops=len(d["shops"]))
         crumbs = [(t["crumb_home"], "/"), (t["town"]["crumb"], gk["url"]), (e["name"], d["url"])]
         pages.append(page(d["url"], "dish.html", "en", title, desc, crumbs, [
             webpage_ld(d["url"], title, desc, "en"), breadcrumb_ld(d["url"], crumbs)], dish=d, fetched=fetched))
     for s in gk["shops"]:
         title = f"{s['name']}, Gorakhpur: Menu & Home Delivery | VillKro"
-        desc = (f"See the {s['name']} menu on VillKro: {len(s['items'])} items including "
-                f"{', '.join(i['name'] for i in s['items'][:3])}. Order in the VillKro app for delivery in Gorakhpur, Haryana.")
+        if len(title) > 60:
+            title = f"{s['name']}, Gorakhpur: Menu & Delivery | VillKro"
+        # Name up to three dishes, as many as fit Google's ~155-character snippet.
+        for n in (3, 2, 1):
+            desc = (f"{s['name']} menu on VillKro: {len(s['items'])} items including "
+                    f"{', '.join(i['name'] for i in s['items'][:n])}. Order for home delivery in Gorakhpur, Haryana.")
+            if len(desc) <= 155:
+                break
         crumbs = [(t["crumb_home"], "/"), (t["town"]["crumb"], gk["url"]), (s["name"], s["url"])]
         ld = webpage_ld(s["url"], title, desc, "en")
         ld["about"] = {"@id": D.SITE + s["url"] + "#shop"}
@@ -343,7 +367,7 @@ def main():
         digest = hashlib.sha256(html.encode()).hexdigest()[:16]
         prev = old.get(path)
         lastmod[path] = {"hash": digest, "lastmod": prev["lastmod"] if prev and prev["hash"] == digest else today}
-    files = {target(path): html for path, html in out.items()}
+    files = {target(path): html.replace(LASTMOD_MARK, lastmod[path]["lastmod"]) for path, html in out.items()}
     files[SRC / "sitemap.xml"] = sitemap(pages, lastmod)
     stale = [target(path) for path in old if path not in out]
 
