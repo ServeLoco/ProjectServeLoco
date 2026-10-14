@@ -46,6 +46,13 @@ for host in ("serveloco.app", "www.serveloco.app", "api.serveloco.app",
                          ("/manifest?channel=production", "GET")):
         status, headers, _ = request(host, path, method)
         assert status == 404 and "Location" not in headers, (host, path, status)
+    # ...except the old policy links store listings still show.
+    for page in ("privacy", "terms", "delete-account"):
+        for path in ("/policies/" + page, "/policies/" + page + ".html"):
+            status, headers, _ = request(host, path)
+            assert status == 301, (host, path, status)
+            assert headers.get("Location") == "https://villkro.in/" + page + "/", headers
+    assert request(host, "/policies/other.html")[0] == 404, host
 
 for path in ("/", "/app/", "/get/", "/robots.txt", "/sitemap.xml"):
     assert request("villkro.in", path)[0] == 200, path
