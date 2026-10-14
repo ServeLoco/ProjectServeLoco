@@ -44,8 +44,7 @@ services:
     # any SENTRY_RELEASE in .env.production (there shouldn't be one).
     environment:
       SENTRY_RELEASE: ${IMAGE_TAG:-latest}
-      # Keep existing browser clients working while the admin domain moves.
-      CORS_ORIGIN: https://admin.serveloco.app,https://app.serveloco.app,https://admin.villkro.in
+      CORS_ORIGIN: https://admin.villkro.in
       PUBLIC_BASE_URL: https://api.villkro.in
     restart: always
     logging: *logging
@@ -108,7 +107,7 @@ services:
 
   # ── OTA update server (xprem) ─────────────────────────────────────────
   # Serves the customer app's over-the-air JS updates in place of EAS Update
-  # (ota.serveloco.app). Builds and store submits stay on EAS. Only the app
+  # (ota.villkro.in). Builds and store submits stay on EAS. Only the app
   # talks to it; the API and the real databases never do.
   #
   # Its metadata (apps, channels, update list, encrypted signing keys) lives

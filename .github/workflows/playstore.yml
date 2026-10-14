@@ -160,7 +160,7 @@ jobs:
       # runtimeVersion (Android and iOS — one OTA serves both). A store build
       # run ships its JS inside the binary; there is nothing here to push.
       #
-      # OTA updates are served by our own xprem server (ota.serveloco.app), not
+      # OTA updates are served by our own xprem server (ota.villkro.in), not
       # EAS Update — EAS's free tier only reaches 1,000 users a month. Builds
       # and store submits above stay on EAS. Apps from 1.9.6 on ask xprem
       # (app.json updates.url); older binaries still ask EAS and get no new
@@ -180,7 +180,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "$EOO_TOKEN" ]; then
-            echo "::error::EOO_TOKEN secret is empty — create an API token in the xprem dashboard (https://ota.serveloco.app/dashboard) and add it as a repo secret"
+            echo "::error::EOO_TOKEN secret is empty — create an API token in the xprem dashboard (https://ota.villkro.in/dashboard) and add it as a repo secret"
             exit 1
           fi
           MSG=$(printf '%s' "$OTA_MESSAGE" | head -1)

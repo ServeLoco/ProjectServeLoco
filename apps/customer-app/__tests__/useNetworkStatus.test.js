@@ -4,7 +4,7 @@
  * instantly the moment it recovers).
  *
  * The URL bug this guards against: API base URL ends in '/api' (e.g.
- * https://api.serveloco.app/api) but the /health endpoint is mounted at
+ * https://api.villkro.in/api) but the /health endpoint is mounted at
  * the root, NOT under /api. If the hook blindly appends '/health', it
  * pings /api/health (404) and the offline banner falsely shows up while
  * the user is online.
@@ -61,7 +61,7 @@ describe('useNetworkStatus', () => {
   });
 
   it('pings the ROOT /ping endpoint, NOT /api/ping', async () => {
-    getApiBaseUrl.mockReturnValue('https://api.serveloco.app/api');
+    getApiBaseUrl.mockReturnValue('https://api.villkro.in/api');
     global.fetch = jest.fn().mockResolvedValue({ ok: true });
 
     renderUseNetworkStatus();
@@ -72,12 +72,12 @@ describe('useNetworkStatus', () => {
     });
 
     expect(global.fetch).toHaveBeenCalledWith(
-      'https://api.serveloco.app/ping',
+      'https://api.villkro.in/ping',
       expect.objectContaining({ method: 'HEAD' })
     );
     // It must NOT have been called with /api/ping.
     expect(global.fetch).not.toHaveBeenCalledWith(
-      'https://api.serveloco.app/api/ping',
+      'https://api.villkro.in/api/ping',
       expect.any(Object)
     );
   });
@@ -99,7 +99,7 @@ describe('useNetworkStatus', () => {
   });
 
   it('does not show trouble immediately — waits out the reveal grace period', async () => {
-    getApiBaseUrl.mockReturnValue('https://api.serveloco.app/api');
+    getApiBaseUrl.mockReturnValue('https://api.villkro.in/api');
     global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 500 });
 
     const { captured } = renderUseNetworkStatus({ revealDelayMs: 3000, retryIntervalMs: 1000 });
@@ -117,7 +117,7 @@ describe('useNetworkStatus', () => {
   });
 
   it('clears the warning instantly on the very next successful ping', async () => {
-    getApiBaseUrl.mockReturnValue('https://api.serveloco.app/api');
+    getApiBaseUrl.mockReturnValue('https://api.villkro.in/api');
     let response = { ok: false, status: 500 };
     global.fetch = jest.fn().mockImplementation(() => Promise.resolve(response));
 
@@ -152,7 +152,7 @@ describe('useNetworkStatus', () => {
     // pings inside a single second repeating on an exact 30s period. Two
     // invariants matter here — the gap must grow, and one chain must stay
     // one chain.
-    getApiBaseUrl.mockReturnValue('https://api.serveloco.app/api');
+    getApiBaseUrl.mockReturnValue('https://api.villkro.in/api');
     global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 500 });
 
     renderUseNetworkStatus({ checkIntervalMs: 60000, retryIntervalMs: 1000, revealDelayMs: 3000 });
@@ -189,7 +189,7 @@ describe('useNetworkStatus', () => {
     // band forked a second immortal chain. Every 'active' event added one
     // more, and they never stopped. Here the listener fires repeatedly and
     // the request count must stay linear, not multiply.
-    getApiBaseUrl.mockReturnValue('https://api.serveloco.app/api');
+    getApiBaseUrl.mockReturnValue('https://api.villkro.in/api');
     global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200 });
 
     const { AppState } = require('react-native');
@@ -248,7 +248,7 @@ describe('useNetworkStatus', () => {
   });
 
   it('polls at the fast retry rate while trouble is suspected, not the slow steady-state interval', async () => {
-    getApiBaseUrl.mockReturnValue('https://api.serveloco.app/api');
+    getApiBaseUrl.mockReturnValue('https://api.villkro.in/api');
     global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 500 });
 
     renderUseNetworkStatus({ checkIntervalMs: 60000, retryIntervalMs: 1000, revealDelayMs: 3000 });

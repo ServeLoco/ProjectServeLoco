@@ -33,17 +33,25 @@ for attempt in range(30):
 else:
     raise AssertionError("Proxy or landing upstream did not become ready")
 
-for host in ("serveloco.app", "www.serveloco.app", "www.villkro.in"):
-    for path in ("/", "/app/?utm_source=legacy", "/get/?source=qr&next=store"):
-        status, headers, _ = request(host, path)
-        assert status == 301, (host, path, status)
-        assert headers.get("Location") == "https://villkro.in" + path, headers
+for path in ("/", "/app/?utm_source=legacy", "/get/?source=qr&next=store"):
+    status, headers, _ = request("www.villkro.in", path)
+    assert status == 301, (path, status)
+    assert headers.get("Location") == "https://villkro.in" + path, headers
+
+# serveloco.app is retired: every name under it is refused, none redirect.
+for host in ("serveloco.app", "www.serveloco.app", "api.serveloco.app",
+             "admin.serveloco.app", "ota.serveloco.app"):
+    for path, method in (("/", "GET"), ("/health", "GET"),
+                         ("/api/orders?source=app", "POST"),
+                         ("/manifest?channel=production", "GET")):
+        status, headers, _ = request(host, path, method)
+        assert status == 404 and "Location" not in headers, (host, path, status)
 
 for path in ("/", "/app/", "/get/", "/robots.txt", "/sitemap.xml"):
     assert request("villkro.in", path)[0] == 200, path
 assert request("villkro.in", "/missing-routing-check")[0] == 404
 
-for suffix in ("serveloco.app", "villkro.in"):
+for suffix in ("villkro.in",):
     for service, path, method in (
         ("api", "/health", "GET"),
         ("api", "/api/orders?source=app", "POST"),
@@ -60,4 +68,4 @@ for suffix in ("serveloco.app", "villkro.in"):
         status, headers, body = request(host, path, method)
         assert status == 200 and "Location" not in headers, (host, status, headers)
         assert body == "compatibility upstream " + method + " " + host + path, body
-print("Website aliases redirect; new and legacy service routes pass without redirects")
+print("www redirects; villkro.in service routes pass; serveloco.app is refused")

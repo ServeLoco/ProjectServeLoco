@@ -340,7 +340,7 @@ jobs:
             # which is 200 only when both MySQL and Mongo answer.
             ok=0
             for _ in $(seq 1 36); do
-              if curl -fsS -m 5 -H 'Host: api.serveloco.app' http://localhost/health >/dev/null; then
+              if curl -fsS -m 5 -H 'Host: api.villkro.in' http://localhost/health >/dev/null; then
                 ok=1
                 break
               fi
@@ -357,7 +357,7 @@ jobs:
             code=000
             for _ in 1 2 3 4 5; do
               code=$(curl -s -o /dev/null -m 10 -w '%{http_code}' -X POST \
-                -H 'Host: api.serveloco.app' -H 'Content-Type: application/json' \
+                -H 'Host: api.villkro.in' -H 'Content-Type: application/json' \
                 -d '{"idToken":"deploy-smoke-test"}' \
                 http://localhost/api/auth/firebase-verify || true)
               if [ "$code" = "401" ]; then
