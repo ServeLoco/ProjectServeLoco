@@ -180,6 +180,17 @@ const config = {
   // Minutes after delivery before the one "How was your food?" push
   // (services/ratingPrompts.js). Set low (e.g. 1) only for local testing.
   RATING_PROMPT_DELAY_MINUTES: Number(process.env.RATING_PROMPT_DELAY_MINUTES) || 30,
+
+  // Google Maps Platform key for the Routes + Places calls the app makes
+  // through /api/maps (services/googleMaps.js). Restrict it to this server's
+  // IP in Google Cloud. Unset = /api/maps answers 503 and the app falls back
+  // to pins without a route line.
+  GOOGLE_MAPS_SERVER_KEY: process.env.GOOGLE_MAPS_SERVER_KEY,
+  // Per-IST-day ceilings on billed Google calls, so a client bug can't run up
+  // a bill. Two-wheeler routes are Google's Enterprise SKU (7,000 free a
+  // month in India); ~100/day is normal as of Oct 2026.
+  GOOGLE_MAPS_DAILY_ROUTE_CAP: Number(process.env.GOOGLE_MAPS_DAILY_ROUTE_CAP) || 500,
+  GOOGLE_MAPS_DAILY_PLACES_CAP: Number(process.env.GOOGLE_MAPS_DAILY_PLACES_CAP) || 1000,
 };
 
 // Validation

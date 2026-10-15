@@ -32,6 +32,7 @@ const storeModeRoutes = require('./routes/storeModeRoutes');
 const deliveryZonesRoutes = require('./routes/deliveryZonesRoutes');
 const bootstrapRoutes = require('./routes/bootstrapRoutes');
 const riderCapacityRoutes = require('./routes/riderCapacityRoutes');
+const mapsRoutes = require('./routes/mapsRoutes');
 
 const app = express();
 
@@ -172,6 +173,7 @@ app.use('/api/store-modes', storeModeRoutes);
 app.use('/api/delivery-zones', deliveryZonesRoutes);
 app.use('/api/bootstrap', bootstrapRoutes);
 app.use('/api/rider-capacity', riderCapacityRoutes);
+app.use('/api/maps', mapsRoutes);
 app.use('/api/admin/images', imageRoutes); // alias for admin panel
 
 // Local/mobile clients may be configured with either the server root or /api.
